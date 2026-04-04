@@ -147,8 +147,15 @@ function AppContent({
         properties={properties}
         selectedPropertyId={selectedPropertyId}
         selectedReservationId={selectedReservationId}
-        onSelectProperty={setSelectedPropertyId}
-        onSelectReservation={setSelectedReservationId}
+        onSelectProperty={(id) => {
+          setSelectedPropertyId(id);
+          setSelectedReservationId(null);
+          setShowSettings(false);
+        }}
+        onSelectReservation={(id) => {
+          setSelectedReservationId(id);
+          setShowSettings(false);
+        }}
         onAddProperty={handleAddProperty}
         onDeleteProperty={handleDeleteProperty}
         onAddReservation={handleAddReservation}
@@ -156,6 +163,11 @@ function AppContent({
         username={user.username}
         onSettings={() => setShowSettings(!showSettings)}
         onLogout={handleLogout}
+        onDashboard={() => {
+          setSelectedPropertyId(null);
+          setSelectedReservationId(null);
+          setShowSettings(false);
+        }}
         showSettings={showSettings}
       />
 
@@ -184,8 +196,16 @@ function AppContent({
           ) : (
             <Dashboard
               properties={properties}
-              onSelectProperty={setSelectedPropertyId}
-              onSelectReservation={setSelectedReservationId}
+              selectedProperty={selectedProperty || null}
+              onSelectProperty={(id) => {
+                setSelectedPropertyId(id);
+                setSelectedReservationId(null);
+              }}
+              onSelectReservation={(id) => {
+                const prop = properties.find(p => p.reservations.some(r => r.id === id));
+                if (prop) setSelectedPropertyId(prop.id);
+                setSelectedReservationId(id);
+              }}
               onAddReservation={handleAddReservation}
             />
           )}

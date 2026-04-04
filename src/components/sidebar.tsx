@@ -25,6 +25,7 @@ interface SidebarProps {
   username: string;
   onSettings: () => void;
   onLogout: () => void;
+  onDashboard: () => void;
   showSettings: boolean;
 }
 
@@ -46,6 +47,7 @@ export function Sidebar({
   username,
   onSettings,
   onLogout,
+  onDashboard,
   showSettings,
 }: SidebarProps) {
   const [newPropertyName, setNewPropertyName] = useState("");
@@ -90,7 +92,7 @@ export function Sidebar({
     <div className="flex h-full w-[260px] flex-col border-r border-border bg-[#0d1117]">
       {/* Sidebar Header */}
       <div className="px-4 pt-5 pb-4">
-        <div className="flex items-center gap-2.5">
+        <div className="flex cursor-pointer items-center gap-2.5 rounded-lg p-1 -m-1 transition-colors hover:bg-[#161b22]" onClick={onDashboard}>
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1c2128]">
             <svg className="h-4 w-4 text-[#58a6ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
@@ -104,6 +106,23 @@ export function Sidebar({
       </div>
 
       <div className="mx-3 h-px bg-[#21262d]" />
+
+      {/* Dashboard link */}
+      <div className="px-2 pt-2">
+        <button
+          onClick={onDashboard}
+          className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+            !selectedPropertyId && !showSettings
+              ? "bg-[#1c2128] text-[#f0f6fc]"
+              : "text-[#9198a1] hover:bg-[#161b22] hover:text-[#c9d1d9]"
+          }`}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+          </svg>
+          Dashboard
+        </button>
+      </div>
 
       {/* Properties label + add */}
       <div className="flex items-center justify-between px-4 pt-4 pb-1">
