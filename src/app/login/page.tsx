@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -40,114 +38,59 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      {/* Subtle gradient orbs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-[380px]">
-        {/* Logo / Brand */}
+    <div className="flex min-h-screen items-center justify-center bg-[#0d1117] p-4">
+      <div className="w-full max-w-[340px]">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-            <svg
-              className="h-7 w-7 text-primary"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21"
-              />
+          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#1c2128]">
+            <svg className="h-5 w-5 text-[#58a6ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Rent Tool</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Sign in to manage your properties
-          </p>
+          <h1 className="text-xl font-semibold text-[#f0f6fc]">Rent Tool</h1>
+          <p className="mt-1 text-sm text-[#8b949e]">Sign in to continue</p>
         </div>
 
-        {/* Form Card */}
-        <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-xl shadow-black/20 backdrop-blur-sm">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label
-                className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                htmlFor="username"
-              >
-                Username
-              </label>
-              <Input
+              <label className="text-sm text-[#c9d1d9]" htmlFor="username">Username</label>
+              <input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
-                className="h-11 rounded-xl bg-background/50 px-4 text-sm transition-colors focus:bg-background"
+                className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#484f58] outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
                 autoFocus
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <label
-                className="text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                htmlFor="password"
-              >
-                Password
-              </label>
-              <Input
+              <label className="text-sm text-[#c9d1d9]" htmlFor="password">Password</label>
+              <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="h-11 rounded-xl bg-background/50 px-4 text-sm transition-colors focus:bg-background"
+                className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#484f58] outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
                 required
               />
             </div>
 
             {error && (
-              <div className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive ring-1 ring-destructive/20">
+              <div className="rounded-md bg-[#f85149]/10 border border-[#f85149]/20 px-3 py-2 text-sm text-[#f85149]">
                 {error}
               </div>
             )}
 
-            <Button
+            <button
               type="submit"
-              className="h-11 w-full rounded-xl text-sm font-semibold tracking-wide transition-all hover:shadow-lg hover:shadow-primary/20"
+              className="h-9 w-full rounded-md bg-[#238636] text-sm font-medium text-white transition-colors hover:bg-[#2ea043] disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="h-4 w-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Signing in...
-                </span>
-              ) : (
-                "Sign in"
-              )}
-            </Button>
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
           </form>
         </div>
       </div>
