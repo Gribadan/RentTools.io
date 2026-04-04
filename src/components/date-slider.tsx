@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 interface DateSliderProps {
   checkIn: string;
@@ -14,81 +15,56 @@ function toDateStr(d: Date): string {
   return d.toISOString().split("T")[0];
 }
 
-function formatDay(d: Date): { day: string; weekday: string; month: string; isToday: boolean } {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const compare = new Date(d);
-  compare.setHours(0, 0, 0, 0);
-  return {
-    day: String(d.getDate()),
-    weekday: d.toLocaleDateString("en", { weekday: "short" }).slice(0, 2),
-    month: d.toLocaleDateString("en", { month: "short" }),
-    isToday: compare.getTime() === today.getTime(),
-  };
-}
-
-export function DateSlider({
+function CalendarGrid({
   checkIn,
   checkOut,
   onChangeCheckIn,
   onChangeCheckOut,
-  compact = false,
-}: DateSliderProps) {
-  const [showClassic, setShowClassic] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Generate days: 3 days back to 30 days forward
-  const days = useMemo(() => {
-    const result: Date[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    for (let i = -3; i <= 30; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() + i);
-      result.push(d);
-    }
-    return result;
-  }, []);
-
-  // Selection state
-  const [selecting, setSelecting] = useState<"in" | "out" | null>(
-    !checkIn ? "in" : !checkOut ? "out" : null
+  onDone,
+}: {
+  checkIn: string;
+  checkOut: string;
+  onChangeCheckIn: (date: string) => void;
+  onChangeCheckOut: (date: string) => void;
+  onDone?: () => void;
+}) {
+  const [selecting, setSelecting] = useState<"in" | "out">(
+    !checkIn ? "in" : !checkOut ? "out" : "in"
   );
+  const [showClassic, setShowClassic] = useState(false);
 
-  // Auto-scroll to today on mount
-  useEffect(() => {
-    if (scrollRef.current) {
-      const todayEl = scrollRef.current.querySelector("[data-today]");
-      if (todayEl) {
-        todayEl.scrollIntoView({ inline: "center", block: "nearest" });
-      }
-    }
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
   }, []);
+
+  // Build months to display (current month and next month)
+  const months = useMemo(() => {
+    const m1 = new Date(today.getFullYear(), today.getMonth(), 1);
+    const m2 = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    return [m1, m2];
+  }, [today]);
 
   const handleDayClick = (dateStr: string) => {
-    if (selecting === "in" || (!selecting && !checkIn)) {
+    if (selecting === "in") {
       onChangeCheckIn(dateStr);
+      onChangeCheckOut("");
       setSelecting("out");
-    } else if (selecting === "out" || (!selecting && !checkOut)) {
-      // Ensure checkOut >= checkIn
+    } else {
       if (checkIn && dateStr < checkIn) {
         onChangeCheckIn(dateStr);
         onChangeCheckOut(checkIn);
       } else {
         onChangeCheckOut(dateStr);
       }
-      setSelecting(null);
-    } else {
-      // Both set, start over
-      onChangeCheckIn(dateStr);
-      onChangeCheckOut("");
-      setSelecting("out");
+      setSelecting("in");
     }
   };
 
   const isInRange = (dateStr: string) => {
     if (!checkIn || !checkOut) return false;
-    return dateStr >= checkIn && dateStr <= checkOut;
+    return dateStr > checkIn && dateStr < checkOut;
   };
 
   const dayCount = () => {
@@ -98,117 +74,298 @@ export function DateSlider({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
+  const formatSelected = (d: string) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  };
+
   if (showClassic) {
     return (
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-1.5">
-          <span className="w-8 text-[11px] text-[#484f58]">In</span>
-          <input
-            type="date"
-            value={checkIn}
-            onChange={(e) => onChangeCheckIn(e.target.value)}
-            className="h-7 flex-1 rounded border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
-          />
+      <div className="space-y-2 p-4">
+        <div className="flex items-center gap-2">
+          <span className="w-10 text-xs text-[#9198a1]">In</span>
+          <input type="date" value={checkIn} onChange={(e) => onChangeCheckIn(e.target.value)}
+            className="h-8 flex-1 rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] outline-none focus:border-[#58a6ff]" />
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-8 text-[11px] text-[#484f58]">Out</span>
-          <input
-            type="date"
-            value={checkOut}
-            onChange={(e) => onChangeCheckOut(e.target.value)}
-            className="h-7 flex-1 rounded border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
-          />
+        <div className="flex items-center gap-2">
+          <span className="w-10 text-xs text-[#9198a1]">Out</span>
+          <input type="date" value={checkOut} onChange={(e) => onChangeCheckOut(e.target.value)}
+            className="h-8 flex-1 rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] outline-none focus:border-[#58a6ff]" />
         </div>
-        <button
-          type="button"
-          onClick={() => setShowClassic(false)}
-          className="text-[10px] text-[#58a6ff] hover:underline"
-        >
-          Use slider
-        </button>
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={() => setShowClassic(false)} className="text-xs text-[#58a6ff] hover:underline">
+            Calendar
+          </button>
+          {onDone && checkIn && checkOut && (
+            <button type="button" onClick={onDone} className="rounded-md bg-[#238636] px-3 py-1 text-xs font-medium text-white hover:bg-[#2ea043]">
+              Done
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
-  // Track which months appear
-  let lastMonth = "";
+  const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
   return (
-    <div className="space-y-1.5">
-      {/* Hint */}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-[#484f58]">
-          {selecting === "in"
-            ? "Select check-in"
-            : selecting === "out"
-            ? "Select check-out"
-            : checkIn && checkOut
-            ? `${dayCount()} days`
-            : "Tap a date"}
-        </span>
-        <button
-          type="button"
-          onClick={() => setShowClassic(true)}
-          className="text-[10px] text-[#58a6ff] hover:underline"
-        >
-          Manual
-        </button>
+    <div className="p-3">
+      {/* Status bar */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSelecting("in")}
+            className={`rounded-md px-2.5 py-1 text-xs transition-all ${
+              selecting === "in"
+                ? "bg-[#58a6ff]/15 text-[#58a6ff] ring-1 ring-[#58a6ff]/30"
+                : "text-[#9198a1] hover:text-[#c9d1d9]"
+            }`}
+          >
+            In: {formatSelected(checkIn)}
+          </button>
+          <span className="text-[#30363d]">→</span>
+          <button
+            type="button"
+            onClick={() => setSelecting("out")}
+            className={`rounded-md px-2.5 py-1 text-xs transition-all ${
+              selecting === "out"
+                ? "bg-[#58a6ff]/15 text-[#58a6ff] ring-1 ring-[#58a6ff]/30"
+                : "text-[#9198a1] hover:text-[#c9d1d9]"
+            }`}
+          >
+            Out: {formatSelected(checkOut)}
+          </button>
+          {checkIn && checkOut && (
+            <span className="text-xs text-[#3fb950]">{dayCount()} days</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setShowClassic(true)} className="text-xs text-[#58a6ff] hover:underline">
+            Manual
+          </button>
+          {onDone && checkIn && checkOut && (
+            <button type="button" onClick={onDone} className="rounded-md bg-[#238636] px-3 py-1 text-xs font-medium text-white hover:bg-[#2ea043]">
+              Done
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Scrollable day strip */}
-      <div
-        ref={scrollRef}
-        className="flex gap-0.5 overflow-x-auto pb-1 scrollbar-none"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {days.map((d) => {
-          const dateStr = toDateStr(d);
-          const info = formatDay(d);
-          const isStart = dateStr === checkIn;
-          const isEnd = dateStr === checkOut;
-          const inRange = isInRange(dateStr);
+      {/* Calendar grids */}
+      <div className="flex gap-4">
+        {months.map((monthStart) => {
+          const year = monthStart.getFullYear();
+          const month = monthStart.getMonth();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-          // Month separator
-          const monthLabel = info.month;
-          let showMonth = false;
-          if (monthLabel !== lastMonth) {
-            showMonth = true;
-            lastMonth = monthLabel;
-          }
+          // Monday = 0 offset
+          let firstDayOffset = new Date(year, month, 1).getDay() - 1;
+          if (firstDayOffset < 0) firstDayOffset = 6;
+
+          const cells: (Date | null)[] = [];
+          for (let i = 0; i < firstDayOffset; i++) cells.push(null);
+          for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+
+          const monthLabel = monthStart.toLocaleDateString("en", { month: "long", year: "numeric" });
 
           return (
-            <div key={dateStr} className="flex flex-col items-center">
-              {showMonth && (
-                <span className="mb-0.5 text-[8px] font-medium text-[#8b949e]">
-                  {monthLabel}
-                </span>
-              )}
-              {!showMonth && <span className="mb-0.5 text-[8px] invisible">X</span>}
-              <button
-                type="button"
-                onClick={() => handleDayClick(dateStr)}
-                data-today={info.isToday ? "" : undefined}
-                className={`flex flex-col items-center rounded-md transition-all ${
-                  compact ? "w-7 py-1" : "w-8 py-1.5"
-                } ${
-                  isStart || isEnd
-                    ? "bg-[#58a6ff] text-white"
-                    : inRange
-                    ? "bg-[#58a6ff]/15 text-[#79c0ff]"
-                    : info.isToday
-                    ? "bg-[#1c2128] text-[#f0f6fc] ring-1 ring-[#58a6ff]/40"
-                    : "text-[#8b949e] hover:bg-[#1c2128] hover:text-[#c9d1d9]"
-                }`}
-              >
-                <span className="text-[8px] leading-none">{info.weekday}</span>
-                <span className={`font-medium leading-none mt-0.5 ${compact ? "text-[11px]" : "text-xs"}`}>
-                  {info.day}
-                </span>
-              </button>
+            <div key={monthLabel} className="flex-1">
+              <div className="mb-2 text-center text-xs font-medium text-[#f0f6fc]">
+                {monthLabel}
+              </div>
+              <div className="grid grid-cols-7 gap-0.5">
+                {WEEKDAYS.map((wd) => (
+                  <div key={wd} className="py-1 text-center text-xs text-[#7d8590]">
+                    {wd}
+                  </div>
+                ))}
+                {cells.map((d, i) => {
+                  if (!d) return <div key={`empty-${i}`} />;
+
+                  const dateStr = toDateStr(d);
+                  const isToday = d.getTime() === today.getTime();
+                  const isStart = dateStr === checkIn;
+                  const isEnd = dateStr === checkOut;
+                  const inRange = isInRange(dateStr);
+
+                  // Dim dates more than 3 days in the past
+                  const threeDaysAgo = new Date(today);
+                  threeDaysAgo.setDate(threeDaysAgo.getDate() - 4);
+                  const isPast = d < threeDaysAgo;
+
+                  return (
+                    <button
+                      key={dateStr}
+                      type="button"
+                      disabled={isPast}
+                      onClick={() => handleDayClick(dateStr)}
+                      className={`relative flex h-8 items-center justify-center rounded-md text-xs transition-all ${
+                        isPast
+                          ? "text-[#30363d] cursor-not-allowed"
+                          : isStart || isEnd
+                          ? "bg-[#58a6ff] text-white font-semibold"
+                          : inRange
+                          ? "bg-[#58a6ff]/12 text-[#79c0ff]"
+                          : isToday
+                          ? "text-[#f0f6fc] ring-1 ring-[#58a6ff]/40"
+                          : "text-[#c9d1d9] hover:bg-[#1c2128]"
+                      }`}
+                    >
+                      {d.getDate()}
+                      {isToday && !isStart && !isEnd && (
+                        <span className="absolute bottom-0.5 left-1/2 h-0.5 w-0.5 -translate-x-1/2 rounded-full bg-[#58a6ff]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Popover version — renders a portal floating next to the trigger
+function CalendarPopover({
+  anchorRef,
+  checkIn,
+  checkOut,
+  onChangeCheckIn,
+  onChangeCheckOut,
+  onClose,
+}: {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  checkIn: string;
+  checkOut: string;
+  onChangeCheckIn: (date: string) => void;
+  onChangeCheckOut: (date: string) => void;
+  onClose: () => void;
+}) {
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({
+        top: Math.max(8, rect.top - 40),
+        left: rect.right + 8,
+      });
+    }
+  }, [anchorRef]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        anchorRef.current &&
+        !anchorRef.current.contains(e.target as Node)
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [anchorRef, onClose]);
+
+  return createPortal(
+    <div
+      ref={popoverRef}
+      className="fixed z-50 rounded-lg border border-[#30363d] bg-[#161b22] shadow-2xl shadow-black/50"
+      style={{ top: pos.top, left: pos.left, width: 480 }}
+    >
+      <CalendarGrid
+        checkIn={checkIn}
+        checkOut={checkOut}
+        onChangeCheckIn={onChangeCheckIn}
+        onChangeCheckOut={onChangeCheckOut}
+        onDone={onClose}
+      />
+    </div>,
+    document.body
+  );
+}
+
+export function DateSlider({
+  checkIn,
+  checkOut,
+  onChangeCheckIn,
+  onChangeCheckOut,
+  compact = false,
+}: DateSliderProps) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const formatDate = (d: string) => {
+    if (!d) return "Select";
+    return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  };
+
+  const dayCount = useCallback(() => {
+    if (!checkIn || !checkOut) return 0;
+    const d1 = new Date(checkIn);
+    const d2 = new Date(checkOut);
+    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  }, [checkIn, checkOut]);
+
+  if (compact) {
+    // Sidebar mode — show compact trigger button, open popover
+    return (
+      <>
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen(!open)}
+          className={`flex w-full items-center justify-between rounded-md border px-2.5 py-2 text-left transition-all ${
+            open
+              ? "border-[#58a6ff] bg-[#58a6ff]/5"
+              : "border-[#30363d] bg-[#0d1117] hover:border-[#7d8590]"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <svg className="h-3.5 w-3.5 text-[#9198a1]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            <span className="text-xs text-[#c9d1d9]">
+              {checkIn && checkOut
+                ? `${formatDate(checkIn)} — ${formatDate(checkOut)}`
+                : checkIn
+                ? `${formatDate(checkIn)} — ...`
+                : "Select dates"}
+            </span>
+          </div>
+          {checkIn && checkOut && (
+            <span className="text-xs text-[#3fb950]">{dayCount()}d</span>
+          )}
+        </button>
+        {open && (
+          <CalendarPopover
+            anchorRef={triggerRef}
+            checkIn={checkIn}
+            checkOut={checkOut}
+            onChangeCheckIn={onChangeCheckIn}
+            onChangeCheckOut={onChangeCheckOut}
+            onClose={() => setOpen(false)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // Inline mode for edit forms in main content
+  return (
+    <div className="rounded-lg border border-[#30363d] bg-[#161b22]">
+      <CalendarGrid
+        checkIn={checkIn}
+        checkOut={checkOut}
+        onChangeCheckIn={onChangeCheckIn}
+        onChangeCheckOut={onChangeCheckOut}
+      />
     </div>
   );
 }

@@ -47,25 +47,31 @@ export interface VisaData {
 
 export const PASSPORT_PROMPT = `Analyze this document image. It may be a passport or a visa.
 
+CRITICAL RULES:
+1. ALL text output MUST be in English/Latin letters ONLY. If the source is in Cyrillic or another script, transliterate to English. Example: "МИД РОССИИ" becomes "MID ROSSII", "ИВАНОВ ПЕТР" becomes "IVANOV PETR".
+2. Passport numbers MUST have NO spaces. Remove all spaces. Example: "55 1840745" becomes "551840745".
+3. Use the English name from the passport (most passports have both native and English names). Always prefer the English/Latin version.
+4. Visa numbers must also have no spaces.
+
 If it is a PASSPORT, extract these fields in JSON format:
 - type: "passport"
-- fullName: Full name as on passport
-- firstName: First/given name only
-- lastName: Last/family/surname only
-- country: Full country name that issued passport
+- fullName: Full name in English (Latin letters only, no Cyrillic)
+- firstName: First/given name in English only
+- lastName: Last/family/surname in English only
+- country: Full country name in English
 - citizenshipCode: 3-letter ISO country code (e.g. KAZ, RUS, USA, GBR, UZB, TUR, CHN, IND, DEU, FRA)
 - dateOfBirth: Date of birth (DD/MM/YYYY)
 - yearsOld: Current age in years (calculate from DOB to today April 2026)
 - gender: "M" or "F"
 - dateOfIssue: Date of issue (DD/MM/YYYY)
 - expiryDate: Expiry date (DD/MM/YYYY)
-- passportNumber: Full passport number including series
-- issuedBy: Issuing authority
+- passportNumber: Full passport number with series, NO SPACES (e.g. "551840745" not "55 1840745")
+- issuedBy: Issuing authority in English (transliterate if needed, e.g. "MID ROSSII 49302")
 
 If it is a VISA, extract these fields in JSON format:
 - type: "visa"
-- passportNumber: The passport number this visa belongs to
-- visaNumber: Visa number
+- passportNumber: The passport number this visa belongs to (NO SPACES)
+- visaNumber: Visa number (NO SPACES)
 - visaFrom: Visa valid from date (DD/MM/YYYY)
 - visaTo: Visa valid to date (DD/MM/YYYY)
 
@@ -73,6 +79,6 @@ Return ONLY valid JSON with no markdown, no code blocks, no extra text.
 If multiple documents in the image, return an array.
 Always return an array.
 
-Example passport: [{"type":"passport","fullName":"Smith John","firstName":"John","lastName":"Smith","country":"United Kingdom","citizenshipCode":"GBR","dateOfBirth":"15/03/1990","yearsOld":36,"gender":"M","dateOfIssue":"01/06/2020","expiryDate":"01/06/2030","passportNumber":"AB1234567","issuedBy":"HMPO"}]
+Example passport: [{"type":"passport","fullName":"IVANOV PETR","firstName":"PETR","lastName":"IVANOV","country":"Russia","citizenshipCode":"RUS","dateOfBirth":"15/03/1990","yearsOld":36,"gender":"M","dateOfIssue":"01/06/2020","expiryDate":"01/06/2030","passportNumber":"551840745","issuedBy":"MID ROSSII 49302"}]
 
-Example visa: [{"type":"visa","passportNumber":"AB1234567","visaNumber":"V12345","visaFrom":"01/01/2026","visaTo":"01/07/2026"}]`;
+Example visa: [{"type":"visa","passportNumber":"551840745","visaNumber":"V12345","visaFrom":"01/01/2026","visaTo":"01/07/2026"}]`;

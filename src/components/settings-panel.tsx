@@ -113,7 +113,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
 
       {/* Gemini API Key */}
       <section>
-        <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Gemini API Key
         </h2>
         <div className="rounded-xl border border-border/60 bg-card/50 p-5">
@@ -149,7 +149,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
 
       {/* User Management */}
       <section>
-        <h2 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Users
         </h2>
 
@@ -187,9 +187,9 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border/40 hover:bg-transparent">
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Username</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Role</TableHead>
-                <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Created</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Username</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Role</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">Created</TableHead>
                 {isSuperAdmin && <TableHead className="w-10"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -200,7 +200,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
                   <TableCell>
                     <Badge
                       variant={user.role === "superadmin" ? "default" : "secondary"}
-                      className="rounded-md text-[10px]"
+                      className="rounded-md text-xs"
                     >
                       {user.role}
                     </Badge>

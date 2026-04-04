@@ -6,6 +6,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { Sidebar } from "@/components/sidebar";
 import { ReservationView } from "@/components/reservation-view";
 import { SettingsPanel } from "@/components/settings-panel";
+import { Dashboard } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
 import type { Property, Guest } from "@/lib/types";
 
@@ -181,16 +182,12 @@ function AppContent({
               onUpdateParent={handleUpdateParent}
             />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center space-y-3">
-                <p className="text-[#f0f6fc] text-base">No reservation selected</p>
-                <p className="text-sm text-[#484f58]">
-                  {properties.length === 0
-                    ? "Create a property in the sidebar to get started"
-                    : "Select a reservation from the sidebar"}
-                </p>
-              </div>
-            </div>
+            <Dashboard
+              properties={properties}
+              onSelectProperty={setSelectedPropertyId}
+              onSelectReservation={setSelectedReservationId}
+              onAddReservation={handleAddReservation}
+            />
           )}
         </main>
       )}

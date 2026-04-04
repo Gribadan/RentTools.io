@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGeminiModel, PASSPORT_PROMPT } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
 
+const CYRILLIC_MAP: Record<string, string> = {
+  "А":"A","Б":"B","В":"V","Г":"G","Д":"D","Е":"E","Ё":"YO","Ж":"ZH",
+  "З":"Z","И":"I","Й":"Y","К":"K","Л":"L","М":"M","Н":"N","О":"O",
+  "П":"P","Р":"R","С":"S","Т":"T","У":"U","Ф":"F","Х":"KH","Ц":"TS",
+  "Ч":"CH","Ш":"SH","Щ":"SHCH","Ъ":"","Ы":"Y","Ь":"","Э":"E","Ю":"YU","Я":"YA",
+  "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"zh",
+  "з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o",
+  "п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"kh","ц":"ts",
+  "ч":"ch","ш":"sh","щ":"shch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya",
+};
+
+function transliterate(text: string): string {
+  return text.split("").map((ch) => CYRILLIC_MAP[ch] ?? ch).join("");
+}
+
+function sanitizeText(text: string): string {
+  return transliterate(text).trim();
+}
+
+function stripSpaces(text: string): string {
+  return transliterate(text).replace(/\s+/g, "").trim();
+}
+
 interface ExtractedItem {
   type: "passport" | "visa";
   // passport fields
@@ -73,48 +96,41 @@ export async function POST(request: NextRequest) {
 
       for (const item of parsed) {
         if (item.type === "visa") {
-          // Find existing guest by passport number and update visa info
-          if (item.passportNumber) {
+          const ppNum = stripSpaces(item.passportNumber || "");
+          if (ppNum) {
             const guest = await prisma.guest.findFirst({
-              where: {
-                reservationId: resId,
-                passportNumber: item.passportNumber,
-              },
+              where: { reservationId: resId, passportNumber: ppNum },
             });
             if (guest) {
               const updated = await prisma.guest.update({
                 where: { id: guest.id },
                 data: {
                   hasVisa: true,
-                  visaNumber: item.visaNumber || "",
-                  visaFrom: item.visaFrom || "",
-                  visaTo: item.visaTo || "",
+                  visaNumber: stripSpaces(item.visaNumber || ""),
+                  visaFrom: (item.visaFrom || "").trim(),
+                  visaTo: (item.visaTo || "").trim(),
                 },
               });
               savedItems.push({ ...updated, _action: "visa_updated" });
             } else {
-              savedItems.push({
-                _action: "visa_no_match",
-                passportNumber: item.passportNumber,
-              });
+              savedItems.push({ _action: "visa_no_match", passportNumber: ppNum });
             }
           }
         } else {
-          // Passport - create guest
           const guest = await prisma.guest.create({
             data: {
-              fullName: item.fullName || "",
-              firstName: item.firstName || "",
-              lastName: item.lastName || "",
-              country: item.country || "",
-              citizenshipCode: item.citizenshipCode || "",
-              dateOfBirth: item.dateOfBirth || "",
+              fullName: sanitizeText(item.fullName || ""),
+              firstName: sanitizeText(item.firstName || ""),
+              lastName: sanitizeText(item.lastName || ""),
+              country: sanitizeText(item.country || ""),
+              citizenshipCode: stripSpaces(item.citizenshipCode || "").toUpperCase(),
+              dateOfBirth: (item.dateOfBirth || "").trim(),
               yearsOld: item.yearsOld || 0,
-              gender: item.gender || "",
-              dateOfIssue: item.dateOfIssue || "",
-              expiryDate: item.expiryDate || "",
-              passportNumber: item.passportNumber || "",
-              issuedBy: item.issuedBy || "",
+              gender: (item.gender || "").trim().toUpperCase(),
+              dateOfIssue: (item.dateOfIssue || "").trim(),
+              expiryDate: (item.expiryDate || "").trim(),
+              passportNumber: stripSpaces(item.passportNumber || ""),
+              issuedBy: sanitizeText(item.issuedBy || ""),
               reservationId: resId,
             },
           });

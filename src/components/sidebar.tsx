@@ -87,7 +87,7 @@ export function Sidebar({
   const getColor = (id: number) => COLORS[id % COLORS.length];
 
   return (
-    <div className="flex h-full w-[240px] flex-col border-r border-border bg-[#0d1117]">
+    <div className="flex h-full w-[260px] flex-col border-r border-border bg-[#0d1117]">
       {/* Sidebar Header */}
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
@@ -98,7 +98,7 @@ export function Sidebar({
           </div>
           <div>
             <div className="text-sm font-semibold text-[#f0f6fc]">Rent Tool</div>
-            <div className="text-xs text-[#8b949e]">Properties & guests</div>
+            <div className="text-xs text-[#9198a1]">Properties & guests</div>
           </div>
         </div>
       </div>
@@ -107,10 +107,10 @@ export function Sidebar({
 
       {/* Properties label + add */}
       <div className="flex items-center justify-between px-4 pt-4 pb-1">
-        <span className="text-xs font-medium text-[#8b949e]">Properties</span>
+        <span className="text-xs font-medium text-[#9198a1]">Properties</span>
         <button
           onClick={() => setShowPropertyInput(!showPropertyInput)}
-          className="rounded-md p-1 text-[#8b949e] hover:bg-[#1c2128] hover:text-[#f0f6fc] transition-colors"
+          className="rounded-md p-1 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc] transition-colors"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -126,7 +126,7 @@ export function Sidebar({
               placeholder="Property name..."
               value={newPropertyName}
               onChange={(e) => setNewPropertyName(e.target.value)}
-              className="h-8 flex-1 rounded-md border border-[#30363d] bg-[#0d1117] px-2.5 text-sm text-[#f0f6fc] placeholder-[#484f58] outline-none focus:border-[#58a6ff]"
+              className="h-8 flex-1 rounded-md border border-[#30363d] bg-[#0d1117] px-2.5 text-sm text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff]"
               autoFocus
             />
             <Button type="submit" size="sm" className="h-8 rounded-md bg-[#238636] px-3 text-xs font-medium text-white hover:bg-[#2ea043]">
@@ -140,7 +140,7 @@ export function Sidebar({
       <ScrollArea className="flex-1">
         <div className="px-2 py-1">
           {properties.length === 0 && (
-            <p className="px-3 py-8 text-center text-xs text-[#484f58]">
+            <p className="px-3 py-8 text-center text-xs text-[#7d8590]">
               No properties yet
             </p>
           )}
@@ -185,14 +185,14 @@ export function Sidebar({
                           className={`group/res flex cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 transition-colors ${
                             isResSelected
                               ? "bg-[#1c2128] text-[#f0f6fc]"
-                              : "text-[#8b949e] hover:bg-[#161b22] hover:text-[#c9d1d9]"
+                              : "text-[#9198a1] hover:bg-[#161b22] hover:text-[#c9d1d9]"
                           }`}
                           onClick={() => onSelectReservation(res.id)}
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="truncate text-[13px]">{res.name}</span>
-                              <span className={`shrink-0 rounded px-1 py-px text-[9px] font-bold ${
+                              <span className="truncate text-sm">{res.name}</span>
+                              <span className={`shrink-0 rounded px-1 py-px text-xs font-bold ${
                                 res.platform === "booking"
                                   ? "bg-[#003580]/30 text-[#79c0ff]"
                                   : "bg-[#FF5A5F]/15 text-[#f78166]"
@@ -200,7 +200,7 @@ export function Sidebar({
                                 {res.platform === "booking" ? "B" : "A"}
                               </span>
                             </div>
-                            <div className="text-[11px] text-[#484f58]">
+                            <div className="text-xs text-[#7d8590]">
                               {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
                               {res._count && res._count.guests > 0 && (
                                 <span> · {res._count.guests}</span>
@@ -229,7 +229,7 @@ export function Sidebar({
                           placeholder="Guest name..."
                           value={resName}
                           onChange={(e) => setResName(e.target.value)}
-                          className="h-7 w-full rounded border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] placeholder-[#484f58] outline-none focus:border-[#58a6ff]"
+                          className="h-7 w-full rounded border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff]"
                           autoFocus
                         />
                         <div className="flex rounded-md bg-[#0d1117] border border-[#30363d] p-0.5">
@@ -238,12 +238,12 @@ export function Sidebar({
                               key={p}
                               type="button"
                               onClick={() => setResPlatform(p)}
-                              className={`flex-1 rounded py-1 text-[11px] font-medium transition-all ${
+                              className={`flex-1 rounded py-1 text-xs font-medium transition-all ${
                                 resPlatform === p
                                   ? p === "airbnb"
                                     ? "bg-[#FF5A5F]/15 text-[#f78166]"
                                     : "bg-[#003580]/25 text-[#79c0ff]"
-                                  : "text-[#484f58] hover:text-[#8b949e]"
+                                  : "text-[#7d8590] hover:text-[#9198a1]"
                               }`}
                             >
                               {p === "airbnb" ? "Airbnb" : "Booking"}
@@ -262,7 +262,7 @@ export function Sidebar({
                             Add
                           </Button>
                           <button type="button" onClick={() => setShowReservationForm(null)}
-                            className="h-7 rounded px-2.5 text-xs text-[#8b949e] hover:text-[#f0f6fc]">
+                            className="h-7 rounded px-2.5 text-xs text-[#9198a1] hover:text-[#f0f6fc]">
                             Cancel
                           </button>
                         </div>
@@ -270,7 +270,7 @@ export function Sidebar({
                     ) : (
                       <button
                         onClick={() => setShowReservationForm(property.id)}
-                        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] text-[#484f58] transition-colors hover:bg-[#161b22] hover:text-[#8b949e]"
+                        className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-[#7d8590] transition-colors hover:bg-[#161b22] hover:text-[#9198a1]"
                       >
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -291,7 +291,7 @@ export function Sidebar({
         <button
           onClick={onSettings}
           className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-            showSettings ? "bg-[#1c2128] text-[#f0f6fc]" : "text-[#8b949e] hover:bg-[#161b22] hover:text-[#c9d1d9]"
+            showSettings ? "bg-[#1c2128] text-[#f0f6fc]" : "text-[#9198a1] hover:bg-[#161b22] hover:text-[#c9d1d9]"
           }`}
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -301,10 +301,10 @@ export function Sidebar({
           Settings
         </button>
         <div className="flex items-center justify-between px-3 py-1.5">
-          <span className="text-xs text-[#484f58]">{username}</span>
+          <span className="text-xs text-[#7d8590]">{username}</span>
           <button
             onClick={onLogout}
-            className="text-xs text-[#484f58] hover:text-[#f85149] transition-colors"
+            className="text-xs text-[#7d8590] hover:text-[#f85149] transition-colors"
           >
             Logout
           </button>
