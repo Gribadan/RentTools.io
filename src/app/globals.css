@@ -84,37 +84,37 @@
 }
 
 .dark {
-  --background: oklch(0.1 0.01 270);
-  --foreground: oklch(0.93 0.005 260);
-  --card: oklch(0.13 0.01 270);
-  --card-foreground: oklch(0.93 0.005 260);
-  --popover: oklch(0.13 0.01 270);
-  --popover-foreground: oklch(0.93 0.005 260);
-  --primary: oklch(0.68 0.16 260);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.18 0.01 270);
-  --secondary-foreground: oklch(0.8 0.01 260);
-  --muted: oklch(0.18 0.01 270);
-  --muted-foreground: oklch(0.55 0.015 260);
-  --accent: oklch(0.18 0.015 270);
-  --accent-foreground: oklch(0.88 0.005 260);
-  --destructive: oklch(0.6 0.2 25);
-  --border: oklch(0.2 0.01 270);
-  --input: oklch(0.18 0.01 270);
-  --ring: oklch(0.68 0.16 260);
-  --chart-1: oklch(0.7 0.15 250);
-  --chart-2: oklch(0.65 0.15 160);
-  --chart-3: oklch(0.7 0.12 50);
-  --chart-4: oklch(0.65 0.18 300);
-  --chart-5: oklch(0.7 0.15 140);
-  --sidebar: oklch(0.11 0.01 270);
-  --sidebar-foreground: oklch(0.93 0.005 260);
-  --sidebar-primary: oklch(0.68 0.16 260);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.16 0.015 270);
-  --sidebar-accent-foreground: oklch(0.88 0.005 260);
-  --sidebar-border: oklch(0.2 0.01 270);
-  --sidebar-ring: oklch(0.68 0.16 260);
+  --background: #0d1117;
+  --foreground: #c9d1d9;
+  --card: #161b22;
+  --card-foreground: #c9d1d9;
+  --popover: #161b22;
+  --popover-foreground: #c9d1d9;
+  --primary: #58a6ff;
+  --primary-foreground: #ffffff;
+  --secondary: #1c2128;
+  --secondary-foreground: #8b949e;
+  --muted: #1c2128;
+  --muted-foreground: #8b949e;
+  --accent: #1c2128;
+  --accent-foreground: #c9d1d9;
+  --destructive: #f85149;
+  --border: #21262d;
+  --input: #1c2128;
+  --ring: #58a6ff;
+  --chart-1: #58a6ff;
+  --chart-2: #3fb950;
+  --chart-3: #d29922;
+  --chart-4: #bc8cff;
+  --chart-5: #f78166;
+  --sidebar: #0d1117;
+  --sidebar-foreground: #c9d1d9;
+  --sidebar-primary: #58a6ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #161b22;
+  --sidebar-accent-foreground: #c9d1d9;
+  --sidebar-border: #21262d;
+  --sidebar-ring: #58a6ff;
 }
 
 @layer base {
@@ -123,6 +123,8 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 14px;
+    letter-spacing: -0.01em;
   }
   html {
     @apply font-sans;

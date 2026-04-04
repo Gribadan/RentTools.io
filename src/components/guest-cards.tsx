@@ -34,7 +34,7 @@ function CopyField({
       <span className="text-[10px] text-muted-foreground/50">{label}</span>
       <div className="flex items-center gap-1.5">
         <span className="text-xs font-medium">{value || "—"}</span>
-        <span className={`text-[9px] transition-all ${copied ? "text-emerald-400" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"}`}>
+        <span className={`text-[9px] transition-all ${copied ? "text-[#3fb950]" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"}`}>
           {copied ? "copied" : "copy"}
         </span>
       </div>
@@ -93,15 +93,9 @@ function GuestCard({
     >
       {/* Card header */}
       <div className="flex items-center justify-between border-b border-border/20 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <div className={`flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold ${
-            guest.gender === "F"
-              ? "bg-pink-500/15 text-pink-400"
-              : "bg-blue-500/15 text-blue-400"
-          }`}>
-            {guest.gender || "?"}
-          </div>
-          <span className="text-sm font-semibold">{guest.fullName}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="truncate text-sm font-semibold text-[#f0f6fc]">{guest.fullName}</span>
+          <span className="shrink-0 text-xs text-[#8b949e]">{guest.yearsOld}y</span>
         </div>
         <button
           onClick={() => onDelete(guest.id)}
@@ -139,7 +133,7 @@ function GuestCard({
         {/* Block 3: Visa (only if uploaded) */}
         {guest.hasVisa && (
           <div className="p-1.5">
-            <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-emerald-400/50">
+            <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-[#3fb950]/50">
               Visa
             </div>
             <CopyField label="Visa number" value={guest.visaNumber} />
@@ -153,7 +147,7 @@ function GuestCard({
         {/* Block 4: Children (only if any attached) */}
         {children.length > 0 && (
           <div className="p-1.5">
-            <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-amber-400/50">
+            <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-[#d29922]/50">
               Children ({children.length})
             </div>
             {children.map((child) => (
@@ -194,7 +188,7 @@ export function GuestCards({
   const stayDays = (() => {
     const d1 = new Date(checkIn);
     const d2 = new Date(checkOut);
-    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   })();
 
   // Separate adults (16+) and children (<16)

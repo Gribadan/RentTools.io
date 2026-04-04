@@ -5,6 +5,7 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GuestCards } from "@/components/guest-cards";
+import { DateSlider } from "@/components/date-slider";
 import type { Guest, Reservation } from "@/lib/types";
 
 interface LogEntry {
@@ -153,10 +154,10 @@ export function ReservationView({
     });
   };
 
-  const daysBetween = () => {
+  const stayDays = () => {
     const d1 = new Date(reservation.checkIn);
     const d2 = new Date(reservation.checkOut);
-    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
   return (
@@ -191,22 +192,12 @@ export function ReservationView({
                   ))}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-muted-foreground">In:</label>
-                <input
-                  type="date"
-                  value={editCheckIn}
-                  onChange={(e) => setEditCheckIn(e.target.value)}
-                  className="rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm outline-none focus:border-primary/50"
-                />
-                <label className="text-xs text-muted-foreground">Out:</label>
-                <input
-                  type="date"
-                  value={editCheckOut}
-                  onChange={(e) => setEditCheckOut(e.target.value)}
-                  className="rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm outline-none focus:border-primary/50"
-                />
-              </div>
+              <DateSlider
+                checkIn={editCheckIn}
+                checkOut={editCheckOut}
+                onChangeCheckIn={setEditCheckIn}
+                onChangeCheckOut={setEditCheckOut}
+              />
               <div className="flex gap-2">
                 <Button size="sm" className="rounded-lg text-xs" onClick={handleSaveEdit}>
                   Save
@@ -243,7 +234,7 @@ export function ReservationView({
                   {formatDate(reservation.checkIn)} — {formatDate(reservation.checkOut)}
                 </span>
                 <Badge variant="outline" className="rounded-md text-[10px]">
-                  {daysBetween()} nights
+                  {stayDays()} days
                 </Badge>
                 {guests.length > 0 && (
                   <Badge variant="secondary" className="rounded-md text-[10px]">
@@ -326,7 +317,7 @@ export function ReservationView({
         </div>
 
         {/* Extraction Log */}
-        <div className="flex flex-col rounded-xl border border-border/40 bg-[#0a0a14]">
+        <div className="flex flex-col rounded-xl border border-[#21262d] bg-[#0d1117]">
           <div className="flex items-center justify-between border-b border-border/30 px-3 py-2">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
               Extraction Log
@@ -350,11 +341,11 @@ export function ReservationView({
                   <span
                     className={
                       log.type === "success"
-                        ? "text-emerald-400"
+                        ? "text-[#3fb950]"
                         : log.type === "error"
                         ? "text-red-400"
                         : log.type === "processing"
-                        ? "text-amber-400"
+                        ? "text-[#d29922]"
                         : "text-muted-foreground/60"
                     }
                   >
