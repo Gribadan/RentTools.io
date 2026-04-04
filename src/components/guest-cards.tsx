@@ -11,31 +11,58 @@ interface GuestCardsProps {
   onUpdateParent: (childId: number, parentId: number | null) => void;
 }
 
+// Global last-copied tracking so highlight persists when switching tabs
+let globalLastCopiedKey: string | null = null;
+const copyListeners = new Set<() => void>();
+
+function notifyCopyListeners(key: string) {
+  globalLastCopiedKey = key;
+  copyListeners.forEach((fn) => fn());
+}
+
 function CopyField({
   label,
   value,
+  fieldKey,
 }: {
   label: string;
   value: string;
+  fieldKey: string;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [justCopied, setJustCopied] = useState(false);
+  const [highlighted, setHighlighted] = useState(false);
+
+  // Subscribe to global copy events
+  useState(() => {
+    const fn = () => setHighlighted(globalLastCopiedKey === fieldKey);
+    copyListeners.add(fn);
+    return () => { copyListeners.delete(fn); };
+  });
 
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    notifyCopyListeners(fieldKey);
+    setHighlighted(true);
+    setJustCopied(true);
+    setTimeout(() => setJustCopied(false), 1200);
   };
 
   return (
     <div
       onClick={handleCopy}
-      className="group/field flex cursor-pointer items-center justify-between rounded-md px-2 py-1 transition-all hover:bg-white/5"
+      className={`group/field flex cursor-pointer items-center justify-between rounded-md px-2 py-1 transition-all ${
+        highlighted
+          ? "bg-[#58a6ff]/10 ring-1 ring-[#58a6ff]/20"
+          : "hover:bg-white/5"
+      }`}
     >
-      <span className="text-[10px] text-muted-foreground/50">{label}</span>
+      <span className={`text-xs ${highlighted ? "text-[#58a6ff]/80" : "text-muted-foreground/60"}`}>{label}</span>
       <div className="flex items-center gap-1.5">
-        <span className="text-xs font-medium">{value || "—"}</span>
-        <span className={`text-[9px] transition-all ${copied ? "text-[#3fb950]" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"}`}>
-          {copied ? "copied" : "copy"}
+        <span className={`text-sm font-medium ${highlighted ? "text-[#f0f6fc]" : ""}`}>{value || "—"}</span>
+        <span className={`text-[11px] transition-all ${
+          justCopied ? "text-[#3fb950]" : highlighted ? "text-[#58a6ff]/40" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"
+        }`}>
+          {justCopied ? "copied" : "copy"}
         </span>
       </div>
     </div>
@@ -95,7 +122,7 @@ function GuestCard({
       <div className="flex items-center justify-between border-b border-border/20 px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="truncate text-sm font-semibold text-[#f0f6fc]">{guest.fullName}</span>
-          <span className="shrink-0 text-xs text-[#8b949e]">{guest.yearsOld}y</span>
+          <span className="shrink-0 text-xs text-[#9198a1]">{guest.yearsOld}y</span>
         </div>
         <button
           onClick={() => onDelete(guest.id)}
@@ -110,44 +137,46 @@ function GuestCard({
       <div className="divide-y divide-border/15">
         {/* Block 1: Citizenship, DOB, Passport */}
         <div className="p-1.5">
-          <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-primary/40">
+          <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
             Identity
           </div>
-          <CopyField label="Citizenship" value={guest.citizenshipCode} />
-          <CopyField label="Date of birth" value={guest.dateOfBirth} />
-          <CopyField label="Passport" value={guest.passportNumber} />
+          <CopyField label="Citizenship" value={guest.citizenshipCode} fieldKey={`${guest.id}-ctz`} />
+          <CopyField label="Date of birth" value={guest.dateOfBirth} fieldKey={`${guest.id}-dob`} />
+          <CopyField label="Passport" value={guest.passportNumber} fieldKey={`${guest.id}-pp`} />
         </div>
 
         {/* Block 2: Issue, Authority, Name, Gender, Stay */}
         <div className="p-1.5">
-          <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-primary/40">
+          <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
             Document
           </div>
-          <CopyField label="Date of issue" value={guest.dateOfIssue} />
-          <CopyField label="Issued by" value={guest.issuedBy} />
-          <CopyField label="Full name" value={`${guest.lastName} ${guest.firstName}`} />
-          <CopyField label="Gender" value={guest.gender === "M" ? "Male" : guest.gender === "F" ? "Female" : guest.gender} />
-          <CopyField label="Arrived on (days)" value={String(stayDays)} />
+          <CopyField label="Date of issue" value={guest.dateOfIssue} fieldKey={`${guest.id}-doi`} />
+          <CopyField label="Issued by" value={guest.issuedBy} fieldKey={`${guest.id}-ib`} />
+          <CopyField label="Full name" value={`${guest.lastName} ${guest.firstName}`} fieldKey={`${guest.id}-fn`} />
+          <CopyField label="Gender" value={guest.gender === "M" ? "Male" : guest.gender === "F" ? "Female" : guest.gender} fieldKey={`${guest.id}-gen`} />
+          <CopyField label="Arrived on (days)" value={String(stayDays)} fieldKey={`${guest.id}-stay`} />
         </div>
 
-        {/* Block 3: Visa (only if uploaded) */}
-        {guest.hasVisa && (
-          <div className="p-1.5">
-            <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-[#3fb950]/50">
-              Visa
-            </div>
-            <CopyField label="Visa number" value={guest.visaNumber} />
-            <CopyField label="Visa from" value={guest.visaFrom} />
-            <CopyField label="Visa to" value={guest.visaTo} />
-            <CopyField label="Visit type" value="Tourist" />
-            <CopyField label="Guest type" value="Other" />
+        {/* Block 3: Visit info + Visa (if uploaded) */}
+        <div className="p-1.5">
+          <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#3fb950]/70">
+            {guest.hasVisa ? "Visa & Visit" : "Visit"}
           </div>
-        )}
+          {guest.hasVisa && (
+            <>
+              <CopyField label="Visa number" value={guest.visaNumber} fieldKey={`${guest.id}-vn`} />
+              <CopyField label="Visa from" value={guest.visaFrom} fieldKey={`${guest.id}-vf`} />
+              <CopyField label="Visa to" value={guest.visaTo} fieldKey={`${guest.id}-vt`} />
+            </>
+          )}
+          <CopyField label="Visit type" value="Tourist" fieldKey={`${guest.id}-vtype`} />
+          <CopyField label="Guest type" value="Other" fieldKey={`${guest.id}-gtype`} />
+        </div>
 
         {/* Block 4: Children (only if any attached) */}
         {children.length > 0 && (
           <div className="p-1.5">
-            <div className="mb-0.5 px-2 pt-1 text-[9px] font-semibold uppercase tracking-widest text-[#d29922]/50">
+            <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#d29922]/70">
               Children ({children.length})
             </div>
             {children.map((child) => (
@@ -160,15 +189,15 @@ function GuestCard({
                 <div className="flex items-center justify-between px-1">
                   <span className="text-[11px] font-medium">{child.fullName}</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-[9px] text-muted-foreground/30">drag to move</span>
+                    <span className="text-[11px] text-muted-foreground/30">drag to move</span>
                     <svg className="h-3 w-3 text-muted-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
                     </svg>
                   </div>
                 </div>
-                <CopyField label="Name" value={child.fullName} />
-                <CopyField label="Date of birth" value={child.dateOfBirth} />
-                <CopyField label="Gender" value={child.gender === "M" ? "Male" : child.gender === "F" ? "Female" : child.gender} />
+                <CopyField label="Name" value={child.fullName} fieldKey={`${child.id}-cfn`} />
+                <CopyField label="Date of birth" value={child.dateOfBirth} fieldKey={`${child.id}-cdob`} />
+                <CopyField label="Gender" value={child.gender === "M" ? "Male" : child.gender === "F" ? "Female" : child.gender} fieldKey={`${child.id}-cgen`} />
               </div>
             ))}
           </div>
@@ -230,11 +259,11 @@ export function GuestCards({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">
           Guests ({adults.length} adult{adults.length !== 1 ? "s" : ""}
           {allChildren.length > 0 && `, ${allChildren.length} child${allChildren.length !== 1 ? "ren" : ""}`})
         </h2>
-        <span className="text-[10px] text-muted-foreground/30">Click any value to copy</span>
+        <span className="text-xs text-muted-foreground/30">Click any value to copy</span>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {adults.map((guest) => (

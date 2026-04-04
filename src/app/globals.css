@@ -93,9 +93,9 @@
   --primary: #58a6ff;
   --primary-foreground: #ffffff;
   --secondary: #1c2128;
-  --secondary-foreground: #8b949e;
+  --secondary-foreground: #9198a1;
   --muted: #1c2128;
-  --muted-foreground: #8b949e;
+  --muted-foreground: #9198a1;
   --accent: #1c2128;
   --accent-foreground: #c9d1d9;
   --destructive: #f85149;
@@ -123,7 +123,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.6;
     letter-spacing: -0.01em;
   }
   html {

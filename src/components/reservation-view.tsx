@@ -215,7 +215,7 @@ export function ReservationView({
                 </h1>
                 <button
                   onClick={() => setEditing(true)}
-                  className="rounded-md p-1 text-muted-foreground/40 transition-all hover:bg-muted/50 hover:text-foreground"
+                  className="rounded-md p-1 text-muted-foreground/60 transition-all hover:bg-muted/50 hover:text-foreground"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -223,7 +223,7 @@ export function ReservationView({
                 </button>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
                   reservation.platform === "booking"
                     ? "bg-[#003580]/20 text-[#4B9CD3]"
                     : "bg-[#FF5A5F]/10 text-[#FF5A5F]"
@@ -233,11 +233,11 @@ export function ReservationView({
                 <span className="text-xs text-muted-foreground">
                   {formatDate(reservation.checkIn)} — {formatDate(reservation.checkOut)}
                 </span>
-                <Badge variant="outline" className="rounded-md text-[10px]">
+                <Badge variant="outline" className="rounded-md text-xs">
                   {stayDays()} days
                 </Badge>
                 {guests.length > 0 && (
-                  <Badge variant="secondary" className="rounded-md text-[10px]">
+                  <Badge variant="secondary" className="rounded-md text-xs">
                     {guests.length} guest{guests.length !== 1 && "s"}
                   </Badge>
                 )}
@@ -258,7 +258,7 @@ export function ReservationView({
         <div className="border-t border-border/30 px-4 py-3">
           <ol className="space-y-2.5 text-[13px] leading-relaxed">
             <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">1</span>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">1</span>
               <span>
                 Go to{" "}
                 <a href="https://emehmon.uz/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
@@ -268,7 +268,7 @@ export function ReservationView({
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">2</span>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">2</span>
               <span>
                 Login:{" "}
                 <code className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono">asminkin</code>{" "}
@@ -276,13 +276,13 @@ export function ReservationView({
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">3</span>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">3</span>
               <span className="text-muted-foreground">
                 Мои листки → Создать → Выбираем гражданство → Дату рождения → Вводим паспортные данные. Заполняем 3 вкладки по визам и дням.
               </span>
             </li>
             <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">4</span>
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">4</span>
               <span className="text-muted-foreground">Оплачиваем</span>
             </li>
           </ol>
@@ -312,20 +312,20 @@ export function ReservationView({
             <p className="text-xs font-medium">
               {isDragActive ? "Drop here..." : "Drop passport documents"}
             </p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground/50">JPG, PNG, PDF</p>
+            <p className="mt-0.5 text-xs text-muted-foreground/70">JPG, PNG, PDF</p>
           </div>
         </div>
 
         {/* Extraction Log */}
         <div className="flex flex-col rounded-xl border border-[#21262d] bg-[#0d1117]">
           <div className="flex items-center justify-between border-b border-border/30 px-3 py-2">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
               Extraction Log
             </span>
             {logs.length > 0 && (
               <button
                 onClick={() => setLogs([])}
-                className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
+                className="text-xs text-muted-foreground/60 hover:text-muted-foreground"
               >
                 Clear
               </button>

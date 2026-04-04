@@ -47,7 +47,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-xl font-semibold text-[#f0f6fc]">Rent Tool</h1>
-          <p className="mt-1 text-sm text-[#8b949e]">Sign in to continue</p>
+          <p className="mt-1 text-sm text-[#9198a1]">Sign in to continue</p>
         </div>
 
         <div className="rounded-lg border border-[#30363d] bg-[#161b22] p-6">
@@ -59,7 +59,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
-                className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#484f58] outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
+                className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
                 autoFocus
                 required
               />
@@ -73,7 +73,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#484f58] outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
+                className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]"
                 required
               />
             </div>
