@@ -71,10 +71,23 @@ function AppContent({
     name: string;
     checkIn: string;
     checkOut: string;
+    platform: string;
     propertyId: number;
   }) => {
     const res = await fetch("/api/reservations", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (res.ok) await fetchProperties();
+  };
+
+  const handleUpdateReservation = async (
+    id: number,
+    data: { name?: string; checkIn?: string; checkOut?: string; platform?: string }
+  ) => {
+    const res = await fetch(`/api/reservations/${id}`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
@@ -92,6 +105,17 @@ function AppContent({
     if (selectedReservationId) {
       await fetchGuests(selectedReservationId);
       await fetchProperties();
+    }
+  };
+
+  const handleUpdateParent = async (childId: number, parentId: number | null) => {
+    await fetch(`/api/guests/${childId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parentId }),
+    });
+    if (selectedReservationId) {
+      await fetchGuests(selectedReservationId);
     }
   };
 
@@ -191,6 +215,8 @@ function AppContent({
                 guests={guests}
                 onGuestsUpdated={handleGuestsUpdated}
                 onDeleteGuest={handleDeleteGuest}
+                onUpdateReservation={handleUpdateReservation}
+                onUpdateParent={handleUpdateParent}
               />
             ) : (
               <div className="flex h-full items-center justify-center">

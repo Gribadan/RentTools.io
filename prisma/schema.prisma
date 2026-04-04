@@ -33,6 +33,7 @@ model Reservation {
   name       String
   checkIn    DateTime
   checkOut   DateTime
+  platform   String   @default("airbnb")
   propertyId Int
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests     Guest[]
@@ -40,16 +41,25 @@ model Reservation {
 }
 
 model Guest {
-  id             Int         @id @default(autoincrement())
-  fullName       String
-  country        String
-  dateOfBirth    String
-  yearsOld       Int
-  dateOfIssue    String
-  expiryDate     String
-  passportNumber String
-  issuedBy       String
-  reservationId  Int
-  reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  createdAt      DateTime    @default(now())
+  id               Int         @id @default(autoincrement())
+  fullName         String
+  firstName        String      @default("")
+  lastName         String      @default("")
+  country          String
+  citizenshipCode  String      @default("")
+  dateOfBirth      String
+  yearsOld         Int
+  gender           String      @default("")
+  dateOfIssue      String
+  expiryDate       String
+  passportNumber   String
+  issuedBy         String
+  visaNumber       String      @default("")
+  visaFrom         String      @default("")
+  visaTo           String      @default("")
+  hasVisa          Boolean     @default(false)
+  parentId         Int?
+  reservationId    Int
+  reservation      Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  createdAt        DateTime    @default(now())
 }

@@ -1,24 +1,28 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { GuestCards } from "@/components/guest-cards";
 import type { Guest, Reservation } from "@/lib/types";
+
+interface LogEntry {
+  time: string;
+  message: string;
+  type: "info" | "success" | "error" | "processing";
+}
 
 interface ReservationViewProps {
   reservation: Reservation;
   guests: Guest[];
   onGuestsUpdated: () => void;
   onDeleteGuest: (id: number) => void;
+  onUpdateReservation: (
+    id: number,
+    data: { name?: string; checkIn?: string; checkOut?: string; platform?: string }
+  ) => void;
+  onUpdateParent: (childId: number, parentId: number | null) => void;
 }
 
 export function ReservationView({
@@ -26,10 +30,37 @@ export function ReservationView({
   guests,
   onGuestsUpdated,
   onDeleteGuest,
+  onUpdateReservation,
+  onUpdateParent,
 }: ReservationViewProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(reservation.name);
+  const [editCheckIn, setEditCheckIn] = useState(
+    new Date(reservation.checkIn).toISOString().split("T")[0]
+  );
+  const [editCheckOut, setEditCheckOut] = useState(
+    new Date(reservation.checkOut).toISOString().split("T")[0]
+  );
+  const [editPlatform, setEditPlatform] = useState(
+    reservation.platform || "airbnb"
+  );
+  const logRef = useRef<HTMLDivElement>(null);
+
+  const addLog = (message: string, type: LogEntry["type"] = "info") => {
+    const time = new Date().toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+    setLogs((prev) => [...prev, { time, message, type }]);
+    setTimeout(() => {
+      logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
+    }, 50);
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
@@ -54,26 +85,64 @@ export function ReservationView({
 
     setLoading(true);
     setError(null);
+    setLogs([]);
 
-    try {
-      const formData = new FormData();
-      files.forEach((file) => formData.append("files", file));
-      formData.append("reservationId", reservation.id.toString());
+    addLog(`Starting extraction for ${files.length} file(s)...`, "info");
 
-      const response = await fetch("/api/extract", {
-        method: "POST",
-        body: formData,
-      });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      addLog(`[${i + 1}/${files.length}] Processing: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, "processing");
 
-      if (!response.ok) throw new Error("Extraction failed");
+      try {
+        const formData = new FormData();
+        formData.append("files", file);
+        formData.append("reservationId", reservation.id.toString());
 
-      setFiles([]);
-      onGuestsUpdated();
-    } catch {
-      setError("Failed to extract data. Check your API key and try again.");
-    } finally {
-      setLoading(false);
+        addLog(`[${i + 1}/${files.length}] Sending to Gemini Vision API...`, "processing");
+
+        const response = await fetch("/api/extract", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          addLog(`[${i + 1}/${files.length}] Failed: ${errData.error || "Unknown error"}`, "error");
+          continue;
+        }
+
+        const json = await response.json();
+        const count = json.data?.length || 0;
+
+        if (count > 0) {
+          for (const person of json.data) {
+            addLog(
+              `[${i + 1}/${files.length}] Extracted: ${person.fullName} | ${person.country} | Passport: ${person.passportNumber}`,
+              "success"
+            );
+          }
+        } else {
+          addLog(`[${i + 1}/${files.length}] No passport data found in ${file.name}`, "error");
+        }
+      } catch {
+        addLog(`[${i + 1}/${files.length}] Network error processing ${file.name}`, "error");
+      }
     }
+
+    addLog("Extraction complete.", "info");
+    setFiles([]);
+    setLoading(false);
+    onGuestsUpdated();
+  };
+
+  const handleSaveEdit = () => {
+    onUpdateReservation(reservation.id, {
+      name: editName,
+      checkIn: editCheckIn,
+      checkOut: editCheckOut,
+      platform: editPlatform,
+    });
+    setEditing(false);
   };
 
   const formatDate = (dateStr: string) => {
@@ -91,187 +160,270 @@ export function ReservationView({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-6">
       {/* Reservation Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {reservation.name}
-          </h1>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-              </svg>
-              {formatDate(reservation.checkIn)} — {formatDate(reservation.checkOut)}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          {editing ? (
+            <div className="space-y-3 rounded-xl border border-border/60 bg-card/50 p-4">
+              <input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-lg font-bold outline-none focus:border-primary/50"
+              />
+              <div className="flex items-center gap-3">
+                <div className="flex rounded-lg bg-background/50 p-0.5">
+                  {(["airbnb", "booking"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setEditPlatform(p)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
+                        editPlatform === p
+                          ? p === "airbnb"
+                            ? "bg-[#FF5A5F]/15 text-[#FF5A5F] shadow-sm"
+                            : "bg-[#003580]/20 text-[#4B9CD3] shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p === "airbnb" ? "Airbnb" : "Booking"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">In:</label>
+                <input
+                  type="date"
+                  value={editCheckIn}
+                  onChange={(e) => setEditCheckIn(e.target.value)}
+                  className="rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm outline-none focus:border-primary/50"
+                />
+                <label className="text-xs text-muted-foreground">Out:</label>
+                <input
+                  type="date"
+                  value={editCheckOut}
+                  onChange={(e) => setEditCheckOut(e.target.value)}
+                  className="rounded-lg border border-border/50 bg-background/50 px-3 py-1.5 text-sm outline-none focus:border-primary/50"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" className="rounded-lg text-xs" onClick={handleSaveEdit}>
+                  Save
+                </Button>
+                <Button variant="ghost" size="sm" className="rounded-lg text-xs" onClick={() => setEditing(false)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
-            <Badge variant="outline" className="rounded-md text-[10px] font-medium">
-              {daysBetween()} nights
-            </Badge>
-            {guests.length > 0 && (
-              <Badge variant="secondary" className="rounded-md text-[10px] font-medium">
-                {guests.length} guest{guests.length !== 1 && "s"}
-              </Badge>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight">
+                  {reservation.name}
+                </h1>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="rounded-md p-1 text-muted-foreground/40 transition-all hover:bg-muted/50 hover:text-foreground"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                  </svg>
+                </button>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <span className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                  reservation.platform === "booking"
+                    ? "bg-[#003580]/20 text-[#4B9CD3]"
+                    : "bg-[#FF5A5F]/10 text-[#FF5A5F]"
+                }`}>
+                  {reservation.platform === "booking" ? "Booking.com" : "Airbnb"}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(reservation.checkIn)} — {formatDate(reservation.checkOut)}
+                </span>
+                <Badge variant="outline" className="rounded-md text-[10px]">
+                  {daysBetween()} nights
+                </Badge>
+                {guests.length > 0 && (
+                  <Badge variant="secondary" className="rounded-md text-[10px]">
+                    {guests.length} guest{guests.length !== 1 && "s"}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <details className="group rounded-xl border border-border/40 bg-card/30">
+        <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+          <svg className="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+          Registration Instructions
+        </summary>
+        <div className="border-t border-border/30 px-4 py-3">
+          <ol className="space-y-2.5 text-[13px] leading-relaxed">
+            <li className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">1</span>
+              <span>
+                Go to{" "}
+                <a href="https://emehmon.uz/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
+                  emehmon.uz
+                </a>
+                {" "}<span className="text-muted-foreground">— select &quot;для физических лиц&quot;</span>
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">2</span>
+              <span>
+                Login:{" "}
+                <code className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono">asminkin</code>{" "}
+                / <code className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono">wEq4782bst123$</code>
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">3</span>
+              <span className="text-muted-foreground">
+                Мои листки → Создать → Выбираем гражданство → Дату рождения → Вводим паспортные данные. Заполняем 3 вкладки по визам и дням.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">4</span>
+              <span className="text-muted-foreground">Оплачиваем</span>
+            </li>
+          </ol>
+        </div>
+      </details>
+
+      {/* Drop Zone + Extract */}
+      <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
+        {/* Drop Zone */}
+        <div
+          {...getRootProps()}
+          className={`group relative cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-all ${
+            isDragActive
+              ? "border-primary bg-primary/5"
+              : "border-border/40 hover:border-primary/30 hover:bg-muted/10"
+          }`}
+        >
+          <input {...getInputProps()} />
+          <div className="flex min-h-[120px] flex-col items-center justify-center p-6">
+            <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+              isDragActive ? "bg-primary/15 text-primary scale-110" : "bg-muted/40 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+            }`}>
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+              </svg>
+            </div>
+            <p className="text-xs font-medium">
+              {isDragActive ? "Drop here..." : "Drop passport documents"}
+            </p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground/50">JPG, PNG, PDF</p>
+          </div>
+        </div>
+
+        {/* Extraction Log */}
+        <div className="flex flex-col rounded-xl border border-border/40 bg-[#0a0a14]">
+          <div className="flex items-center justify-between border-b border-border/30 px-3 py-2">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+              Extraction Log
+            </span>
+            {logs.length > 0 && (
+              <button
+                onClick={() => setLogs([])}
+                className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <div ref={logRef} className="flex-1 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed" style={{ maxHeight: 140, minHeight: 100 }}>
+            {logs.length === 0 ? (
+              <span className="text-muted-foreground/30">Waiting for extraction...</span>
+            ) : (
+              logs.map((log, i) => (
+                <div key={i} className="flex gap-2">
+                  <span className="shrink-0 text-muted-foreground/30">{log.time}</span>
+                  <span
+                    className={
+                      log.type === "success"
+                        ? "text-emerald-400"
+                        : log.type === "error"
+                        ? "text-red-400"
+                        : log.type === "processing"
+                        ? "text-amber-400"
+                        : "text-muted-foreground/60"
+                    }
+                  >
+                    {log.message}
+                  </span>
+                </div>
+              ))
             )}
           </div>
         </div>
       </div>
 
-      {/* Drop Zone */}
-      <div
-        {...getRootProps()}
-        className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed transition-all duration-200 ${
-          isDragActive
-            ? "border-primary bg-primary/5 shadow-lg shadow-primary/5"
-            : "border-border/60 hover:border-primary/40 hover:bg-muted/20"
-        }`}
-      >
-        <input {...getInputProps()} />
-        <div className="flex min-h-[160px] flex-col items-center justify-center p-8">
-          <div className={`mb-3 flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200 ${
-            isDragActive ? "bg-primary/15 text-primary scale-110" : "bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-          }`}>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-          </div>
-          <p className="text-sm font-medium">
-            {isDragActive ? "Drop files here..." : "Drop passport documents"}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground/60">
-            JPG, PNG, or PDF — drag multiple files at once
-          </p>
-        </div>
-      </div>
-
       {/* Staged Files */}
       {files.length > 0 && (
-        <div className="rounded-xl border border-border/60 bg-card/50 p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              {files.length} file{files.length !== 1 && "s"} ready
-            </span>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setFiles([])}>
-                Clear
-              </Button>
-              <Button onClick={extractData} disabled={loading} size="sm" className="h-8 rounded-lg text-xs">
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Extracting...
-                  </span>
-                ) : (
-                  "Extract Data"
-                )}
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="flex items-center justify-between rounded-xl border border-border/40 bg-card/30 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-1.5">
             {files.map((file, index) => (
-              <Badge
+              <span
                 key={`${file.name}-${index}`}
-                variant="secondary"
-                className="gap-1.5 rounded-lg pr-1.5 text-xs"
+                className="inline-flex items-center gap-1 rounded-md bg-muted/40 px-2 py-1 text-[11px]"
               >
-                <svg className="h-3 w-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                </svg>
                 {file.name}
                 <button
                   onClick={() => removeFile(index)}
-                  className="rounded-md p-0.5 transition-colors hover:bg-foreground/10"
+                  className="ml-0.5 rounded p-0.5 hover:bg-foreground/10"
                 >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-              </Badge>
+              </span>
             ))}
+          </div>
+          <div className="flex shrink-0 gap-2 ml-3">
+            <Button variant="ghost" size="sm" className="h-7 rounded-lg text-[11px]" onClick={() => setFiles([])}>
+              Clear
+            </Button>
+            <Button onClick={extractData} disabled={loading} size="sm" className="h-7 rounded-lg text-[11px]">
+              {loading ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Extracting...
+                </span>
+              ) : (
+                `Extract (${files.length})`
+              )}
+            </Button>
           </div>
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs text-destructive">
           {error}
         </div>
       )}
 
-      {/* Guests Table */}
-      {guests.length > 0 ? (
-        <div>
-          <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-            Guests
-          </h2>
-          <div className="overflow-hidden rounded-xl border border-border/60 bg-card/50">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/40 hover:bg-transparent">
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Full Name</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Country</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">DOB</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Age</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Issued</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Expiry</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Passport No.</TableHead>
-                    <TableHead className="text-[11px] font-semibold uppercase tracking-wider">Issued By</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {guests.map((guest) => (
-                    <TableRow key={guest.id} className="border-border/30 transition-colors">
-                      <TableCell className="font-medium">{guest.fullName}</TableCell>
-                      <TableCell className="text-muted-foreground">{guest.country}</TableCell>
-                      <TableCell className="text-muted-foreground">{guest.dateOfBirth}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-muted/50 px-1.5 text-xs font-medium">
-                          {guest.yearsOld}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{guest.dateOfIssue}</TableCell>
-                      <TableCell className="text-muted-foreground">{guest.expiryDate}</TableCell>
-                      <TableCell>
-                        <code className="rounded-md bg-muted/50 px-1.5 py-0.5 font-mono text-xs">
-                          {guest.passportNumber}
-                        </code>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{guest.issuedBy}</TableCell>
-                      <TableCell>
-                        <button
-                          onClick={() => onDeleteGuest(guest.id)}
-                          className="rounded-md p-1.5 text-muted-foreground/50 transition-all hover:bg-destructive/15 hover:text-destructive"
-                        >
-                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                          </svg>
-                        </button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/40 py-16">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30">
-            <svg className="h-5 w-5 text-muted-foreground/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-            </svg>
-          </div>
-          <p className="text-sm text-muted-foreground/50">
-            No guests yet — drop passport documents above
-          </p>
-        </div>
-      )}
+      {/* Guests */}
+      <GuestCards
+        guests={guests}
+        checkIn={reservation.checkIn}
+        checkOut={reservation.checkOut}
+        onDeleteGuest={onDeleteGuest}
+        onUpdateParent={onUpdateParent}
+      />
     </div>
   );
 }
