@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DateSlider } from "@/components/date-slider";
 import type { Property } from "@/lib/types";
 
 interface DashboardProps {
   properties: Property[];
+  selectedProperty: Property | null;
   onSelectProperty: (id: number) => void;
   onSelectReservation: (id: number) => void;
   onAddReservation: (data: {
@@ -19,6 +20,7 @@ interface DashboardProps {
 
 export function Dashboard({
   properties,
+  selectedProperty,
   onSelectProperty,
   onSelectReservation,
   onAddReservation,
@@ -26,25 +28,33 @@ export function Dashboard({
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState("");
   const [formPropertyId, setFormPropertyId] = useState<number | "">(
-    properties.length > 0 ? properties[0].id : ""
+    selectedProperty?.id || (properties.length > 0 ? properties[0].id : "")
   );
   const [formPlatform, setFormPlatform] = useState("airbnb");
   const [formCheckIn, setFormCheckIn] = useState("");
   const [formCheckOut, setFormCheckOut] = useState("");
 
-  // Collect all reservations with their property info, sorted by most recent
-  const allReservations = properties
-    .flatMap((p) =>
-      p.reservations.map((r) => ({
-        ...r,
-        propertyName: p.name,
-        propertyId: p.id,
-      }))
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  // Update formPropertyId when selectedProperty changes
+  useEffect(() => {
+    if (selectedProperty) {
+      setFormPropertyId(selectedProperty.id);
+    }
+  }, [selectedProperty]);
+
+  // Get reservations to display
+  const displayReservations = selectedProperty
+    ? selectedProperty.reservations
+        .map((r) => ({ ...r, propertyName: selectedProperty.name, propertyId: selectedProperty.id }))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : properties
+        .flatMap((p) =>
+          p.reservations.map((r) => ({
+            ...r,
+            propertyName: p.name,
+            propertyId: p.id,
+          }))
+        )
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,15 +74,11 @@ export function Dashboard({
 
   const handleRowClick = (propertyId: number, reservationId: number) => {
     onSelectProperty(propertyId);
-    // Small delay so sidebar expands the property first
     setTimeout(() => onSelectReservation(reservationId), 50);
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-    });
+    new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 
   const dayCount = (checkIn: string, checkOut: string) => {
     const d1 = new Date(checkIn);
@@ -80,15 +86,18 @@ export function Dashboard({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   };
 
+  const title = selectedProperty ? selectedProperty.name : "Dashboard";
+  const subtitle = selectedProperty
+    ? `${displayReservations.length} reservation${displayReservations.length !== 1 ? "s" : ""}`
+    : `${displayReservations.length} reservation${displayReservations.length !== 1 ? "s" : ""} across ${properties.length} propert${properties.length !== 1 ? "ies" : "y"}`;
+
   return (
     <div className="mx-auto max-w-4xl">
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#f0f6fc]">Dashboard</h1>
-          <p className="mt-1 text-sm text-[#9198a1]">
-            {allReservations.length} reservation{allReservations.length !== 1 && "s"} across {properties.length} propert{properties.length !== 1 ? "ies" : "y"}
-          </p>
+          <h1 className="text-xl font-semibold text-[#f0f6fc]">{title}</h1>
+          <p className="mt-1 text-sm text-[#9198a1]">{subtitle}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -110,17 +119,22 @@ export function Dashboard({
               {/* Property select */}
               <div className="space-y-1.5">
                 <label className="text-xs text-[#9198a1]">Property</label>
-                <select
-                  value={formPropertyId}
-                  onChange={(e) => setFormPropertyId(Number(e.target.value))}
-                  className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
-                  required
-                >
-                  <option value="" disabled>Select property...</option>
-                  {properties.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={formPropertyId}
+                    onChange={(e) => setFormPropertyId(Number(e.target.value))}
+                    className="h-9 w-full appearance-none rounded-md border border-[#30363d] bg-[#0d1117] pl-3 pr-8 text-sm text-[#f0f6fc] outline-none transition-colors focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]/30"
+                    required
+                  >
+                    <option value="" disabled>Select property...</option>
+                    {properties.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </div>
               </div>
 
               {/* Guest name */}
@@ -130,7 +144,7 @@ export function Dashboard({
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Enter name..."
-                  className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff]"
+                  className="h-9 w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] placeholder-[#7d8590] outline-none transition-colors focus:border-[#58a6ff] focus:ring-1 focus:ring-[#58a6ff]/30"
                   required
                 />
               </div>
@@ -190,37 +204,41 @@ export function Dashboard({
         </div>
       )}
 
-      {/* Recent Reservations */}
-      {allReservations.length > 0 ? (
+      {/* Reservations List */}
+      {displayReservations.length > 0 ? (
         <div className="rounded-lg border border-[#21262d] bg-[#161b22]">
           <div className="border-b border-[#21262d] px-4 py-3">
-            <h2 className="text-xs font-medium text-[#9198a1]">Recent Reservations</h2>
+            <h2 className="text-xs font-medium text-[#9198a1]">
+              {selectedProperty ? "Reservations" : "Recent Reservations"}
+            </h2>
           </div>
           <div>
-            {allReservations.map((res, i) => (
+            {displayReservations.map((res, i) => (
               <div
                 key={res.id}
                 onClick={() => handleRowClick(res.propertyId, res.id)}
                 className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[#1c2128] ${
-                  i < allReservations.length - 1 ? "border-b border-[#21262d]/50" : ""
+                  i < displayReservations.length - 1 ? "border-b border-[#21262d]/50" : ""
                 }`}
               >
                 {/* Platform dot */}
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                     res.platform === "booking" ? "bg-[#79c0ff]" : "bg-[#f78166]"
                   }`}
                 />
 
                 {/* Name */}
                 <div className="min-w-0 flex-1">
-                  <span className="text-sm text-[#f0f6fc]">{res.name}</span>
+                  <span className="text-sm font-medium text-[#f0f6fc]">{res.name}</span>
                 </div>
 
-                {/* Property */}
-                <span className="hidden text-xs text-[#9198a1] sm:block">
-                  {res.propertyName}
-                </span>
+                {/* Property (only in global view) */}
+                {!selectedProperty && (
+                  <span className="hidden text-sm text-[#9198a1] sm:block">
+                    {res.propertyName}
+                  </span>
+                )}
 
                 {/* Platform badge */}
                 <span
@@ -234,17 +252,17 @@ export function Dashboard({
                 </span>
 
                 {/* Dates */}
-                <span className="shrink-0 text-xs text-[#9198a1]">
+                <span className="shrink-0 text-sm text-[#9198a1]">
                   {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
                 </span>
 
                 {/* Days */}
-                <span className="shrink-0 w-8 text-right text-xs text-[#7d8590]">
+                <span className="shrink-0 w-10 text-right text-xs text-[#7d8590]">
                   {dayCount(res.checkIn, res.checkOut)}d
                 </span>
 
                 {/* Guest count */}
-                <span className="shrink-0 w-8 text-right text-xs text-[#7d8590]">
+                <span className="shrink-0 w-10 text-right text-xs text-[#7d8590]">
                   {res._count?.guests || 0}
                   <span className="ml-0.5 text-[#30363d]">g</span>
                 </span>
@@ -259,7 +277,11 @@ export function Dashboard({
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-[#21262d] py-16 text-center">
-          <p className="text-sm text-[#7d8590]">No reservations yet. Create one to get started.</p>
+          <p className="text-sm text-[#7d8590]">
+            {selectedProperty
+              ? "No reservations yet. Click 'New Reservation' to create one."
+              : "No reservations yet. Create a property and add reservations to get started."}
+          </p>
         </div>
       )}
     </div>

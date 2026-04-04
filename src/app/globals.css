@@ -131,3 +131,27 @@
     @apply font-sans;
   }
 }
+
+/* Native select dropdown styling */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #161b22;
+  color: #f0f6fc;
+  padding: 8px 12px;
+}
+
+select option:checked {
+  background-color: #1c2128;
+}
+
+select option:hover {
+  background-color: #1c2128;
+}
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

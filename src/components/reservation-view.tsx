@@ -289,72 +289,28 @@ export function ReservationView({
         </div>
       </details>
 
-      {/* Drop Zone + Extract */}
-      <div className="grid gap-4 lg:grid-cols-[1fr,1fr]">
-        {/* Drop Zone */}
-        <div
-          {...getRootProps()}
-          className={`group relative cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-all ${
-            isDragActive
-              ? "border-primary bg-primary/5"
-              : "border-border/40 hover:border-primary/30 hover:bg-muted/10"
-          }`}
-        >
-          <input {...getInputProps()} />
-          <div className="flex min-h-[120px] flex-col items-center justify-center p-6">
-            <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
-              isDragActive ? "bg-primary/15 text-primary scale-110" : "bg-muted/40 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
-            }`}>
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-            </div>
-            <p className="text-xs font-medium">
-              {isDragActive ? "Drop here..." : "Drop passport documents"}
-            </p>
-            <p className="mt-0.5 text-xs text-muted-foreground/70">JPG, PNG, PDF</p>
+      {/* Drop Zone */}
+      <div
+        {...getRootProps()}
+        className={`group relative cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition-all ${
+          isDragActive
+            ? "border-primary bg-primary/5"
+            : "border-border/40 hover:border-primary/30 hover:bg-muted/10"
+        }`}
+      >
+        <input {...getInputProps()} />
+        <div className="flex min-h-[100px] flex-col items-center justify-center p-6">
+          <div className={`mb-2 flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+            isDragActive ? "bg-primary/15 text-primary scale-110" : "bg-muted/40 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+          }`}>
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+            </svg>
           </div>
-        </div>
-
-        {/* Extraction Log */}
-        <div className="flex flex-col rounded-xl border border-[#21262d] bg-[#0d1117]">
-          <div className="flex items-center justify-between border-b border-border/30 px-3 py-2">
-            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-              Extraction Log
-            </span>
-            {logs.length > 0 && (
-              <button
-                onClick={() => setLogs([])}
-                className="text-xs text-muted-foreground/60 hover:text-muted-foreground"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <div ref={logRef} className="flex-1 overflow-y-auto p-3 font-mono text-[11px] leading-relaxed" style={{ maxHeight: 140, minHeight: 100 }}>
-            {logs.length === 0 ? (
-              <span className="text-muted-foreground/30">Waiting for extraction...</span>
-            ) : (
-              logs.map((log, i) => (
-                <div key={i} className="flex gap-2">
-                  <span className="shrink-0 text-muted-foreground/30">{log.time}</span>
-                  <span
-                    className={
-                      log.type === "success"
-                        ? "text-[#3fb950]"
-                        : log.type === "error"
-                        ? "text-red-400"
-                        : log.type === "processing"
-                        ? "text-[#d29922]"
-                        : "text-muted-foreground/60"
-                    }
-                  >
-                    {log.message}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
+          <p className="text-sm font-medium">
+            {isDragActive ? "Drop here..." : "Drop passport documents"}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground/70">JPG, PNG, PDF</p>
         </div>
       </div>
 
@@ -415,6 +371,43 @@ export function ReservationView({
         onDeleteGuest={onDeleteGuest}
         onUpdateParent={onUpdateParent}
       />
+
+      {/* Extraction Log — below guests */}
+      {logs.length > 0 && (
+        <div className="rounded-xl border border-[#21262d] bg-[#0d1117]">
+          <div className="flex items-center justify-between border-b border-border/30 px-4 py-2.5">
+            <span className="text-xs font-medium text-[#9198a1]">
+              Extraction Log
+            </span>
+            <button
+              onClick={() => setLogs([])}
+              className="text-xs text-[#7d8590] hover:text-[#f0f6fc]"
+            >
+              Clear
+            </button>
+          </div>
+          <div ref={logRef} className="overflow-y-auto p-4 font-[family-name:var(--font-mono)] text-xs leading-relaxed" style={{ maxHeight: 200 }}>
+            {logs.map((log, i) => (
+              <div key={i} className="flex gap-2.5">
+                <span className="shrink-0 text-[#7d8590]">{log.time}</span>
+                <span
+                  className={
+                    log.type === "success"
+                      ? "text-[#3fb950]"
+                      : log.type === "error"
+                      ? "text-[#f85149]"
+                      : log.type === "processing"
+                      ? "text-[#d29922]"
+                      : "text-[#9198a1]"
+                  }
+                >
+                  {log.message}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
