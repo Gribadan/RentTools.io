@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  role      String   @default("user") // "superadmin" or "user"
+  createdAt DateTime @default(now())
+}
+
+model AppSettings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String
+}
+
+model Property {
+  id           Int           @id @default(autoincrement())
+  name         String
+  createdAt    DateTime      @default(now())
+  reservations Reservation[]
+}
+
+model Reservation {
+  id         Int      @id @default(autoincrement())
+  name       String
+  checkIn    DateTime
+  checkOut   DateTime
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  guests     Guest[]
+  createdAt  DateTime @default(now())
+}
+
+model Guest {
+  id             Int         @id @default(autoincrement())
+  fullName       String
+  country        String
+  dateOfBirth    String
+  yearsOld       Int
+  dateOfIssue    String
+  expiryDate     String
+  passportNumber String
+  issuedBy       String
+  reservationId  Int
+  reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+}
