@@ -14,8 +14,9 @@ async function main() {
     where: { username: "Gribadan" },
   });
 
+  const hashedPassword = await bcrypt.hash("Ltvfrjd22!", 10);
+
   if (!existing) {
-    const hashedPassword = await bcrypt.hash("Letvfrjd22!", 10);
     await prisma.user.create({
       data: {
         username: "Gribadan",
@@ -25,7 +26,11 @@ async function main() {
     });
     console.log("Super admin created: Gribadan");
   } else {
-    console.log("Super admin already exists");
+    await prisma.user.update({
+      where: { username: "Gribadan" },
+      data: { password: hashedPassword },
+    });
+    console.log("Super admin password updated");
   }
 }
 
