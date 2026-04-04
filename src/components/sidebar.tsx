@@ -18,6 +18,7 @@ interface SidebarProps {
     name: string;
     checkIn: string;
     checkOut: string;
+    platform: string;
     propertyId: number;
   }) => void;
   onDeleteReservation: (id: number) => void;
@@ -42,6 +43,7 @@ export function Sidebar({
   const [resName, setResName] = useState("");
   const [resCheckIn, setResCheckIn] = useState("");
   const [resCheckOut, setResCheckOut] = useState("");
+  const [resPlatform, setResPlatform] = useState("airbnb");
 
   const handleAddProperty = () => {
     if (newPropertyName.trim()) {
@@ -57,11 +59,13 @@ export function Sidebar({
         name: resName.trim(),
         checkIn: resCheckIn,
         checkOut: resCheckOut,
+        platform: resPlatform,
         propertyId,
       });
       setResName("");
       setResCheckIn("");
       setResCheckOut("");
+      setResPlatform("airbnb");
       setShowReservationForm(null);
     }
   };
@@ -190,11 +194,17 @@ export function Sidebar({
                           onClick={() => onSelectReservation(res.id)}
                         >
                           <div className="min-w-0">
-                            <div className="truncate text-xs font-medium">{res.name}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="truncate text-xs font-medium">{res.name}</span>
+                              <span className={`shrink-0 rounded px-1 py-px text-[9px] font-semibold leading-tight ${
+                                res.platform === "booking"
+                                  ? "bg-[#003580]/15 text-[#003580] dark:bg-[#003580]/25 dark:text-[#4B9CD3]"
+                                  : "bg-[#FF5A5F]/10 text-[#FF5A5F]"
+                              }`}>
+                                {res.platform === "booking" ? "B" : "A"}
+                              </span>
+                            </div>
                             <div className="mt-0.5 flex items-center gap-1 text-[10px] opacity-70">
-                              <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-                              </svg>
                               {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
                               {res._count && res._count.guests > 0 && (
                                 <span className="ml-0.5">
@@ -219,28 +229,60 @@ export function Sidebar({
                     {showReservationForm === property.id ? (
                       <form
                         onSubmit={(e) => { e.preventDefault(); handleAddReservation(property.id); }}
-                        className="space-y-1.5 rounded-lg bg-muted/30 p-2.5"
+                        className="space-y-2 rounded-lg bg-muted/30 p-2.5"
                       >
                         <Input
-                          placeholder="Reservation name..."
+                          placeholder="Guest / reservation name..."
                           value={resName}
                           onChange={(e) => setResName(e.target.value)}
                           className="h-7 rounded-md bg-background/50 text-xs"
                           autoFocus
                         />
-                        <div className="flex gap-1.5">
-                          <Input
-                            type="date"
-                            value={resCheckIn}
-                            onChange={(e) => setResCheckIn(e.target.value)}
-                            className="h-7 rounded-md bg-background/50 text-xs"
-                          />
-                          <Input
-                            type="date"
-                            value={resCheckOut}
-                            onChange={(e) => setResCheckOut(e.target.value)}
-                            className="h-7 rounded-md bg-background/50 text-xs"
-                          />
+                        {/* Platform toggle */}
+                        <div className="flex rounded-md bg-background/50 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setResPlatform("airbnb")}
+                            className={`flex-1 rounded-[5px] px-2 py-1 text-[10px] font-medium transition-all ${
+                              resPlatform === "airbnb"
+                                ? "bg-[#FF5A5F]/15 text-[#FF5A5F] shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Airbnb
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setResPlatform("booking")}
+                            className={`flex-1 rounded-[5px] px-2 py-1 text-[10px] font-medium transition-all ${
+                              resPlatform === "booking"
+                                ? "bg-[#003580]/15 text-[#003580] dark:bg-[#003580]/25 dark:text-[#4B9CD3] shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            Booking
+                          </button>
+                        </div>
+                        {/* Date inputs - compact */}
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-7 text-[10px] text-muted-foreground">In</span>
+                            <input
+                              type="date"
+                              value={resCheckIn}
+                              onChange={(e) => setResCheckIn(e.target.value)}
+                              className="h-7 flex-1 rounded-md border border-border/50 bg-background/50 px-2 text-xs text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-7 text-[10px] text-muted-foreground">Out</span>
+                            <input
+                              type="date"
+                              value={resCheckOut}
+                              onChange={(e) => setResCheckOut(e.target.value)}
+                              className="h-7 flex-1 rounded-md border border-border/50 bg-background/50 px-2 text-xs text-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                            />
+                          </div>
                         </div>
                         <div className="flex gap-1.5">
                           <Button type="submit" size="sm" className="h-7 flex-1 rounded-md text-xs">
