@@ -90,11 +90,12 @@ export function PropertyCalendar({
   }, [currentMonth]);
 
   // Build date sets for each platform + conflict detection + smart buffers
-  const { airbnbDates, bookingDates, bufferDates, unbookableDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
+  const { airbnbDates, bookingDates, bufferDates, potentialDates, unbookableDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
     const airbnb = new Set<string>();
     const booking = new Set<string>();
-    const buffer = new Set<string>();     // cleaning days
-    const unbookable = new Set<string>(); // gap days too short for min nights
+    const buffer = new Set<string>();      // definite cleaning days
+    const potential = new Set<string>();   // potential cleaning (if gap gets booked)
+    const unbookable = new Set<string>(); // gap too short for min nights
     const conflictSet = new Set<string>();
     const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number }>();
     const resMap = new Map<string, Reservation>();
@@ -220,26 +221,53 @@ export function PropertyCalendar({
       }
     }
 
-    // Second pass: add buffers and unbookable markers
+    // Second pass: add buffers, potential cleaning, and unbookable markers
     for (let bi = 0; bi < dedupedBookings.length; bi++) {
       const b = dedupedBookings[bi];
+      const prev = bi > 0 ? dedupedBookings[bi - 1] : null;
+      const next = dedupedBookings[bi + 1];
 
-      // Buffer before (only if gap to previous is bookable, or first booking)
-      if (!skipBeforeFor.has(bi)) {
+      // Buffer before
+      if (skipBeforeFor.has(bi)) {
+        // Gap too small → no cleaning before (handled as unbookable)
+      } else if (bi === 0 || !prev) {
+        // First booking → definite cleaning before
         for (let i = 1; i <= maxBefore; i++) {
           const d = addDaysStr(b.start, -i);
           if (!allBooked.has(d)) buffer.add(d);
         }
+      } else {
+        // Gap is bookable — check if anyone actually booked in the gap
+        const gapStart = addDaysStr(prev.end, 1);
+        let gapHasBooking = false;
+        let d = addDaysStr(gapStart, maxAfter); // skip cleaning after prev
+        while (d < addDaysStr(b.start, -maxBefore)) { // before cleaning before current
+          if (allBooked.has(d)) { gapHasBooking = true; break; }
+          d = addDaysStr(d, 1);
+        }
+
+        if (gapHasBooking) {
+          // Someone booked the gap → definite cleaning before
+          for (let i = 1; i <= maxBefore; i++) {
+            const dd = addDaysStr(b.start, -i);
+            if (!allBooked.has(dd)) buffer.add(dd);
+          }
+        } else {
+          // Gap is empty → potential cleaning (might be needed if booked)
+          for (let i = 1; i <= maxBefore; i++) {
+            const dd = addDaysStr(b.start, -i);
+            if (!allBooked.has(dd)) potential.add(dd);
+          }
+        }
       }
 
-      // Buffer after (always — the one cleaning)
+      // Buffer after (always definite — guest just left, must clean)
       for (let i = 1; i <= maxAfter; i++) {
         const d = addDaysStr(b.end, i);
         if (!allBooked.has(d)) buffer.add(d);
       }
 
       // Mark unbookable gap days
-      const next = dedupedBookings[bi + 1];
       if (next && skipBeforeFor.has(bi + 1)) {
         const cleanEnd = addDaysStr(b.end, maxAfter + 1);
         let d = cleanEnd;
@@ -254,6 +282,7 @@ export function PropertyCalendar({
       airbnbDates: airbnb,
       bookingDates: booking,
       bufferDates: buffer,
+      potentialDates: potential,
       unbookableDates: unbookable,
       conflictDates: conflictSet,
       dateToEvent: evMap,
@@ -437,6 +466,12 @@ export function PropertyCalendar({
     lines.push(sortedBuffers.join(", ") || "none");
     lines.push("");
 
+    // Potential cleaning days
+    const sortedPotential = Array.from(potentialDates).sort();
+    lines.push(`--- POTENTIAL CLEANING DAYS (${sortedPotential.length}) — if gap gets booked ---`);
+    lines.push(sortedPotential.join(", ") || "none");
+    lines.push("");
+
     // Unbookable gap days (visual only, NOT exported)
     const sortedUnbookable = Array.from(unbookableDates).sort();
     lines.push(`--- UNBOOKABLE GAP DAYS (${sortedUnbookable.length}) — visual only, <${property.minNights || 3} nights ---`);
@@ -554,7 +589,8 @@ export function PropertyCalendar({
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#b5462a]" /><span className="text-xs text-[#9198a1]">Airbnb</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#003580]" /><span className="text-xs text-[#9198a1]">Booking</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">Cleaning</span></div>
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#8b949e]/15 border border-[#8b949e]/20 border-dashed" /><span className="text-xs text-[#9198a1]">&lt;{property.minNights || 3} nights</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#58a6ff]/15 border border-[#58a6ff]/25 border-dashed" /><span className="text-xs text-[#9198a1]">Potential cleaning</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#8b949e]/15 border border-[#8b949e]/20 border-dashed" /><span className="text-xs text-[#9198a1]">&lt;{property.minNights || 3}n</span></div>
         </div>
 
         {/* Weekday headers */}
@@ -571,95 +607,87 @@ export function PropertyCalendar({
             <div className="grid grid-cols-7">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`n-${di}`} className="h-7 border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/40" />;
+                return <div key={`n-${di}`} className="h-7" />;
               }
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const isConflict = conflictDates.has(ds);
-              const isBuffer = bufferDates.has(ds) && !getBarForDay(dayNum);
-              const isUnbookable = unbookableDates.has(ds);
+              const hasBar = !!getBarForDay(dayNum);
+              const isBuffer = bufferDates.has(ds) && !hasBar;
+              const isPotential = potentialDates.has(ds) && !hasBar;
+              const isUnbookable = unbookableDates.has(ds) && !hasBar;
+              const bg = isConflict ? "bg-[#f85149]/8"
+                : isToday ? "bg-[#58a6ff]/5"
+                : isBuffer ? "bg-[#d29922]/5"
+                : isPotential ? "bg-[#58a6ff]/3"
+                : isUnbookable ? "bg-[#8b949e]/5"
+                : "";
 
               return (
-                <div
-                  key={`n-${dayNum}`}
-                  className={`h-7 flex items-center px-1.5 border-r border-[#21262d] last:border-r-0 ${
-                    isConflict ? "bg-[#f85149]/8"
-                    : isToday ? "bg-[#58a6ff]/5"
-                    : isBuffer ? "bg-[#d29922]/5"
-                    : isUnbookable ? "bg-[#8b949e]/5"
-                    : ""
-                  }`}
-                >
+                <div key={`n-${dayNum}`} className={`h-7 flex items-center px-1.5 border-r border-[#21262d] last:border-r-0 ${bg}`}>
                   <span className={`text-xs leading-none ${
-                    isConflict
-                      ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
-                      : isToday
-                      ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
-                      : "text-[#7d8590]"
-                  }`}>
-                    {dayNum}
-                  </span>
+                    isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
+                    : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
+                    : "text-[#7d8590]"
+                  }`}>{dayNum}</span>
                 </div>
               );
             })}
             </div>
 
-            {/* Row 2: Bars, buffers, and indicators — fixed height */}
+            {/* Row 2: Bars and indicators */}
             <div className="grid grid-cols-7">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`b-${di}`} className="h-8 border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/40" />;
+                return <div key={`b-${di}`} className="h-7" />;
               }
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isConflict = conflictDates.has(ds);
-              const isBuffer = bufferDates.has(ds);
-              const isUnbookable = unbookableDates.has(ds);
+              const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const barStart = isBarStart(dayNum);
               const hasBar = !!getBarForDay(dayNum);
-              const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
+              const isBuffer = bufferDates.has(ds) && !hasBar;
+              const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer;
+              const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential;
+              const bg = isConflict ? "bg-[#f85149]/8"
+                : isToday ? "bg-[#58a6ff]/5"
+                : isBuffer ? "bg-[#d29922]/5"
+                : isPotential ? "bg-[#58a6ff]/3"
+                : isUnbookable ? "bg-[#8b949e]/5"
+                : "";
 
               return (
-                <div
-                  key={`b-${dayNum}`}
-                  className={`relative h-8 flex items-center border-r border-[#21262d] last:border-r-0 px-0.5 overflow-visible ${
-                    isConflict ? "bg-[#f85149]/8"
-                    : isToday ? "bg-[#58a6ff]/5"
-                    : isBuffer && !hasBar ? "bg-[#d29922]/5"
-                    : isUnbookable && !hasBar ? "bg-[#8b949e]/5"
-                    : ""
-                  }`}
-                >
-                  {/* Conflict indicator */}
+                <div key={`b-${dayNum}`} className={`relative h-7 flex items-center border-r border-[#21262d] last:border-r-0 px-0.5 overflow-visible ${bg}`}>
+                  {/* Conflict */}
                   {isConflict && !hasBar && (
-                    <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">
-                      Conflict
-                    </div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Conflict</div>
                   )}
 
-                  {/* Buffer/cleaning indicator */}
-                  {isBuffer && !hasBar && !isConflict && (
-                    <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">
-                      Cleaning
-                    </div>
+                  {/* Cleaning */}
+                  {isBuffer && (
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">Cleaning</div>
                   )}
 
-                  {/* Unbookable gap indicator */}
-                  {isUnbookable && !hasBar && !isConflict && !isBuffer && (
-                    <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">
-                      &lt;{property.minNights || 3}n
-                    </div>
+                  {/* Potential cleaning */}
+                  {isPotential && (
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">Cleaning?</div>
                   )}
 
-                  {/* Booking bar — consistent h-6 */}
+                  {/* Unbookable */}
+                  {isUnbookable && (
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
+                  )}
+
+                  {/* Booking bar */}
                   {barStart && (
                     <div
                       onClick={() => barStart.reservationId && onSelectReservation(barStart.reservationId)}
-                      className={`absolute left-0 top-1 h-6 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
+                      className={`absolute left-0 top-1 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
                         isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
                         barStart.platform === "booking"
                           ? "bg-[#003580]"
                           : "bg-[#b5462a]"
-                      } ${barStart.reservationId ? "cursor-pointer hover:brightness-110" : "opacity-80"}`}
+                      } ${barStart.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
                       style={{
                         width: `calc(${barStart.span * 100}% - 2px)`,
                         zIndex: 10,
