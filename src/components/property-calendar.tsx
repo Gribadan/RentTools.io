@@ -102,12 +102,11 @@ export function PropertyCalendar({
 
     // Synced calendar events
     for (const ev of syncedEvents) {
-      // Skip "Not available" / buffer-type events — only real bookings
-      const isReal = !ev.summary.includes("Not available") && !ev.summary.includes("Blocked");
       const platform = ev.platform;
       const dates = platform === "airbnb" ? airbnb : booking;
+      // Include checkout day as booked (guest's day until noon)
       let d = ev.startDate;
-      while (d < ev.endDate) {
+      while (d <= ev.endDate) {
         dates.add(d);
         allBooked.add(d);
         d = addDaysStr(d, 1);
@@ -120,7 +119,15 @@ export function PropertyCalendar({
           endDate: ev.endDate,
         });
       }
-      if (isReal) {
+      // For buffer calculation:
+      // - Booking.com labels ALL events "CLOSED - Not available" (even real guest bookings)
+      //   so we treat ALL Booking events as real
+      // - Airbnb distinguishes: "Reserved" = real booking, "Not available" = host block
+      //   so we only skip Airbnb "Not available" / "Blocked" events
+      const isAirbnbBlock = platform === "airbnb" && (
+        ev.summary.includes("Not available") || ev.summary.includes("Blocked")
+      );
+      if (!isAirbnbBlock) {
         allBookings.push({ start: ev.startDate, end: ev.endDate, platform, name: ev.summary });
       }
     }
@@ -131,8 +138,9 @@ export function PropertyCalendar({
       const end = toDateStr(new Date(res.checkOut));
       const platform = res.platform || "airbnb";
       const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
+      // Include checkout day as booked (guest's day until noon)
       let d = start;
-      while (d < end) {
+      while (d <= end) {
         dates.add(d);
         allBooked.add(d);
         resMap.set(d, res);
@@ -186,9 +194,10 @@ export function PropertyCalendar({
           buffer.add(d);
         }
       }
-      // Buffer after: check each day going forwards from end date
-      for (let i = 0; i < bAfter; i++) {
-        const d = addDaysStr(b.end, i); // end date is exclusive (checkout day), so i=0 = checkout day
+      // Buffer after: checkout day is still guest's day, buffer starts day after
+      // b.end is iCal exclusive end (checkout day), so buffer starts at b.end + 1
+      for (let i = 1; i <= bAfter; i++) {
+        const d = addDaysStr(b.end, i);
         if (!allBooked.has(d)) {
           buffer.add(d);
         }
@@ -285,26 +294,26 @@ export function PropertyCalendar({
   while (weeks.length > 0 && weeks[weeks.length - 1].length < 7) weeks[weeks.length - 1].push(null);
 
   // Get bar for a specific day
+  // Bar visual rendering uses INCLUSIVE end date (checkout day shows as part of bar)
+  // This matches Airbnb's visual style where the bar covers check-in through checkout
   const getBarForDay = (dayNum: number) => {
     const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-    return bars.find(b => ds >= b.startDate && ds < b.endDate);
+    return bars.find(b => ds >= b.startDate && ds <= b.endDate);
   };
 
   const isBarStart = (dayNum: number) => {
     const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-    // Start of bar, or start of a new week row for a continuing bar
     const bar = getBarForDay(dayNum);
     if (!bar) return null;
     const dow = new Date(year, month, dayNum).getDay();
     const isMonday = dow === 1;
     if (ds === bar.startDate || (isMonday && ds > bar.startDate)) {
-      // Calculate span until end of bar or end of week
       let span = 0;
       for (let d = dayNum; d <= daysInMonth; d++) {
         const dds = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-        if (dds >= bar.endDate) break;
+        if (dds > bar.endDate) break; // inclusive: stop AFTER endDate
         span++;
-        if (new Date(year, month, d).getDay() === 0) break; // Sunday
+        if (new Date(year, month, d).getDay() === 0) break;
       }
       return { ...bar, span, showLabel: ds === bar.startDate };
     }

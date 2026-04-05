@@ -103,12 +103,15 @@ export function generateICal(
   for (const event of events) {
     const dtstart = event.startDate.replace(/-/g, "");
     const dtend = event.endDate.replace(/-/g, "");
+    // Sanitize UID and summary for iCal compatibility (ASCII only, no special chars)
+    const uid = event.uid.replace(/[^a-zA-Z0-9@._-]/g, "_");
+    const summary = event.summary.replace(/[^\x20-\x7E]/g, "");
 
     lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${event.uid}`);
+    lines.push(`UID:${uid}`);
     lines.push(`DTSTART;VALUE=DATE:${dtstart}`);
     lines.push(`DTEND;VALUE=DATE:${dtend}`);
-    lines.push(`SUMMARY:${event.summary}`);
+    lines.push(`SUMMARY:${summary}`);
     lines.push(`DTSTAMP:${formatNowUTC()}`);
     lines.push("END:VEVENT");
   }
@@ -135,9 +138,11 @@ export function generateBufferedEvents(
   if (events.length === 0) return [];
 
   // Extend each event with buffer days
+  // endDate is iCal exclusive (checkout day). Checkout day is still guest's day.
+  // So buffer after = endDate + 1 (include checkout) + bufferAfter days
   const buffered = events.map((event) => ({
     start: addDays(event.startDate, -bufferBefore),
-    end: addDays(event.endDate, bufferAfter),
+    end: addDays(event.endDate, 1 + bufferAfter),
     uid: event.uid,
   }));
 
@@ -145,21 +150,20 @@ export function generateBufferedEvents(
   buffered.sort((a, b) => a.start.localeCompare(b.start));
 
   // Merge overlapping/adjacent ranges so buffers between close bookings don't double up
-  const merged: { start: string; end: string; uid: string }[] = [];
+  const merged: { start: string; end: string; count: number }[] = [];
   for (const b of buffered) {
     const last = merged[merged.length - 1];
     if (last && b.start <= last.end) {
-      // Overlapping or adjacent — extend the end if needed
       if (b.end > last.end) last.end = b.end;
-      last.uid = `${last.uid}+${b.uid}`;
+      last.count++;
     } else {
-      merged.push({ ...b });
+      merged.push({ ...b, count: 1 });
     }
   }
 
   const label = `Blocked (${sourcePlatform}${bufferBefore || bufferAfter ? " +buffer" : ""})`;
-  return merged.map((m) => ({
-    uid: `renttool-${sourcePlatform}-${m.uid}`,
+  return merged.map((m, i) => ({
+    uid: `renttool-${sourcePlatform}-${m.start}-${m.end}-${i}`,
     summary: label,
     startDate: m.start,
     endDate: m.end,
