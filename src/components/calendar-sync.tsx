@@ -423,7 +423,7 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
   const [bufferBefore, setBufferBefore] = useState(1);
   const [bufferAfter, setBufferAfter] = useState(1);
   const [testing, setTesting] = useState<string | null>(null); // platform being tested
-  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [calOffset, setCalOffset] = useState(0); // month offset for calendar nav
 
@@ -487,33 +487,36 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
     const link = links.find((l) => l.platform === platform);
     if (!link) return;
     setTesting(platform);
-    setTestResult(null);
+    setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; });
     try {
       const res = await fetch("/api/calendar/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: link.icalExportUrl }),
       });
-      setTestResult(await res.json());
+      const result = await res.json();
+      setTestResults((prev) => ({ ...prev, [platform]: result }));
     } catch (err) {
-      setTestResult({ success: false, error: String(err) });
+      setTestResults((prev) => ({ ...prev, [platform]: { success: false, error: String(err) } }));
     } finally {
       setTesting(null);
     }
   };
 
   const handleTestUrl = async (url: string) => {
-    setTesting("input");
-    setTestResult(null);
+    const platform = editingLink || "input";
+    setTesting(platform);
+    setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; });
     try {
       const res = await fetch("/api/calendar/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      setTestResult(await res.json());
+      const result = await res.json();
+      setTestResults((prev) => ({ ...prev, [platform]: result }));
     } catch (err) {
-      setTestResult({ success: false, error: String(err) });
+      setTestResults((prev) => ({ ...prev, [platform]: { success: false, error: String(err) } }));
     } finally {
       setTesting(null);
     }
@@ -525,11 +528,11 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
     setUrlInput(existing?.icalExportUrl || "");
     setBufferBefore(existing?.bufferBefore ?? 1);
     setBufferAfter(existing?.bufferAfter ?? 1);
-    setTestResult(null);
+    setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; });
   };
 
   const copyFeedUrl = (forPlatform: string) => {
-    const url = `${window.location.origin}/api/calendar/feed/${propertyId}?for=${forPlatform}`;
+    const url = `${window.location.origin}/api/calendar/feed/${propertyId}.ics?for=${forPlatform}`;
     navigator.clipboard.writeText(url);
     setCopied(forPlatform);
     setTimeout(() => setCopied(null), 2000);
@@ -537,7 +540,7 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
 
   const feedUrl = (forPlatform: string) => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/api/calendar/feed/${propertyId}?for=${forPlatform}`;
+    return `${window.location.origin}/api/calendar/feed/${propertyId}.ics?for=${forPlatform}`;
   };
 
   /* ── calendar data ── */
@@ -621,19 +624,33 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
 
                   {/* Buffers + Test row */}
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-[#7d8590]">Buffer:</span>
-                      <select value={link.bufferBefore} onChange={(e) => handleUpdateBuffer(link.id, "bufferBefore", Number(e.target.value))} className="h-6 rounded border border-[#30363d] bg-[#161b22] px-1.5 text-[11px] text-[#f0f6fc] outline-none">
-                        {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d before</option>)}
-                      </select>
-                      <select value={link.bufferAfter} onChange={(e) => handleUpdateBuffer(link.id, "bufferAfter", Number(e.target.value))} className="h-6 rounded border border-[#30363d] bg-[#161b22] px-1.5 text-[11px] text-[#f0f6fc] outline-none">
-                        {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d after</option>)}
-                      </select>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#7d8590]">Buffer:</span>
+                      <div className="relative">
+                        <select
+                          value={link.bufferBefore}
+                          onChange={(e) => handleUpdateBuffer(link.id, "bufferBefore", Number(e.target.value))}
+                          className="h-7 appearance-none rounded-md border border-[#30363d] bg-[#0d1117] pl-2.5 pr-7 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+                        >
+                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d before</option>)}
+                        </select>
+                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                      </div>
+                      <div className="relative">
+                        <select
+                          value={link.bufferAfter}
+                          onChange={(e) => handleUpdateBuffer(link.id, "bufferAfter", Number(e.target.value))}
+                          className="h-7 appearance-none rounded-md border border-[#30363d] bg-[#0d1117] pl-2.5 pr-7 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+                        >
+                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d after</option>)}
+                        </select>
+                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                      </div>
                     </div>
                     <button
                       onClick={() => handleTest(platform)}
                       disabled={testing === platform}
-                      className="flex items-center gap-1 rounded bg-[#21262d] px-2 py-1 text-[11px] text-[#c9d1d9] hover:bg-[#30363d] disabled:opacity-50"
+                      className="flex items-center gap-1.5 rounded-md bg-[#21262d] px-3 py-1.5 text-xs text-[#c9d1d9] hover:bg-[#30363d] disabled:opacity-50"
                     >
                       {testing === platform ? "Testing..." : "Test Connection"}
                     </button>
@@ -649,23 +666,23 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
                     <p className="text-[11px] text-[#f85149]">{link.lastError}</p>
                   )}
 
-                  {/* Test result */}
-                  {testResult && testing === null && (
-                    <div className={`rounded-md p-2.5 text-[11px] ${testResult.success ? "bg-[#3fb950]/10 text-[#3fb950]" : "bg-[#f85149]/10 text-[#f85149]"}`}>
-                      {testResult.success ? (
+                  {/* Test result — per platform */}
+                  {testResults[platform] && testing !== platform && (
+                    <div className={`rounded-md p-2.5 text-xs ${testResults[platform].success ? "bg-[#3fb950]/10 text-[#3fb950]" : "bg-[#f85149]/10 text-[#f85149]"}`}>
+                      {testResults[platform].success ? (
                         <div>
                           <p className="font-semibold">Connection successful</p>
-                          <p className="text-[#9198a1] mt-0.5">{testResult.futureEvents} upcoming · {testResult.pastEvents} past · {testResult.totalEvents} total events</p>
-                          {testResult.events && testResult.events.length > 0 && (
+                          <p className="text-[#9198a1] mt-0.5">{testResults[platform].futureEvents} upcoming · {testResults[platform].pastEvents} past · {testResults[platform].totalEvents} total events</p>
+                          {testResults[platform].events && testResults[platform].events!.length > 0 && (
                             <div className="mt-1.5 space-y-0.5">
-                              {testResult.events.slice(0, 5).map((ev, i) => (
+                              {testResults[platform].events!.slice(0, 5).map((ev: { startDate: string; endDate: string; summary: string }, i: number) => (
                                 <p key={i} className="text-[#c9d1d9]">{ev.startDate} → {ev.endDate} · {ev.summary}</p>
                               ))}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <p>{testResult.error}</p>
+                        <p>{testResults[platform].error}</p>
                       )}
                     </div>
                   )}
@@ -700,39 +717,53 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
                     />
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-[#7d8590]">Buffer:</span>
-                      <select value={bufferBefore} onChange={(e) => setBufferBefore(Number(e.target.value))} className="h-6 rounded border border-[#30363d] bg-[#161b22] px-1.5 text-[11px] text-[#f0f6fc] outline-none">
-                        {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d before</option>)}
-                      </select>
-                      <select value={bufferAfter} onChange={(e) => setBufferAfter(Number(e.target.value))} className="h-6 rounded border border-[#30363d] bg-[#161b22] px-1.5 text-[11px] text-[#f0f6fc] outline-none">
-                        {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d after</option>)}
-                      </select>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#7d8590]">Buffer:</span>
+                      <div className="relative">
+                        <select
+                          value={bufferBefore}
+                          onChange={(e) => setBufferBefore(Number(e.target.value))}
+                          className="h-7 appearance-none rounded-md border border-[#30363d] bg-[#0d1117] pl-2.5 pr-7 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+                        >
+                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d before</option>)}
+                        </select>
+                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                      </div>
+                      <div className="relative">
+                        <select
+                          value={bufferAfter}
+                          onChange={(e) => setBufferAfter(Number(e.target.value))}
+                          className="h-7 appearance-none rounded-md border border-[#30363d] bg-[#0d1117] pl-2.5 pr-7 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+                        >
+                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}d after</option>)}
+                        </select>
+                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                      </div>
                     </div>
                     {urlInput.trim() && (
                       <button
                         onClick={() => handleTestUrl(urlInput.trim())}
-                        disabled={testing === "input"}
-                        className="flex items-center gap-1 rounded bg-[#21262d] px-2 py-1 text-[11px] text-[#c9d1d9] hover:bg-[#30363d] disabled:opacity-50"
+                        disabled={testing === (editingLink || "input")}
+                        className="flex items-center gap-1.5 rounded-md bg-[#21262d] px-3 py-1.5 text-xs text-[#c9d1d9] hover:bg-[#30363d] disabled:opacity-50"
                       >
-                        {testing === "input" ? "Testing..." : "Test"}
+                        {testing === (editingLink || "input") ? "Testing..." : "Test"}
                       </button>
                     )}
                   </div>
 
                   {/* Test result inline */}
-                  {testResult && testing === null && (
-                    <div className={`rounded-md p-2 text-[11px] ${testResult.success ? "bg-[#3fb950]/10 text-[#3fb950]" : "bg-[#f85149]/10 text-[#f85149]"}`}>
-                      {testResult.success
-                        ? <span>Valid iCal — {testResult.futureEvents} upcoming events found</span>
-                        : <span>{testResult.error}</span>
+                  {testResults[editingLink || "input"] && testing === null && (
+                    <div className={`rounded-md p-2.5 text-xs ${testResults[editingLink || "input"].success ? "bg-[#3fb950]/10 text-[#3fb950]" : "bg-[#f85149]/10 text-[#f85149]"}`}>
+                      {testResults[editingLink || "input"].success
+                        ? <span>Valid iCal — {testResults[editingLink || "input"].futureEvents} upcoming events found</span>
+                        : <span>{testResults[editingLink || "input"].error}</span>
                       }
                     </div>
                   )}
 
                   <div className="flex gap-2">
                     <Button onClick={() => handleSaveLink(platform)} className="h-7 rounded bg-[#238636] px-3 text-xs text-white hover:bg-[#2ea043]">Save</Button>
-                    <button onClick={() => { setEditingLink(null); setUrlInput(""); setTestResult(null); }} className="h-7 rounded px-3 text-xs text-[#9198a1] hover:text-[#f0f6fc]">Cancel</button>
+                    <button onClick={() => { setEditingLink(null); setUrlInput(""); setTestResults({}); }} className="h-7 rounded px-3 text-xs text-[#9198a1] hover:text-[#f0f6fc]">Cancel</button>
                   </div>
                 </div>
               ) : (
