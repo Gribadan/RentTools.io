@@ -7,7 +7,9 @@ import { Sidebar } from "@/components/sidebar";
 import { ReservationView } from "@/components/reservation-view";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Dashboard } from "@/components/dashboard";
-import { CalendarSync } from "@/components/calendar-sync";
+import { PropertyCalendar } from "@/components/property-calendar";
+import { SyncSettings } from "@/components/sync-settings";
+import { TasksPanel } from "@/components/tasks-panel";
 import { Button } from "@/components/ui/button";
 import type { Property, Guest } from "@/lib/types";
 
@@ -27,6 +29,7 @@ function AppContent({
   const [guests, setGuests] = useState<Guest[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showCalendarSync, setShowCalendarSync] = useState(false);
+  const [showTasks, setShowTasks] = useState(false);
 
   useEffect(() => {
     fetchProperties();
@@ -154,38 +157,53 @@ function AppContent({
           setSelectedReservationId(null);
           setShowSettings(false);
           setShowCalendarSync(false);
+          setShowTasks(false);
         }}
         onSelectReservation={(id) => {
           setSelectedReservationId(id);
           setShowSettings(false);
           setShowCalendarSync(false);
+          setShowTasks(false);
         }}
         onAddProperty={handleAddProperty}
         onDeleteProperty={handleDeleteProperty}
         onAddReservation={handleAddReservation}
         onDeleteReservation={handleDeleteReservation}
         username={user.username}
-        onSettings={() => { setShowSettings(!showSettings); setShowCalendarSync(false); }}
+        onSettings={() => { setShowSettings(!showSettings); setShowCalendarSync(false); setShowTasks(false); }}
         onLogout={handleLogout}
         onDashboard={() => {
           setSelectedPropertyId(null);
           setSelectedReservationId(null);
           setShowSettings(false);
           setShowCalendarSync(false);
+          setShowTasks(false);
         }}
         onCalendarSync={() => {
           if (selectedPropertyId) {
             setShowCalendarSync(true);
             setSelectedReservationId(null);
             setShowSettings(false);
+            setShowTasks(false);
           }
+        }}
+        onTasks={() => {
+          setShowTasks(true);
+          setShowSettings(false);
+          setShowCalendarSync(false);
+          setSelectedReservationId(null);
         }}
         showSettings={showSettings}
         showCalendarSync={showCalendarSync}
+        showTasks={showTasks}
       />
 
       {/* Content */}
-      {showSettings ? (
+      {showTasks ? (
+        <main className="flex-1 overflow-y-auto p-8 lg:p-10">
+          <TasksPanel />
+        </main>
+      ) : showSettings ? (
         <main className="flex-1 overflow-y-auto p-8 lg:p-10">
           <div className="mx-auto max-w-2xl">
             <SettingsPanel
@@ -197,13 +215,11 @@ function AppContent({
       ) : (
         <main className="flex-1 overflow-y-auto p-8 lg:p-10">
           {showCalendarSync && selectedProperty ? (
-            <div className="mx-auto max-w-3xl">
-              <CalendarSync
-                key={selectedProperty.id}
-                propertyId={selectedProperty.id}
-                propertyName={selectedProperty.name}
-              />
-            </div>
+            <SyncSettings
+              key={`sync-${selectedProperty.id}`}
+              propertyId={selectedProperty.id}
+              propertyName={selectedProperty.name}
+            />
           ) : selectedReservation ? (
             <ReservationView
               key={selectedReservation.id}
@@ -214,10 +230,19 @@ function AppContent({
               onUpdateReservation={handleUpdateReservation}
               onUpdateParent={handleUpdateParent}
             />
+          ) : selectedProperty ? (
+            <PropertyCalendar
+              key={`cal-${selectedProperty.id}`}
+              property={selectedProperty}
+              onSelectReservation={(id) => {
+                setSelectedReservationId(id);
+              }}
+              onAddReservation={handleAddReservation}
+            />
           ) : (
             <Dashboard
               properties={properties}
-              selectedProperty={selectedProperty || null}
+              selectedProperty={null}
               onSelectProperty={(id) => {
                 setSelectedPropertyId(id);
                 setSelectedReservationId(null);

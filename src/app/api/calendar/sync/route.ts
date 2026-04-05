@@ -6,6 +6,20 @@ import { syncAllCalendars } from "@/lib/calendar-sync";
 export async function POST() {
   try {
     const result = await syncAllCalendars();
+
+    // Record run
+    const now = new Date().toISOString();
+    await prisma.appSettings.upsert({
+      where: { key: "sync_last_run" },
+      update: { value: now },
+      create: { key: "sync_last_run", value: now },
+    });
+    await prisma.appSettings.upsert({
+      where: { key: "sync_last_result" },
+      update: { value: JSON.stringify(result) },
+      create: { key: "sync_last_result", value: JSON.stringify(result) },
+    });
+
     return NextResponse.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
