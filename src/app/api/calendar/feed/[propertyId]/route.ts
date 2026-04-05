@@ -18,6 +18,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ propertyId: string }> }
 ) {
+  try {
   const { propertyId: pid } = await params;
   // Support .ics suffix: "123.ics" -> 123
   const propertyId = Number(pid.replace(/\.ics$/i, ""));
@@ -117,7 +118,7 @@ export async function GET(
   // Generate iCal
   const ical = generateICal(
     buffered,
-    `${property.name} — Blocked for ${forPlatform}`
+    `${property.name} - Blocked for ${forPlatform}`
   );
 
   return new NextResponse(ical, {
@@ -127,4 +128,8 @@ export async function GET(
       "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   });
+  } catch (err) {
+    console.error("Feed error:", err);
+    return new NextResponse(`Error: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
+  }
 }
