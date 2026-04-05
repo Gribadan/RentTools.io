@@ -102,9 +102,40 @@ export async function syncAllCalendars(): Promise<{
           continue;
         }
 
-        // Filter to future events only (no point syncing past dates)
+        // Filter to future events only, and skip events created by our own RentTool feed
+        // (prevents feedback loop: our buffer → imported by platform → re-synced as booking)
         const today = new Date().toISOString().substring(0, 10);
-        const futureEvents = events.filter((e) => e.endDate >= today);
+
+        // Skip events created by our own RentTool feed (feedback loop prevention)
+        const filteredEvents = events.filter((e) => {
+          if (e.endDate < today) return false;
+          if (e.uid.startsWith("renttool-")) return false;
+          if (e.summary.includes("Blocked (") && e.summary.includes("+buffer")) return false;
+          if (e.summary === "Blocked (cleaning)") return false;
+          return true;
+        });
+
+        // Also filter out 1-day "CLOSED" blocks that sit right before another event
+        // (likely our own buffer day reflected back by the platform)
+        const futureEvents = filteredEvents.filter((e) => {
+          // Only check 1-day events with "CLOSED" or "Not available" summary
+          const duration = Math.round(
+            (new Date(e.endDate + "T12:00:00Z").getTime() - new Date(e.startDate + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
+          );
+          if (duration > 1) return true; // keep multi-day events
+          if (!e.summary.includes("CLOSED") && !e.summary.includes("Not available")) return true;
+
+          // Check if this 1-day block is immediately before another event
+          const nextDay = e.endDate; // exclusive end = next day
+          const hasAdjacentEvent = filteredEvents.some(
+            (other) => other !== e && other.startDate === nextDay
+          );
+          if (hasAdjacentEvent) {
+            // This is likely a reflected buffer day — skip it
+            return false;
+          }
+          return true;
+        });
 
         // Get existing events for this property+platform
         const existing = await prisma.calendarEvent.findMany({
