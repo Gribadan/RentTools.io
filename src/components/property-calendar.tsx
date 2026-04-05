@@ -79,15 +79,14 @@ export function PropertyCalendar({
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   }, [today, monthOffset]);
 
-  const { year, month, daysInMonth, monthLabel, firstDayOffset } = useMemo(() => {
-    const y = currentMonth.getFullYear();
-    const m = currentMonth.getMonth();
-    const dim = new Date(y, m + 1, 0).getDate();
-    const label = currentMonth.toLocaleDateString("en", { month: "long", year: "numeric" });
-    let fdo = new Date(y, m, 1).getDay() - 1;
-    if (fdo < 0) fdo = 6;
-    return { year: y, month: m, daysInMonth: dim, monthLabel: label, firstDayOffset: fdo };
-  }, [currentMonth]);
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthLabel = currentMonth.toLocaleDateString("en", { month: "long", year: "numeric" });
+  let firstDayOffset = new Date(year, month, 1).getDay() - 1;
+  if (firstDayOffset < 0) firstDayOffset = 6;
+  // Stable key for forcing React to remount the grid on month change
+  const monthKey = `${year}-${month}`;
 
   // Build date sets for each platform + conflict detection + smart buffers
   const { airbnbDates, bookingDates, bufferDates, potentialDates, unbookableDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
@@ -601,8 +600,9 @@ export function PropertyCalendar({
         </div>
 
         {/* Grid */}
+        <div key={monthKey}>
         {weeks.map((week, wi) => (
-          <div key={wi} className="border-b border-[#21262d] last:border-b-0">
+          <div key={`${monthKey}-w${wi}`} className="border-b border-[#21262d] last:border-b-0">
             {/* Row 1: Day numbers */}
             <div className="grid grid-cols-7">
             {week.map((dayNum, di) => {
@@ -703,6 +703,7 @@ export function PropertyCalendar({
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* Agenda */}
