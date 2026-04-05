@@ -39,3 +39,34 @@ export interface Property {
   createdAt: string;
   reservations: Reservation[];
 }
+
+export interface CalendarLink {
+  id: number;
+  propertyId: number;
+  platform: string;
+  icalExportUrl: string;
+  bufferBefore: number;
+  bufferAfter: number;
+  lastFetchedAt: string | null;
+  lastError: string | null;
+  createdAt: string;
+}
+
+export interface CalendarEvent {
+  id: number;
+  propertyId: number;
+  platform: string;
+  uid: string;
+  summary: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
+
+export interface SyncLogEntry {
+  id: number;
+  propertyId: number | null;
+  level: string;
+  message: string;
+  createdAt: string;
+}

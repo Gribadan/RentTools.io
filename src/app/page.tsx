@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/sidebar";
 import { ReservationView } from "@/components/reservation-view";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Dashboard } from "@/components/dashboard";
+import { CalendarSync } from "@/components/calendar-sync";
 import { Button } from "@/components/ui/button";
 import type { Property, Guest } from "@/lib/types";
 
@@ -25,6 +26,7 @@ function AppContent({
   >(null);
   const [guests, setGuests] = useState<Guest[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCalendarSync, setShowCalendarSync] = useState(false);
 
   useEffect(() => {
     fetchProperties();
@@ -151,24 +153,35 @@ function AppContent({
           setSelectedPropertyId(id);
           setSelectedReservationId(null);
           setShowSettings(false);
+          setShowCalendarSync(false);
         }}
         onSelectReservation={(id) => {
           setSelectedReservationId(id);
           setShowSettings(false);
+          setShowCalendarSync(false);
         }}
         onAddProperty={handleAddProperty}
         onDeleteProperty={handleDeleteProperty}
         onAddReservation={handleAddReservation}
         onDeleteReservation={handleDeleteReservation}
         username={user.username}
-        onSettings={() => setShowSettings(!showSettings)}
+        onSettings={() => { setShowSettings(!showSettings); setShowCalendarSync(false); }}
         onLogout={handleLogout}
         onDashboard={() => {
           setSelectedPropertyId(null);
           setSelectedReservationId(null);
           setShowSettings(false);
+          setShowCalendarSync(false);
+        }}
+        onCalendarSync={() => {
+          if (selectedPropertyId) {
+            setShowCalendarSync(true);
+            setSelectedReservationId(null);
+            setShowSettings(false);
+          }
         }}
         showSettings={showSettings}
+        showCalendarSync={showCalendarSync}
       />
 
       {/* Content */}
@@ -183,7 +196,15 @@ function AppContent({
         </main>
       ) : (
         <main className="flex-1 overflow-y-auto p-8 lg:p-10">
-          {selectedReservation ? (
+          {showCalendarSync && selectedProperty ? (
+            <div className="mx-auto max-w-3xl">
+              <CalendarSync
+                key={selectedProperty.id}
+                propertyId={selectedProperty.id}
+                propertyName={selectedProperty.name}
+              />
+            </div>
+          ) : selectedReservation ? (
             <ReservationView
               key={selectedReservation.id}
               reservation={selectedReservation}
