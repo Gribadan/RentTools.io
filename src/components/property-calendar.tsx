@@ -184,58 +184,64 @@ export function PropertyCalendar({
     // Buffer and unbookable gap calculation
     // Rule: if someone CAN book between two reservations → 2 cleanings (after + before)
     //        if nobody can book (gap too small) → 1 cleaning only, rest unbookable
+
+    // Deduplicate allBookings by date range (synced events + internal reservations can overlap)
     allBookings.sort((a, b) => a.start.localeCompare(b.start));
+    const dedupedBookings: typeof allBookings = [];
+    for (const b of allBookings) {
+      const last = dedupedBookings[dedupedBookings.length - 1];
+      if (last && b.start <= last.end) {
+        // Overlapping — merge by extending end date
+        if (b.end > last.end) last.end = b.end;
+      } else {
+        dedupedBookings.push({ ...b });
+      }
+    }
+
     const minStay = property.minNights || 3;
-    const skipBeforeFor = new Set<number>(); // indices where buffer-before should be skipped
+    const skipBeforeFor = new Set<number>();
+    // Use max buffer across all links for gap calculation
+    const maxBefore = Math.max(0, ...links.map(l => l.bufferBefore));
+    const maxAfter = Math.max(0, ...links.map(l => l.bufferAfter));
 
     // First pass: determine which gaps are bookable
-    for (let bi = 0; bi < allBookings.length - 1; bi++) {
-      const b = allBookings[bi];
-      const next = allBookings[bi + 1];
-      const bLink = links.find(l => l.platform === b.platform);
-      const nLink = links.find(l => l.platform === next.platform);
-      const bAfter = bLink?.bufferAfter ?? 0;
-      const nBefore = nLink?.bufferBefore ?? 0;
+    for (let bi = 0; bi < dedupedBookings.length - 1; bi++) {
+      const b = dedupedBookings[bi];
+      const next = dedupedBookings[bi + 1];
 
-      // Gap = days between day-after-checkout and next checkin
       const gapStart = addDaysStr(b.end, 1);
       const gapDays = Math.max(0, Math.ceil(
         (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
       ));
-      const neededForBooking = bAfter + minStay + nBefore;
+      const neededForBooking = maxAfter + minStay + maxBefore;
 
       if (gapDays < neededForBooking) {
-        // Can't book here — skip buffer-before for next booking
         skipBeforeFor.add(bi + 1);
       }
     }
 
     // Second pass: add buffers and unbookable markers
-    for (let bi = 0; bi < allBookings.length; bi++) {
-      const b = allBookings[bi];
-      const bLink = links.find(l => l.platform === b.platform);
-      const bBefore = bLink?.bufferBefore ?? 0;
-      const bAfter = bLink?.bufferAfter ?? 0;
+    for (let bi = 0; bi < dedupedBookings.length; bi++) {
+      const b = dedupedBookings[bi];
 
       // Buffer before (only if gap to previous is bookable, or first booking)
       if (!skipBeforeFor.has(bi)) {
-        for (let i = 1; i <= bBefore; i++) {
+        for (let i = 1; i <= maxBefore; i++) {
           const d = addDaysStr(b.start, -i);
           if (!allBooked.has(d)) buffer.add(d);
         }
       }
 
-      // Buffer after (always — this is the one cleaning between bookings)
-      for (let i = 1; i <= bAfter; i++) {
+      // Buffer after (always — the one cleaning)
+      for (let i = 1; i <= maxAfter; i++) {
         const d = addDaysStr(b.end, i);
         if (!allBooked.has(d)) buffer.add(d);
       }
 
-      // Mark unbookable gap days (if gap too small for a booking)
-      const next = allBookings[bi + 1];
+      // Mark unbookable gap days
+      const next = dedupedBookings[bi + 1];
       if (next && skipBeforeFor.has(bi + 1)) {
-        // Gap is unbookable — mark remaining days (after cleaning) as unbookable
-        const cleanEnd = addDaysStr(b.end, bAfter + 1);
+        const cleanEnd = addDaysStr(b.end, maxAfter + 1);
         let d = cleanEnd;
         while (d < next.start) {
           if (!allBooked.has(d) && !buffer.has(d)) unbookable.add(d);
