@@ -81,7 +81,9 @@ export function TasksPanel() {
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const cronUrl = "Configured via vercel.json — runs every 10 minutes automatically";
+  const cronUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/api/calendar/cron?secret=${encodeURIComponent("rent-tool-secret-key-change-in-production-2024")}`
+    : "";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -144,12 +146,17 @@ export function TasksPanel() {
               </div>
             </div>
 
-            <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3 space-y-1.5">
-              <p className="text-xs font-medium text-[#9198a1]">Cron URL (add to external scheduler):</p>
-              <code className="block text-xs text-[#c9d1d9] break-all">{cronUrl}</code>
-              <p className="text-xs text-[#7d8590]">
-                Use cron-job.org, Vercel cron, or system crontab to call this URL at your chosen interval.
-              </p>
+            <div className="rounded-md border border-[#30363d] bg-[#0d1117] p-3 space-y-2">
+              <p className="text-xs font-medium text-[#9198a1]">Setup: add this URL to a free cron service</p>
+              <code className="block text-xs text-[#c9d1d9] break-all select-all cursor-pointer rounded bg-[#161b22] p-2 border border-[#21262d]">{cronUrl}</code>
+              <div className="text-xs text-[#7d8590] space-y-1">
+                <p>Vercel free plan only runs cron once per day. For more frequent sync, use a free external service:</p>
+                <p>
+                  <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">cron-job.org</a>
+                  {" "}— free, supports every 1 minute. Create account → New Job → paste the URL above → set your interval.
+                </p>
+                <p>Vercel daily cron also runs at 6:00 AM UTC as a fallback.</p>
+              </div>
             </div>
           </>
         )}
