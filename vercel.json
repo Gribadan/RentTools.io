@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/calendar/cron?secret=rent-tool-secret-key-change-in-production-2024",
+      "path": "/api/calendar/cron",
       "schedule": "*/10 * * * *"
     }
   ]
