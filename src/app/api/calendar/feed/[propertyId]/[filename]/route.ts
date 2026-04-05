@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateICal, generateBufferedEvents, type ICalEvent } from "@/lib/ical";
+import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, type ICalEvent } from "@/lib/ical";
 
 /**
  * GET /api/calendar/feed/[propertyId]/for-airbnb.ics
@@ -38,26 +38,14 @@ export async function GET(
     where: { propertyId },
   });
 
-  // Events from OTHER platforms only — never feed a platform its own events
-  const events = await prisma.calendarEvent.findMany({
-    where: {
-      propertyId,
-      platform: { not: forPlatform },
-      endDate: { gte: new Date().toISOString().substring(0, 10) },
-    },
+  // Get ALL events (both platforms) for buffer calculation
+  const allEvents = await prisma.calendarEvent.findMany({
+    where: { propertyId, endDate: { gte: new Date().toISOString().substring(0, 10) } },
     orderBy: { startDate: "asc" },
   });
 
-  const sourcePlatforms = links
-    .filter((l) => l.platform !== forPlatform)
-    .map((l) => l.platform);
-
-  const reservations = await prisma.reservation.findMany({
-    where: {
-      propertyId,
-      checkOut: { gte: new Date() },
-      platform: { not: forPlatform },
-    },
+  const allReservations = await prisma.reservation.findMany({
+    where: { propertyId, checkOut: { gte: new Date() } },
     orderBy: { checkIn: "asc" },
   });
 
@@ -65,38 +53,52 @@ export async function GET(
   const bufferBefore = targetLink?.bufferBefore ?? 1;
   const bufferAfter = targetLink?.bufferAfter ?? 1;
 
-  const icalEvents: ICalEvent[] = events.map((e) => ({
-    uid: e.uid,
-    summary: e.summary || "Blocked",
-    startDate: e.startDate,
-    endDate: e.endDate,
-  }));
+  // Other-platform events (block dates + buffer)
+  const otherEvents: ICalEvent[] = allEvents
+    .filter(e => e.platform !== forPlatform)
+    .map(e => ({ uid: e.uid, summary: e.summary || "Blocked", startDate: e.startDate, endDate: e.endDate }));
 
-  for (const res of reservations) {
-    const checkIn = new Date(res.checkIn).toISOString().substring(0, 10);
-    const checkOut = new Date(res.checkOut).toISOString().substring(0, 10);
-    icalEvents.push({
+  for (const res of allReservations.filter(r => (r.platform || "airbnb") !== forPlatform)) {
+    otherEvents.push({
       uid: `renttool-reservation-${res.id}`,
       summary: `${res.name} (${res.platform})`,
-      startDate: checkIn,
-      endDate: checkOut,
+      startDate: new Date(res.checkIn).toISOString().substring(0, 10),
+      endDate: new Date(res.checkOut).toISOString().substring(0, 10),
     });
   }
 
+  // Same-platform events (buffer-only)
+  const sameEvents: ICalEvent[] = allEvents
+    .filter(e => e.platform === forPlatform)
+    .map(e => ({ uid: `own-${e.uid}`, summary: "Buffer", startDate: e.startDate, endDate: e.endDate }));
+
+  for (const res of allReservations.filter(r => (r.platform || "airbnb") === forPlatform)) {
+    sameEvents.push({
+      uid: `own-res-${res.id}`,
+      summary: "Buffer",
+      startDate: new Date(res.checkIn).toISOString().substring(0, 10),
+      endDate: new Date(res.checkOut).toISOString().substring(0, 10),
+    });
+  }
+
+  // Deduplicate other events
   const seen = new Set<string>();
-  const unique = icalEvents.filter((e) => {
-    if (seen.has(e.uid)) return false;
-    seen.add(e.uid);
+  const unique = otherEvents.filter(e => { if (seen.has(e.uid)) return false; seen.add(e.uid); return true; });
+
+  // 1. Buffered other-platform events
+  const bufferedOther = generateBufferedEvents(unique, bufferBefore, bufferAfter, "sync", property.minNights ?? 3);
+
+  // 2. Buffer-only for same-platform events
+  const bufferOwn = generateBufferOnlyEvents(sameEvents, bufferBefore, bufferAfter, "Blocked (cleaning)");
+
+  // 3. Combine and deduplicate
+  const seenDates = new Set<string>();
+  const buffered = [...bufferedOther, ...bufferOwn].filter(e => {
+    const key = `${e.startDate}-${e.endDate}`;
+    if (seenDates.has(key)) return false;
+    seenDates.add(key);
     return true;
   });
-
-  const buffered = generateBufferedEvents(
-    unique,
-    bufferBefore,
-    bufferAfter,
-    sourcePlatforms.join("+") || "manual",
-    property.minNights ?? 3
-  );
 
   const ical = generateICal(
     buffered,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateICal, generateBufferedEvents, type ICalEvent } from "@/lib/ical";
+import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, type ICalEvent } from "@/lib/ical";
 
 /**
  * GET /api/calendar/feed/[propertyId]?for=airbnb
@@ -43,49 +43,38 @@ export async function GET(
     where: { propertyId },
   });
 
-  // Events from OTHER platforms only — never feed a platform its own events back
-  const events = await prisma.calendarEvent.findMany({
+  // Get ALL events for this property (both platforms) — needed for buffer calculation
+  const allEvents = await prisma.calendarEvent.findMany({
     where: {
       propertyId,
-      platform: { not: forPlatform },
       endDate: { gte: new Date().toISOString().substring(0, 10) },
     },
     orderBy: { startDate: "asc" },
   });
 
-  const sourcePlatforms = links
-    .filter((l) => l.platform !== forPlatform)
-    .map((l) => l.platform);
-
-  // Also include reservations from the database (manually added ones)
-  const reservations = await prisma.reservation.findMany({
+  // Get ALL reservations
+  const allReservations = await prisma.reservation.findMany({
     where: {
       propertyId,
       checkOut: { gte: new Date() },
-      // Only reservations from OTHER platforms
-      platform: { not: forPlatform },
     },
     orderBy: { checkIn: "asc" },
   });
 
-  // Determine buffer days — use the settings from the target platform's link
   const targetLink = links.find((l) => l.platform === forPlatform);
   const bufferBefore = targetLink?.bufferBefore ?? 1;
   const bufferAfter = targetLink?.bufferAfter ?? 1;
 
-  // Convert DB events to ICalEvent format
-  const icalEvents: ICalEvent[] = events.map((e) => ({
-    uid: e.uid,
-    summary: e.summary || "Blocked",
-    startDate: e.startDate,
-    endDate: e.endDate,
-  }));
+  // Split into: other-platform events (block dates) and same-platform (buffer-only)
+  const otherPlatformEvents: ICalEvent[] = allEvents
+    .filter(e => e.platform !== forPlatform)
+    .map(e => ({ uid: e.uid, summary: e.summary || "Blocked", startDate: e.startDate, endDate: e.endDate }));
 
-  // Also add manual reservations
-  for (const res of reservations) {
+  // Other-platform reservations
+  for (const res of allReservations.filter(r => (r.platform || "airbnb") !== forPlatform)) {
     const checkIn = new Date(res.checkIn).toISOString().substring(0, 10);
     const checkOut = new Date(res.checkOut).toISOString().substring(0, 10);
-    icalEvents.push({
+    otherPlatformEvents.push({
       uid: `renttool-reservation-${res.id}`,
       summary: `${res.name} (${res.platform})`,
       startDate: checkIn,
@@ -93,7 +82,26 @@ export async function GET(
     });
   }
 
-  // Deduplicate by UID (avoid double-blocking same event)
+  // Same-platform events — we only need these for generating buffer days
+  const samePlatformEvents: ICalEvent[] = allEvents
+    .filter(e => e.platform === forPlatform)
+    .map(e => ({ uid: `own-${e.uid}`, summary: "Buffer", startDate: e.startDate, endDate: e.endDate }));
+
+  for (const res of allReservations.filter(r => (r.platform || "airbnb") === forPlatform)) {
+    const checkIn = new Date(res.checkIn).toISOString().substring(0, 10);
+    const checkOut = new Date(res.checkOut).toISOString().substring(0, 10);
+    samePlatformEvents.push({
+      uid: `own-res-${res.id}`,
+      summary: "Buffer",
+      startDate: checkIn,
+      endDate: checkOut,
+    });
+  }
+
+  // Combine: other-platform events go in full, same-platform only for buffer generation
+  const icalEvents: ICalEvent[] = [...otherPlatformEvents];
+
+  // Deduplicate by UID
   const seen = new Set<string>();
   const unique = icalEvents.filter((e) => {
     if (seen.has(e.uid)) return false;
@@ -101,14 +109,32 @@ export async function GET(
     return true;
   });
 
-  // Generate buffered events with smart gap logic
-  const buffered = generateBufferedEvents(
+  // 1. Generate buffered events from OTHER-platform bookings (booking + buffer)
+  const bufferedOther = generateBufferedEvents(
     unique,
     bufferBefore,
     bufferAfter,
-    sourcePlatforms.join("+") || "manual",
+    "sync",
     property.minNights ?? 3
   );
+
+  // 2. Generate buffer-ONLY events from SAME-platform bookings (just cleaning days)
+  const bufferOwn = generateBufferOnlyEvents(
+    samePlatformEvents,
+    bufferBefore,
+    bufferAfter,
+    "Blocked (cleaning)"
+  );
+
+  // 3. Combine and deduplicate by date range
+  const allBlocked = [...bufferedOther, ...bufferOwn];
+  const seenDates = new Set<string>();
+  const buffered = allBlocked.filter((e) => {
+    const key = `${e.startDate}-${e.endDate}`;
+    if (seenDates.has(key)) return false;
+    seenDates.add(key);
+    return true;
+  });
 
   // Generate iCal
   const ical = generateICal(
