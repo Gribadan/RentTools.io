@@ -13,6 +13,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ propertyId: string; filename: string }> }
 ) {
+  try {
   const { propertyId: pid, filename } = await params;
   const propertyId = Number(pid);
 
@@ -100,7 +101,7 @@ export async function GET(
 
   const ical = generateICal(
     buffered,
-    `${property.name} — Blocked for ${forPlatform}`
+    `${property.name} - Blocked for ${forPlatform}`
   );
 
   return new NextResponse(ical, {
@@ -110,4 +111,8 @@ export async function GET(
       "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   });
+  } catch (err) {
+    console.error("Feed error:", err);
+    return new NextResponse(`Error: ${err instanceof Error ? err.message : String(err)}`, { status: 500 });
+  }
 }
