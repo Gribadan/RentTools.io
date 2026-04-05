@@ -38,26 +38,25 @@ export async function GET(
     where: { propertyId },
   });
 
-  const sourcePlatforms = links
-    .filter((l) => l.platform !== forPlatform)
-    .map((l) => l.platform);
-
-  const platformFilter = sourcePlatforms.length > 0 ? sourcePlatforms : undefined;
-
+  // Events from OTHER platforms only — never feed a platform its own events
   const events = await prisma.calendarEvent.findMany({
     where: {
       propertyId,
-      ...(platformFilter && { platform: { in: platformFilter } }),
+      platform: { not: forPlatform },
       endDate: { gte: new Date().toISOString().substring(0, 10) },
     },
     orderBy: { startDate: "asc" },
   });
 
+  const sourcePlatforms = links
+    .filter((l) => l.platform !== forPlatform)
+    .map((l) => l.platform);
+
   const reservations = await prisma.reservation.findMany({
     where: {
       propertyId,
       checkOut: { gte: new Date() },
-      ...(sourcePlatforms.length > 0 && { platform: { in: sourcePlatforms } }),
+      platform: { not: forPlatform },
     },
     orderBy: { checkIn: "asc" },
   });
@@ -86,9 +85,8 @@ export async function GET(
 
   const seen = new Set<string>();
   const unique = icalEvents.filter((e) => {
-    const key = `${e.startDate}-${e.endDate}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    if (seen.has(e.uid)) return false;
+    seen.add(e.uid);
     return true;
   });
 
