@@ -126,7 +126,7 @@ export function SyncSettings({ propertyId, propertyName }: SyncSettingsProps) {
 
   const feedUrl = (forPlatform: string) => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/api/calendar/feed/${propertyId}.ics?for=${forPlatform}`;
+    return `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
   };
 
   const copyUrl = (url: string, key: string) => {
