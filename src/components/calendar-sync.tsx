@@ -206,8 +206,16 @@ function SetupWizard({
     {
       num: 1,
       done: step1,
-      title: "Add Airbnb iCal URL",
-      description: "Go to Airbnb → Calendar → Availability Settings → scroll to \"Sync calendars\" → copy the Export Calendar link",
+      title: "Get your Airbnb iCal link",
+      instructions: [
+        "Open airbnb.com and go to your listing",
+        "Click \"Calendar\" in the top menu",
+        "Click the gear icon (Availability Settings) in the top-right",
+        "Scroll down to the \"Sync calendars\" section",
+        "Click \"Export Calendar\"",
+        "Copy the URL that appears (starts with https://www.airbnb.com/calendar/ical/...)",
+        "Paste it below and click Save",
+      ],
       action: !step1 ? (
         <button onClick={() => onStartEdit("airbnb")} className="rounded bg-[#FF5A5F]/20 px-3 py-1.5 text-[11px] font-medium text-[#f78166] hover:bg-[#FF5A5F]/30 w-full sm:w-auto">
           Add Airbnb URL
@@ -217,8 +225,16 @@ function SetupWizard({
     {
       num: 2,
       done: step2,
-      title: "Add Booking.com iCal URL",
-      description: "Go to Booking.com Extranet → Rates & Availability → Sync calendars → copy the iCal link",
+      title: "Get your Booking.com iCal link",
+      instructions: [
+        "Open admin.booking.com (Booking.com Extranet)",
+        "Go to \"Rates & Availability\" in the left menu",
+        "Click \"Sync calendars\" (or \"Calendar Sync\")",
+        "Find the \"Export\" section",
+        "Click \"Copy Link\" next to your iCal export URL",
+        "The link looks like https://admin.booking.com/hotel/hoteladmin/ical.html?...",
+        "Paste it below and click Save",
+      ],
       action: !step2 ? (
         <button onClick={() => onStartEdit("booking")} className="rounded bg-[#003580]/30 px-3 py-1.5 text-[11px] font-medium text-[#79c0ff] hover:bg-[#003580]/40 w-full sm:w-auto">
           Add Booking URL
@@ -229,9 +245,17 @@ function SetupWizard({
       num: 3,
       done: step3,
       title: "Import our feed into Airbnb",
-      description: step1 && step2
-        ? "Go to Airbnb → Calendar → Availability Settings → \"Sync calendars\" → Import Calendar → paste the URL below"
-        : "Complete steps 1 & 2 first",
+      instructions: step1 && step2 ? [
+        "Go back to Airbnb → Calendar → gear icon (Availability Settings)",
+        "Scroll to the \"Sync calendars\" section",
+        "If you already have Booking.com linked there — remove it first",
+        "Click \"Import calendar\"",
+        "Paste the URL below into the \"Calendar address (URL)\" field",
+        "Give it a name like \"Rent Tool Sync\"",
+        "Click \"Import calendar\" to save",
+      ] : [
+        "Complete steps 1 & 2 first to generate the import URL",
+      ],
       action: step1 && step2 && !step3 ? (
         <div className="space-y-2 w-full">
           <div className="flex items-center gap-1.5">
@@ -252,9 +276,16 @@ function SetupWizard({
       num: 4,
       done: step4,
       title: "Import our feed into Booking.com",
-      description: step1 && step2
-        ? "Go to Booking.com Extranet → Rates & Availability → Sync calendars → Import Calendar → paste the URL below"
-        : "Complete steps 1 & 2 first",
+      instructions: step1 && step2 ? [
+        "Go back to admin.booking.com → Rates & Availability → Sync calendars",
+        "If you already have Airbnb linked there — remove it first",
+        "Find the \"Import\" section (or \"Add connection\")",
+        "Paste the URL below into the iCal URL field",
+        "Give it a name like \"Rent Tool Sync\"",
+        "Click \"Save\" or \"Add\"",
+      ] : [
+        "Complete steps 1 & 2 first to generate the import URL",
+      ],
       action: step1 && step2 && !step4 ? (
         <div className="space-y-2 w-full">
           <div className="flex items-center gap-1.5">
@@ -293,9 +324,22 @@ function SetupWizard({
       {/* Important notice */}
       {step1 && step2 && (!step3 || !step4) && (
         <div className="rounded-md bg-[#d29922]/10 border border-[#d29922]/20 p-2.5 mb-3 text-[11px] text-[#d29922]">
-          <strong>Important:</strong> If you already have Airbnb&apos;s iCal imported into Booking (or vice versa), <strong>remove those old links</strong> and replace them with our URLs below. Otherwise you&apos;ll have duplicate blocks — one without buffer days and one with.
+          <strong>Important:</strong> If you already have Airbnb&apos;s iCal imported into Booking (or vice versa), <strong>remove those old links first</strong> and replace them with our URLs below. Otherwise you&apos;ll get duplicate blocked dates — one set without buffer days (old) and one with (ours).
         </div>
       )}
+
+      {/* How it works explanation */}
+      <div className="rounded-md bg-[#0d1117] border border-[#21262d] p-2.5 mb-3">
+        <p className="text-[11px] font-medium text-[#c9d1d9] mb-1.5">How this works</p>
+        <div className="text-[11px] text-[#7d8590] space-y-1">
+          <p>You need <strong className="text-[#9198a1]">4 links total</strong> — 2 links FROM the platforms (steps 1-2) and 2 links TO the platforms (steps 3-4).</p>
+          <p>Steps 1 & 2: We <strong className="text-[#9198a1]">read</strong> your bookings from Airbnb and Booking.com via their iCal export links.</p>
+          <p>Steps 3 & 4: We generate <strong className="text-[#9198a1]">enhanced calendar feeds</strong> that include bookings from the other platform + your cleaning buffer days. You import these feeds back into each platform.</p>
+          <p className="pt-1 border-t border-[#21262d] mt-1.5">
+            <strong className="text-[#9198a1]">Sync speed:</strong> Our server checks for new bookings every <strong className="text-[#9198a1]">10 minutes</strong> and updates the feed instantly. Airbnb typically pulls imported calendars every 3-6 hours; Booking.com every ~24 hours. The buffer days (cleaning time) are something you <strong className="text-[#9198a1]">cannot do with native platform sync</strong> — that&apos;s the main value of this tool.
+          </p>
+        </div>
+      </div>
 
       <div className="space-y-1">
         {steps.map((step) => {
@@ -331,12 +375,29 @@ function SetupWizard({
                   <p className={`text-xs font-medium ${step.done ? "text-[#3fb950]" : isCurrent ? "text-[#f0f6fc]" : "text-[#7d8590]"}`}>
                     {step.title}
                   </p>
-                  <p className={`text-[11px] mt-0.5 ${step.done ? "text-[#7d8590]" : isCurrent ? "text-[#9198a1]" : "text-[#484f58]"}`}>
-                    {step.description}
-                  </p>
+
+                  {/* Detailed instructions — shown for current & completed steps */}
+                  {(isCurrent || step.done) && (
+                    <ol className={`mt-1.5 space-y-0.5 text-[11px] list-none ${step.done ? "text-[#7d8590]" : "text-[#9198a1]"}`}>
+                      {step.instructions.map((line, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className={`shrink-0 mt-px font-mono text-[9px] w-3.5 text-center rounded ${step.done ? "text-[#484f58]" : "text-[#7d8590] bg-[#21262d]"}`}>{i + 1}</span>
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+
+                  {/* Collapsed summary for locked/future steps */}
+                  {!isCurrent && !step.done && (
+                    <p className="text-[11px] mt-0.5 text-[#484f58]">
+                      {step.instructions[0]}...
+                    </p>
+                  )}
+
                   {/* Action */}
                   {step.action && !isLocked && (
-                    <div className="mt-2">
+                    <div className="mt-2.5">
                       {step.action}
                     </div>
                   )}
