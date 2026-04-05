@@ -182,47 +182,64 @@ export function PropertyCalendar({
     }
 
     // Buffer and unbookable gap calculation
+    // Rule: if someone CAN book between two reservations → 2 cleanings (after + before)
+    //        if nobody can book (gap too small) → 1 cleaning only, rest unbookable
     allBookings.sort((a, b) => a.start.localeCompare(b.start));
     const minStay = property.minNights || 3;
+    const skipBeforeFor = new Set<number>(); // indices where buffer-before should be skipped
 
+    // First pass: determine which gaps are bookable
+    for (let bi = 0; bi < allBookings.length - 1; bi++) {
+      const b = allBookings[bi];
+      const next = allBookings[bi + 1];
+      const bLink = links.find(l => l.platform === b.platform);
+      const nLink = links.find(l => l.platform === next.platform);
+      const bAfter = bLink?.bufferAfter ?? 0;
+      const nBefore = nLink?.bufferBefore ?? 0;
+
+      // Gap = days between day-after-checkout and next checkin
+      const gapStart = addDaysStr(b.end, 1);
+      const gapDays = Math.max(0, Math.ceil(
+        (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
+      ));
+      const neededForBooking = bAfter + minStay + nBefore;
+
+      if (gapDays < neededForBooking) {
+        // Can't book here — skip buffer-before for next booking
+        skipBeforeFor.add(bi + 1);
+      }
+    }
+
+    // Second pass: add buffers and unbookable markers
     for (let bi = 0; bi < allBookings.length; bi++) {
       const b = allBookings[bi];
-      const link = links.find(l => l.platform === b.platform);
-      const bBefore = link?.bufferBefore ?? 0;
-      const bAfter = link?.bufferAfter ?? 0;
+      const bLink = links.find(l => l.platform === b.platform);
+      const bBefore = bLink?.bufferBefore ?? 0;
+      const bAfter = bLink?.bufferAfter ?? 0;
 
-      // Cleaning buffer before this booking
-      for (let i = 1; i <= bBefore; i++) {
-        const d = addDaysStr(b.start, -i);
-        if (!allBooked.has(d)) buffer.add(d);
+      // Buffer before (only if gap to previous is bookable, or first booking)
+      if (!skipBeforeFor.has(bi)) {
+        for (let i = 1; i <= bBefore; i++) {
+          const d = addDaysStr(b.start, -i);
+          if (!allBooked.has(d)) buffer.add(d);
+        }
       }
 
-      // Cleaning buffer after this booking (day after checkout)
+      // Buffer after (always — this is the one cleaning between bookings)
       for (let i = 1; i <= bAfter; i++) {
         const d = addDaysStr(b.end, i);
         if (!allBooked.has(d)) buffer.add(d);
       }
 
-      // Check gap to next booking for unbookable days
-      const nextBooking = allBookings[bi + 1];
-      if (nextBooking) {
-        const nextLink = links.find(l => l.platform === nextBooking.platform);
-        const nextBefore = nextLink?.bufferBefore ?? 0;
-
-        // Free gap = days between end of cleaning-after and start of cleaning-before-next
-        const afterCleanEnd = addDaysStr(b.end, bAfter + 1);
-        const beforeCleanStart = addDaysStr(nextBooking.start, -nextBefore);
-        const freeGap = Math.max(0, Math.ceil(
-          (new Date(beforeCleanStart + "T12:00:00Z").getTime() - new Date(afterCleanEnd + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
-        ));
-
-        if (freeGap > 0 && freeGap < minStay) {
-          // These days can't be booked — mark as unbookable (visual only, not exported)
-          let d = afterCleanEnd;
-          while (d < beforeCleanStart) {
-            if (!allBooked.has(d) && !buffer.has(d)) unbookable.add(d);
-            d = addDaysStr(d, 1);
-          }
+      // Mark unbookable gap days (if gap too small for a booking)
+      const next = allBookings[bi + 1];
+      if (next && skipBeforeFor.has(bi + 1)) {
+        // Gap is unbookable — mark remaining days (after cleaning) as unbookable
+        const cleanEnd = addDaysStr(b.end, bAfter + 1);
+        let d = cleanEnd;
+        while (d < next.start) {
+          if (!allBooked.has(d) && !buffer.has(d)) unbookable.add(d);
+          d = addDaysStr(d, 1);
         }
       }
     }
