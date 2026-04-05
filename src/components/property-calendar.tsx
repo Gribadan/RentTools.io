@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import type { Property, Reservation } from "@/lib/types";
+import type { Property, Reservation, CalendarLink } from "@/lib/types";
 
 interface CalendarEvent {
   id: number;
@@ -31,15 +31,23 @@ function toDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-interface Bar {
-  id: number | string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  platform: string;
-  type: "reservation" | "synced";
-  guestCount?: number;
-  reservationId?: number;
+function addDaysStr(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  return toDateStr(d);
+}
+
+interface DayInfo {
+  date: string;
+  airbnb: boolean;
+  booking: boolean;
+  buffer: boolean;
+  reservation: Reservation | null;
+  barLabel: string | null;
+  barPlatform: string | null;
+  barIsStart: boolean;
+  barSpan: number;
+  reservationId: number | null;
 }
 
 export function PropertyCalendar({
@@ -49,13 +57,16 @@ export function PropertyCalendar({
 }: PropertyCalendarProps) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
+  const [links, setLinks] = useState<CalendarLink[]>([]);
 
-  // Fetch synced calendar events
   useEffect(() => {
-    fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`)
-      .then((r) => r.json())
-      .then((data) => setSyncedEvents(data.events || []))
-      .catch(() => {});
+    Promise.all([
+      fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
+      fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
+    ]).then(([syncData, linksData]) => {
+      setSyncedEvents(syncData.events || []);
+      setLinks(linksData || []);
+    }).catch(() => {});
   }, [property.id]);
 
   const today = useMemo(() => {
@@ -65,8 +76,7 @@ export function PropertyCalendar({
   }, []);
 
   const currentMonth = useMemo(() => {
-    const d = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
-    return d;
+    return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   }, [today, monthOffset]);
 
   const year = currentMonth.getFullYear();
@@ -74,118 +84,209 @@ export function PropertyCalendar({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthLabel = currentMonth.toLocaleDateString("en", { month: "long", year: "numeric" });
 
-  // Monday = 0 offset
   let firstDayOffset = new Date(year, month, 1).getDay() - 1;
   if (firstDayOffset < 0) firstDayOffset = 6;
 
-  // Build all bars for this month
-  const bars: Bar[] = useMemo(() => {
-    const result: Bar[] = [];
-    const monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-    const monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(daysInMonth).padStart(2, "0")}`;
+  // Build date sets for each platform
+  const { airbnbDates, bookingDates, bufferDates, dateToEvent, dateToReservation } = useMemo(() => {
+    const airbnb = new Set<string>();
+    const booking = new Set<string>();
+    const buffer = new Set<string>();
+    const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number }>();
+    const resMap = new Map<string, Reservation>();
 
-    // Reservations
-    for (const res of property.reservations) {
-      const start = toDateStr(new Date(res.checkIn));
-      const end = toDateStr(new Date(res.checkOut));
-      // Check if reservation overlaps this month
-      if (start <= monthEnd && end >= monthStart) {
-        result.push({
-          id: res.id,
-          name: res.name,
-          startDate: start,
-          endDate: end,
-          platform: res.platform || "airbnb",
-          type: "reservation",
-          guestCount: res._count?.guests || 0,
-          reservationId: res.id,
+    // Synced calendar events
+    for (const ev of syncedEvents) {
+      const platform = ev.platform;
+      const dates = platform === "airbnb" ? airbnb : booking;
+      let d = ev.startDate;
+      while (d < ev.endDate) {
+        dates.add(d);
+        d = addDaysStr(d, 1);
+      }
+      // Store event info for the start date
+      if (!evMap.has(ev.startDate) || evMap.get(ev.startDate)!.startDate > ev.startDate) {
+        evMap.set(ev.startDate, {
+          name: ev.summary || "Reserved",
+          platform,
+          startDate: ev.startDate,
+          endDate: ev.endDate,
         });
       }
     }
 
-    // Synced events (that aren't already covered by reservations)
+    // Internal reservations
+    for (const res of property.reservations) {
+      const start = toDateStr(new Date(res.checkIn));
+      const end = toDateStr(new Date(res.checkOut));
+      const platform = res.platform || "airbnb";
+      const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
+      let d = start;
+      while (d <= end) {
+        dates.add(d);
+        resMap.set(d, res);
+        d = addDaysStr(d, 1);
+      }
+      // Override event map with reservation name
+      evMap.set(start, {
+        name: res.name,
+        platform,
+        startDate: start,
+        endDate: end,
+        reservationId: res.id,
+      });
+    }
+
+    // Buffer days
+    const allBookings: { start: string; end: string; platform: string }[] = [];
     for (const ev of syncedEvents) {
-      if (ev.startDate <= monthEnd && ev.endDate >= monthStart) {
-        // Check if this overlaps an existing reservation (skip if so)
-        const overlaps = result.some(
-          (b) => b.type === "reservation" && b.startDate <= ev.endDate && b.endDate >= ev.startDate
-        );
-        if (!overlaps) {
-          result.push({
-            id: `ev-${ev.id}`,
-            name: ev.summary || "Booked",
-            startDate: ev.startDate,
-            endDate: ev.endDate,
-            platform: ev.platform,
-            type: "synced",
-          });
-        }
+      allBookings.push({ start: ev.startDate, end: ev.endDate, platform: ev.platform });
+    }
+    for (const res of property.reservations) {
+      allBookings.push({
+        start: toDateStr(new Date(res.checkIn)),
+        end: toDateStr(new Date(res.checkOut)),
+        platform: res.platform || "airbnb",
+      });
+    }
+
+    for (const b of allBookings) {
+      const link = links.find(l => l.platform === b.platform);
+      const bBefore = link?.bufferBefore ?? 0;
+      const bAfter = link?.bufferAfter ?? 0;
+      for (let i = 1; i <= bBefore; i++) {
+        const d = addDaysStr(b.start, -i);
+        if (!airbnb.has(d) && !booking.has(d)) buffer.add(d);
+      }
+      for (let i = 1; i <= bAfter; i++) {
+        const d = addDaysStr(b.end, i - 1);
+        if (!airbnb.has(d) && !booking.has(d)) buffer.add(d);
       }
     }
 
-    return result;
-  }, [property.reservations, syncedEvents, year, month, daysInMonth]);
+    return { airbnbDates: airbnb, bookingDates: booking, bufferDates: buffer, dateToEvent: evMap, dateToReservation: resMap };
+  }, [syncedEvents, property.reservations, links]);
 
-  // For each day, determine which bars pass through it
-  const getDayBars = (dayNum: number) => {
-    const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-    return bars.filter((b) => ds >= b.startDate && ds <= b.endDate);
-  };
+  // Build bars (continuous booking spans) for rendering
+  const bars = useMemo(() => {
+    const result: { startDate: string; endDate: string; name: string; platform: string; reservationId?: number }[] = [];
+    const processed = new Set<string>();
 
-  const isToday = (dayNum: number) => {
-    return year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
-  };
+    // Collect all event start dates, sorted
+    const allStarts = Array.from(dateToEvent.keys()).sort();
 
-  // Calculate bar positions for rendering
-  const getBarStyle = (bar: Bar, dayNum: number) => {
-    const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-    const isStart = ds === bar.startDate || dayNum === 1 || new Date(year, month, dayNum).getDay() === 1;
+    for (const start of allStarts) {
+      if (processed.has(start)) continue;
+      const ev = dateToEvent.get(start)!;
+      processed.add(start);
 
-    // Only render bar label at start position
-    return { isStart, showLabel: ds === bar.startDate || (dayNum === 1 && ds > bar.startDate) };
-  };
+      // Check if a reservation matches this date range — use its name
+      let label = ev.name;
+      let resId = ev.reservationId;
 
-  // Calculate how many days a bar spans from a given day to the end of the row
-  const getBarSpan = (bar: Bar, dayNum: number) => {
-    let span = 0;
-    for (let d = dayNum; d <= daysInMonth; d++) {
-      const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-      if (ds > bar.endDate) break;
-      // Stop at end of week (Sunday)
-      const dow = new Date(year, month, d).getDay();
-      span++;
-      if (dow === 0) break; // Sunday = end of row
+      // Clean up "Reserved" / "CLOSED - Not available" etc
+      if (label.includes("Reserved") || label.includes("CLOSED") || label.includes("Not available")) {
+        // Try to find a matching reservation
+        const matchingRes = property.reservations.find(r => {
+          const rStart = toDateStr(new Date(r.checkIn));
+          const rEnd = toDateStr(new Date(r.checkOut));
+          return rStart <= ev.endDate && rEnd >= ev.startDate;
+        });
+        if (matchingRes) {
+          label = matchingRes.name;
+          resId = matchingRes.id;
+        } else {
+          // Show platform name instead of generic "Reserved"
+          label = ev.platform === "airbnb" ? "Airbnb" : "Booking";
+        }
+      }
+
+      result.push({
+        startDate: ev.startDate,
+        endDate: ev.endDate,
+        name: label,
+        platform: ev.platform,
+        reservationId: resId,
+      });
     }
-    return span;
-  };
+
+    // Deduplicate: merge overlapping bars on same platform
+    const deduped: typeof result = [];
+    for (const bar of result) {
+      const existing = deduped.find(
+        b => b.platform === bar.platform && b.startDate <= bar.endDate && b.endDate >= bar.startDate
+      );
+      if (existing) {
+        // Merge — extend existing bar
+        if (bar.startDate < existing.startDate) existing.startDate = bar.startDate;
+        if (bar.endDate > existing.endDate) existing.endDate = bar.endDate;
+        // Prefer named reservation over generic
+        if (bar.reservationId && !existing.reservationId) {
+          existing.name = bar.name;
+          existing.reservationId = bar.reservationId;
+        }
+      } else {
+        deduped.push({ ...bar });
+      }
+    }
+
+    return deduped;
+  }, [dateToEvent, property.reservations]);
 
   const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  // Build grid cells
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDayOffset; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  // Group into weeks
   const weeks: (number | null)[][] = [];
   for (let i = 0; i < cells.length; i += 7) {
     weeks.push(cells.slice(i, i + 7));
   }
-  // Pad last week
-  while (weeks[weeks.length - 1].length < 7) weeks[weeks.length - 1].push(null);
+  while (weeks.length > 0 && weeks[weeks.length - 1].length < 7) weeks[weeks.length - 1].push(null);
 
-  // Recent reservations for the list below calendar
-  const recentReservations = [...property.reservations].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  // Get bar for a specific day
+  const getBarForDay = (dayNum: number) => {
+    const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+    return bars.find(b => ds >= b.startDate && ds < b.endDate);
+  };
+
+  const isBarStart = (dayNum: number) => {
+    const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+    // Start of bar, or start of a new week row for a continuing bar
+    const bar = getBarForDay(dayNum);
+    if (!bar) return null;
+    const dow = new Date(year, month, dayNum).getDay();
+    const isMonday = dow === 1;
+    if (ds === bar.startDate || (isMonday && ds > bar.startDate)) {
+      // Calculate span until end of bar or end of week
+      let span = 0;
+      for (let d = dayNum; d <= daysInMonth; d++) {
+        const dds = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        if (dds >= bar.endDate) break;
+        span++;
+        if (new Date(year, month, d).getDay() === 0) break; // Sunday
+      }
+      return { ...bar, span, showLabel: ds === bar.startDate };
+    }
+    return null;
+  };
+
+  // Agenda — all upcoming events
+  const agenda = useMemo(() => {
+    const todayStr = toDateStr(today);
+    return bars
+      .filter(b => b.endDate >= todayStr)
+      .sort((a, b) => a.startDate.localeCompare(b.startDate));
+  }, [bars, today]);
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 
-  const dayCount = (checkIn: string, checkOut: string) => {
-    const d1 = new Date(checkIn);
-    const d2 = new Date(checkOut);
-    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const dayCount = (start: string, end: string) => {
+    const d1 = new Date(start);
+    const d2 = new Date(end);
+    return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
   };
 
   return (
@@ -195,20 +296,17 @@ export function PropertyCalendar({
         <div>
           <h1 className="text-xl font-semibold text-[#f0f6fc]">{property.name}</h1>
           <p className="mt-0.5 text-sm text-[#9198a1]">
-            {property.reservations.length} reservation{property.reservations.length !== 1 && "s"}
+            {property.reservations.length} reservation{property.reservations.length !== 1 ? "s" : ""}
           </p>
         </div>
         <button
           onClick={() => {
             const name = prompt("Guest name:");
             if (name) {
-              const checkIn = toDateStr(today);
-              const d2 = new Date(today);
-              d2.setDate(d2.getDate() + 4);
               onAddReservation({
                 name,
-                checkIn,
-                checkOut: toDateStr(d2),
+                checkIn: toDateStr(today),
+                checkOut: toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4)),
                 platform: "airbnb",
                 propertyId: property.id,
               });
@@ -225,95 +323,87 @@ export function PropertyCalendar({
 
       {/* Calendar */}
       <div className="rounded-lg border border-[#21262d] bg-[#161b22] overflow-hidden">
-        {/* Month Navigation */}
+        {/* Month nav */}
         <div className="flex items-center justify-between border-b border-[#21262d] px-4 py-3">
-          <button
-            onClick={() => setMonthOffset((o) => o - 1)}
-            className="rounded-md p-1.5 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-            </svg>
+          <button onClick={() => setMonthOffset(o => o - 1)} className="rounded-md p-1.5 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
           </button>
-          <h2 className="text-sm font-semibold text-[#f0f6fc]">{monthLabel}</h2>
-          <button
-            onClick={() => setMonthOffset((o) => o + 1)}
-            className="rounded-md p-1.5 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-[#f0f6fc]">{monthLabel}</h2>
+            {monthOffset !== 0 && (
+              <button onClick={() => setMonthOffset(0)} className="rounded px-2 py-0.5 text-xs text-[#58a6ff] hover:bg-[#58a6ff]/10">Today</button>
+            )}
+          </div>
+          <button onClick={() => setMonthOffset(o => o + 1)} className="rounded-md p-1.5 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
           </button>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 border-b border-[#21262d] px-4 py-2">
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#b5462a]" /><span className="text-xs text-[#9198a1]">Airbnb</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#003580]" /><span className="text-xs text-[#9198a1]">Booking</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">Buffer</span></div>
         </div>
 
         {/* Weekday headers */}
         <div className="grid grid-cols-7 border-b border-[#21262d]">
-          {WEEKDAYS.map((wd) => (
-            <div key={wd} className="py-2 text-center text-xs font-medium text-[#7d8590]">
-              {wd}
-            </div>
+          {WEEKDAYS.map(wd => (
+            <div key={wd} className="py-2 text-center text-xs font-medium text-[#7d8590]">{wd}</div>
           ))}
         </div>
 
-        {/* Calendar grid */}
+        {/* Grid */}
         {weeks.map((week, wi) => (
           <div key={wi} className="grid grid-cols-7 border-b border-[#21262d] last:border-b-0">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`empty-${di}`} className="min-h-[80px] border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/30" />;
+                return <div key={`e-${di}`} className="min-h-[72px] border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/40" />;
               }
 
-              const dayBars = getDayBars(dayNum);
-              const todayClass = isToday(dayNum);
+              const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+              const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
+              const isBuffer = bufferDates.has(ds);
+              const barStart = isBarStart(dayNum);
+              const hasBar = !!getBarForDay(dayNum);
 
               return (
                 <div
                   key={dayNum}
-                  className={`relative min-h-[80px] border-r border-[#21262d] last:border-r-0 p-1 ${
-                    todayClass ? "bg-[#58a6ff]/5" : ""
+                  className={`relative min-h-[72px] border-r border-[#21262d] last:border-r-0 p-1 ${
+                    isToday ? "bg-[#58a6ff]/5" : isBuffer ? "bg-[#d29922]/5" : ""
                   }`}
                 >
-                  {/* Day number */}
                   <span className={`text-xs ${
-                    todayClass
+                    isToday
                       ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
                       : "text-[#9198a1]"
                   }`}>
                     {dayNum}
                   </span>
 
-                  {/* Reservation bars */}
-                  <div className="mt-1 space-y-0.5">
-                    {dayBars.map((bar) => {
-                      const style = getBarStyle(bar, dayNum);
-                      if (!style.isStart) return null;
+                  {/* Buffer indicator */}
+                  {isBuffer && !hasBar && (
+                    <div className="mt-1 rounded px-1 py-0.5 text-[10px] text-[#d29922] bg-[#d29922]/10 border border-[#d29922]/20 truncate">
+                      Buffer
+                    </div>
+                  )}
 
-                      const span = getBarSpan(bar, dayNum);
-                      const isRes = bar.type === "reservation";
-                      const color = bar.platform === "booking"
-                        ? "bg-[#003580] hover:bg-[#004494]"
-                        : "bg-[#222] hover:bg-[#333]";
-
-                      return (
-                        <div
-                          key={`${bar.id}-${dayNum}`}
-                          onClick={() => isRes && bar.reservationId && onSelectReservation(bar.reservationId)}
-                          className={`relative z-10 flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-medium text-white truncate ${color} ${
-                            isRes ? "cursor-pointer" : "opacity-70"
-                          }`}
-                          style={{
-                            width: `calc(${span * 100}% + ${(span - 1) * 1}px)`,
-                          }}
-                          title={`${bar.name} · ${bar.startDate} → ${bar.endDate}`}
-                        >
-                          {bar.name}
-                          {isRes && bar.guestCount ? (
-                            <span className="ml-1 opacity-60">+{bar.guestCount}</span>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {/* Booking bar */}
+                  {barStart && (
+                    <div
+                      onClick={() => barStart.reservationId && onSelectReservation(barStart.reservationId)}
+                      className={`absolute left-0.5 right-0 mt-1 top-6 flex items-center rounded-md px-1.5 py-1 text-[11px] font-medium text-white truncate ${
+                        barStart.platform === "booking"
+                          ? "bg-[#003580] hover:bg-[#004494]"
+                          : "bg-[#b5462a] hover:bg-[#c44e30]"
+                      } ${barStart.reservationId ? "cursor-pointer" : "opacity-80"}`}
+                      style={{ width: `calc(${barStart.span * 100}% + ${(barStart.span - 1) * 1}px - 4px)`, zIndex: 10 }}
+                      title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}`}
+                    >
+                      {barStart.showLabel ? barStart.name : ""}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -321,49 +411,46 @@ export function PropertyCalendar({
         ))}
       </div>
 
-      {/* Recent Reservations List */}
-      {recentReservations.length > 0 && (
-        <div className="rounded-lg border border-[#21262d] bg-[#161b22]">
-          <div className="border-b border-[#21262d] px-4 py-3">
-            <h2 className="text-xs font-medium text-[#9198a1]">Reservations</h2>
-          </div>
+      {/* Agenda */}
+      <div className="rounded-lg border border-[#21262d] bg-[#161b22]">
+        <div className="border-b border-[#21262d] px-4 py-3">
+          <h2 className="text-xs font-medium text-[#9198a1]">Upcoming ({agenda.length})</h2>
+        </div>
+        {agenda.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-[#7d8590] text-center">No upcoming bookings</p>
+        ) : (
           <div>
-            {recentReservations.map((res: Reservation, i: number) => (
+            {agenda.map((item, i) => (
               <div
-                key={res.id}
-                onClick={() => onSelectReservation(res.id)}
-                className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[#1c2128] ${
-                  i < recentReservations.length - 1 ? "border-b border-[#21262d]/50" : ""
-                }`}
+                key={`${item.startDate}-${i}`}
+                onClick={() => item.reservationId && onSelectReservation(item.reservationId)}
+                className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[#1c2128] ${
+                  i < agenda.length - 1 ? "border-b border-[#21262d]/50" : ""
+                } ${item.reservationId ? "cursor-pointer" : ""}`}
               >
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                  res.platform === "booking" ? "bg-[#79c0ff]" : "bg-[#f78166]"
+                  item.platform === "booking" ? "bg-[#003580]" : "bg-[#b5462a]"
                 }`} />
-                <span className="flex-1 text-sm font-medium text-[#f0f6fc]">{res.name}</span>
+                <span className="flex-1 text-sm font-medium text-[#f0f6fc] truncate">{item.name}</span>
                 <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                  res.platform === "booking"
-                    ? "bg-[#003580]/20 text-[#79c0ff]"
-                    : "bg-[#FF5A5F]/10 text-[#f78166]"
+                  item.platform === "booking" ? "bg-[#003580]/20 text-[#79c0ff]" : "bg-[#b5462a]/20 text-[#f78166]"
                 }`}>
-                  {res.platform === "booking" ? "Booking" : "Airbnb"}
+                  {item.platform === "booking" ? "Booking" : "Airbnb"}
                 </span>
                 <span className="shrink-0 text-sm text-[#9198a1]">
-                  {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
+                  {formatDate(item.startDate)} — {formatDate(item.endDate)}
                 </span>
-                <span className="shrink-0 w-10 text-right text-xs text-[#7d8590]">
-                  {dayCount(res.checkIn, res.checkOut)}d
-                </span>
-                <span className="shrink-0 w-10 text-right text-xs text-[#7d8590]">
-                  {res._count?.guests || 0}<span className="ml-0.5 text-[#30363d]">g</span>
-                </span>
-                <svg className="h-4 w-4 shrink-0 text-[#30363d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
+                <span className="shrink-0 text-xs text-[#7d8590]">{dayCount(item.startDate, item.endDate)}d</span>
+                {item.reservationId && (
+                  <svg className="h-4 w-4 shrink-0 text-[#30363d]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

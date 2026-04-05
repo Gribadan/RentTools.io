@@ -81,9 +81,7 @@ export function TasksPanel() {
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const cronUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/api/calendar/cron?secret=YOUR_JWT_SECRET`
-    : "";
+  const cronUrl = "Configured via vercel.json — runs every 10 minutes automatically";
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

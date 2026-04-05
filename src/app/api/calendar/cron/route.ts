@@ -9,10 +9,12 @@ import { prisma } from "@/lib/prisma";
  * Respects auto-mode toggle and frequency settings.
  */
 export async function GET(request: NextRequest) {
+  // Auth: query param secret OR Vercel's cron auth header
   const secret = request.nextUrl.searchParams.get("secret");
   const expected = process.env.CRON_SECRET || process.env.JWT_SECRET;
+  const vercelCron = request.headers.get("authorization") === `Bearer ${expected}`;
 
-  if (!secret || secret !== expected) {
+  if (!vercelCron && (!secret || secret !== expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
