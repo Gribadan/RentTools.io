@@ -497,64 +497,93 @@ export function PropertyCalendar({
 
         {/* Grid */}
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 border-b border-[#21262d] last:border-b-0">
+          <div key={wi} className="border-b border-[#21262d] last:border-b-0">
+            {/* Row 1: Day numbers */}
+            <div className="grid grid-cols-7">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`e-${di}`} className="min-h-[72px] border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/40" />;
+                return <div key={`n-${di}`} className="h-7 border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/40" />;
               }
-
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
-              const isBuffer = bufferDates.has(ds);
               const isConflict = conflictDates.has(ds);
-              const barStart = isBarStart(dayNum);
-              const hasBar = !!getBarForDay(dayNum);
+              const isBuffer = bufferDates.has(ds) && !getBarForDay(dayNum);
 
               return (
                 <div
-                  key={dayNum}
-                  className={`relative min-h-[72px] border-r border-[#21262d] last:border-r-0 p-1 ${
-                    isConflict ? "bg-[#f85149]/8 ring-1 ring-inset ring-[#f85149]/20"
+                  key={`n-${dayNum}`}
+                  className={`h-7 flex items-center px-1.5 border-r border-[#21262d] last:border-r-0 ${
+                    isConflict ? "bg-[#f85149]/8"
                     : isToday ? "bg-[#58a6ff]/5"
                     : isBuffer ? "bg-[#d29922]/5"
                     : ""
                   }`}
                 >
-                  <span className={`text-xs ${
+                  <span className={`text-xs leading-none ${
                     isConflict
                       ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
                       : isToday
                       ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
-                      : "text-[#9198a1]"
+                      : "text-[#7d8590]"
                   }`}>
                     {dayNum}
                   </span>
+                </div>
+              );
+            })}
+            </div>
 
+            {/* Row 2: Bars, buffers, and indicators — fixed height */}
+            <div className="grid grid-cols-7">
+            {week.map((dayNum, di) => {
+              if (dayNum === null) {
+                return <div key={`b-${di}`} className="h-8 border-r border-[#21262d] last:border-r-0 bg-[#0d1117]/40" />;
+              }
+              const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
+              const isConflict = conflictDates.has(ds);
+              const isBuffer = bufferDates.has(ds);
+              const barStart = isBarStart(dayNum);
+              const hasBar = !!getBarForDay(dayNum);
+              const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
+
+              return (
+                <div
+                  key={`b-${dayNum}`}
+                  className={`relative h-8 flex items-center border-r border-[#21262d] last:border-r-0 px-0.5 overflow-visible ${
+                    isConflict ? "bg-[#f85149]/8"
+                    : isToday ? "bg-[#58a6ff]/5"
+                    : isBuffer && !hasBar ? "bg-[#d29922]/5"
+                    : ""
+                  }`}
+                >
                   {/* Conflict indicator */}
                   {isConflict && !hasBar && (
-                    <div className="mt-1 rounded px-1 py-0.5 text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 truncate font-medium">
-                      Conflict!
+                    <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">
+                      Conflict
                     </div>
                   )}
 
                   {/* Buffer indicator */}
                   {isBuffer && !hasBar && !isConflict && (
-                    <div className="mt-1 rounded px-1 py-0.5 text-[10px] text-[#d29922] bg-[#d29922]/10 border border-[#d29922]/20 truncate">
+                    <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">
                       Buffer
                     </div>
                   )}
 
-                  {/* Booking bar */}
+                  {/* Booking bar — consistent h-6 */}
                   {barStart && (
                     <div
                       onClick={() => barStart.reservationId && onSelectReservation(barStart.reservationId)}
-                      className={`absolute left-0.5 right-0 mt-1 top-6 flex items-center rounded-md px-1.5 py-1 text-[11px] font-medium text-white truncate ${
-                        isConflict ? "bg-[#f85149] hover:bg-[#f85149]/80 ring-2 ring-[#f85149]/30" :
+                      className={`absolute left-0 top-1 h-6 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
+                        isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
                         barStart.platform === "booking"
-                          ? "bg-[#003580] hover:bg-[#004494]"
-                          : "bg-[#b5462a] hover:bg-[#c44e30]"
-                      } ${barStart.reservationId ? "cursor-pointer" : "opacity-80"}`}
-                      style={{ width: `calc(${barStart.span * 100}% + ${(barStart.span - 1) * 1}px - 4px)`, zIndex: 10 }}
+                          ? "bg-[#003580]"
+                          : "bg-[#b5462a]"
+                      } ${barStart.reservationId ? "cursor-pointer hover:brightness-110" : "opacity-80"}`}
+                      style={{
+                        width: `calc(${barStart.span * 100}% - 2px)`,
+                        zIndex: 10,
+                      }}
                       title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}${isConflict ? " ⚠ CONFLICT" : ""}`}
                     >
                       {barStart.showLabel ? barStart.name : ""}
@@ -563,6 +592,7 @@ export function PropertyCalendar({
                 </div>
               );
             })}
+            </div>
           </div>
         ))}
       </div>
