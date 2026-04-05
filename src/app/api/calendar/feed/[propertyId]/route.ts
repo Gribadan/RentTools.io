@@ -19,7 +19,8 @@ export async function GET(
   { params }: { params: Promise<{ propertyId: string }> }
 ) {
   const { propertyId: pid } = await params;
-  const propertyId = Number(pid);
+  // Support .ics suffix: "123.ics" -> 123
+  const propertyId = Number(pid.replace(/\.ics$/i, ""));
   const forPlatform = request.nextUrl.searchParams.get("for") || "airbnb";
 
   if (isNaN(propertyId)) {
