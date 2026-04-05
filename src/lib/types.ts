@@ -36,6 +36,7 @@ export interface Reservation {
 export interface Property {
   id: number;
   name: string;
+  minNights: number;
   createdAt: string;
   reservations: Reservation[];
 }

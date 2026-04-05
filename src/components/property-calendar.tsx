@@ -79,19 +79,22 @@ export function PropertyCalendar({
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   }, [today, monthOffset]);
 
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthLabel = currentMonth.toLocaleDateString("en", { month: "long", year: "numeric" });
-
-  let firstDayOffset = new Date(year, month, 1).getDay() - 1;
-  if (firstDayOffset < 0) firstDayOffset = 6;
+  const { year, month, daysInMonth, monthLabel, firstDayOffset } = useMemo(() => {
+    const y = currentMonth.getFullYear();
+    const m = currentMonth.getMonth();
+    const dim = new Date(y, m + 1, 0).getDate();
+    const label = currentMonth.toLocaleDateString("en", { month: "long", year: "numeric" });
+    let fdo = new Date(y, m, 1).getDay() - 1;
+    if (fdo < 0) fdo = 6;
+    return { year: y, month: m, daysInMonth: dim, monthLabel: label, firstDayOffset: fdo };
+  }, [currentMonth]);
 
   // Build date sets for each platform + conflict detection + smart buffers
-  const { airbnbDates, bookingDates, bufferDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
+  const { airbnbDates, bookingDates, bufferDates, unbookableDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
     const airbnb = new Set<string>();
     const booking = new Set<string>();
-    const buffer = new Set<string>();
+    const buffer = new Set<string>();     // cleaning days
+    const unbookable = new Set<string>(); // gap days too short for min nights
     const conflictSet = new Set<string>();
     const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number }>();
     const resMap = new Map<string, Reservation>();
@@ -178,28 +181,48 @@ export function PropertyCalendar({
       }
     }
 
-    // Smart buffer: only add buffer days where there's actual free space
-    // Don't add buffer if it would overlap another booking
+    // Buffer and unbookable gap calculation
     allBookings.sort((a, b) => a.start.localeCompare(b.start));
+    const minStay = property.minNights || 3;
 
-    for (const b of allBookings) {
+    for (let bi = 0; bi < allBookings.length; bi++) {
+      const b = allBookings[bi];
       const link = links.find(l => l.platform === b.platform);
       const bBefore = link?.bufferBefore ?? 0;
       const bAfter = link?.bufferAfter ?? 0;
 
-      // Buffer before: check each day going backwards
+      // Cleaning buffer before this booking
       for (let i = 1; i <= bBefore; i++) {
         const d = addDaysStr(b.start, -i);
-        if (!allBooked.has(d) && !buffer.has(d)) {
-          buffer.add(d);
-        }
+        if (!allBooked.has(d)) buffer.add(d);
       }
-      // Buffer after: checkout day is still guest's day, buffer starts day after
-      // b.end is iCal exclusive end (checkout day), so buffer starts at b.end + 1
+
+      // Cleaning buffer after this booking (day after checkout)
       for (let i = 1; i <= bAfter; i++) {
         const d = addDaysStr(b.end, i);
-        if (!allBooked.has(d)) {
-          buffer.add(d);
+        if (!allBooked.has(d)) buffer.add(d);
+      }
+
+      // Check gap to next booking for unbookable days
+      const nextBooking = allBookings[bi + 1];
+      if (nextBooking) {
+        const nextLink = links.find(l => l.platform === nextBooking.platform);
+        const nextBefore = nextLink?.bufferBefore ?? 0;
+
+        // Free gap = days between end of cleaning-after and start of cleaning-before-next
+        const afterCleanEnd = addDaysStr(b.end, bAfter + 1);
+        const beforeCleanStart = addDaysStr(nextBooking.start, -nextBefore);
+        const freeGap = Math.max(0, Math.ceil(
+          (new Date(beforeCleanStart + "T12:00:00Z").getTime() - new Date(afterCleanEnd + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
+        ));
+
+        if (freeGap > 0 && freeGap < minStay) {
+          // These days can't be booked — mark as unbookable (visual only, not exported)
+          let d = afterCleanEnd;
+          while (d < beforeCleanStart) {
+            if (!allBooked.has(d) && !buffer.has(d)) unbookable.add(d);
+            d = addDaysStr(d, 1);
+          }
         }
       }
     }
@@ -208,12 +231,13 @@ export function PropertyCalendar({
       airbnbDates: airbnb,
       bookingDates: booking,
       bufferDates: buffer,
+      unbookableDates: unbookable,
       conflictDates: conflictSet,
       dateToEvent: evMap,
       dateToReservation: resMap,
       conflicts: conflictList,
     };
-  }, [syncedEvents, property.reservations, links]);
+  }, [syncedEvents, property.reservations, links, property.minNights]);
 
   // Build bars (continuous booking spans) for rendering
   const bars = useMemo(() => {
@@ -283,15 +307,21 @@ export function PropertyCalendar({
 
   const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDayOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const weeks = useMemo(() => {
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < firstDayOffset; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
 
-  const weeks: (number | null)[][] = [];
-  for (let i = 0; i < cells.length; i += 7) {
-    weeks.push(cells.slice(i, i + 7));
-  }
-  while (weeks.length > 0 && weeks[weeks.length - 1].length < 7) weeks[weeks.length - 1].push(null);
+    const result: (number | null)[][] = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      result.push(cells.slice(i, i + 7));
+    }
+    // Pad last week to 7 days
+    if (result.length > 0) {
+      while (result[result.length - 1].length < 7) result[result.length - 1].push(null);
+    }
+    return result;
+  }, [firstDayOffset, daysInMonth]);
 
   // Get bar for a specific day
   // Bar visual rendering uses INCLUSIVE end date (checkout day shows as part of bar)
@@ -378,10 +408,16 @@ export function PropertyCalendar({
     }
     lines.push("");
 
-    // Buffer days
+    // Cleaning days (exported to platforms)
     const sortedBuffers = Array.from(bufferDates).sort();
-    lines.push(`--- BUFFER DAYS (${sortedBuffers.length}) ---`);
+    lines.push(`--- CLEANING DAYS (${sortedBuffers.length}) — exported to platforms ---`);
     lines.push(sortedBuffers.join(", ") || "none");
+    lines.push("");
+
+    // Unbookable gap days (visual only, NOT exported)
+    const sortedUnbookable = Array.from(unbookableDates).sort();
+    lines.push(`--- UNBOOKABLE GAP DAYS (${sortedUnbookable.length}) — visual only, <${property.minNights || 3} nights ---`);
+    lines.push(sortedUnbookable.join(", ") || "none");
     lines.push("");
 
     // Conflicts
@@ -494,7 +530,8 @@ export function PropertyCalendar({
         <div className="flex items-center gap-4 border-b border-[#21262d] px-4 py-2">
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#b5462a]" /><span className="text-xs text-[#9198a1]">Airbnb</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#003580]" /><span className="text-xs text-[#9198a1]">Booking</span></div>
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">Buffer</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">Cleaning</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#8b949e]/15 border border-[#8b949e]/20 border-dashed" /><span className="text-xs text-[#9198a1]">&lt;{property.minNights || 3} nights</span></div>
         </div>
 
         {/* Weekday headers */}
@@ -517,6 +554,7 @@ export function PropertyCalendar({
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const isConflict = conflictDates.has(ds);
               const isBuffer = bufferDates.has(ds) && !getBarForDay(dayNum);
+              const isUnbookable = unbookableDates.has(ds);
 
               return (
                 <div
@@ -525,6 +563,7 @@ export function PropertyCalendar({
                     isConflict ? "bg-[#f85149]/8"
                     : isToday ? "bg-[#58a6ff]/5"
                     : isBuffer ? "bg-[#d29922]/5"
+                    : isUnbookable ? "bg-[#8b949e]/5"
                     : ""
                   }`}
                 >
@@ -551,6 +590,7 @@ export function PropertyCalendar({
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isConflict = conflictDates.has(ds);
               const isBuffer = bufferDates.has(ds);
+              const isUnbookable = unbookableDates.has(ds);
               const barStart = isBarStart(dayNum);
               const hasBar = !!getBarForDay(dayNum);
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
@@ -562,6 +602,7 @@ export function PropertyCalendar({
                     isConflict ? "bg-[#f85149]/8"
                     : isToday ? "bg-[#58a6ff]/5"
                     : isBuffer && !hasBar ? "bg-[#d29922]/5"
+                    : isUnbookable && !hasBar ? "bg-[#8b949e]/5"
                     : ""
                   }`}
                 >
@@ -572,10 +613,17 @@ export function PropertyCalendar({
                     </div>
                   )}
 
-                  {/* Buffer indicator */}
+                  {/* Buffer/cleaning indicator */}
                   {isBuffer && !hasBar && !isConflict && (
                     <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">
-                      Buffer
+                      Cleaning
+                    </div>
+                  )}
+
+                  {/* Unbookable gap indicator */}
+                  {isUnbookable && !hasBar && !isConflict && !isBuffer && (
+                    <div className="rounded px-1.5 h-6 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">
+                      &lt;{property.minNights || 3}n
                     </div>
                   )}
 

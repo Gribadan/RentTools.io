@@ -27,7 +27,7 @@ export async function GET(
 
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { name: true },
+    select: { name: true, minNights: true },
   });
 
   if (!property) {
@@ -94,7 +94,8 @@ export async function GET(
     unique,
     bufferBefore,
     bufferAfter,
-    sourcePlatforms.join("+") || "manual"
+    sourcePlatforms.join("+") || "manual",
+    property.minNights ?? 3
   );
 
   const ical = generateICal(

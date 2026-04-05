@@ -31,7 +31,7 @@ export async function GET(
   // Get property name
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { name: true },
+    select: { name: true, minNights: true },
   });
 
   if (!property) {
@@ -101,12 +101,13 @@ export async function GET(
     return true;
   });
 
-  // Generate buffered events
+  // Generate buffered events with smart gap logic
   const buffered = generateBufferedEvents(
     unique,
     bufferBefore,
     bufferAfter,
-    sourcePlatforms.join("+") || "manual"
+    sourcePlatforms.join("+") || "manual",
+    property.minNights ?? 3
   );
 
   // Generate iCal
