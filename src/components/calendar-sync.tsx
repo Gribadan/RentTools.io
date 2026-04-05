@@ -144,6 +144,212 @@ interface TestResult {
   events?: { summary: string; startDate: string; endDate: string }[];
 }
 
+/* ────────────────────────────── setup wizard ───────────────────────────── */
+
+function SetupWizard({
+  airbnbLink,
+  bookingLink,
+  propertyId,
+  onStartEdit,
+  onCopyFeedUrl,
+  feedUrl,
+  copied,
+}: {
+  airbnbLink: CalendarLink | null;
+  bookingLink: CalendarLink | null;
+  propertyId: number;
+  onStartEdit: (platform: string) => void;
+  onCopyFeedUrl: (platform: string) => void;
+  feedUrl: (platform: string) => string;
+  copied: string | null;
+}) {
+  const [dismissed, setDismissed] = useState(false);
+  const [importDone, setImportDone] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(localStorage.getItem(`cal-import-done-${propertyId}`) || "{}");
+    } catch { return {}; }
+  });
+
+  const markImportDone = (platform: string) => {
+    const next = { ...importDone, [platform]: true };
+    setImportDone(next);
+    try { localStorage.setItem(`cal-import-done-${propertyId}`, JSON.stringify(next)); } catch {}
+  };
+
+  const step1 = !!airbnbLink;
+  const step2 = !!bookingLink;
+  const step3 = !!importDone["airbnb"];
+  const step4 = !!importDone["booking"];
+  const allDone = step1 && step2 && step3 && step4;
+
+  // Once all done and dismissed, don't show
+  if (allDone && dismissed) return null;
+
+  // All done — show compact success
+  if (allDone) {
+    return (
+      <div className="rounded-lg border border-[#238636]/40 bg-[#238636]/10 p-3 flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <div className="flex items-center gap-2 flex-1">
+          <svg className="h-4 w-4 text-[#3fb950] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="text-xs text-[#3fb950] font-medium">Setup complete — calendars will sync automatically every 10 minutes</span>
+        </div>
+        <button onClick={() => setDismissed(true)} className="text-[11px] text-[#7d8590] hover:text-[#f0f6fc] shrink-0">Dismiss</button>
+      </div>
+    );
+  }
+
+  // Determine current step
+  const currentStep = !step1 ? 1 : !step2 ? 2 : !step3 ? 3 : 4;
+
+  const steps = [
+    {
+      num: 1,
+      done: step1,
+      title: "Add Airbnb iCal URL",
+      description: "Go to Airbnb → Calendar → Availability Settings → scroll to \"Sync calendars\" → copy the Export Calendar link",
+      action: !step1 ? (
+        <button onClick={() => onStartEdit("airbnb")} className="rounded bg-[#FF5A5F]/20 px-3 py-1.5 text-[11px] font-medium text-[#f78166] hover:bg-[#FF5A5F]/30 w-full sm:w-auto">
+          Add Airbnb URL
+        </button>
+      ) : null,
+    },
+    {
+      num: 2,
+      done: step2,
+      title: "Add Booking.com iCal URL",
+      description: "Go to Booking.com Extranet → Rates & Availability → Sync calendars → copy the iCal link",
+      action: !step2 ? (
+        <button onClick={() => onStartEdit("booking")} className="rounded bg-[#003580]/30 px-3 py-1.5 text-[11px] font-medium text-[#79c0ff] hover:bg-[#003580]/40 w-full sm:w-auto">
+          Add Booking URL
+        </button>
+      ) : null,
+    },
+    {
+      num: 3,
+      done: step3,
+      title: "Import our feed into Airbnb",
+      description: step1 && step2
+        ? "Go to Airbnb → Calendar → Availability Settings → \"Sync calendars\" → Import Calendar → paste the URL below"
+        : "Complete steps 1 & 2 first",
+      action: step1 && step2 && !step3 ? (
+        <div className="space-y-2 w-full">
+          <div className="flex items-center gap-1.5">
+            <code className="flex-1 truncate rounded bg-[#0d1117] px-2 py-1.5 text-[10px] text-[#c9d1d9] border border-[#30363d]">
+              {feedUrl("airbnb")}
+            </code>
+            <button onClick={() => onCopyFeedUrl("airbnb")} className="shrink-0 rounded bg-[#21262d] px-2.5 py-1.5 text-[11px] text-[#c9d1d9] hover:bg-[#30363d]">
+              {copied === "airbnb" ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <button onClick={() => markImportDone("airbnb")} className="rounded bg-[#21262d] px-3 py-1.5 text-[11px] text-[#c9d1d9] hover:bg-[#30363d] w-full sm:w-auto">
+            I&apos;ve pasted this into Airbnb
+          </button>
+        </div>
+      ) : null,
+    },
+    {
+      num: 4,
+      done: step4,
+      title: "Import our feed into Booking.com",
+      description: step1 && step2
+        ? "Go to Booking.com Extranet → Rates & Availability → Sync calendars → Import Calendar → paste the URL below"
+        : "Complete steps 1 & 2 first",
+      action: step1 && step2 && !step4 ? (
+        <div className="space-y-2 w-full">
+          <div className="flex items-center gap-1.5">
+            <code className="flex-1 truncate rounded bg-[#0d1117] px-2 py-1.5 text-[10px] text-[#c9d1d9] border border-[#30363d]">
+              {feedUrl("booking")}
+            </code>
+            <button onClick={() => onCopyFeedUrl("booking")} className="shrink-0 rounded bg-[#21262d] px-2.5 py-1.5 text-[11px] text-[#c9d1d9] hover:bg-[#30363d]">
+              {copied === "booking" ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <button onClick={() => markImportDone("booking")} className="rounded bg-[#21262d] px-3 py-1.5 text-[11px] text-[#c9d1d9] hover:bg-[#30363d] w-full sm:w-auto">
+            I&apos;ve pasted this into Booking.com
+          </button>
+        </div>
+      ) : null,
+    },
+  ];
+
+  return (
+    <div className="rounded-lg border border-[#21262d] bg-[#161b22] p-3 sm:p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-[#f0f6fc]">Setup Guide</span>
+          <span className="rounded-full bg-[#21262d] px-2 py-0.5 text-[10px] text-[#7d8590]">
+            {[step1, step2, step3, step4].filter(Boolean).length}/4
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div className="hidden sm:flex items-center gap-1">
+          {[step1, step2, step3, step4].map((done, i) => (
+            <div key={i} className={`h-1.5 w-6 rounded-full ${done ? "bg-[#3fb950]" : i + 1 === currentStep ? "bg-[#58a6ff]" : "bg-[#21262d]"}`} />
+          ))}
+        </div>
+      </div>
+
+      {/* Important notice */}
+      {step1 && step2 && (!step3 || !step4) && (
+        <div className="rounded-md bg-[#d29922]/10 border border-[#d29922]/20 p-2.5 mb-3 text-[11px] text-[#d29922]">
+          <strong>Important:</strong> If you already have Airbnb&apos;s iCal imported into Booking (or vice versa), <strong>remove those old links</strong> and replace them with our URLs below. Otherwise you&apos;ll have duplicate blocks — one without buffer days and one with.
+        </div>
+      )}
+
+      <div className="space-y-1">
+        {steps.map((step) => {
+          const isCurrent = step.num === currentStep;
+          const isLocked = !step.done && step.num > currentStep;
+
+          return (
+            <div
+              key={step.num}
+              className={`rounded-md p-2.5 sm:p-3 transition-colors ${
+                step.done
+                  ? "bg-[#3fb950]/5"
+                  : isCurrent
+                    ? "bg-[#58a6ff]/5 border border-[#58a6ff]/20"
+                    : "opacity-50"
+              }`}
+            >
+              <div className="flex items-start gap-2.5">
+                {/* Step indicator */}
+                <div className={`shrink-0 flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold mt-0.5 ${
+                  step.done
+                    ? "bg-[#3fb950] text-[#0d1117]"
+                    : isCurrent
+                      ? "bg-[#58a6ff] text-[#0d1117]"
+                      : "bg-[#21262d] text-[#7d8590]"
+                }`}>
+                  {step.done ? (
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                  ) : step.num}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium ${step.done ? "text-[#3fb950]" : isCurrent ? "text-[#f0f6fc]" : "text-[#7d8590]"}`}>
+                    {step.title}
+                  </p>
+                  <p className={`text-[11px] mt-0.5 ${step.done ? "text-[#7d8590]" : isCurrent ? "text-[#9198a1]" : "text-[#484f58]"}`}>
+                    {step.description}
+                  </p>
+                  {/* Action */}
+                  {step.action && !isLocked && (
+                    <div className="mt-2">
+                      {step.action}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ────────────────────────────── main component ────────────────────────── */
 
 export function CalendarSync({ propertyId }: CalendarSyncProps) {
@@ -403,23 +609,19 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
                     </div>
                   )}
 
-                  {/* Import URL — what to paste INTO this platform */}
+                  {/* Import URL — quick access (also in setup wizard) */}
                   {links.length >= 2 && (
-                    <div className="rounded-md bg-[#161b22] border border-[#30363d] p-2.5">
-                      <p className="text-[11px] text-[#7d8590] mb-1.5">
-                        Paste this URL into <strong className="text-[#c9d1d9]">{platformLabel}</strong>&apos;s calendar import settings:
-                      </p>
-                      <div className="flex items-center gap-1.5">
-                        <code className="flex-1 truncate rounded bg-[#0d1117] px-2 py-1 text-[10px] text-[#c9d1d9] border border-[#30363d]">
-                          {feedUrl(platform)}
-                        </code>
-                        <button
-                          onClick={() => copyFeedUrl(platform)}
-                          className="shrink-0 rounded bg-[#21262d] px-2 py-1 text-[11px] text-[#c9d1d9] hover:bg-[#30363d]"
-                        >
-                          {copied === platform ? "Copied!" : "Copy"}
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-[#7d8590] shrink-0">Import URL:</span>
+                      <code className="flex-1 truncate rounded bg-[#0d1117] px-2 py-1 text-[10px] text-[#c9d1d9] border border-[#30363d]">
+                        {feedUrl(platform)}
+                      </code>
+                      <button
+                        onClick={() => copyFeedUrl(platform)}
+                        className="shrink-0 rounded bg-[#21262d] px-2 py-1 text-[11px] text-[#c9d1d9] hover:bg-[#30363d]"
+                      >
+                        {copied === platform ? "Copied!" : "Copy"}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -489,19 +691,16 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
         })}
       </div>
 
-      {/* How it works (only shown when not both connected) */}
-      {links.length < 2 && (
-        <div className="rounded-lg border border-[#21262d] bg-[#161b22] p-3 sm:p-4 text-xs text-[#7d8590] space-y-2">
-          <p className="font-medium text-[#c9d1d9]">How it works</p>
-          <ol className="list-decimal list-inside space-y-1">
-            <li>Add your Airbnb and Booking.com iCal URLs above</li>
-            <li>Click <strong className="text-[#c9d1d9]">Test Connection</strong> to verify each link</li>
-            <li>We fetch both every 10 minutes to detect new bookings</li>
-            <li>We generate enhanced feeds with your cleaning buffer days</li>
-            <li>Copy the <strong className="text-[#c9d1d9]">Import URL</strong> and paste into each platform</li>
-          </ol>
-        </div>
-      )}
+      {/* ── Setup Wizard ── */}
+      <SetupWizard
+        airbnbLink={airbnbLink ?? null}
+        bookingLink={bookingLink ?? null}
+        propertyId={propertyId}
+        onStartEdit={startEdit}
+        onCopyFeedUrl={copyFeedUrl}
+        feedUrl={feedUrl}
+        copied={copied}
+      />
 
       {/* ── Calendar View ── */}
       {hasLinks && (
