@@ -22,10 +22,47 @@ model AppSettings {
 }
 
 model Property {
-  id           Int           @id @default(autoincrement())
-  name         String
-  createdAt    DateTime      @default(now())
-  reservations Reservation[]
+  id             Int              @id @default(autoincrement())
+  name           String
+  createdAt      DateTime         @default(now())
+  reservations   Reservation[]
+  calendarLinks  CalendarLink[]
+  calendarEvents CalendarEvent[]
+}
+
+model CalendarLink {
+  id            Int       @id @default(autoincrement())
+  propertyId    Int
+  property      Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  platform      String    // "airbnb" or "booking"
+  icalExportUrl String    // iCal export URL from the platform
+  bufferBefore  Int       @default(1) // days before booking to block
+  bufferAfter   Int       @default(1) // days after booking to block
+  lastFetchedAt DateTime?
+  lastError     String?
+  createdAt     DateTime  @default(now())
+}
+
+model CalendarEvent {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  platform   String   // source platform
+  uid        String   // iCal event UID
+  summary    String   @default("")
+  startDate  String   // YYYY-MM-DD
+  endDate    String   // YYYY-MM-DD
+  createdAt  DateTime @default(now())
+
+  @@unique([propertyId, platform, uid])
+}
+
+model SyncLog {
+  id         Int      @id @default(autoincrement())
+  propertyId Int?
+  level      String   @default("info") // "info", "warn", "error", "success"
+  message    String
+  createdAt  DateTime @default(now())
 }
 
 model Reservation {

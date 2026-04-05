@@ -80,6 +80,58 @@ async function main() {
     console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
+  // Calendar sync tables
+  const calendarSchema = `
+CREATE TABLE IF NOT EXISTS "CalendarLink" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "platform" TEXT NOT NULL,
+    "icalExportUrl" TEXT NOT NULL,
+    "bufferBefore" INTEGER NOT NULL DEFAULT 1,
+    "bufferAfter" INTEGER NOT NULL DEFAULT 1,
+    "lastFetchedAt" DATETIME,
+    "lastError" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CalendarLink_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "CalendarEvent" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "platform" TEXT NOT NULL,
+    "uid" TEXT NOT NULL,
+    "summary" TEXT NOT NULL DEFAULT '',
+    "startDate" TEXT NOT NULL,
+    "endDate" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CalendarEvent_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CalendarEvent_propertyId_platform_uid_key" ON "CalendarEvent"("propertyId", "platform", "uid");
+
+CREATE TABLE IF NOT EXISTS "SyncLog" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER,
+    "level" TEXT NOT NULL DEFAULT 'info',
+    "message" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+`;
+
+  const calendarStatements = calendarSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of calendarStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // Migrations: add new columns if missing
   const migrations = [
     `ALTER TABLE "Reservation" ADD COLUMN "platform" TEXT NOT NULL DEFAULT 'airbnb'`,
