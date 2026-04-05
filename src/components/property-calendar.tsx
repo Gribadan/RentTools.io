@@ -32,9 +32,9 @@ function toDateStr(d: Date): string {
 }
 
 function addDaysStr(dateStr: string, days: number): string {
-  const d = new Date(dateStr + "T12:00:00");
-  d.setDate(d.getDate() + days);
-  return toDateStr(d);
+  const d = new Date(dateStr + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().substring(0, 10);
 }
 
 interface DayInfo {
@@ -87,24 +87,31 @@ export function PropertyCalendar({
   let firstDayOffset = new Date(year, month, 1).getDay() - 1;
   if (firstDayOffset < 0) firstDayOffset = 6;
 
-  // Build date sets for each platform
-  const { airbnbDates, bookingDates, bufferDates, dateToEvent, dateToReservation } = useMemo(() => {
+  // Build date sets for each platform + conflict detection + smart buffers
+  const { airbnbDates, bookingDates, bufferDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
     const airbnb = new Set<string>();
     const booking = new Set<string>();
     const buffer = new Set<string>();
+    const conflictSet = new Set<string>();
     const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number }>();
     const resMap = new Map<string, Reservation>();
+    const allBooked = new Set<string>(); // all booked dates regardless of platform
+
+    // Collect all bookings as ranges
+    const allBookings: { start: string; end: string; platform: string; name: string }[] = [];
 
     // Synced calendar events
     for (const ev of syncedEvents) {
+      // Skip "Not available" / buffer-type events — only real bookings
+      const isReal = !ev.summary.includes("Not available") && !ev.summary.includes("Blocked");
       const platform = ev.platform;
       const dates = platform === "airbnb" ? airbnb : booking;
       let d = ev.startDate;
       while (d < ev.endDate) {
         dates.add(d);
+        allBooked.add(d);
         d = addDaysStr(d, 1);
       }
-      // Store event info for the start date
       if (!evMap.has(ev.startDate) || evMap.get(ev.startDate)!.startDate > ev.startDate) {
         evMap.set(ev.startDate, {
           name: ev.summary || "Reserved",
@@ -112,6 +119,9 @@ export function PropertyCalendar({
           startDate: ev.startDate,
           endDate: ev.endDate,
         });
+      }
+      if (isReal) {
+        allBookings.push({ start: ev.startDate, end: ev.endDate, platform, name: ev.summary });
       }
     }
 
@@ -122,12 +132,12 @@ export function PropertyCalendar({
       const platform = res.platform || "airbnb";
       const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
       let d = start;
-      while (d <= end) {
+      while (d < end) {
         dates.add(d);
+        allBooked.add(d);
         resMap.set(d, res);
         d = addDaysStr(d, 1);
       }
-      // Override event map with reservation name
       evMap.set(start, {
         name: res.name,
         platform,
@@ -135,36 +145,65 @@ export function PropertyCalendar({
         endDate: end,
         reservationId: res.id,
       });
+      allBookings.push({ start, end, platform, name: res.name });
     }
 
-    // Buffer days
-    const allBookings: { start: string; end: string; platform: string }[] = [];
-    for (const ev of syncedEvents) {
-      allBookings.push({ start: ev.startDate, end: ev.endDate, platform: ev.platform });
+    // Detect conflicts: dates booked on BOTH platforms simultaneously
+    const conflictList: { date: string; airbnbName: string; bookingName: string }[] = [];
+    for (const d of airbnb) {
+      if (booking.has(d)) {
+        conflictSet.add(d);
+      }
     }
-    for (const res of property.reservations) {
-      allBookings.push({
-        start: toDateStr(new Date(res.checkIn)),
-        end: toDateStr(new Date(res.checkOut)),
-        platform: res.platform || "airbnb",
-      });
+
+    // Build conflict descriptions
+    if (conflictSet.size > 0) {
+      // Find the booking names for each conflicting date
+      for (const d of conflictSet) {
+        const abEvent = syncedEvents.find(e => e.platform === "airbnb" && d >= e.startDate && d < e.endDate);
+        const bkEvent = syncedEvents.find(e => e.platform === "booking" && d >= e.startDate && d < e.endDate);
+        conflictList.push({
+          date: d,
+          airbnbName: abEvent?.summary || "Airbnb booking",
+          bookingName: bkEvent?.summary || "Booking reservation",
+        });
+      }
     }
+
+    // Smart buffer: only add buffer days where there's actual free space
+    // Don't add buffer if it would overlap another booking
+    allBookings.sort((a, b) => a.start.localeCompare(b.start));
 
     for (const b of allBookings) {
       const link = links.find(l => l.platform === b.platform);
       const bBefore = link?.bufferBefore ?? 0;
       const bAfter = link?.bufferAfter ?? 0;
+
+      // Buffer before: check each day going backwards
       for (let i = 1; i <= bBefore; i++) {
         const d = addDaysStr(b.start, -i);
-        if (!airbnb.has(d) && !booking.has(d)) buffer.add(d);
+        if (!allBooked.has(d) && !buffer.has(d)) {
+          buffer.add(d);
+        }
       }
-      for (let i = 1; i <= bAfter; i++) {
-        const d = addDaysStr(b.end, i - 1);
-        if (!airbnb.has(d) && !booking.has(d)) buffer.add(d);
+      // Buffer after: check each day going forwards from end date
+      for (let i = 0; i < bAfter; i++) {
+        const d = addDaysStr(b.end, i); // end date is exclusive (checkout day), so i=0 = checkout day
+        if (!allBooked.has(d)) {
+          buffer.add(d);
+        }
       }
     }
 
-    return { airbnbDates: airbnb, bookingDates: booking, bufferDates: buffer, dateToEvent: evMap, dateToReservation: resMap };
+    return {
+      airbnbDates: airbnb,
+      bookingDates: booking,
+      bufferDates: buffer,
+      conflictDates: conflictSet,
+      dateToEvent: evMap,
+      dateToReservation: resMap,
+      conflicts: conflictList,
+    };
   }, [syncedEvents, property.reservations, links]);
 
   // Build bars (continuous booking spans) for rendering
@@ -289,6 +328,70 @@ export function PropertyCalendar({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  const [exportCopied, setExportCopied] = useState(false);
+
+  const handleExport = () => {
+    const lines: string[] = [];
+    lines.push(`=== CALENDAR EXPORT: ${property.name} ===`);
+    lines.push(`Date: ${new Date().toISOString()}`);
+    lines.push(`Month: ${monthLabel}`);
+    lines.push("");
+
+    // Internal reservations
+    lines.push(`--- INTERNAL RESERVATIONS (${property.reservations.length}) ---`);
+    for (const res of [...property.reservations].sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())) {
+      const s = toDateStr(new Date(res.checkIn));
+      const e = toDateStr(new Date(res.checkOut));
+      lines.push(`[${res.platform?.toUpperCase()}] ${s} → ${e} | ${res.name} | ${res._count?.guests || 0} guests`);
+    }
+    lines.push("");
+
+    // Synced events
+    const futureEvents = syncedEvents.filter(e => e.endDate >= toDateStr(today)).sort((a, b) => a.startDate.localeCompare(b.startDate));
+    lines.push(`--- SYNCED CALENDAR EVENTS (${futureEvents.length} future) ---`);
+    for (const ev of futureEvents) {
+      lines.push(`[${ev.platform.toUpperCase()}] ${ev.startDate} → ${ev.endDate} | ${ev.summary} | UID: ${ev.uid}`);
+    }
+    lines.push("");
+
+    // Calendar links
+    lines.push(`--- CALENDAR LINKS (${links.length}) ---`);
+    for (const link of links) {
+      lines.push(`[${link.platform.toUpperCase()}] URL: ${link.icalExportUrl}`);
+      lines.push(`  Buffer: ${link.bufferBefore}d before, ${link.bufferAfter}d after | Last sync: ${link.lastFetchedAt || "never"} | Error: ${link.lastError || "none"}`);
+    }
+    lines.push("");
+
+    // Bars (what the calendar shows)
+    lines.push(`--- CALENDAR BARS (visible) ---`);
+    for (const bar of [...bars].sort((a, b) => a.startDate.localeCompare(b.startDate))) {
+      lines.push(`[${bar.platform.toUpperCase()}] ${bar.startDate} → ${bar.endDate} | "${bar.name}" | resId: ${bar.reservationId || "none"}`);
+    }
+    lines.push("");
+
+    // Buffer days
+    const sortedBuffers = Array.from(bufferDates).sort();
+    lines.push(`--- BUFFER DAYS (${sortedBuffers.length}) ---`);
+    lines.push(sortedBuffers.join(", ") || "none");
+    lines.push("");
+
+    // Conflicts
+    lines.push(`--- CONFLICTS (${conflicts.length} days) ---`);
+    if (conflicts.length > 0) {
+      for (const c of conflicts) {
+        lines.push(`⚠ ${c.date} | Airbnb: ${c.airbnbName} | Booking: ${c.bookingName}`);
+      }
+    } else {
+      lines.push("No conflicts detected");
+    }
+    lines.push("");
+    lines.push(`=== END EXPORT ===`);
+
+    navigator.clipboard.writeText(lines.join("\n"));
+    setExportCopied(true);
+    setTimeout(() => setExportCopied(false), 2000);
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
@@ -299,27 +402,66 @@ export function PropertyCalendar({
             {property.reservations.length} reservation{property.reservations.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <button
-          onClick={() => {
-            const name = prompt("Guest name:");
-            if (name) {
-              onAddReservation({
-                name,
-                checkIn: toDateStr(today),
-                checkOut: toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4)),
-                platform: "airbnb",
-                propertyId: property.id,
-              });
-            }
-          }}
-          className="flex items-center gap-1.5 rounded-md bg-[#238636] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2ea043]"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          New Reservation
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-3 py-2 text-sm text-[#c9d1d9] transition-colors hover:bg-[#30363d]"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+            </svg>
+            {exportCopied ? "Copied!" : "Export"}
+          </button>
+          <button
+            onClick={() => {
+              const name = prompt("Guest name:");
+              if (name) {
+                onAddReservation({
+                  name,
+                  checkIn: toDateStr(today),
+                  checkOut: toDateStr(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4)),
+                  platform: "airbnb",
+                  propertyId: property.id,
+                });
+              }
+            }}
+            className="flex items-center gap-1.5 rounded-md bg-[#238636] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2ea043]"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New Reservation
+          </button>
+        </div>
       </div>
+
+      {/* Conflict warnings */}
+      {conflicts.length > 0 && (
+        <div className="rounded-lg border border-[#f85149]/30 bg-[#f85149]/5 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-[#f85149]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <span className="text-sm font-semibold text-[#f85149]">
+              Double booking detected! ({new Set(conflicts.map(c => c.date)).size} day{new Set(conflicts.map(c => c.date)).size !== 1 ? "s" : ""})
+            </span>
+          </div>
+          <p className="text-xs text-[#f85149]/80">
+            The same dates are booked on both Airbnb and Booking.com. This needs immediate attention.
+          </p>
+          <div className="space-y-1">
+            {Array.from(new Set(conflicts.map(c => c.date))).slice(0, 5).map(d => (
+              <p key={d} className="text-xs text-[#c9d1d9]">
+                <span className="text-[#f85149] font-medium">{d}</span>
+                {" — "}Airbnb + Booking overlap
+              </p>
+            ))}
+            {new Set(conflicts.map(c => c.date)).size > 5 && (
+              <p className="text-xs text-[#7d8590]">...and {new Set(conflicts.map(c => c.date)).size - 5} more</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Calendar */}
       <div className="rounded-lg border border-[#21262d] bg-[#161b22] overflow-hidden">
@@ -364,6 +506,7 @@ export function PropertyCalendar({
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const isBuffer = bufferDates.has(ds);
+              const isConflict = conflictDates.has(ds);
               const barStart = isBarStart(dayNum);
               const hasBar = !!getBarForDay(dayNum);
 
@@ -371,19 +514,31 @@ export function PropertyCalendar({
                 <div
                   key={dayNum}
                   className={`relative min-h-[72px] border-r border-[#21262d] last:border-r-0 p-1 ${
-                    isToday ? "bg-[#58a6ff]/5" : isBuffer ? "bg-[#d29922]/5" : ""
+                    isConflict ? "bg-[#f85149]/8 ring-1 ring-inset ring-[#f85149]/20"
+                    : isToday ? "bg-[#58a6ff]/5"
+                    : isBuffer ? "bg-[#d29922]/5"
+                    : ""
                   }`}
                 >
                   <span className={`text-xs ${
-                    isToday
+                    isConflict
+                      ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
+                      : isToday
                       ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
                       : "text-[#9198a1]"
                   }`}>
                     {dayNum}
                   </span>
 
+                  {/* Conflict indicator */}
+                  {isConflict && !hasBar && (
+                    <div className="mt-1 rounded px-1 py-0.5 text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 truncate font-medium">
+                      Conflict!
+                    </div>
+                  )}
+
                   {/* Buffer indicator */}
-                  {isBuffer && !hasBar && (
+                  {isBuffer && !hasBar && !isConflict && (
                     <div className="mt-1 rounded px-1 py-0.5 text-[10px] text-[#d29922] bg-[#d29922]/10 border border-[#d29922]/20 truncate">
                       Buffer
                     </div>
@@ -394,12 +549,13 @@ export function PropertyCalendar({
                     <div
                       onClick={() => barStart.reservationId && onSelectReservation(barStart.reservationId)}
                       className={`absolute left-0.5 right-0 mt-1 top-6 flex items-center rounded-md px-1.5 py-1 text-[11px] font-medium text-white truncate ${
+                        isConflict ? "bg-[#f85149] hover:bg-[#f85149]/80 ring-2 ring-[#f85149]/30" :
                         barStart.platform === "booking"
                           ? "bg-[#003580] hover:bg-[#004494]"
                           : "bg-[#b5462a] hover:bg-[#c44e30]"
                       } ${barStart.reservationId ? "cursor-pointer" : "opacity-80"}`}
                       style={{ width: `calc(${barStart.span * 100}% + ${(barStart.span - 1) * 1}px - 4px)`, zIndex: 10 }}
-                      title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}`}
+                      title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}${isConflict ? " ⚠ CONFLICT" : ""}`}
                     >
                       {barStart.showLabel ? barStart.name : ""}
                     </div>

@@ -132,15 +132,36 @@ export function generateBufferedEvents(
   bufferAfter: number,
   sourcePlatform: string
 ): ICalEvent[] {
-  return events.map((event) => {
-    const bufferedStart = addDays(event.startDate, -bufferBefore);
-    const bufferedEnd = addDays(event.endDate, bufferAfter);
+  if (events.length === 0) return [];
 
-    return {
-      uid: `renttool-${sourcePlatform}-${event.uid}`,
-      summary: `Blocked (${sourcePlatform}${bufferBefore || bufferAfter ? " +buffer" : ""})`,
-      startDate: bufferedStart,
-      endDate: bufferedEnd,
-    };
-  });
+  // Extend each event with buffer days
+  const buffered = events.map((event) => ({
+    start: addDays(event.startDate, -bufferBefore),
+    end: addDays(event.endDate, bufferAfter),
+    uid: event.uid,
+  }));
+
+  // Sort by start date
+  buffered.sort((a, b) => a.start.localeCompare(b.start));
+
+  // Merge overlapping/adjacent ranges so buffers between close bookings don't double up
+  const merged: { start: string; end: string; uid: string }[] = [];
+  for (const b of buffered) {
+    const last = merged[merged.length - 1];
+    if (last && b.start <= last.end) {
+      // Overlapping or adjacent — extend the end if needed
+      if (b.end > last.end) last.end = b.end;
+      last.uid = `${last.uid}+${b.uid}`;
+    } else {
+      merged.push({ ...b });
+    }
+  }
+
+  const label = `Blocked (${sourcePlatform}${bufferBefore || bufferAfter ? " +buffer" : ""})`;
+  return merged.map((m) => ({
+    uid: `renttool-${sourcePlatform}-${m.uid}`,
+    summary: label,
+    startDate: m.start,
+    endDate: m.end,
+  }));
 }

@@ -4,12 +4,13 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/calendar/cron?secret=xxx
- *
- * Called periodically by an external cron service.
- * Respects auto-mode toggle and frequency settings.
+ * Called periodically by external cron (cron-job.org, Vercel cron, etc.)
  */
 export async function GET(request: NextRequest) {
-  // Auth: query param secret OR Vercel's cron auth header
+  const source = request.headers.get("user-agent") || "unknown";
+  const isVercel = request.headers.get("authorization")?.startsWith("Bearer ");
+
+  // Auth
   const secret = request.nextUrl.searchParams.get("secret");
   const expected = process.env.CRON_SECRET || process.env.JWT_SECRET;
   const vercelCron = request.headers.get("authorization") === `Bearer ${expected}`;
@@ -18,15 +19,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // Log the cron hit
+  await prisma.syncLog.create({
+    data: {
+      level: "info",
+      message: `Cron triggered by ${isVercel ? "Vercel" : "external"} (${source.substring(0, 80)})`,
+    },
+  });
+
   // Check if auto-sync is enabled
   const autoSetting = await prisma.appSettings.findUnique({
     where: { key: "sync_auto_enabled" },
   });
   if (autoSetting?.value === "false") {
+    await prisma.syncLog.create({
+      data: { level: "info", message: "Cron skipped: auto-sync disabled" },
+    });
     return NextResponse.json({ ok: true, skipped: true, reason: "Auto-sync disabled" });
   }
 
-  // Check frequency — don't run more often than configured
+  // Check frequency
   const freqSetting = await prisma.appSettings.findUnique({
     where: { key: "sync_frequency_minutes" },
   });
@@ -39,6 +51,9 @@ export async function GET(request: NextRequest) {
     const lastRun = new Date(lastRunSetting.value);
     const elapsed = (Date.now() - lastRun.getTime()) / 1000 / 60;
     if (elapsed < freqMinutes) {
+      await prisma.syncLog.create({
+        data: { level: "info", message: `Cron skipped: last run ${Math.floor(elapsed)}m ago (freq: ${freqMinutes}m)` },
+      });
       return NextResponse.json({
         ok: true,
         skipped: true,
@@ -50,7 +65,6 @@ export async function GET(request: NextRequest) {
   try {
     const result = await syncAllCalendars();
 
-    // Record run time and result
     const now = new Date().toISOString();
     await prisma.appSettings.upsert({
       where: { key: "sync_last_run" },
@@ -66,6 +80,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
+
+    await prisma.syncLog.create({
+      data: { level: "error", message: `Cron error: ${msg}` },
+    });
 
     await prisma.appSettings.upsert({
       where: { key: "sync_last_run" },

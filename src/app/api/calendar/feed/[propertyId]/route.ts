@@ -43,32 +43,27 @@ export async function GET(
     where: { propertyId },
   });
 
-  // Events from OTHER platforms (not the one we're generating for)
-  const sourcePlatforms = links
-    .filter((l) => l.platform !== forPlatform)
-    .map((l) => l.platform);
-
-  // If no other platforms configured, also include events from same platform
-  // (in case user has manual blocks or wants to merge all)
-  const platformFilter = sourcePlatforms.length > 0 ? sourcePlatforms : undefined;
-
+  // Events from OTHER platforms only — never feed a platform its own events back
   const events = await prisma.calendarEvent.findMany({
     where: {
       propertyId,
-      ...(platformFilter && { platform: { in: platformFilter } }),
-      // Only future events
+      platform: { not: forPlatform },
       endDate: { gte: new Date().toISOString().substring(0, 10) },
     },
     orderBy: { startDate: "asc" },
   });
+
+  const sourcePlatforms = links
+    .filter((l) => l.platform !== forPlatform)
+    .map((l) => l.platform);
 
   // Also include reservations from the database (manually added ones)
   const reservations = await prisma.reservation.findMany({
     where: {
       propertyId,
       checkOut: { gte: new Date() },
-      // Include reservations from the OTHER platform
-      ...(sourcePlatforms.length > 0 && { platform: { in: sourcePlatforms } }),
+      // Only reservations from OTHER platforms
+      platform: { not: forPlatform },
     },
     orderBy: { checkIn: "asc" },
   });
@@ -98,12 +93,11 @@ export async function GET(
     });
   }
 
-  // Deduplicate by date range (avoid double-blocking same dates)
+  // Deduplicate by UID (avoid double-blocking same event)
   const seen = new Set<string>();
   const unique = icalEvents.filter((e) => {
-    const key = `${e.startDate}-${e.endDate}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    if (seen.has(e.uid)) return false;
+    seen.add(e.uid);
     return true;
   });
 
