@@ -101,13 +101,13 @@ export async function GET(
 
   const ical = generateICal(
     buffered,
-    `${property.name} - Blocked for ${forPlatform}`
+    `RentTool - Blocked for ${forPlatform}`
   );
 
   return new NextResponse(ical, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
-      "Content-Disposition": `inline; filename="${property.name}-${forPlatform}.ics"`,
+      "Content-Disposition": `inline; filename="calendar-${forPlatform}.ics"`,
       "Cache-Control": "no-cache, no-store, must-revalidate",
     },
   });
