@@ -133,17 +133,19 @@ export function generateBufferedEvents(
   events: ICalEvent[],
   bufferBefore: number,
   bufferAfter: number,
-  sourcePlatform: string
+  sourcePlatform: string,
+  _minNights: number = 3 // kept for API compat, not used in feed (platforms handle their own min-nights)
 ): ICalEvent[] {
   if (events.length === 0) return [];
 
-  // Extend each event with buffer days
-  // endDate is iCal exclusive (checkout day). Checkout day is still guest's day.
-  // So buffer after = endDate + 1 (include checkout) + bufferAfter days
+  // Only export cleaning buffer days to platforms, NOT unbookable gap days.
+  // Platforms handle their own min-night rules.
+  // endDate is iCal exclusive (checkout day). Checkout day is guest's day.
+  // Buffer after starts the day AFTER checkout.
   const buffered = events.map((event) => ({
     start: addDays(event.startDate, -bufferBefore),
-    end: addDays(event.endDate, 1 + bufferAfter),
-    uid: event.uid,
+    end: addDays(event.endDate, 1 + bufferAfter), // +1 for checkout day, +bufferAfter for cleaning
+    count: 1,
   }));
 
   // Sort by start date

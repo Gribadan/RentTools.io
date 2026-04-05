@@ -24,6 +24,7 @@ model AppSettings {
 model Property {
   id             Int              @id @default(autoincrement())
   name           String
+  minNights      Int              @default(3)
   createdAt      DateTime         @default(now())
   reservations   Reservation[]
   calendarLinks  CalendarLink[]

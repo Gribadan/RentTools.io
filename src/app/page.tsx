@@ -100,6 +100,15 @@ function AppContent({
     if (res.ok) await fetchProperties();
   };
 
+  const handleUpdateProperty = async (id: number, data: { minNights?: number }) => {
+    await fetch(`/api/properties/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    await fetchProperties();
+  };
+
   const handleDeleteReservation = async (id: number) => {
     await fetch(`/api/reservations/${id}`, { method: "DELETE" });
     if (selectedReservationId === id) setSelectedReservationId(null);
@@ -219,6 +228,8 @@ function AppContent({
               key={`sync-${selectedProperty.id}`}
               propertyId={selectedProperty.id}
               propertyName={selectedProperty.name}
+              minNights={selectedProperty.minNights || 3}
+              onUpdateProperty={handleUpdateProperty}
             />
           ) : selectedReservation ? (
             <ReservationView

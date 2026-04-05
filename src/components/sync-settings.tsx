@@ -15,9 +15,11 @@ interface TestResult {
 interface SyncSettingsProps {
   propertyId: number;
   propertyName: string;
+  minNights: number;
+  onUpdateProperty: (id: number, data: { minNights?: number }) => void;
 }
 
-export function SyncSettings({ propertyId, propertyName }: SyncSettingsProps) {
+export function SyncSettings({ propertyId, propertyName, minNights, onUpdateProperty }: SyncSettingsProps) {
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -327,6 +329,27 @@ export function SyncSettings({ propertyId, propertyName }: SyncSettingsProps) {
           </div>
         </div>
       )}
+
+      {/* Minimum Nights */}
+      <div className="rounded-lg border border-[#21262d] bg-[#161b22] p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-[#f0f6fc]">Minimum Stay</h2>
+        <p className="text-xs text-[#9198a1]">
+          If the gap between two bookings is too small for a new guest (less than buffer + min nights + buffer), the entire gap is blocked as buffer. This prevents unbookable gaps in your calendar.
+        </p>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[#9198a1]">Minimum nights</span>
+          <div className="relative">
+            <select
+              value={minNights}
+              onChange={(e) => onUpdateProperty(propertyId, { minNights: Number(e.target.value) })}
+              className="h-8 appearance-none rounded-md border border-[#30363d] bg-[#0d1117] pl-3 pr-8 text-sm text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+            >
+              {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} night{n !== 1 ? "s" : ""}</option>)}
+            </select>
+            <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+          </div>
+        </div>
+      </div>
 
       {/* Sync Log */}
       {logs.length > 0 && (
