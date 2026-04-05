@@ -171,3 +171,46 @@ export function generateBufferedEvents(
     endDate: m.end,
   }));
 }
+
+/**
+ * Generate buffer-only events (cleaning days) around same-platform bookings.
+ * Does NOT include the booking dates themselves — only the cleaning buffer days.
+ */
+export function generateBufferOnlyEvents(
+  events: ICalEvent[],
+  bufferBefore: number,
+  bufferAfter: number,
+  label: string = "Blocked (cleaning)"
+): ICalEvent[] {
+  if (events.length === 0) return [];
+
+  const result: ICalEvent[] = [];
+
+  for (const event of events) {
+    // Buffer before: days before the booking starts
+    if (bufferBefore > 0) {
+      const start = addDays(event.startDate, -bufferBefore);
+      result.push({
+        uid: `renttool-buffer-before-${event.startDate}-${event.uid}`,
+        summary: label,
+        startDate: start,
+        endDate: event.startDate, // exclusive end = up to (not including) booking start
+      });
+    }
+
+    // Buffer after: day after checkout (endDate is checkout day)
+    // Checkout day is guest's day, buffer starts next day
+    if (bufferAfter > 0) {
+      const start = addDays(event.endDate, 1); // day after checkout
+      const end = addDays(event.endDate, 1 + bufferAfter);
+      result.push({
+        uid: `renttool-buffer-after-${event.endDate}-${event.uid}`,
+        summary: label,
+        startDate: start,
+        endDate: end,
+      });
+    }
+  }
+
+  return result;
+}

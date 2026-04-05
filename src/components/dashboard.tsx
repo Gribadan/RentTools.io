@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { DateSlider } from "@/components/date-slider";
-import type { Property } from "@/lib/types";
+import { CleaningSchedule } from "@/components/cleaning-schedule";
+import type { Property, CalendarLink } from "@/lib/types";
+
+interface CalendarEvent {
+  id: number;
+  platform: string;
+  summary: string;
+  startDate: string;
+  endDate: string;
+}
 
 interface DashboardProps {
   properties: Property[];
@@ -33,6 +42,31 @@ export function Dashboard({
   const [formPlatform, setFormPlatform] = useState("airbnb");
   const [formCheckIn, setFormCheckIn] = useState("");
   const [formCheckOut, setFormCheckOut] = useState("");
+  const [allSyncedEvents, setAllSyncedEvents] = useState<Record<number, CalendarEvent[]>>({});
+  const [allLinks, setAllLinks] = useState<Record<number, CalendarLink[]>>({});
+
+  // Fetch synced events and links for all properties (for cleaning schedule)
+  useEffect(() => {
+    if (selectedProperty || properties.length === 0) return; // only on dashboard (all properties)
+    Promise.all(
+      properties.map(async (p) => {
+        const [syncRes, linksRes] = await Promise.all([
+          fetch(`/api/calendar/sync?propertyId=${p.id}&limit=200`).then(r => r.json()),
+          fetch(`/api/calendar/links?propertyId=${p.id}`).then(r => r.json()),
+        ]);
+        return { id: p.id, events: syncRes.events || [], links: linksRes || [] };
+      })
+    ).then((results) => {
+      const evMap: Record<number, CalendarEvent[]> = {};
+      const lnMap: Record<number, CalendarLink[]> = {};
+      for (const r of results) {
+        evMap[r.id] = r.events;
+        lnMap[r.id] = r.links;
+      }
+      setAllSyncedEvents(evMap);
+      setAllLinks(lnMap);
+    }).catch(() => {});
+  }, [properties, selectedProperty]);
 
   // Update formPropertyId when selectedProperty changes
   useEffect(() => {
@@ -283,6 +317,16 @@ export function Dashboard({
               : "No reservations yet. Create a property and add reservations to get started."}
           </p>
         </div>
+      )}
+
+      {/* Cleaning Schedule — only on global dashboard */}
+      {!selectedProperty && properties.length > 0 && Object.keys(allSyncedEvents).length > 0 && (
+        <CleaningSchedule
+          properties={properties}
+          syncedEvents={allSyncedEvents}
+          links={allLinks}
+          mode="dashboard"
+        />
       )}
     </div>
   );

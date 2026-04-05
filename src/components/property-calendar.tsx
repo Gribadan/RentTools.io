@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import type { Property, Reservation, CalendarLink } from "@/lib/types";
+import { CleaningSchedule } from "@/components/cleaning-schedule";
 
 interface CalendarEvent {
   id: number;
@@ -99,6 +100,9 @@ export function PropertyCalendar({
     const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number }>();
     const resMap = new Map<string, Reservation>();
     const allBooked = new Set<string>(); // all booked dates regardless of platform
+    // Separate sets for conflict detection — exclusive end (no checkout day)
+    const airbnbStay = new Set<string>();
+    const bookingStay = new Set<string>();
 
     // Collect all bookings as ranges
     const allBookings: { start: string; end: string; platform: string; name: string }[] = [];
@@ -107,11 +111,18 @@ export function PropertyCalendar({
     for (const ev of syncedEvents) {
       const platform = ev.platform;
       const dates = platform === "airbnb" ? airbnb : booking;
-      // Include checkout day as booked (guest's day until noon)
+      const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
+      // Visual: include checkout day (guest's day until noon)
       let d = ev.startDate;
       while (d <= ev.endDate) {
         dates.add(d);
         allBooked.add(d);
+        d = addDaysStr(d, 1);
+      }
+      // Conflict detection: exclusive end (checkout day is NOT a stay conflict)
+      d = ev.startDate;
+      while (d < ev.endDate) {
+        stayDates.add(d);
         d = addDaysStr(d, 1);
       }
       if (!evMap.has(ev.startDate) || evMap.get(ev.startDate)!.startDate > ev.startDate) {
@@ -141,12 +152,19 @@ export function PropertyCalendar({
       const end = toDateStr(new Date(res.checkOut));
       const platform = res.platform || "airbnb";
       const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
-      // Include checkout day as booked (guest's day until noon)
+      // Visual: include checkout day
+      const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
       let d = start;
       while (d <= end) {
         dates.add(d);
         allBooked.add(d);
         resMap.set(d, res);
+        d = addDaysStr(d, 1);
+      }
+      // Conflict detection: exclusive end
+      d = start;
+      while (d < end) {
+        stayDates.add(d);
         d = addDaysStr(d, 1);
       }
       evMap.set(start, {
@@ -159,7 +177,8 @@ export function PropertyCalendar({
       allBookings.push({ start, end, platform, name: res.name });
     }
 
-    // Detect conflicts: dates booked on BOTH platforms simultaneously
+    // Detect conflicts: dates booked on BOTH platforms (inclusive checkout day)
+    // If checkout day of one platform = checkin/block of another, there's no cleaning gap → conflict
     const conflictList: { date: string; airbnbName: string; bookingName: string }[] = [];
     for (const d of airbnb) {
       if (booking.has(d)) {
@@ -746,6 +765,15 @@ export function PropertyCalendar({
           </div>
         )}
       </div>
+
+      {/* Cleaning Schedule */}
+      <CleaningSchedule
+        properties={[property]}
+        syncedEvents={{ [property.id]: syncedEvents }}
+        links={{ [property.id]: links }}
+        mode="property"
+        selectedPropertyId={property.id}
+      />
     </div>
   );
 }
