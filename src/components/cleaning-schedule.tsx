@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Property, CalendarLink } from "@/lib/types";
+import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
 interface CalendarEvent {
   id: number;
@@ -24,6 +24,7 @@ interface CleaningScheduleProps {
   properties: Property[];
   syncedEvents: Record<number, CalendarEvent[]>; // propertyId -> events
   links: Record<number, CalendarLink[]>; // propertyId -> links
+  overrides?: Record<number, DateOverride[]>; // propertyId -> overrides
   mode: "property" | "dashboard";
   selectedPropertyId?: number;
 }
@@ -44,7 +45,8 @@ function toDateStr(d: Date): string {
 function computeCleaningDays(
   property: Property,
   events: CalendarEvent[],
-  links: CalendarLink[]
+  links: CalendarLink[],
+  dateOverrides: DateOverride[] = []
 ): CleaningDay[] {
   const result: CleaningDay[] = [];
   const allBooked = new Set<string>();
@@ -150,13 +152,34 @@ function computeCleaningDays(
     }
   }
 
-  return result;
+  // Apply date overrides
+  const openDates = new Set(dateOverrides.filter(o => o.type === "open").map(o => o.date));
+  const closedDates = dateOverrides.filter(o => o.type === "closed");
+
+  // Remove cleaning days that are force-opened
+  const filtered = result.filter(d => !openDates.has(d.date));
+
+  // Add force-closed dates as cleaning days
+  for (const o of closedDates) {
+    if (!filtered.some(d => d.date === o.date)) {
+      filtered.push({
+        date: o.date,
+        type: "cleaning",
+        property: property.name,
+        propertyId: property.id,
+        reason: o.note || "Manual override (closed)",
+      });
+    }
+  }
+
+  return filtered;
 }
 
 export function CleaningSchedule({
   properties,
   syncedEvents,
   links,
+  overrides,
   mode,
   selectedPropertyId,
 }: CleaningScheduleProps) {
@@ -169,13 +192,14 @@ export function CleaningSchedule({
     for (const prop of targetProperties) {
       const propEvents = syncedEvents[prop.id] || [];
       const propLinks = links[prop.id] || [];
-      allDays.push(...computeCleaningDays(prop, propEvents, propLinks));
+      const propOverrides = overrides?.[prop.id] || [];
+      allDays.push(...computeCleaningDays(prop, propEvents, propLinks, propOverrides));
     }
 
     // Sort by date
     allDays.sort((a, b) => a.date.localeCompare(b.date));
     return allDays;
-  }, [properties, syncedEvents, links, mode, selectedPropertyId]);
+  }, [properties, syncedEvents, links, overrides, mode, selectedPropertyId]);
 
   // Detect overlaps (same date, different properties)
   const overlaps = useMemo(() => {

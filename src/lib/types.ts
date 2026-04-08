@@ -64,6 +64,15 @@ export interface CalendarEvent {
   createdAt: string;
 }
 
+export interface DateOverride {
+  id: number;
+  propertyId: number;
+  date: string;
+  type: "open" | "closed";
+  note: string;
+  createdAt: string;
+}
+
 export interface SyncLogEntry {
   id: number;
   propertyId: number | null;

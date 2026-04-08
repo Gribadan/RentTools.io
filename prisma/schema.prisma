@@ -29,6 +29,7 @@ model Property {
   reservations   Reservation[]
   calendarLinks  CalendarLink[]
   calendarEvents CalendarEvent[]
+  dateOverrides  DateOverride[]
 }
 
 model CalendarLink {
@@ -76,6 +77,18 @@ model Reservation {
   property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests     Guest[]
   createdAt  DateTime @default(now())
+}
+
+model DateOverride {
+  id         Int      @id @default(autoincrement())
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  date       String   // YYYY-MM-DD
+  type       String   // "open" or "closed"
+  note       String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@unique([propertyId, date])
 }
 
 model Guest {
