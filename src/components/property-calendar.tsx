@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import type { Property, Reservation, CalendarLink, DateOverride } from "@/lib/types";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
+import { useI18n } from "@/lib/i18n/context";
 
 interface CalendarEvent {
   id: number;
@@ -56,6 +57,7 @@ export function PropertyCalendar({
   onSelectReservation,
   onAddReservation,
 }: PropertyCalendarProps) {
+  const { t, locale } = useI18n();
   const [monthOffset, setMonthOffset] = useState(0);
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
@@ -93,7 +95,7 @@ export function PropertyCalendar({
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthLabel = currentMonth.toLocaleDateString("en", { month: "long", year: "numeric" });
+  const monthLabel = currentMonth.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", { month: "long", year: "numeric" });
   let firstDayOffset = new Date(year, month, 1).getDay() - 1;
   if (firstDayOffset < 0) firstDayOffset = 6;
   // Stable key for forcing React to remount the grid on month change
@@ -410,7 +412,9 @@ export function PropertyCalendar({
     return deduped;
   }, [dateToEvent, property.reservations]);
 
-  const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const WEEKDAYS = locale === "ru"
+    ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   const weeks = useMemo(() => {
     const cells: (number | null)[] = [];
@@ -464,7 +468,7 @@ export function PropertyCalendar({
   }, [bars, today]);
 
   const formatDate = (d: string) =>
-    new Date(d + "T12:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    new Date(d + "T12:00:00").toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "2-digit", month: "short" });
 
   const dayCount = (start: string, end: string) => {
     const d1 = new Date(start);
@@ -607,7 +611,7 @@ export function PropertyCalendar({
         <div>
           <h1 className="text-xl font-semibold text-[#f0f6fc]">{property.name}</h1>
           <p className="mt-0.5 text-sm text-[#9198a1]">
-            {property.reservations.length} reservation{property.reservations.length !== 1 ? "s" : ""}
+            {property.reservations.length} {locale === "ru" ? "бронирований" : (property.reservations.length !== 1 ? "reservations" : "reservation")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -622,7 +626,7 @@ export function PropertyCalendar({
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
             </svg>
-            {overrideMode ? "Done Editing" : "Edit Dates"}
+            {overrideMode ? t("calendar.doneEditing") : t("calendar.editDates")}
           </button>
           <button
             onClick={handleExport}
@@ -631,11 +635,11 @@ export function PropertyCalendar({
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
             </svg>
-            {exportCopied ? "Copied!" : "Export"}
+            {exportCopied ? t("common.copied") : t("calendar.export")}
           </button>
           <button
             onClick={() => {
-              const name = prompt("Guest name:");
+              const name = prompt(t("calendar.guestNamePrompt"));
               if (name) {
                 onAddReservation({
                   name,
@@ -651,7 +655,7 @@ export function PropertyCalendar({
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            New Reservation
+            {t("calendar.newReservation")}
           </button>
         </div>
       </div>
@@ -664,21 +668,21 @@ export function PropertyCalendar({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <span className="text-sm font-semibold text-[#f85149]">
-              Double booking detected! ({new Set(conflicts.map(c => c.date)).size} day{new Set(conflicts.map(c => c.date)).size !== 1 ? "s" : ""})
+              {t("calendar.doubleBooking")} ({new Set(conflicts.map(c => c.date)).size} {locale === "ru" ? "дн." : (new Set(conflicts.map(c => c.date)).size !== 1 ? "days" : "day")})
             </span>
           </div>
           <p className="text-xs text-[#f85149]/80">
-            The same dates are booked on both Airbnb and Booking.com. This needs immediate attention.
+            {t("calendar.overlapWarning")}
           </p>
           <div className="space-y-1">
             {Array.from(new Set(conflicts.map(c => c.date))).slice(0, 5).map(d => (
               <p key={d} className="text-xs text-[#c9d1d9]">
                 <span className="text-[#f85149] font-medium">{d}</span>
-                {" — "}Airbnb + Booking overlap
+                {" — "}{t("calendar.airbnbBookingOverlap")}
               </p>
             ))}
             {new Set(conflicts.map(c => c.date)).size > 5 && (
-              <p className="text-xs text-[#7d8590]">...and {new Set(conflicts.map(c => c.date)).size - 5} more</p>
+              <p className="text-xs text-[#7d8590]">...{t("calendar.andMore", { n: new Set(conflicts.map(c => c.date)).size - 5 })}</p>
             )}
           </div>
         </div>
@@ -691,9 +695,9 @@ export function PropertyCalendar({
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
           <div className="flex-1">
-            <p className="text-sm font-medium text-[#f0f6fc]">Date override mode</p>
+            <p className="text-sm font-medium text-[#f0f6fc]">{t("calendar.overrideMode")}</p>
             <p className="text-xs text-[#9198a1]">
-              Click any date to toggle it. Blocked/cleaning dates will be forced open. Free dates will be forced closed. Click an overridden date again to remove the override.
+              {t("calendar.overrideDesc")}
             </p>
           </div>
         </div>
@@ -709,7 +713,7 @@ export function PropertyCalendar({
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold text-[#f0f6fc]">{monthLabel}</h2>
             {monthOffset !== 0 && (
-              <button onClick={() => setMonthOffset(0)} className="rounded px-2 py-0.5 text-xs text-[#58a6ff] hover:bg-[#58a6ff]/10">Today</button>
+              <button onClick={() => setMonthOffset(0)} className="rounded px-2 py-0.5 text-xs text-[#58a6ff] hover:bg-[#58a6ff]/10">{t("calendar.today")}</button>
             )}
           </div>
           <button onClick={() => setMonthOffset(o => o + 1)} className="rounded-md p-1.5 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]">
@@ -719,15 +723,15 @@ export function PropertyCalendar({
 
         {/* Legend */}
         <div className="flex items-center gap-4 border-b border-[#21262d] px-4 py-2">
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#b5462a]" /><span className="text-xs text-[#9198a1]">Airbnb</span></div>
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#003580]" /><span className="text-xs text-[#9198a1]">Booking</span></div>
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">Cleaning</span></div>
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#58a6ff]/15 border border-[#58a6ff]/25 border-dashed" /><span className="text-xs text-[#9198a1]">Potential cleaning</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#b5462a]" /><span className="text-xs text-[#9198a1]">{t("calendar.airbnb")}</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#003580]" /><span className="text-xs text-[#9198a1]">{t("calendar.booking")}</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">{t("calendar.cleaning")}</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#58a6ff]/15 border border-[#58a6ff]/25 border-dashed" /><span className="text-xs text-[#9198a1]">{t("calendar.potentialCleaning")}</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#8b949e]/15 border border-[#8b949e]/20 border-dashed" /><span className="text-xs text-[#9198a1]">&lt;{property.minNights || 3}n</span></div>
           {(openOverrides.size > 0 || closedOverrides.size > 0) && (
             <>
-              <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#3fb950]/15 border-2 border-[#3fb950]/50" /><span className="text-xs text-[#9198a1]">Forced open</span></div>
-              <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#f85149]/15 border-2 border-[#f85149]/50" /><span className="text-xs text-[#9198a1]">Forced closed</span></div>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#3fb950]/15 border-2 border-[#3fb950]/50" /><span className="text-xs text-[#9198a1]">{t("calendar.forcedOpen")}</span></div>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#f85149]/15 border-2 border-[#f85149]/50" /><span className="text-xs text-[#9198a1]">{t("calendar.forcedClosed")}</span></div>
             </>
           )}
         </div>
@@ -822,31 +826,31 @@ export function PropertyCalendar({
                 >
                   {/* Override indicators */}
                   {isOpen && !hasBar && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">Open</div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">{t("calendar.open")}</div>
                   )}
 
                   {isClosed && !hasBar && !isBuffer && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Closed</div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
                   )}
 
                   {/* Conflict */}
                   {isConflict && !hasBar && !isOpen && !isClosed && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Conflict</div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.conflict")}</div>
                   )}
 
                   {/* Cleaning (not if force-opened) */}
                   {isBuffer && !isOpen && !isClosed && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">Cleaning</div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">{t("calendar.cleaning")}</div>
                   )}
 
                   {/* Closed override that landed on a cleaning day */}
                   {isBuffer && isClosed && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Closed</div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
                   )}
 
                   {/* Potential cleaning */}
                   {isPotential && !isOpen && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">Cleaning?</div>
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">{t("calendar.cleaningQ")}</div>
                   )}
 
                   {/* Unbookable */}
@@ -885,10 +889,10 @@ export function PropertyCalendar({
       {/* Agenda */}
       <div className="rounded-lg border border-[#21262d] bg-[#161b22]">
         <div className="border-b border-[#21262d] px-4 py-3">
-          <h2 className="text-xs font-medium text-[#9198a1]">Upcoming ({agenda.length})</h2>
+          <h2 className="text-xs font-medium text-[#9198a1]">{t("calendar.upcoming")} ({agenda.length})</h2>
         </div>
         {agenda.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-[#7d8590] text-center">No upcoming bookings</p>
+          <p className="px-4 py-6 text-sm text-[#7d8590] text-center">{t("calendar.noUpcoming")}</p>
         ) : (
           <div>
             {agenda.map((item, i) => (

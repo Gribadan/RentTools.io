@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n/context";
 import {
   Table,
   TableBody,
@@ -26,6 +27,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
+  const { t } = useI18n();
   const isSuperAdmin = userRole === "superadmin";
 
   const [geminiKey, setGeminiKey] = useState("");
@@ -96,9 +98,9 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground/60">
-            Manage API keys and users
+            {t("settings.subtitle")}
           </p>
         </div>
         <Button
@@ -107,14 +109,14 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
           className="rounded-lg text-xs"
           onClick={onClose}
         >
-          Back
+          {t("common.back")}
         </Button>
       </div>
 
       {/* Gemini API Key */}
       <section>
         <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-          Gemini API Key
+          {t("settings.geminiKey")}
         </h2>
         <div className="rounded-xl border border-border/60 bg-card/50 p-5">
           {isSuperAdmin ? (
@@ -124,7 +126,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
                   type="password"
                   value={geminiKey}
                   onChange={(e) => setGeminiKey(e.target.value)}
-                  placeholder="Enter Gemini API key..."
+                  placeholder={t("settings.geminiPlaceholder")}
                   className="h-10 flex-1 rounded-xl bg-background/50 text-sm"
                 />
                 <Button
@@ -132,7 +134,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
                   disabled={keySaving}
                   className="h-10 rounded-xl px-5"
                 >
-                  {keySaving ? "Saving..." : "Save"}
+                  {keySaving ? t("settings.saving") : t("common.save")}
                 </Button>
               </div>
               {keyMessage && (
@@ -141,7 +143,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              API key: {geminiKey || "Not configured"}
+              API key: {geminiKey || t("settings.notConfigured")}
             </p>
           )}
         </div>
@@ -150,7 +152,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
       {/* User Management */}
       <section>
         <h2 className="mb-4 text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-          Users
+          {t("settings.users")}
         </h2>
 
         {/* Add User Form */}
@@ -158,7 +160,7 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
           <div className="mb-4 rounded-xl border border-border/60 bg-card/50 p-5">
             <form onSubmit={addUser} className="flex gap-2">
               <Input
-                placeholder="Username"
+                placeholder={t("settings.username")}
                 value={newUsername}
                 onChange={(e) => setNewUsername(e.target.value)}
                 className="h-10 flex-1 rounded-xl bg-background/50 text-sm"
@@ -166,14 +168,14 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
               />
               <Input
                 type="password"
-                placeholder="Password"
+                placeholder={t("settings.passwordLabel")}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="h-10 flex-1 rounded-xl bg-background/50 text-sm"
                 required
               />
               <Button type="submit" className="h-10 rounded-xl px-5">
-                Add User
+                {t("settings.addUser")}
               </Button>
             </form>
             {userError && (
@@ -187,9 +189,9 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
           <Table>
             <TableHeader>
               <TableRow className="border-border/40 hover:bg-transparent">
-                <TableHead className="text-xs font-semibold uppercase tracking-wider">Username</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider">Role</TableHead>
-                <TableHead className="text-xs font-semibold uppercase tracking-wider">Created</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">{t("settings.username")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">{t("settings.role")}</TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider">{t("settings.created")}</TableHead>
                 {isSuperAdmin && <TableHead className="w-10"></TableHead>}
               </TableRow>
             </TableHeader>
