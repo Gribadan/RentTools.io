@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, type ICalEvent } from "@/lib/ical";
+import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, addDays, type ICalEvent } from "@/lib/ical";
 
 /**
  * GET /api/calendar/feed/[propertyId]?for=airbnb
@@ -42,6 +42,13 @@ export async function GET(
   const links = await prisma.calendarLink.findMany({
     where: { propertyId },
   });
+
+  // Get date overrides
+  const dateOverrides = await prisma.dateOverride.findMany({
+    where: { propertyId },
+  });
+  const openOverrides = new Set(dateOverrides.filter(o => o.type === "open").map(o => o.date));
+  const closedOverrides = dateOverrides.filter(o => o.type === "closed");
 
   // Get ALL events for this property (both platforms) — needed for buffer calculation
   const allEvents = await prisma.calendarEvent.findMany({
@@ -136,9 +143,64 @@ export async function GET(
     return true;
   });
 
+  // Apply date overrides to the feed
+  // 1. Remove/split events that cover force-opened dates
+  let finalEvents = buffered;
+
+  if (openOverrides.size > 0) {
+    const expanded: ICalEvent[] = [];
+    for (const ev of finalEvents) {
+      // Check if any open override falls within this event's date range
+      const overridesInRange: string[] = [];
+      let d = ev.startDate;
+      while (d < ev.endDate) {
+        if (openOverrides.has(d)) overridesInRange.push(d);
+        d = addDays(d, 1);
+      }
+
+      if (overridesInRange.length === 0) {
+        expanded.push(ev);
+        continue;
+      }
+
+      // Split the event around the open overrides
+      let segStart = ev.startDate;
+      for (const openDate of overridesInRange.sort()) {
+        if (segStart < openDate) {
+          expanded.push({
+            uid: `${ev.uid}-before-${openDate}`,
+            summary: ev.summary,
+            startDate: segStart,
+            endDate: openDate,
+          });
+        }
+        segStart = addDays(openDate, 1);
+      }
+      if (segStart < ev.endDate) {
+        expanded.push({
+          uid: `${ev.uid}-after-${overridesInRange[overridesInRange.length - 1]}`,
+          summary: ev.summary,
+          startDate: segStart,
+          endDate: ev.endDate,
+        });
+      }
+    }
+    finalEvents = expanded;
+  }
+
+  // 2. Add force-closed dates as blocked events
+  for (const override of closedOverrides) {
+    finalEvents.push({
+      uid: `renttool-override-closed-${override.date}`,
+      summary: "Blocked (manual)",
+      startDate: override.date,
+      endDate: addDays(override.date, 1), // iCal exclusive end
+    });
+  }
+
   // Generate iCal
   const ical = generateICal(
-    buffered,
+    finalEvents,
     `RentTool - Blocked for ${forPlatform}`
   );
 

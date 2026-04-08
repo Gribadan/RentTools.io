@@ -155,6 +155,35 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     }
   }
 
+  // DateOverride table for manual open/close of calendar dates
+  const dateOverrideSchema = `
+CREATE TABLE IF NOT EXISTS "DateOverride" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "date" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "note" TEXT NOT NULL DEFAULT '',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "DateOverride_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "DateOverride_propertyId_date_key" ON "DateOverride"("propertyId", "date");
+`;
+
+  const dateOverrideStatements = dateOverrideSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of dateOverrideStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   console.log("\nSchema pushed to Turso successfully!");
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import type { Property, Reservation, CalendarLink } from "@/lib/types";
+import type { Property, Reservation, CalendarLink, DateOverride } from "@/lib/types";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
 
 interface CalendarEvent {
@@ -59,14 +59,24 @@ export function PropertyCalendar({
   const [monthOffset, setMonthOffset] = useState(0);
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
+  const [overrides, setOverrides] = useState<DateOverride[]>([]);
+  const [overrideMode, setOverrideMode] = useState(false);
+
+  const fetchOverrides = async () => {
+    const res = await fetch(`/api/date-overrides?propertyId=${property.id}`);
+    const data = await res.json();
+    setOverrides(data || []);
+  };
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
       fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
-    ]).then(([syncData, linksData]) => {
+      fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
+    ]).then(([syncData, linksData, overridesData]) => {
       setSyncedEvents(syncData.events || []);
       setLinks(linksData || []);
+      setOverrides(overridesData || []);
     }).catch(() => {});
   }, [property.id]);
 
@@ -88,6 +98,17 @@ export function PropertyCalendar({
   if (firstDayOffset < 0) firstDayOffset = 6;
   // Stable key for forcing React to remount the grid on month change
   const monthKey = `${year}-${month}`;
+
+  // Build override lookup maps
+  const { openOverrides, closedOverrides } = useMemo(() => {
+    const open = new Set<string>();
+    const closed = new Set<string>();
+    for (const o of overrides) {
+      if (o.type === "open") open.add(o.date);
+      else if (o.type === "closed") closed.add(o.date);
+    }
+    return { openOverrides: open, closedOverrides: closed };
+  }, [overrides]);
 
   // Build date sets for each platform + conflict detection + smart buffers
   const { airbnbDates, bookingDates, bufferDates, potentialDates, unbookableDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
@@ -296,6 +317,20 @@ export function PropertyCalendar({
       }
     }
 
+    // Apply manual overrides
+    // "open" overrides: remove date from buffer/potential/unbookable (force available)
+    for (const d of openOverrides) {
+      buffer.delete(d);
+      potential.delete(d);
+      unbookable.delete(d);
+    }
+    // "closed" overrides: add to buffer set if not already booked (force blocked)
+    for (const d of closedOverrides) {
+      if (!allBooked.has(d)) {
+        buffer.add(d);
+      }
+    }
+
     return {
       airbnbDates: airbnb,
       bookingDates: booking,
@@ -307,7 +342,7 @@ export function PropertyCalendar({
       dateToReservation: resMap,
       conflicts: conflictList,
     };
-  }, [syncedEvents, property.reservations, links, property.minNights]);
+  }, [syncedEvents, property.reservations, links, property.minNights, openOverrides, closedOverrides]);
 
   // Build bars (continuous booking spans) for rendering
   const bars = useMemo(() => {
@@ -437,6 +472,58 @@ export function PropertyCalendar({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  const handleToggleOverride = async (dateStr: string) => {
+    if (!overrideMode) return;
+
+    const hasBar = bars.some(b => dateStr >= b.startDate && dateStr <= b.endDate);
+    const isBuffer = bufferDates.has(dateStr);
+    const isPotential = potentialDates.has(dateStr);
+    const isUnbookable = unbookableDates.has(dateStr);
+    const isOpenOverride = openOverrides.has(dateStr);
+    const isClosedOverride = closedOverrides.has(dateStr);
+
+    // Determine what action to take:
+    // If already has an override, remove it (toggle off)
+    if (isOpenOverride || isClosedOverride) {
+      await fetch(`/api/date-overrides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId: property.id,
+          date: dateStr,
+          type: isOpenOverride ? "open" : "closed",
+        }),
+      });
+      await fetchOverrides();
+      return;
+    }
+
+    // If date is blocked (buffer/cleaning/unbookable/booked) → offer to force open
+    if (hasBar || isBuffer || isPotential || isUnbookable) {
+      await fetch(`/api/date-overrides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId: property.id,
+          date: dateStr,
+          type: "open",
+        }),
+      });
+    } else {
+      // Date is free → force close it
+      await fetch(`/api/date-overrides`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId: property.id,
+          date: dateStr,
+          type: "closed",
+        }),
+      });
+    }
+    await fetchOverrides();
+  };
+
   const [exportCopied, setExportCopied] = useState(false);
 
   const handleExport = () => {
@@ -525,6 +612,19 @@ export function PropertyCalendar({
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setOverrideMode(!overrideMode)}
+            className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+              overrideMode
+                ? "border-[#da3633] bg-[#da3633]/10 text-[#f85149] hover:bg-[#da3633]/20"
+                : "border-[#30363d] bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]"
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+            {overrideMode ? "Done Editing" : "Edit Dates"}
+          </button>
+          <button
             onClick={handleExport}
             className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-3 py-2 text-sm text-[#c9d1d9] transition-colors hover:bg-[#30363d]"
           >
@@ -584,8 +684,23 @@ export function PropertyCalendar({
         </div>
       )}
 
+      {/* Override mode banner */}
+      {overrideMode && (
+        <div className="rounded-lg border border-[#da3633]/30 bg-[#da3633]/5 p-3 flex items-center gap-3">
+          <svg className="h-5 w-5 text-[#f85149] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-[#f0f6fc]">Date override mode</p>
+            <p className="text-xs text-[#9198a1]">
+              Click any date to toggle it. Blocked/cleaning dates will be forced open. Free dates will be forced closed. Click an overridden date again to remove the override.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Calendar */}
-      <div className="rounded-lg border border-[#21262d] bg-[#161b22] overflow-hidden">
+      <div className={`rounded-lg border bg-[#161b22] overflow-hidden ${overrideMode ? "border-[#da3633]/30" : "border-[#21262d]"}`}>
         {/* Month nav */}
         <div className="flex items-center justify-between border-b border-[#21262d] px-4 py-3">
           <button onClick={() => setMonthOffset(o => o - 1)} className="rounded-md p-1.5 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]">
@@ -609,6 +724,12 @@ export function PropertyCalendar({
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#d29922]/30 border border-[#d29922]/40" /><span className="text-xs text-[#9198a1]">Cleaning</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#58a6ff]/15 border border-[#58a6ff]/25 border-dashed" /><span className="text-xs text-[#9198a1]">Potential cleaning</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#8b949e]/15 border border-[#8b949e]/20 border-dashed" /><span className="text-xs text-[#9198a1]">&lt;{property.minNights || 3}n</span></div>
+          {(openOverrides.size > 0 || closedOverrides.size > 0) && (
+            <>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#3fb950]/15 border-2 border-[#3fb950]/50" /><span className="text-xs text-[#9198a1]">Forced open</span></div>
+              <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#f85149]/15 border-2 border-[#f85149]/50" /><span className="text-xs text-[#9198a1]">Forced closed</span></div>
+            </>
+          )}
         </div>
 
         {/* Weekday headers */}
@@ -635,7 +756,11 @@ export function PropertyCalendar({
               const isBuffer = bufferDates.has(ds) && !hasBar;
               const isPotential = potentialDates.has(ds) && !hasBar;
               const isUnbookable = unbookableDates.has(ds) && !hasBar;
-              const bg = isConflict ? "bg-[#f85149]/8"
+              const isOpen = openOverrides.has(ds);
+              const isClosed = closedOverrides.has(ds);
+              const bg = isOpen ? "bg-[#3fb950]/8"
+                : isClosed ? "bg-[#f85149]/8"
+                : isConflict ? "bg-[#f85149]/8"
                 : isToday ? "bg-[#58a6ff]/5"
                 : isBuffer ? "bg-[#d29922]/5"
                 : isPotential ? "bg-[#58a6ff]/3"
@@ -643,10 +768,18 @@ export function PropertyCalendar({
                 : "";
 
               return (
-                <div key={`n-${dayNum}`} className={`h-7 flex items-center px-1.5 border-r border-[#21262d] last:border-r-0 ${bg}`}>
+                <div
+                  key={`n-${dayNum}`}
+                  onClick={() => overrideMode && handleToggleOverride(ds)}
+                  className={`h-7 flex items-center px-1.5 border-r border-[#21262d] last:border-r-0 ${bg} ${
+                    overrideMode ? "cursor-pointer hover:bg-[#1c2128]" : ""
+                  } ${isOpen ? "ring-1 ring-inset ring-[#3fb950]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#f85149]/40" : ""}`}
+                >
                   <span className={`text-xs leading-none ${
                     isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
                     : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
+                    : isOpen ? "text-[#3fb950] font-semibold"
+                    : isClosed ? "text-[#f85149] font-semibold"
                     : "text-[#7d8590]"
                   }`}>{dayNum}</span>
                 </div>
@@ -668,7 +801,11 @@ export function PropertyCalendar({
               const isBuffer = bufferDates.has(ds) && !hasBar;
               const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer;
               const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential;
-              const bg = isConflict ? "bg-[#f85149]/8"
+              const isOpen = openOverrides.has(ds);
+              const isClosed = closedOverrides.has(ds);
+              const bg = isOpen ? "bg-[#3fb950]/8"
+                : isClosed ? "bg-[#f85149]/8"
+                : isConflict ? "bg-[#f85149]/8"
                 : isToday ? "bg-[#58a6ff]/5"
                 : isBuffer ? "bg-[#d29922]/5"
                 : isPotential ? "bg-[#58a6ff]/3"
@@ -676,24 +813,44 @@ export function PropertyCalendar({
                 : "";
 
               return (
-                <div key={`b-${dayNum}`} className={`relative h-7 flex items-center border-r border-[#21262d] last:border-r-0 px-0.5 overflow-visible ${bg}`}>
+                <div
+                  key={`b-${dayNum}`}
+                  onClick={() => overrideMode && !hasBar && handleToggleOverride(ds)}
+                  className={`relative h-7 flex items-center border-r border-[#21262d] last:border-r-0 px-0.5 overflow-visible ${bg} ${
+                    overrideMode && !hasBar ? "cursor-pointer" : ""
+                  } ${isOpen ? "ring-1 ring-inset ring-[#3fb950]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#f85149]/40" : ""}`}
+                >
+                  {/* Override indicators */}
+                  {isOpen && !hasBar && (
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">Open</div>
+                  )}
+
+                  {isClosed && !hasBar && !isBuffer && (
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Closed</div>
+                  )}
+
                   {/* Conflict */}
-                  {isConflict && !hasBar && (
+                  {isConflict && !hasBar && !isOpen && !isClosed && (
                     <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Conflict</div>
                   )}
 
-                  {/* Cleaning */}
-                  {isBuffer && (
+                  {/* Cleaning (not if force-opened) */}
+                  {isBuffer && !isOpen && !isClosed && (
                     <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">Cleaning</div>
                   )}
 
+                  {/* Closed override that landed on a cleaning day */}
+                  {isBuffer && isClosed && (
+                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">Closed</div>
+                  )}
+
                   {/* Potential cleaning */}
-                  {isPotential && (
+                  {isPotential && !isOpen && (
                     <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">Cleaning?</div>
                   )}
 
                   {/* Unbookable */}
-                  {isUnbookable && (
+                  {isUnbookable && !isOpen && (
                     <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
                   )}
 
@@ -771,6 +928,7 @@ export function PropertyCalendar({
         properties={[property]}
         syncedEvents={{ [property.id]: syncedEvents }}
         links={{ [property.id]: links }}
+        overrides={{ [property.id]: overrides }}
         mode="property"
         selectedPropertyId={property.id}
       />
