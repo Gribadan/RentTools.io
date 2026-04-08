@@ -313,7 +313,6 @@ export function CleaningSchedule({
                   {mode === "dashboard" && (
                     <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("cleaning.property")}</th>
                   )}
-                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("cleaning.reason")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -337,7 +336,6 @@ export function CleaningSchedule({
                       {mode === "dashboard" && (
                         <td className="px-4 py-2 text-sm text-[#9198a1]">{day.property}</td>
                       )}
-                      <td className="px-4 py-2 text-sm text-[#9198a1]">{day.reason}</td>
                     </tr>
                   );
                 })}

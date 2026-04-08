@@ -746,60 +746,14 @@ export function PropertyCalendar({
         {/* Grid */}
         <div key={monthKey}>
         {weeks.map((week, wi) => (
-          <div key={`${monthKey}-w${wi}`} className="border-b border-[#21262d] last:border-b-0">
-            {/* Row 1: Day numbers */}
-            <div className="grid grid-cols-7">
+          <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[#21262d] last:border-b-0">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`n-${di}`} className="h-7" />;
+                return <div key={`c-${di}`} className="h-14" />;
               }
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const isConflict = conflictDates.has(ds);
-              const hasBar = !!getBarForDay(dayNum);
-              const isBuffer = bufferDates.has(ds) && !hasBar;
-              const isPotential = potentialDates.has(ds) && !hasBar;
-              const isUnbookable = unbookableDates.has(ds) && !hasBar;
-              const isOpen = openOverrides.has(ds);
-              const isClosed = closedOverrides.has(ds);
-              const bg = isOpen ? "bg-[#3fb950]/8"
-                : isClosed ? "bg-[#f85149]/8"
-                : isConflict ? "bg-[#f85149]/8"
-                : isToday ? "bg-[#58a6ff]/5"
-                : isBuffer ? "bg-[#d29922]/5"
-                : isPotential ? "bg-[#58a6ff]/3"
-                : isUnbookable ? "bg-[#8b949e]/5"
-                : "";
-
-              return (
-                <div
-                  key={`n-${dayNum}`}
-                  onClick={() => overrideMode && handleToggleOverride(ds)}
-                  className={`h-7 flex items-center px-1.5 border-r border-[#21262d] last:border-r-0 ${bg} ${
-                    overrideMode ? "cursor-pointer hover:bg-[#1c2128]" : ""
-                  } ${isOpen ? "ring-1 ring-inset ring-[#3fb950]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#f85149]/40" : ""}`}
-                >
-                  <span className={`text-xs leading-none ${
-                    isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
-                    : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
-                    : isOpen ? "text-[#3fb950] font-semibold"
-                    : isClosed ? "text-[#f85149] font-semibold"
-                    : "text-[#7d8590]"
-                  }`}>{dayNum}</span>
-                </div>
-              );
-            })}
-            </div>
-
-            {/* Row 2: Bars and indicators */}
-            <div className="grid grid-cols-7">
-            {week.map((dayNum, di) => {
-              if (dayNum === null) {
-                return <div key={`b-${di}`} className="h-7" />;
-              }
-              const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-              const isConflict = conflictDates.has(ds);
-              const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const barStart = isBarStart(dayNum);
               const hasBar = !!getBarForDay(dayNum);
               const isBuffer = bufferDates.has(ds) && !hasBar;
@@ -818,69 +772,84 @@ export function PropertyCalendar({
 
               return (
                 <div
-                  key={`b-${dayNum}`}
-                  onClick={() => overrideMode && !hasBar && handleToggleOverride(ds)}
-                  className={`relative h-7 flex items-center border-r border-[#21262d] last:border-r-0 px-0.5 overflow-visible ${bg} ${
-                    overrideMode && !hasBar ? "cursor-pointer" : ""
+                  key={`c-${dayNum}`}
+                  onClick={() => {
+                    if (overrideMode && !hasBar) handleToggleOverride(ds);
+                    else if (overrideMode) handleToggleOverride(ds);
+                  }}
+                  className={`relative h-14 flex flex-col border-r border-[#21262d] last:border-r-0 ${bg} ${
+                    overrideMode ? "cursor-pointer hover:bg-[#1c2128]" : ""
                   } ${isOpen ? "ring-1 ring-inset ring-[#3fb950]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#f85149]/40" : ""}`}
                 >
-                  {/* Override indicators */}
-                  {isOpen && !hasBar && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">{t("calendar.open")}</div>
-                  )}
+                  {/* Day number */}
+                  <div className="px-1.5 pt-1">
+                    <span className={`text-xs leading-none ${
+                      isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
+                      : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
+                      : isOpen ? "text-[#3fb950] font-semibold"
+                      : isClosed ? "text-[#f85149] font-semibold"
+                      : "text-[#7d8590]"
+                    }`}>{dayNum}</span>
+                  </div>
 
-                  {isClosed && !hasBar && !isBuffer && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
-                  )}
+                  {/* Bar / indicator area */}
+                  <div className="relative flex-1 flex items-center px-0.5 overflow-visible">
+                    {/* Override indicators */}
+                    {isOpen && !hasBar && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">{t("calendar.open")}</div>
+                    )}
 
-                  {/* Conflict */}
-                  {isConflict && !hasBar && !isOpen && !isClosed && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.conflict")}</div>
-                  )}
+                    {isClosed && !hasBar && !isBuffer && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
+                    )}
 
-                  {/* Cleaning (not if force-opened) */}
-                  {isBuffer && !isOpen && !isClosed && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">{t("calendar.cleaning")}</div>
-                  )}
+                    {/* Conflict */}
+                    {isConflict && !hasBar && !isOpen && !isClosed && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.conflict")}</div>
+                    )}
 
-                  {/* Closed override that landed on a cleaning day */}
-                  {isBuffer && isClosed && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
-                  )}
+                    {/* Cleaning */}
+                    {isBuffer && !isOpen && !isClosed && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">{t("calendar.cleaning")}</div>
+                    )}
 
-                  {/* Potential cleaning */}
-                  {isPotential && !isOpen && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">{t("calendar.cleaningQ")}</div>
-                  )}
+                    {isBuffer && isClosed && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
+                    )}
 
-                  {/* Unbookable */}
-                  {isUnbookable && !isOpen && (
-                    <div className="rounded px-1.5 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
-                  )}
+                    {/* Potential cleaning */}
+                    {isPotential && !isOpen && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">{t("calendar.cleaningQ")}</div>
+                    )}
 
-                  {/* Booking bar */}
-                  {barStart && (
-                    <div
-                      onClick={() => barStart.reservationId && onSelectReservation(barStart.reservationId)}
-                      className={`absolute left-0 top-1 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
-                        isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
-                        barStart.platform === "booking"
-                          ? "bg-[#003580]"
-                          : "bg-[#b5462a]"
-                      } ${barStart.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
-                      style={{
-                        width: `calc(${barStart.span * 100}% - 2px)`,
-                        zIndex: 10,
-                      }}
-                      title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}${isConflict ? " ⚠ CONFLICT" : ""}`}
-                    >
-                      {barStart.showLabel ? barStart.name : ""}
-                    </div>
-                  )}
+                    {/* Unbookable */}
+                    {isUnbookable && !isOpen && (
+                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
+                    )}
+
+                    {/* Booking bar */}
+                    {barStart && (
+                      <div
+                        onClick={(e) => { e.stopPropagation(); barStart.reservationId && onSelectReservation(barStart.reservationId); }}
+                        className={`absolute left-0 top-0 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
+                          isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
+                          barStart.platform === "booking"
+                            ? "bg-[#003580]"
+                            : "bg-[#b5462a]"
+                        } ${barStart.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
+                        style={{
+                          width: `calc(${barStart.span * 100}% - 2px)`,
+                          zIndex: 10,
+                        }}
+                        title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}${isConflict ? " ⚠ CONFLICT" : ""}`}
+                      >
+                        {barStart.showLabel ? barStart.name : ""}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
-            </div>
           </div>
         ))}
         </div>
