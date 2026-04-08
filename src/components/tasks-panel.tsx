@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useI18n } from "@/lib/i18n/context";
 import type { SyncLogEntry } from "@/lib/types";
 
 interface ScheduleSettings {
@@ -11,6 +12,7 @@ interface ScheduleSettings {
 }
 
 export function TasksPanel() {
+  const { t } = useI18n();
   const [schedule, setSchedule] = useState<ScheduleSettings>({
     autoEnabled: true,
     frequencyMinutes: 10,
@@ -90,8 +92,8 @@ export function TasksPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#f0f6fc]">Tasks</h1>
-          <p className="mt-0.5 text-sm text-[#9198a1]">Calendar sync scheduler and logs</p>
+          <h1 className="text-xl font-semibold text-[#f0f6fc]">{t("tasks.title")}</h1>
+          <p className="mt-0.5 text-sm text-[#9198a1]">{t("tasks.subtitle")}</p>
         </div>
         <button
           onClick={handleManualSync}
@@ -101,14 +103,14 @@ export function TasksPanel() {
           <svg className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          {syncing ? "Syncing..." : "Run Sync Now"}
+          {syncing ? t("tasks.syncing") : t("tasks.runSync")}
         </button>
       </div>
 
       {/* Status Card */}
       <div className="rounded-lg border border-[#21262d] bg-[#161b22] p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[#f0f6fc]">Automatic Sync</h2>
+          <h2 className="text-sm font-semibold text-[#f0f6fc]">{t("tasks.autoSync")}</h2>
           {/* Toggle */}
           <button
             onClick={handleToggleAuto}
@@ -125,7 +127,7 @@ export function TasksPanel() {
         {schedule.autoEnabled && (
           <>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-[#9198a1]">Sync every</span>
+              <span className="text-sm text-[#9198a1]">{t("tasks.syncEvery")}</span>
               <div className="relative">
                 <select
                   value={schedule.frequencyMinutes}
@@ -164,11 +166,11 @@ export function TasksPanel() {
         {/* Last run info */}
         <div className="border-t border-[#21262d] pt-3 space-y-1.5">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[#9198a1]">Last sync:</span>
+            <span className="text-sm text-[#9198a1]">{t("tasks.lastSync")}</span>
             {schedule.lastRun ? (
               <span className="text-sm text-[#f0f6fc]">{timeSince(schedule.lastRun)}</span>
             ) : (
-              <span className="text-sm text-[#7d8590]">Never</span>
+              <span className="text-sm text-[#7d8590]">{t("tasks.never")}</span>
             )}
           </div>
           {parsedResult && !parsedResult.error && (
@@ -192,7 +194,7 @@ export function TasksPanel() {
       {/* Full Sync Log */}
       <div className="rounded-lg border border-[#21262d] bg-[#161b22]">
         <div className="flex items-center justify-between border-b border-[#21262d] px-4 py-3">
-          <h2 className="text-sm font-medium text-[#9198a1]">Sync Log ({logs.length})</h2>
+          <h2 className="text-sm font-medium text-[#9198a1]">{t("tasks.syncLog")} ({logs.length})</h2>
           <div className="flex items-center gap-2">
             <select
               value={logLimit}
@@ -207,7 +209,7 @@ export function TasksPanel() {
               onClick={fetchData}
               className="rounded-md px-2 py-1 text-xs text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc]"
             >
-              Refresh
+              {t("common.refresh")}
             </button>
           </div>
         </div>
@@ -215,15 +217,15 @@ export function TasksPanel() {
         <div className="max-h-[500px] overflow-y-auto">
           {logs.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-[#7d8590]">
-              No sync logs yet. Run a sync to see activity here.
+              {t("tasks.noLogs")}
             </p>
           ) : (
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[#21262d] text-left">
-                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590] w-[140px]">Time</th>
-                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590] w-[70px]">Level</th>
-                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">Message</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590] w-[140px]">{t("tasks.time")}</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590] w-[70px]">{t("tasks.level")}</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("tasks.message")}</th>
                 </tr>
               </thead>
               <tbody>
