@@ -84,7 +84,10 @@ function computeCleaningDays(
   const deduped: Booking[] = [];
   for (const b of allBookings) {
     const last = deduped[deduped.length - 1];
-    if (last && b.start <= last.end) {
+    // Strict overlap: b.start < last.end (they share at least one stay day)
+    // Back-to-back bookings (b.start === last.end, checkout = next checkin) are NOT merged —
+    // they are different guests and we need a cleaning turnover between them.
+    if (last && b.start < last.end) {
       if (b.end > last.end) last.end = b.end;
       if (b.name !== "Reserved" && b.name !== "CLOSED - Not available") last.name = b.name;
     } else {
@@ -195,6 +198,39 @@ function computeCleaningDays(
         reason,
         hoursAvailable,
       });
+
+      // Potential cleaning: if the gap between this booking and the next is
+      // large enough to fit another guest (≥ minNights), a hypothetical gap
+      // guest would need cleaning when they leave. We mark the next booking's
+      // start date as a potential cleaning — that's when the gap guest would
+      // most likely check out to make room for the next confirmed guest.
+      if (next) {
+        const gapStart = addDaysStr(b.end, 1);
+        const gapDays = Math.max(0, Math.ceil(
+          (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
+        ));
+        if (gapDays >= minStay) {
+          // Check if there's already a cleaning (definite) at next.start (e.g. from another
+          // confirmed guest checking out that same day) — if so, skip.
+          const alreadyHasCleaning = result.some(r => r.date === next.start && r.type === "cleaning");
+          if (!alreadyHasCleaning) {
+            const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
+              ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
+              : next.name;
+            // Hours window = between hypothetical checkout time and next checkin time
+            const diffMinutes = checkInMin - checkOutMin;
+            const hours = diffMinutes > 0 ? diffMinutes / 60 : 24 + diffMinutes / 60;
+            result.push({
+              date: next.start,
+              type: "potential",
+              property: property.name,
+              propertyId: property.id,
+              reason: `Gap guest → ${nextDisplayName} (if gap booked)`,
+              hoursAvailable: hours > 0 ? hours : undefined,
+            });
+          }
+        }
+      }
     }
   }
 
