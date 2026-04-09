@@ -170,49 +170,66 @@ export function PropertyCalendar({
     }
 
     // Internal reservations
+    // The platform (synced iCal) is the source of truth for DATES.
+    // Internal reservations only contribute name + reservationId for guest data linking.
+    // If the internal reservation overlaps any synced event, we attach its name/id to that event.
+    // If no synced event overlaps, the internal reservation is shown as its own bar.
     for (const res of property.reservations) {
       const start = toDateStr(new Date(res.checkIn));
       const end = toDateStr(new Date(res.checkOut));
       const platform = res.platform || "airbnb";
-      const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
-      // Visual: include checkout day
-      const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
-      let d = start;
-      while (d <= end) {
-        dates.add(d);
-        allBooked.add(d);
-        resMap.set(d, res);
-        d = addDaysStr(d, 1);
+
+      // Try to find a synced event on the same platform that overlaps this reservation.
+      // Strict overlap: shared stay dates (exclusive checkout on both sides).
+      let matchingEventStart: string | null = null;
+      for (const [evStart, ev] of evMap) {
+        if (ev.platform !== platform) continue;
+        // Strict overlap: ev.startDate < end AND ev.endDate > start
+        if (ev.startDate < end && ev.endDate > start) {
+          matchingEventStart = evStart;
+          break;
+        }
       }
-      // Conflict detection: exclusive end
-      d = start;
-      while (d < end) {
-        stayDates.add(d);
-        d = addDaysStr(d, 1);
-      }
-      // If a synced event exists at the same start date, preserve its later end date.
-      // The platform is the source of truth for dates (guest may have extended stay).
-      // Internal reservation contributes name + reservationId for linking guest data.
-      const existingAtStart = evMap.get(start);
-      const mergedEnd = existingAtStart && existingAtStart.endDate > end ? existingAtStart.endDate : end;
-      evMap.set(start, {
-        name: res.name,
-        platform,
-        startDate: start,
-        endDate: mergedEnd,
-        reservationId: res.id,
-      });
-      // If we extended the end date, also mark the extra days as booked
-      if (mergedEnd > end) {
-        let d = addDaysStr(end, 1);
-        while (d <= mergedEnd) {
+
+      if (matchingEventStart) {
+        // Attach reservation name + id to the existing synced event — don't change dates.
+        const ev = evMap.get(matchingEventStart)!;
+        evMap.set(matchingEventStart, {
+          ...ev,
+          name: res.name,
+          reservationId: res.id,
+        });
+        // Map all the event's dates to this reservation for click handling
+        let d = ev.startDate;
+        while (d <= ev.endDate) {
+          resMap.set(d, res);
+          d = addDaysStr(d, 1);
+        }
+      } else {
+        // No matching synced event — show the reservation as its own bar.
+        const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
+        const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
+        let d = start;
+        while (d <= end) {
           dates.add(d);
           allBooked.add(d);
           resMap.set(d, res);
           d = addDaysStr(d, 1);
         }
+        d = start;
+        while (d < end) {
+          stayDates.add(d);
+          d = addDaysStr(d, 1);
+        }
+        evMap.set(start, {
+          name: res.name,
+          platform,
+          startDate: start,
+          endDate: end,
+          reservationId: res.id,
+        });
+        allBookings.push({ start, end, platform, name: res.name });
       }
-      allBookings.push({ start, end: mergedEnd, platform, name: res.name });
     }
 
     // Detect conflicts: dates booked on BOTH platforms (inclusive checkout day)
@@ -380,11 +397,11 @@ export function PropertyCalendar({
 
       // Clean up "Reserved" / "CLOSED - Not available" etc
       if (label.includes("Reserved") || label.includes("CLOSED") || label.includes("Not available")) {
-        // Try to find a matching reservation
+        // Try to find a matching reservation — STRICT overlap (shared stay dates)
         const matchingRes = property.reservations.find(r => {
           const rStart = toDateStr(new Date(r.checkIn));
           const rEnd = toDateStr(new Date(r.checkOut));
-          return rStart <= ev.endDate && rEnd >= ev.startDate;
+          return rStart < ev.endDate && rEnd > ev.startDate;
         });
         if (matchingRes) {
           label = matchingRes.name;
@@ -404,11 +421,13 @@ export function PropertyCalendar({
       });
     }
 
-    // Deduplicate: merge overlapping bars on same platform
+    // Deduplicate: merge STRICTLY overlapping bars on same platform.
+    // Back-to-back bookings (checkout day = next checkin day) are NOT merged —
+    // they are different guests. Strict overlap: shared stay dates.
     const deduped: typeof result = [];
     for (const bar of result) {
       const existing = deduped.find(
-        b => b.platform === bar.platform && b.startDate <= bar.endDate && b.endDate >= bar.startDate
+        b => b.platform === bar.platform && b.startDate < bar.endDate && b.endDate > bar.startDate
       );
       if (existing) {
         // Merge — extend existing bar
