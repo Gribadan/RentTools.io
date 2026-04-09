@@ -11,6 +11,8 @@ export async function PATCH(
 
   if (body.name !== undefined) data.name = body.name;
   if (body.minNights !== undefined) data.minNights = body.minNights;
+  if (body.checkInTime !== undefined) data.checkInTime = body.checkInTime;
+  if (body.checkOutTime !== undefined) data.checkOutTime = body.checkOutTime;
 
   const property = await prisma.property.update({
     where: { id: parseInt(id) },
