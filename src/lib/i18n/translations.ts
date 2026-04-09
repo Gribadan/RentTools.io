@@ -113,6 +113,13 @@ export const translations = {
   "cleaning.addManualNote": { en: "Note (optional)", ru: "Заметка (необязательно)" },
   "cleaning.manual": { en: "Manual", ru: "Вручную" },
   "cleaning.actions": { en: "Actions", ru: "Действия" },
+  "cleaning.afterGuest": { en: "After {name}", ru: "После: {name}" },
+  "cleaning.beforeGuest": { en: "Before {name}", ru: "Перед: {name}" },
+  "cleaning.turnover": { en: "{from} → {to}", ru: "{from} → {to}" },
+  "cleaning.gapPotential": { en: "If gap booked → {name}", ru: "Если промежуток забронирован → {name}" },
+  "cleaning.manualCleaning": { en: "Manual cleaning", ru: "Ручная уборка" },
+  "cleaning.hoursShort": { en: "{h}h", ru: "{h}ч" },
+  "cleaning.daysShort": { en: "~{d} day(s)", ru: "~{d} дн." },
 
   // Reservation view
   "reservation.dropPassport": { en: "Drop passport documents", ru: "Перетащите документы с паспортами" },
