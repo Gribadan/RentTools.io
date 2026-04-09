@@ -13,6 +13,7 @@ interface CalendarEvent {
 }
 
 type CleaningKind = "after" | "before" | "turnover" | "gap-potential" | "manual";
+type BufferMode = "full" | "quick";
 
 interface CleaningDay {
   date: string;
@@ -20,6 +21,7 @@ interface CleaningDay {
   property: string;
   propertyId: number;
   kind: CleaningKind;
+  bufferMode: BufferMode; // "full" = bufferBefore/After ≥ 1, "quick" = same-day turnover
   prevGuest?: string;
   nextGuest?: string;
   manualNote?: string;
@@ -123,7 +125,7 @@ function computeCleaningDays(
         for (let i = 1; i <= maxBefore; i++) {
           const d = addDaysStr(b.start, -i);
           if (!allBooked.has(d)) {
-            result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "before", nextGuest: displayName });
+            result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "before", bufferMode: "full", nextGuest: displayName });
           }
         }
       } else {
@@ -143,6 +145,7 @@ function computeCleaningDays(
               property: property.name,
               propertyId: property.id,
               kind: gapHasBooking ? "before" : "gap-potential",
+              bufferMode: "full",
               nextGuest: displayName,
             });
           }
@@ -153,7 +156,7 @@ function computeCleaningDays(
     for (let i = 1; i <= maxAfter; i++) {
       const d = addDaysStr(b.end, i);
       if (!allBooked.has(d)) {
-        result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "after", prevGuest: displayName });
+        result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "after", bufferMode: "full", prevGuest: displayName });
       }
     }
   }
@@ -203,6 +206,7 @@ function computeCleaningDays(
         property: property.name,
         propertyId: property.id,
         kind,
+        bufferMode: "quick",
         prevGuest: displayName,
         nextGuest,
         hoursAvailable,
@@ -231,6 +235,7 @@ function computeCleaningDays(
               property: property.name,
               propertyId: property.id,
               kind: "gap-potential",
+              bufferMode: "quick",
               nextGuest: nextDisplayName,
               hoursAvailable: hours > 0 ? hours : undefined,
             });
@@ -254,6 +259,7 @@ function computeCleaningDays(
         property: property.name,
         propertyId: property.id,
         kind: "manual",
+        bufferMode: maxBefore === 0 && maxAfter === 0 ? "quick" : "full",
         manualNote: o.note,
         isManual: true,
       });
@@ -408,7 +414,10 @@ export function CleaningSchedule({
     if (day.isManual) return day.manualNote?.trim() || t("cleaning.manualCleaning");
     switch (day.kind) {
       case "after":
-        return t("cleaning.afterGuest", { name: day.prevGuest || "—" });
+        // bufferMode="quick" = same-day; "full" = dedicated day after checkout
+        return day.bufferMode === "quick"
+          ? t("cleaning.afterGuestQuick", { name: day.prevGuest || "—" })
+          : t("cleaning.afterGuest", { name: day.prevGuest || "—" });
       case "before":
         return t("cleaning.beforeGuest", { name: day.nextGuest || "—" });
       case "turnover":
@@ -599,6 +608,15 @@ export function CleaningSchedule({
                           {day.isManual && (
                             <span className="inline-block rounded bg-[#58a6ff]/10 px-1.5 py-0.5 text-[#58a6ff] font-medium">
                               {t("cleaning.manual")}
+                            </span>
+                          )}
+                          {!day.isManual && (
+                            <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
+                              day.bufferMode === "quick"
+                                ? "bg-[#bc8cff]/10 text-[#bc8cff]"
+                                : "bg-[#d29922]/10 text-[#d29922]"
+                            }`}>
+                              {day.bufferMode === "quick" ? t("cleaning.quickTurnover") : t("cleaning.fullDay")}
                             </span>
                           )}
                           {day.hoursAvailable !== undefined && (
