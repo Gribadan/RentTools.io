@@ -20,6 +20,7 @@ interface CleaningDay {
   reason: string;
   movableTo?: string;
   hoursAvailable?: number; // for buffer=0 turnovers, hours between checkout and next checkin
+  isManual?: boolean; // true if created via a "closed" date override
 }
 
 interface CleaningScheduleProps {
@@ -29,6 +30,7 @@ interface CleaningScheduleProps {
   overrides?: Record<number, DateOverride[]>;
   mode: "property" | "dashboard";
   selectedPropertyId?: number;
+  onOverrideChanged?: () => void; // called after add/remove to refresh parent data
 }
 
 function addDaysStr(dateStr: string, days: number): string {
@@ -147,8 +149,9 @@ function computeCleaningDays(
     }
   }
 
-  // Buffer=0 turnover cleanings: when no buffer days are reserved, we still need
-  // to clean between guests. List the cleaning on the checkout day with hours available.
+  // Buffer=0 means cleaning happens on the checkout day itself (not a separate day).
+  // Always generate a cleaning entry on each checkout day, and if the next guest
+  // arrives the same or next day, show the exact hours available.
   if (maxBefore === 0 && maxAfter === 0) {
     const parseTime = (t: string) => {
       const [h, m] = (t || "12:00").split(":").map(Number);
@@ -164,28 +167,33 @@ function computeCleaningDays(
         ? (b.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
         : b.name;
 
-      if (!next) continue; // no next guest, no turnover cleaning
+      let hoursAvailable: number | undefined = undefined;
+      let reason = `After ${displayName} checkout`;
 
-      // Compute hours between checkout (b.end + checkOutTime) and next checkin (next.start + checkInTime)
-      const checkoutDate = new Date(b.end + "T00:00:00Z");
-      const checkinDate = new Date(next.start + "T00:00:00Z");
-      const diffMs = checkinDate.getTime() - checkoutDate.getTime();
-      const diffMinutes = diffMs / 60000 + (checkInMin - checkOutMin);
-      const hours = diffMinutes / 60;
+      if (next) {
+        // Compute hours between checkout (b.end + checkOutTime) and next checkin (next.start + checkInTime)
+        const checkoutDate = new Date(b.end + "T00:00:00Z");
+        const checkinDate = new Date(next.start + "T00:00:00Z");
+        const diffMs = checkinDate.getTime() - checkoutDate.getTime();
+        const diffMinutes = diffMs / 60000 + (checkInMin - checkOutMin);
+        const hours = diffMinutes / 60;
 
-      if (hours <= 0) continue; // overlap, no time for cleaning
-
-      const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
-        ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
-        : next.name;
+        if (hours > 0) {
+          const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
+            ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
+            : next.name;
+          hoursAvailable = hours;
+          reason = `${displayName} → ${nextDisplayName}`;
+        }
+      }
 
       result.push({
         date: b.end,
         type: "cleaning",
         property: property.name,
         propertyId: property.id,
-        reason: `${displayName} → ${nextDisplayName}`,
-        hoursAvailable: hours,
+        reason,
+        hoursAvailable,
       });
     }
   }
@@ -203,7 +211,8 @@ function computeCleaningDays(
         type: "cleaning",
         property: property.name,
         propertyId: property.id,
-        reason: o.note || "Manual override (closed)",
+        reason: o.note || "Manual cleaning",
+        isManual: true,
       });
     }
   }
@@ -218,9 +227,51 @@ export function CleaningSchedule({
   overrides,
   mode,
   selectedPropertyId,
+  onOverrideChanged,
 }: CleaningScheduleProps) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addDate, setAddDate] = useState("");
+  const [addNote, setAddNote] = useState("");
+  const [addPropertyId, setAddPropertyId] = useState<number | null>(
+    mode === "property" && selectedPropertyId ? selectedPropertyId : (properties[0]?.id ?? null)
+  );
+
+  const handleSkip = async (propertyId: number, date: string, isManual: boolean) => {
+    if (isManual) {
+      // Manual cleaning = DELETE the "closed" override
+      await fetch(`/api/date-overrides?propertyId=${propertyId}&date=${date}`, {
+        method: "DELETE",
+      });
+    } else {
+      // Auto cleaning = create an "open" override to suppress it
+      await fetch("/api/date-overrides", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId, date, type: "open" }),
+      });
+    }
+    onOverrideChanged?.();
+  };
+
+  const handleAddManual = async () => {
+    if (!addDate || !addPropertyId) return;
+    await fetch("/api/date-overrides", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        propertyId: addPropertyId,
+        date: addDate,
+        type: "closed",
+        note: addNote.trim() || "Manual cleaning",
+      }),
+    });
+    setAddDate("");
+    setAddNote("");
+    setShowAddForm(false);
+    onOverrideChanged?.();
+  };
 
   const cleaningDays = useMemo(() => {
     const targetProperties = mode === "property" && selectedPropertyId
@@ -336,18 +387,74 @@ export function CleaningSchedule({
           <h2 className="text-sm font-medium text-[#9198a1]">
             {t("cleaning.title")} ({futureDays.length} {t("cleaning.upcoming")})
           </h2>
-          {futureDays.length > 0 && (
-            <button
-              onClick={handleCopySchedule}
-              className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-2.5 py-1.5 text-xs text-[#c9d1d9] transition-colors hover:bg-[#30363d]"
-            >
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-              </svg>
-              {copied ? t("common.copied") : t("cleaning.copySchedule")}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {onOverrideChanged && (
+              <button
+                onClick={() => setShowAddForm(!showAddForm)}
+                className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-2.5 py-1.5 text-xs text-[#c9d1d9] transition-colors hover:bg-[#30363d]"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                {t("cleaning.addManual")}
+              </button>
+            )}
+            {futureDays.length > 0 && (
+              <button
+                onClick={handleCopySchedule}
+                className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-2.5 py-1.5 text-xs text-[#c9d1d9] transition-colors hover:bg-[#30363d]"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                </svg>
+                {copied ? t("common.copied") : t("cleaning.copySchedule")}
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Add manual cleaning form */}
+        {showAddForm && (
+          <div className="border-b border-[#21262d] bg-[#0d1117] px-4 py-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {mode === "dashboard" && (
+                <select
+                  value={addPropertyId ?? ""}
+                  onChange={(e) => setAddPropertyId(Number(e.target.value))}
+                  className="h-8 rounded-md border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+                >
+                  {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              )}
+              <input
+                type="date"
+                value={addDate}
+                onChange={(e) => setAddDate(e.target.value)}
+                className="h-8 rounded-md border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+              />
+              <input
+                type="text"
+                value={addNote}
+                onChange={(e) => setAddNote(e.target.value)}
+                placeholder={t("cleaning.addManualNote")}
+                className="h-8 flex-1 min-w-[200px] rounded-md border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff]"
+              />
+              <button
+                onClick={handleAddManual}
+                disabled={!addDate || !addPropertyId}
+                className="h-8 rounded-md bg-[#238636] px-3 text-xs font-medium text-white transition-colors hover:bg-[#2ea043] disabled:opacity-40"
+              >
+                {t("common.add")}
+              </button>
+              <button
+                onClick={() => { setShowAddForm(false); setAddDate(""); setAddNote(""); }}
+                className="h-8 rounded-md px-2 text-xs text-[#9198a1] hover:text-[#f0f6fc]"
+              >
+                {t("common.cancel")}
+              </button>
+            </div>
+          </div>
+        )}
         {futureDays.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-[#7d8590]">{t("cleaning.noUpcoming")}</p>
         ) : (
@@ -361,6 +468,9 @@ export function CleaningSchedule({
                     <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("cleaning.property")}</th>
                   )}
                   <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("cleaning.notes")}</th>
+                  {onOverrideChanged && (
+                    <th className="px-4 py-2 text-xs font-medium text-[#7d8590] w-[60px]"></th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -384,13 +494,34 @@ export function CleaningSchedule({
                       {mode === "dashboard" && (
                         <td className="px-4 py-2 text-sm text-[#9198a1]">{day.property}</td>
                       )}
-                      <td className="px-4 py-2 text-xs text-[#9198a1]">
+                      <td className="px-4 py-2 text-xs text-[#9198a1] space-x-1.5">
+                        {day.isManual && (
+                          <span className="inline-block rounded bg-[#58a6ff]/10 px-1.5 py-0.5 text-[#58a6ff] font-medium">
+                            {t("cleaning.manual")}
+                          </span>
+                        )}
                         {day.hoursAvailable !== undefined && (
                           <span className="inline-block rounded bg-[#3fb950]/10 px-1.5 py-0.5 text-[#3fb950] font-medium">
                             {t("cleaning.hoursAvailable", { h: day.hoursAvailable.toFixed(day.hoursAvailable < 10 ? 1 : 0) })}
                           </span>
                         )}
+                        {day.reason && day.type !== "potential" && !day.hoursAvailable && (
+                          <span className="text-[#7d8590]">{day.reason}</span>
+                        )}
                       </td>
+                      {onOverrideChanged && (
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
+                            title={t("cleaning.skip")}
+                            className="rounded p-1 text-[#7d8590] hover:bg-[#f85149]/10 hover:text-[#f85149] transition-colors"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

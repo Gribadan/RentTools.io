@@ -981,6 +981,7 @@ export function PropertyCalendar({
         overrides={{ [property.id]: overrides }}
         mode="property"
         selectedPropertyId={property.id}
+        onOverrideChanged={fetchOverrides}
       />
     </div>
   );
