@@ -190,14 +190,29 @@ export function PropertyCalendar({
         stayDates.add(d);
         d = addDaysStr(d, 1);
       }
+      // If a synced event exists at the same start date, preserve its later end date.
+      // The platform is the source of truth for dates (guest may have extended stay).
+      // Internal reservation contributes name + reservationId for linking guest data.
+      const existingAtStart = evMap.get(start);
+      const mergedEnd = existingAtStart && existingAtStart.endDate > end ? existingAtStart.endDate : end;
       evMap.set(start, {
         name: res.name,
         platform,
         startDate: start,
-        endDate: end,
+        endDate: mergedEnd,
         reservationId: res.id,
       });
-      allBookings.push({ start, end, platform, name: res.name });
+      // If we extended the end date, also mark the extra days as booked
+      if (mergedEnd > end) {
+        let d = addDaysStr(end, 1);
+        while (d <= mergedEnd) {
+          dates.add(d);
+          allBooked.add(d);
+          resMap.set(d, res);
+          d = addDaysStr(d, 1);
+        }
+      }
+      allBookings.push({ start, end: mergedEnd, platform, name: res.name });
     }
 
     // Detect conflicts: dates booked on BOTH platforms (inclusive checkout day)
