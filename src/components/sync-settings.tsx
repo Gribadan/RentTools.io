@@ -17,10 +17,12 @@ interface SyncSettingsProps {
   propertyId: number;
   propertyName: string;
   minNights: number;
-  onUpdateProperty: (id: number, data: { minNights?: number }) => void;
+  checkInTime: string;
+  checkOutTime: string;
+  onUpdateProperty: (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string }) => void;
 }
 
-export function SyncSettings({ propertyId, propertyName, minNights, onUpdateProperty }: SyncSettingsProps) {
+export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, onUpdateProperty }: SyncSettingsProps) {
   const { t, locale } = useI18n();
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
@@ -349,6 +351,32 @@ export function SyncSettings({ propertyId, propertyName, minNights, onUpdateProp
               {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "ноч." : (n !== 1 ? "nights" : "night")}</option>)}
             </select>
             <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7d8590]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Check-in / Check-out times */}
+      <div className="rounded-lg border border-[#21262d] bg-[#161b22] p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-[#f0f6fc]">{t("sync.checkInOutTimes")}</h2>
+        <p className="text-xs text-[#9198a1]">{t("sync.checkInOutDesc")}</p>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[#9198a1]">{t("sync.checkInTime")}</span>
+            <input
+              type="time"
+              value={checkInTime}
+              onChange={(e) => onUpdateProperty(propertyId, { checkInTime: e.target.value })}
+              className="h-8 rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-[#9198a1]">{t("sync.checkOutTime")}</span>
+            <input
+              type="time"
+              value={checkOutTime}
+              onChange={(e) => onUpdateProperty(propertyId, { checkOutTime: e.target.value })}
+              className="h-8 rounded-md border border-[#30363d] bg-[#0d1117] px-3 text-sm text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
+            />
           </div>
         </div>
       </div>

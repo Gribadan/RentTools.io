@@ -145,6 +145,8 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "Guest" ADD COLUMN "hasVisa" INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE "Guest" ADD COLUMN "parentId" INTEGER`,
     `ALTER TABLE "Property" ADD COLUMN "minNights" INTEGER NOT NULL DEFAULT 3`,
+    `ALTER TABLE "Property" ADD COLUMN "checkInTime" TEXT NOT NULL DEFAULT '14:00'`,
+    `ALTER TABLE "Property" ADD COLUMN "checkOutTime" TEXT NOT NULL DEFAULT '12:00'`,
   ];
   for (const sql of migrations) {
     try {

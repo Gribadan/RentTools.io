@@ -25,6 +25,8 @@ model Property {
   id             Int              @id @default(autoincrement())
   name           String
   minNights      Int              @default(3)
+  checkInTime    String           @default("14:00")
+  checkOutTime   String           @default("12:00")
   createdAt      DateTime         @default(now())
   reservations   Reservation[]
   calendarLinks  CalendarLink[]

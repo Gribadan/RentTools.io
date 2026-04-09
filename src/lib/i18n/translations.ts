@@ -106,6 +106,8 @@ export const translations = {
   "cleaning.typePotential": { en: "Potential", ru: "Возможная" },
   "cleaning.overlap": { en: "overlap", ru: "пересечение" },
   "cleaning.copySchedule": { en: "Copy", ru: "Скопировать" },
+  "cleaning.notes": { en: "Notes", ru: "Заметки" },
+  "cleaning.hoursAvailable": { en: "{h}h available", ru: "{h}ч доступно" },
 
   // Reservation view
   "reservation.dropPassport": { en: "Drop passport documents", ru: "Перетащите документы с паспортами" },
@@ -164,6 +166,10 @@ export const translations = {
   "sync.minStayDesc": { en: "If the gap between two bookings is too small for a new guest (less than buffer + min nights + buffer), the entire gap is blocked as buffer.", ru: "Если промежуток между двумя бронированиями слишком мал для нового гостя (меньше буфер + мин. ночи + буфер), весь промежуток блокируется." },
   "sync.minNights": { en: "Minimum nights", ru: "Минимум ночей" },
   "sync.lastSynced": { en: "Last synced:", ru: "Последняя синхр.:" },
+  "sync.checkInOutTimes": { en: "Check-in / Check-out Times", ru: "Время заезда / выезда" },
+  "sync.checkInOutDesc": { en: "Used to display booking bars on the calendar with time-accurate start/end and compute hours available for cleaning between back-to-back guests.", ru: "Используется для отображения полос на календаре с учётом времени и расчёта доступных часов для уборки между гостями." },
+  "sync.checkInTime": { en: "Check-in", ru: "Заезд" },
+  "sync.checkOutTime": { en: "Check-out", ru: "Выезд" },
 
   // Date slider
   "dateslider.in": { en: "In", ru: "Заезд" },

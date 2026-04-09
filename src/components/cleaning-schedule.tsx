@@ -19,6 +19,7 @@ interface CleaningDay {
   propertyId: number;
   reason: string;
   movableTo?: string;
+  hoursAvailable?: number; // for buffer=0 turnovers, hours between checkout and next checkin
 }
 
 interface CleaningScheduleProps {
@@ -146,6 +147,49 @@ function computeCleaningDays(
     }
   }
 
+  // Buffer=0 turnover cleanings: when no buffer days are reserved, we still need
+  // to clean between guests. List the cleaning on the checkout day with hours available.
+  if (maxBefore === 0 && maxAfter === 0) {
+    const parseTime = (t: string) => {
+      const [h, m] = (t || "12:00").split(":").map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+    const checkOutMin = parseTime(property.checkOutTime || "12:00");
+    const checkInMin = parseTime(property.checkInTime || "14:00");
+
+    for (let bi = 0; bi < deduped.length; bi++) {
+      const b = deduped[bi];
+      const next = deduped[bi + 1];
+      const displayName = b.name.includes("CLOSED") || b.name.includes("Reserved")
+        ? (b.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
+        : b.name;
+
+      if (!next) continue; // no next guest, no turnover cleaning
+
+      // Compute hours between checkout (b.end + checkOutTime) and next checkin (next.start + checkInTime)
+      const checkoutDate = new Date(b.end + "T00:00:00Z");
+      const checkinDate = new Date(next.start + "T00:00:00Z");
+      const diffMs = checkinDate.getTime() - checkoutDate.getTime();
+      const diffMinutes = diffMs / 60000 + (checkInMin - checkOutMin);
+      const hours = diffMinutes / 60;
+
+      if (hours <= 0) continue; // overlap, no time for cleaning
+
+      const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
+        ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
+        : next.name;
+
+      result.push({
+        date: b.end,
+        type: "cleaning",
+        property: property.name,
+        propertyId: property.id,
+        reason: `${displayName} → ${nextDisplayName}`,
+        hoursAvailable: hours,
+      });
+    }
+  }
+
   // Apply date overrides
   const openDates = new Set(dateOverrides.filter(o => o.type === "open").map(o => o.date));
   const closedDates = dateOverrides.filter(o => o.type === "closed");
@@ -248,7 +292,10 @@ export function CleaningSchedule({
         ? (locale === "ru" ? "🧹 Уборка" : "🧹 Cleaning")
         : (locale === "ru" ? "❓ Возможная" : "❓ Potential");
       const propLabel = mode === "dashboard" ? ` [${day.property}]` : "";
-      lines.push(`${dateStr}${propLabel} — ${typeLabel} — ${day.reason}`);
+      const hoursLabel = day.hoursAvailable !== undefined
+        ? ` ⏱ ${day.hoursAvailable.toFixed(day.hoursAvailable < 10 ? 1 : 0)}${locale === "ru" ? "ч" : "h"}`
+        : "";
+      lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel} — ${day.reason}`);
     }
     navigator.clipboard.writeText(lines.join("\n"));
     setCopied(true);
@@ -313,6 +360,7 @@ export function CleaningSchedule({
                   {mode === "dashboard" && (
                     <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("cleaning.property")}</th>
                   )}
+                  <th className="px-4 py-2 text-xs font-medium text-[#7d8590]">{t("cleaning.notes")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -336,6 +384,13 @@ export function CleaningSchedule({
                       {mode === "dashboard" && (
                         <td className="px-4 py-2 text-sm text-[#9198a1]">{day.property}</td>
                       )}
+                      <td className="px-4 py-2 text-xs text-[#9198a1]">
+                        {day.hoursAvailable !== undefined && (
+                          <span className="inline-block rounded bg-[#3fb950]/10 px-1.5 py-0.5 text-[#3fb950] font-medium">
+                            {t("cleaning.hoursAvailable", { h: day.hoursAvailable.toFixed(day.hoursAvailable < 10 ? 1 : 0) })}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}

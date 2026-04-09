@@ -466,31 +466,72 @@ export function PropertyCalendar({
     return result;
   }, [firstDayOffset, daysInMonth]);
 
-  // Get bar for a specific day
-  // Bar visual rendering uses INCLUSIVE end date (checkout day shows as part of bar)
-  // This matches Airbnb's visual style where the bar covers check-in through checkout
-  const getBarForDay = (dayNum: number) => {
-    const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-    return bars.find(b => ds >= b.startDate && ds <= b.endDate);
+  // Parse "HH:MM" to a percentage of the day (0-100)
+  const timeToPercent = (timeStr: string): number => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return ((h * 60 + (m || 0)) / 1440) * 100;
   };
 
-  const isBarStart = (dayNum: number) => {
+  const checkInPct = timeToPercent(property.checkInTime || "14:00");
+  const checkOutPct = timeToPercent(property.checkOutTime || "12:00");
+
+  // Returns true if any bar covers this day (any segment, any time)
+  const hasBarOnDay = (dayNum: number) => {
     const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
-    const bar = getBarForDay(dayNum);
-    if (!bar) return null;
+    return bars.some(b => ds >= b.startDate && ds <= b.endDate);
+  };
+
+  // Returns ALL bar segments that should be rendered starting on this cell.
+  // A "segment" is the portion of a bar visible in a single week row.
+  // Same-day turnover (checkout day = next checkin day) returns 2 segments.
+  interface BarSegment {
+    startDate: string;
+    endDate: string;
+    name: string;
+    platform: string;
+    reservationId?: number;
+    span: number;          // cells covered in this week row (1..7)
+    leftPct: number;       // % from left of first cell (0 for continuation, checkInPct for actual start)
+    rightMarginPct: number; // % from right of last cell (0 if continues, 100-checkOutPct for actual end)
+    showLabel: boolean;
+  }
+
+  const segmentsForDay = (dayNum: number): BarSegment[] => {
+    const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
     const dow = new Date(year, month, dayNum).getDay();
     const isMonday = dow === 1;
-    if (ds === bar.startDate || (isMonday && ds > bar.startDate)) {
+    const segments: BarSegment[] = [];
+
+    for (const bar of bars) {
+      const isActualStart = ds === bar.startDate;
+      const isMondayContinuation = isMonday && ds > bar.startDate && ds <= bar.endDate;
+      if (!isActualStart && !isMondayContinuation) continue;
+
+      // Compute span: from this cell to min(endDate, Sunday of this week)
       let span = 0;
+      let lastDay = dayNum;
       for (let d = dayNum; d <= daysInMonth; d++) {
         const dds = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-        if (dds > bar.endDate) break; // inclusive: stop AFTER endDate
+        if (dds > bar.endDate) break;
         span++;
-        if (new Date(year, month, d).getDay() === 0) break;
+        lastDay = d;
+        if (new Date(year, month, d).getDay() === 0) break; // stop at Sunday
       }
-      return { ...bar, span, showLabel: ds === bar.startDate };
+      if (span === 0) continue;
+
+      const lastDds = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      const reachesEnd = lastDds === bar.endDate;
+
+      segments.push({
+        ...bar,
+        span,
+        leftPct: isActualStart ? checkInPct : 0,
+        rightMarginPct: reachesEnd ? 100 - checkOutPct : 0,
+        showLabel: isActualStart,
+      });
     }
-    return null;
+
+    return segments;
   };
 
   // Agenda — all upcoming events
@@ -788,8 +829,8 @@ export function PropertyCalendar({
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
               const isConflict = conflictDates.has(ds);
-              const barStart = isBarStart(dayNum);
-              const hasBar = !!getBarForDay(dayNum);
+              const segments = segmentsForDay(dayNum);
+              const hasBar = hasBarOnDay(dayNum);
               const isBuffer = bufferDates.has(ds) && !hasBar;
               const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer;
               const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential;
@@ -861,25 +902,27 @@ export function PropertyCalendar({
                       <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
                     )}
 
-                    {/* Booking bar */}
-                    {barStart && (
+                    {/* Booking bars (multiple possible for same-day turnover) */}
+                    {segments.map((seg, si) => (
                       <div
-                        onClick={(e) => { e.stopPropagation(); barStart.reservationId && onSelectReservation(barStart.reservationId); }}
-                        className={`absolute left-0 top-0 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
+                        key={`seg-${si}-${seg.startDate}`}
+                        onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
+                        className={`absolute top-0 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
                           isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
-                          barStart.platform === "booking"
+                          seg.platform === "booking"
                             ? "bg-[#003580]"
                             : "bg-[#b5462a]"
-                        } ${barStart.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
+                        } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
                         style={{
-                          width: `calc(${barStart.span * 100}% - 2px)`,
+                          left: `${seg.leftPct}%`,
+                          width: `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
                           zIndex: 10,
                         }}
-                        title={`${barStart.name} · ${barStart.startDate} → ${barStart.endDate}${isConflict ? " ⚠ CONFLICT" : ""}`}
+                        title={`${seg.name} · ${seg.startDate} ${property.checkInTime || "14:00"} → ${seg.endDate} ${property.checkOutTime || "12:00"}${isConflict ? " ⚠ CONFLICT" : ""}`}
                       >
-                        {barStart.showLabel ? barStart.name : ""}
+                        {seg.showLabel ? seg.name : ""}
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               );

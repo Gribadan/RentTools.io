@@ -100,7 +100,7 @@ function AppContent({
     if (res.ok) await fetchProperties();
   };
 
-  const handleUpdateProperty = async (id: number, data: { minNights?: number }) => {
+  const handleUpdateProperty = async (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string }) => {
     await fetch(`/api/properties/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -229,6 +229,8 @@ function AppContent({
               propertyId={selectedProperty.id}
               propertyName={selectedProperty.name}
               minNights={selectedProperty.minNights || 3}
+              checkInTime={selectedProperty.checkInTime || "14:00"}
+              checkOutTime={selectedProperty.checkOutTime || "12:00"}
               onUpdateProperty={handleUpdateProperty}
             />
           ) : selectedReservation ? (
