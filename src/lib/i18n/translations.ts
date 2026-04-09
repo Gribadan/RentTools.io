@@ -76,6 +76,7 @@ export const translations = {
   "calendar.airbnbBookingOverlap": { en: "Airbnb + Booking overlap", ru: "Airbnb + Booking пересечение" },
   "calendar.overrideMode": { en: "Date override mode", ru: "Режим ручного управления датами" },
   "calendar.overrideDesc": { en: "Click any date to toggle it. Blocked/cleaning dates will be forced open. Free dates will be forced closed. Click an overridden date again to remove the override.", ru: "Нажмите на любую дату для переключения. Заблокированные/уборочные даты будут принудительно открыты. Свободные даты будут заблокированы. Повторное нажатие снимет переопределение." },
+  "calendar.blockedByBooking": { en: "Cannot override — date is held by a confirmed booking from Airbnb/Booking.com", ru: "Нельзя изменить — дата занята подтверждённым бронированием Airbnb/Booking.com" },
   "calendar.today": { en: "Today", ru: "Сегодня" },
   "calendar.airbnb": { en: "Airbnb", ru: "Airbnb" },
   "calendar.booking": { en: "Booking", ru: "Booking" },
@@ -120,6 +121,7 @@ export const translations = {
   "cleaning.manualCleaning": { en: "Manual cleaning", ru: "Ручная уборка" },
   "cleaning.hoursShort": { en: "{h}h", ru: "{h}ч" },
   "cleaning.daysShort": { en: "~{d} day(s)", ru: "~{d} дн." },
+  "cleaning.dateFullyBooked": { en: "This date is fully booked by a guest — no cleaning window available.", ru: "Эта дата полностью занята гостем — нет окна для уборки." },
 
   // Reservation view
   "reservation.dropPassport": { en: "Drop passport documents", ru: "Перетащите документы с паспортами" },

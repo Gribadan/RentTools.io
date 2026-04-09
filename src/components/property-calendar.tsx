@@ -578,6 +578,13 @@ export function PropertyCalendar({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
   };
 
+  const [overrideHint, setOverrideHint] = useState<string | null>(null);
+
+  const showHint = (msg: string) => {
+    setOverrideHint(msg);
+    setTimeout(() => setOverrideHint(null), 3500);
+  };
+
   const handleToggleOverride = async (dateStr: string) => {
     if (!overrideMode) return;
 
@@ -585,27 +592,37 @@ export function PropertyCalendar({
     const isBuffer = bufferDates.has(dateStr);
     const isPotential = potentialDates.has(dateStr);
     const isUnbookable = unbookableDates.has(dateStr);
+    const isSameDayCleaning = sameDayCleaningDates.has(dateStr);
     const isOpenOverride = openOverrides.has(dateStr);
     const isClosedOverride = closedOverrides.has(dateStr);
 
-    // Determine what action to take:
+    // Rule: dates held by a real booking (from the platform or internal reservation)
+    // cannot be force-opened — we can't unbook someone else's guest.
+    // Exception: dates that are ONLY blocked by our buffer/cleaning logic CAN be opened.
+    if (hasBar) {
+      if (isOpenOverride || isClosedOverride) {
+        // Allow removing any existing override (cleanup)
+        await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, {
+          method: "DELETE",
+        });
+        await fetchOverrides();
+        return;
+      }
+      showHint(t("calendar.blockedByBooking"));
+      return;
+    }
+
     // If already has an override, remove it (toggle off)
     if (isOpenOverride || isClosedOverride) {
-      await fetch(`/api/date-overrides`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          propertyId: property.id,
-          date: dateStr,
-          type: isOpenOverride ? "open" : "closed",
-        }),
+      await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, {
+        method: "DELETE",
       });
       await fetchOverrides();
       return;
     }
 
-    // If date is blocked (buffer/cleaning/unbookable/booked) → offer to force open
-    if (hasBar || isBuffer || isPotential || isUnbookable) {
+    // Date is auto-blocked by our logic (buffer/cleaning/unbookable) → force open
+    if (isBuffer || isPotential || isUnbookable || isSameDayCleaning) {
       await fetch(`/api/date-overrides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -616,7 +633,7 @@ export function PropertyCalendar({
         }),
       });
     } else {
-      // Date is free → force close it
+      // Date is completely free → force close it (add manual block/cleaning)
       await fetch(`/api/date-overrides`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -802,6 +819,16 @@ export function PropertyCalendar({
               {t("calendar.overrideDesc")}
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Override hint toast */}
+      {overrideHint && (
+        <div className="rounded-lg border border-[#f85149]/30 bg-[#f85149]/5 p-3 flex items-center gap-3">
+          <svg className="h-4 w-4 text-[#f85149] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-xs text-[#f85149]">{overrideHint}</p>
         </div>
       )}
 
