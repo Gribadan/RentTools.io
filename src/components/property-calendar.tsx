@@ -113,10 +113,11 @@ export function PropertyCalendar({
   }, [overrides]);
 
   // Build date sets for each platform + conflict detection + smart buffers
-  const { airbnbDates, bookingDates, bufferDates, potentialDates, unbookableDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
+  const { airbnbDates, bookingDates, bufferDates, potentialDates, unbookableDates, sameDayCleaningDates, conflictDates, dateToEvent, dateToReservation, conflicts } = useMemo(() => {
     const airbnb = new Set<string>();
     const booking = new Set<string>();
     const buffer = new Set<string>();      // definite cleaning days
+    const sameDayCleaning = new Set<string>(); // buffer=0 checkout-day cleanings (shown on booked cells)
     const potential = new Set<string>();   // potential cleaning (if gap gets booked)
     const unbookable = new Set<string>(); // gap too short for min nights
     const conflictSet = new Set<string>();
@@ -260,12 +261,13 @@ export function PropertyCalendar({
     //        if nobody can book (gap too small) → 1 cleaning only, rest unbookable
 
     // Deduplicate allBookings by date range (synced events + internal reservations can overlap)
+    // Strict overlap: back-to-back bookings (checkout day = next checkin day) are NOT merged.
     allBookings.sort((a, b) => a.start.localeCompare(b.start));
     const dedupedBookings: typeof allBookings = [];
     for (const b of allBookings) {
       const last = dedupedBookings[dedupedBookings.length - 1];
-      if (last && b.start <= last.end) {
-        // Overlapping — merge by extending end date
+      if (last && b.start < last.end) {
+        // Strict overlap — merge by extending end date
         if (b.end > last.end) last.end = b.end;
       } else {
         dedupedBookings.push({ ...b });
@@ -351,12 +353,36 @@ export function PropertyCalendar({
       }
     }
 
+    // Buffer=0 case: put cleaning on the checkout day itself (same-day cleaning)
+    // and potential cleaning on any bookable gaps.
+    if (maxBefore === 0 && maxAfter === 0) {
+      for (let bi = 0; bi < dedupedBookings.length; bi++) {
+        const b = dedupedBookings[bi];
+        const next = dedupedBookings[bi + 1];
+        // Always mark checkout day as a cleaning day
+        sameDayCleaning.add(b.end);
+
+        // Potential cleaning for bookable gaps
+        if (next) {
+          const gapStart = addDaysStr(b.end, 1);
+          const gapDays = Math.max(0, Math.ceil(
+            (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
+          ));
+          if (gapDays >= minStay) {
+            // Hypothetical gap guest would check out on next.start (same-day turnover)
+            sameDayCleaning.add(next.start);
+          }
+        }
+      }
+    }
+
     // Apply manual overrides
     // "open" overrides: remove date from buffer/potential/unbookable (force available)
     for (const d of openOverrides) {
       buffer.delete(d);
       potential.delete(d);
       unbookable.delete(d);
+      sameDayCleaning.delete(d);
     }
     // "closed" overrides: add to buffer set if not already booked (force blocked)
     for (const d of closedOverrides) {
@@ -371,6 +397,7 @@ export function PropertyCalendar({
       bufferDates: buffer,
       potentialDates: potential,
       unbookableDates: unbookable,
+      sameDayCleaningDates: sameDayCleaning,
       conflictDates: conflictSet,
       dateToEvent: evMap,
       dateToReservation: resMap,
@@ -834,6 +861,7 @@ export function PropertyCalendar({
               const isBuffer = bufferDates.has(ds) && !hasBar;
               const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer;
               const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential;
+              const isSameDayCleaning = sameDayCleaningDates.has(ds);
               const isOpen = openOverrides.has(ds);
               const isClosed = closedOverrides.has(ds);
               const bg = isOpen ? "bg-[#3fb950]/8"
@@ -900,6 +928,15 @@ export function PropertyCalendar({
                     {/* Unbookable */}
                     {isUnbookable && !isOpen && (
                       <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
+                    )}
+
+                    {/* Same-day cleaning indicator (shown even when bar is present) */}
+                    {isSameDayCleaning && !isOpen && !isClosed && (
+                      <div className="absolute bottom-0 left-0.5 right-0.5 flex items-center justify-center">
+                        <div className="rounded px-1 text-[9px] text-[#d29922] bg-[#d29922]/15 border border-[#d29922]/25 leading-tight">
+                          {t("calendar.cleaning")}
+                        </div>
+                      </div>
                     )}
 
                     {/* Booking bars (multiple possible for same-day turnover) */}
