@@ -277,9 +277,32 @@ export function CleaningSchedule({
   const [showAddForm, setShowAddForm] = useState(false);
   const [addDate, setAddDate] = useState("");
   const [addNote, setAddNote] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
   const [addPropertyId, setAddPropertyId] = useState<number | null>(
     mode === "property" && selectedPropertyId ? selectedPropertyId : (properties[0]?.id ?? null)
   );
+
+  // Build a set of dates that are held by a real booking (middle of stay — no cleaning window)
+  const isDateFullyBooked = (propertyId: number, date: string): boolean => {
+    const prop = properties.find(p => p.id === propertyId);
+    if (!prop) return false;
+    // Synced events
+    const events = syncedEvents[propertyId] || [];
+    for (const ev of events) {
+      // Skip Airbnb "Not available"/"Blocked" — those are host blocks, can be cleaned over
+      const isBlock = ev.platform === "airbnb" && (ev.summary.includes("Not available") || ev.summary.includes("Blocked"));
+      if (isBlock) continue;
+      // date is fully booked if it's strictly inside the stay (not the checkout day, which allows turnover cleaning)
+      if (date >= ev.startDate && date < ev.endDate) return true;
+    }
+    // Internal reservations
+    for (const res of prop.reservations) {
+      const rStart = new Date(res.checkIn).toISOString().substring(0, 10);
+      const rEnd = new Date(res.checkOut).toISOString().substring(0, 10);
+      if (date >= rStart && date < rEnd) return true;
+    }
+    return false;
+  };
 
   const handleSkip = async (propertyId: number, date: string, isManual: boolean) => {
     if (isManual) {
@@ -299,7 +322,12 @@ export function CleaningSchedule({
   };
 
   const handleAddManual = async () => {
+    setAddError(null);
     if (!addDate || !addPropertyId) return;
+    if (isDateFullyBooked(addPropertyId, addDate)) {
+      setAddError(t("cleaning.dateFullyBooked"));
+      return;
+    }
     await fetch("/api/date-overrides", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -489,7 +517,7 @@ export function CleaningSchedule({
               {mode === "dashboard" && (
                 <select
                   value={addPropertyId ?? ""}
-                  onChange={(e) => setAddPropertyId(Number(e.target.value))}
+                  onChange={(e) => { setAddPropertyId(Number(e.target.value)); setAddError(null); }}
                   className="h-8 rounded-md border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
                 >
                   {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -498,7 +526,7 @@ export function CleaningSchedule({
               <input
                 type="date"
                 value={addDate}
-                onChange={(e) => setAddDate(e.target.value)}
+                onChange={(e) => { setAddDate(e.target.value); setAddError(null); }}
                 className="h-8 rounded-md border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] outline-none focus:border-[#58a6ff]"
               />
               <input
@@ -516,12 +544,15 @@ export function CleaningSchedule({
                 {t("common.add")}
               </button>
               <button
-                onClick={() => { setShowAddForm(false); setAddDate(""); setAddNote(""); }}
+                onClick={() => { setShowAddForm(false); setAddDate(""); setAddNote(""); setAddError(null); }}
                 className="h-8 rounded-md px-2 text-xs text-[#9198a1] hover:text-[#f0f6fc]"
               >
                 {t("common.cancel")}
               </button>
             </div>
+            {addError && (
+              <p className="text-xs text-[#f85149]">{addError}</p>
+            )}
           </div>
         )}
         {futureDays.length === 0 ? (
