@@ -873,19 +873,19 @@ export function PropertyCalendar({
                 : isUnbookable ? "bg-[#8b949e]/5"
                 : "";
 
+              const showMiddleIndicator = !hasBar && (isBuffer || isPotential || isUnbookable || (isOpen && !hasBar) || (isClosed && !isBuffer) || (isConflict && !isOpen && !isClosed));
               return (
                 <div
                   key={`c-${dayNum}`}
                   onClick={() => {
-                    if (overrideMode && !hasBar) handleToggleOverride(ds);
-                    else if (overrideMode) handleToggleOverride(ds);
+                    if (overrideMode) handleToggleOverride(ds);
                   }}
-                  className={`relative h-14 flex flex-col border-r border-[#21262d] last:border-r-0 ${bg} ${
+                  className={`relative h-16 border-r border-[#21262d] last:border-r-0 ${bg} ${
                     overrideMode ? "cursor-pointer hover:bg-[#1c2128]" : ""
                   } ${isOpen ? "ring-1 ring-inset ring-[#3fb950]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#f85149]/40" : ""}`}
                 >
-                  {/* Day number */}
-                  <div className="px-1.5 pt-1">
+                  {/* Day number — top-left */}
+                  <div className="absolute top-1 left-1.5 z-20 pointer-events-none">
                     <span className={`text-xs leading-none ${
                       isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f85149] text-white font-semibold"
                       : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#58a6ff] text-white font-semibold"
@@ -895,72 +895,63 @@ export function PropertyCalendar({
                     }`}>{dayNum}</span>
                   </div>
 
-                  {/* Bar / indicator area */}
-                  <div className="relative flex-1 flex items-center px-0.5 overflow-visible">
-                    {/* Override indicators */}
-                    {isOpen && !hasBar && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">{t("calendar.open")}</div>
-                    )}
+                  {/* Middle indicator (days without bar) */}
+                  {showMiddleIndicator && (
+                    <div className="absolute left-0 right-0 top-7 flex items-center justify-center px-0.5 pointer-events-none">
+                      {isOpen && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 font-medium">{t("calendar.open")}</div>
+                      )}
+                      {isClosed && !isBuffer && !isOpen && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
+                      )}
+                      {isConflict && !isOpen && !isClosed && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.conflict")}</div>
+                      )}
+                      {isBuffer && !isOpen && !isClosed && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">{t("calendar.cleaning")}</div>
+                      )}
+                      {isBuffer && isClosed && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
+                      )}
+                      {isPotential && !isOpen && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">{t("calendar.cleaningQ")}</div>
+                      )}
+                      {isUnbookable && !isOpen && (
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
+                      )}
+                    </div>
+                  )}
 
-                    {isClosed && !hasBar && !isBuffer && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
-                    )}
+                  {/* Booking bars — fixed position below day number */}
+                  {segments.map((seg, si) => (
+                    <div
+                      key={`seg-${si}-${seg.startDate}`}
+                      onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
+                      className={`absolute top-7 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
+                        isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
+                        seg.platform === "booking"
+                          ? "bg-[#003580]"
+                          : "bg-[#b5462a]"
+                      } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
+                      style={{
+                        left: `${seg.leftPct}%`,
+                        width: `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
+                        zIndex: 10,
+                      }}
+                      title={`${seg.name} · ${seg.startDate} ${property.checkInTime || "14:00"} → ${seg.endDate} ${property.checkOutTime || "12:00"}${isConflict ? " ⚠ CONFLICT" : ""}`}
+                    >
+                      {seg.showLabel ? seg.name : ""}
+                    </div>
+                  ))}
 
-                    {/* Conflict */}
-                    {isConflict && !hasBar && !isOpen && !isClosed && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.conflict")}</div>
-                    )}
-
-                    {/* Cleaning */}
-                    {isBuffer && !isOpen && !isClosed && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#d29922] bg-[#d29922]/8 border border-[#d29922]/15">{t("calendar.cleaning")}</div>
-                    )}
-
-                    {isBuffer && isClosed && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 font-medium">{t("calendar.closed")}</div>
-                    )}
-
-                    {/* Potential cleaning */}
-                    {isPotential && !isOpen && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#58a6ff]/70 bg-[#58a6ff]/5 border border-[#58a6ff]/15 border-dashed">{t("calendar.cleaningQ")}</div>
-                    )}
-
-                    {/* Unbookable */}
-                    {isUnbookable && !isOpen && (
-                      <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#8b949e] bg-[#8b949e]/8 border border-[#8b949e]/15 border-dashed">&lt;{property.minNights || 3}n</div>
-                    )}
-
-                    {/* Same-day cleaning indicator (shown even when bar is present) */}
-                    {isSameDayCleaning && !isOpen && !isClosed && (
-                      <div className="absolute bottom-0 left-0.5 right-0.5 flex items-center justify-center">
-                        <div className="rounded px-1 text-[9px] text-[#d29922] bg-[#d29922]/15 border border-[#d29922]/25 leading-tight">
-                          {t("calendar.cleaning")}
-                        </div>
+                  {/* Same-day cleaning indicator — dedicated bottom slot */}
+                  {isSameDayCleaning && !isOpen && !isClosed && (
+                    <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center px-0.5 pointer-events-none">
+                      <div className="rounded px-1.5 h-4 flex items-center text-[9px] text-[#d29922] bg-[#d29922]/15 border border-[#d29922]/30 font-medium leading-none">
+                        {t("calendar.cleaning")}
                       </div>
-                    )}
-
-                    {/* Booking bars (multiple possible for same-day turnover) */}
-                    {segments.map((seg, si) => (
-                      <div
-                        key={`seg-${si}-${seg.startDate}`}
-                        onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
-                        className={`absolute top-0 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
-                          isConflict ? "bg-[#f85149] ring-1 ring-[#f85149]/40" :
-                          seg.platform === "booking"
-                            ? "bg-[#003580]"
-                            : "bg-[#b5462a]"
-                        } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
-                        style={{
-                          left: `${seg.leftPct}%`,
-                          width: `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
-                          zIndex: 10,
-                        }}
-                        title={`${seg.name} · ${seg.startDate} ${property.checkInTime || "14:00"} → ${seg.endDate} ${property.checkOutTime || "12:00"}${isConflict ? " ⚠ CONFLICT" : ""}`}
-                      >
-                        {seg.showLabel ? seg.name : ""}
-                      </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

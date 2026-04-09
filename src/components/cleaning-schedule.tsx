@@ -12,12 +12,17 @@ interface CalendarEvent {
   endDate: string;
 }
 
+type CleaningKind = "after" | "before" | "turnover" | "gap-potential" | "manual";
+
 interface CleaningDay {
   date: string;
   type: "cleaning" | "potential";
   property: string;
   propertyId: number;
-  reason: string;
+  kind: CleaningKind;
+  prevGuest?: string;
+  nextGuest?: string;
+  manualNote?: string;
   movableTo?: string;
   hoursAvailable?: number; // for buffer=0 turnovers, hours between checkout and next checkin
   isManual?: boolean; // true if created via a "closed" date override
@@ -118,7 +123,7 @@ function computeCleaningDays(
         for (let i = 1; i <= maxBefore; i++) {
           const d = addDaysStr(b.start, -i);
           if (!allBooked.has(d)) {
-            result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, reason: `Before ${displayName} check-in` });
+            result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "before", nextGuest: displayName });
           }
         }
       } else {
@@ -137,7 +142,8 @@ function computeCleaningDays(
               type: gapHasBooking ? "cleaning" : "potential",
               property: property.name,
               propertyId: property.id,
-              reason: gapHasBooking ? `Before ${displayName} check-in` : `Before ${displayName} (if gap booked)`,
+              kind: gapHasBooking ? "before" : "gap-potential",
+              nextGuest: displayName,
             });
           }
         }
@@ -147,7 +153,7 @@ function computeCleaningDays(
     for (let i = 1; i <= maxAfter; i++) {
       const d = addDaysStr(b.end, i);
       if (!allBooked.has(d)) {
-        result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, reason: `After ${displayName} checkout` });
+        result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "after", prevGuest: displayName });
       }
     }
   }
@@ -171,7 +177,8 @@ function computeCleaningDays(
         : b.name;
 
       let hoursAvailable: number | undefined = undefined;
-      let reason = `After ${displayName} checkout`;
+      let kind: CleaningKind = "after";
+      let nextGuest: string | undefined = undefined;
 
       if (next) {
         // Compute hours between checkout (b.end + checkOutTime) and next checkin (next.start + checkInTime)
@@ -182,11 +189,11 @@ function computeCleaningDays(
         const hours = diffMinutes / 60;
 
         if (hours > 0) {
-          const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
+          nextGuest = next.name.includes("CLOSED") || next.name.includes("Reserved")
             ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
             : next.name;
           hoursAvailable = hours;
-          reason = `${displayName} → ${nextDisplayName}`;
+          kind = "turnover";
         }
       }
 
@@ -195,29 +202,27 @@ function computeCleaningDays(
         type: "cleaning",
         property: property.name,
         propertyId: property.id,
-        reason,
+        kind,
+        prevGuest: displayName,
+        nextGuest,
         hoursAvailable,
       });
 
       // Potential cleaning: if the gap between this booking and the next is
       // large enough to fit another guest (≥ minNights), a hypothetical gap
-      // guest would need cleaning when they leave. We mark the next booking's
-      // start date as a potential cleaning — that's when the gap guest would
-      // most likely check out to make room for the next confirmed guest.
+      // guest would check out on next.start to make room for the next confirmed guest.
       if (next) {
         const gapStart = addDaysStr(b.end, 1);
         const gapDays = Math.max(0, Math.ceil(
           (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
         ));
         if (gapDays >= minStay) {
-          // Check if there's already a cleaning (definite) at next.start (e.g. from another
-          // confirmed guest checking out that same day) — if so, skip.
+          // Skip if there's already a definite cleaning at next.start
           const alreadyHasCleaning = result.some(r => r.date === next.start && r.type === "cleaning");
           if (!alreadyHasCleaning) {
             const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
               ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
               : next.name;
-            // Hours window = between hypothetical checkout time and next checkin time
             const diffMinutes = checkInMin - checkOutMin;
             const hours = diffMinutes > 0 ? diffMinutes / 60 : 24 + diffMinutes / 60;
             result.push({
@@ -225,7 +230,8 @@ function computeCleaningDays(
               type: "potential",
               property: property.name,
               propertyId: property.id,
-              reason: `Gap guest → ${nextDisplayName} (if gap booked)`,
+              kind: "gap-potential",
+              nextGuest: nextDisplayName,
               hoursAvailable: hours > 0 ? hours : undefined,
             });
           }
@@ -247,7 +253,8 @@ function computeCleaningDays(
         type: "cleaning",
         property: property.name,
         propertyId: property.id,
-        reason: o.note || "Manual cleaning",
+        kind: "manual",
+        manualNote: o.note,
         isManual: true,
       });
     }
@@ -369,6 +376,31 @@ export function CleaningSchedule({
     return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { weekday: "short", day: "2-digit", month: "short" });
   };
 
+  const formatReason = (day: CleaningDay): string => {
+    if (day.isManual) return day.manualNote?.trim() || t("cleaning.manualCleaning");
+    switch (day.kind) {
+      case "after":
+        return t("cleaning.afterGuest", { name: day.prevGuest || "—" });
+      case "before":
+        return t("cleaning.beforeGuest", { name: day.nextGuest || "—" });
+      case "turnover":
+        return t("cleaning.turnover", { from: day.prevGuest || "—", to: day.nextGuest || "—" });
+      case "gap-potential":
+        return t("cleaning.gapPotential", { name: day.nextGuest || "—" });
+      default:
+        return "";
+    }
+  };
+
+  const formatHours = (h: number): string => {
+    if (h < 24) {
+      const rounded = h < 10 ? h.toFixed(1) : Math.round(h).toString();
+      return t("cleaning.hoursShort", { h: rounded });
+    }
+    const days = Math.round(h / 24);
+    return t("cleaning.daysShort", { d: days });
+  };
+
   const handleCopySchedule = () => {
     const lines: string[] = [];
     lines.push(locale === "ru" ? "📋 График уборок:" : "📋 Cleaning Schedule:");
@@ -380,9 +412,10 @@ export function CleaningSchedule({
         : (locale === "ru" ? "❓ Возможная" : "❓ Potential");
       const propLabel = mode === "dashboard" ? ` [${day.property}]` : "";
       const hoursLabel = day.hoursAvailable !== undefined
-        ? ` ⏱ ${day.hoursAvailable.toFixed(day.hoursAvailable < 10 ? 1 : 0)}${locale === "ru" ? "ч" : "h"}`
+        ? ` ⏱ ${formatHours(day.hoursAvailable)}`
         : "";
-      lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel} — ${day.reason}`);
+      const reasonText = formatReason(day);
+      lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel}${reasonText ? " — " + reasonText : ""}`);
     }
     navigator.clipboard.writeText(lines.join("\n"));
     setCopied(true);
@@ -530,20 +563,20 @@ export function CleaningSchedule({
                       {mode === "dashboard" && (
                         <td className="px-4 py-2 text-sm text-[#9198a1]">{day.property}</td>
                       )}
-                      <td className="px-4 py-2 text-xs text-[#9198a1] space-x-1.5">
-                        {day.isManual && (
-                          <span className="inline-block rounded bg-[#58a6ff]/10 px-1.5 py-0.5 text-[#58a6ff] font-medium">
-                            {t("cleaning.manual")}
-                          </span>
-                        )}
-                        {day.hoursAvailable !== undefined && (
-                          <span className="inline-block rounded bg-[#3fb950]/10 px-1.5 py-0.5 text-[#3fb950] font-medium">
-                            {t("cleaning.hoursAvailable", { h: day.hoursAvailable.toFixed(day.hoursAvailable < 10 ? 1 : 0) })}
-                          </span>
-                        )}
-                        {day.reason && day.type !== "potential" && !day.hoursAvailable && (
-                          <span className="text-[#7d8590]">{day.reason}</span>
-                        )}
+                      <td className="px-4 py-2 text-xs text-[#9198a1]">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {day.isManual && (
+                            <span className="inline-block rounded bg-[#58a6ff]/10 px-1.5 py-0.5 text-[#58a6ff] font-medium">
+                              {t("cleaning.manual")}
+                            </span>
+                          )}
+                          {day.hoursAvailable !== undefined && (
+                            <span className="inline-block rounded bg-[#3fb950]/10 px-1.5 py-0.5 text-[#3fb950] font-medium">
+                              {formatHours(day.hoursAvailable)}
+                            </span>
+                          )}
+                          <span className="text-[#c9d1d9]">{formatReason(day)}</span>
+                        </div>
                       </td>
                       {onOverrideChanged && (
                         <td className="px-4 py-2 text-right">
