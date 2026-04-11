@@ -69,14 +69,17 @@ function computeCleaningDays(
   const allBookings: Booking[] = [];
 
   for (const ev of events) {
+    let d = ev.startDate;
+    while (d <= ev.endDate) { allBooked.add(d); d = addDaysStr(d, 1); }
+    // Include ALL events in cleaning computation — host blocks ("Not available"),
+    // maintenance blocks, and real bookings all need cleaning after they end.
+    // The distinction only matters for iCal FEED export (where host blocks don't
+    // generate extra buffer days), not for the cleaning schedule.
     const isAirbnbBlock = ev.platform === "airbnb" && (
       ev.summary.includes("Not available") || ev.summary.includes("Blocked")
     );
-    let d = ev.startDate;
-    while (d <= ev.endDate) { allBooked.add(d); d = addDaysStr(d, 1); }
-    if (!isAirbnbBlock) {
-      allBookings.push({ start: ev.startDate, end: ev.endDate, name: ev.summary, platform: ev.platform });
-    }
+    const name = isAirbnbBlock ? "Airbnb block" : ev.summary;
+    allBookings.push({ start: ev.startDate, end: ev.endDate, name, platform: ev.platform });
   }
 
   for (const res of property.reservations) {
