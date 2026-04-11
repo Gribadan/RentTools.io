@@ -135,16 +135,16 @@ export function Dashboard({
     : `${resCount} ${locale === "ru" ? "бронирований" : "reservations"} ${locale === "ru" ? "в" : "across"} ${properties.length} ${locale === "ru" ? (properties.length === 1 ? "объекте" : "объектах") : (properties.length === 1 ? "property" : "properties")}`;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#f0f6fc]">{title}</h1>
-          <p className="mt-1 text-sm text-[#9198a1]">{subtitle}</p>
+          <h1 className="text-2xl font-bold text-[#f0f6fc]">{title}</h1>
+          <p className="mt-1 text-sm text-[#7d8590]">{subtitle}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 rounded-md bg-[#238636] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2ea043]"
+          className="flex items-center gap-1.5 rounded-lg bg-[#238636] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#2ea043]"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -152,6 +152,45 @@ export function Dashboard({
           {t("dashboard.newReservation")}
         </button>
       </div>
+
+      {/* Property cards (dashboard mode only) */}
+      {!selectedProperty && properties.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {properties.map(p => {
+            const futureRes = p.reservations.filter(r => new Date(r.checkOut) >= new Date());
+            const nextRes = futureRes.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())[0];
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelectProperty(p.id)}
+                className="group rounded-xl border border-[#21262d] bg-[#161b22] p-5 text-left transition-all hover:border-[#30363d] hover:bg-[#1c2128]"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-[#f0f6fc] group-hover:text-[#58a6ff] transition-colors">{p.name}</h3>
+                  <svg className="h-4 w-4 text-[#30363d] group-hover:text-[#7d8590] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs text-[#7d8590]">
+                    <span>{futureRes.length} {locale === "ru" ? "бронир." : "bookings"}</span>
+                    <span className="text-[#30363d]">·</span>
+                    <span>{locale === "ru" ? "мин." : "min"} {p.minNights} {locale === "ru" ? "ноч." : "n"}</span>
+                  </div>
+                  {nextRes && (
+                    <div className="text-xs text-[#9198a1]">
+                      <span className="text-[#7d8590]">{locale === "ru" ? "Далее:" : "Next:"} </span>
+                      <span className="font-medium text-[#c9d1d9]">{nextRes.name}</span>
+                      {" "}
+                      <span>{formatDate(nextRes.checkIn)}</span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Quick Add Form */}
       {showForm && (
