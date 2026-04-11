@@ -532,7 +532,9 @@ export function PropertyCalendar({
     for (const bar of bars) {
       const isActualStart = ds === bar.startDate;
       const isMondayContinuation = isMonday && ds > bar.startDate && ds <= bar.endDate;
-      if (!isActualStart && !isMondayContinuation) continue;
+      // Month-boundary continuation: day 1 of the month, bar started in a previous month
+      const isMonthContinuation = dayNum === 1 && bar.startDate < ds && bar.endDate >= ds;
+      if (!isActualStart && !isMondayContinuation && !isMonthContinuation) continue;
 
       // Compute span: from this cell to min(endDate, Sunday of this week)
       let span = 0;
