@@ -84,37 +84,37 @@
 }
 
 .dark {
-  --background: #0d1117;
-  --foreground: #c9d1d9;
-  --card: #161b22;
-  --card-foreground: #c9d1d9;
-  --popover: #161b22;
-  --popover-foreground: #c9d1d9;
-  --primary: #58a6ff;
+  --background: #0c0f14;
+  --foreground: #d4d8e0;
+  --card: #13171e;
+  --card-foreground: #d4d8e0;
+  --popover: #13171e;
+  --popover-foreground: #d4d8e0;
+  --primary: #6c8fff;
   --primary-foreground: #ffffff;
-  --secondary: #1c2128;
-  --secondary-foreground: #9198a1;
-  --muted: #1c2128;
-  --muted-foreground: #9198a1;
-  --accent: #1c2128;
-  --accent-foreground: #c9d1d9;
-  --destructive: #f85149;
-  --border: #21262d;
-  --input: #1c2128;
-  --ring: #58a6ff;
-  --chart-1: #58a6ff;
-  --chart-2: #3fb950;
-  --chart-3: #d29922;
-  --chart-4: #bc8cff;
-  --chart-5: #f78166;
-  --sidebar: #0d1117;
-  --sidebar-foreground: #c9d1d9;
-  --sidebar-primary: #58a6ff;
+  --secondary: #1a1f2b;
+  --secondary-foreground: #8b92a0;
+  --muted: #1a1f2b;
+  --muted-foreground: #8b92a0;
+  --accent: #1a1f2b;
+  --accent-foreground: #d4d8e0;
+  --destructive: #ef4444;
+  --border: #1e2533;
+  --input: #1a1f2b;
+  --ring: #6c8fff;
+  --chart-1: #6c8fff;
+  --chart-2: #34d399;
+  --chart-3: #f59e0b;
+  --chart-4: #a78bfa;
+  --chart-5: #fb923c;
+  --sidebar: #0c0f14;
+  --sidebar-foreground: #d4d8e0;
+  --sidebar-primary: #6c8fff;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #161b22;
-  --sidebar-accent-foreground: #c9d1d9;
-  --sidebar-border: #21262d;
-  --sidebar-ring: #58a6ff;
+  --sidebar-accent: #13171e;
+  --sidebar-accent-foreground: #d4d8e0;
+  --sidebar-border: #1e2533;
+  --sidebar-ring: #6c8fff;
 }
 
 @layer base {
@@ -138,17 +138,17 @@ select {
 }
 
 select option {
-  background-color: #161b22;
-  color: #f0f6fc;
+  background-color: #13171e;
+  color: #e2e6ed;
   padding: 8px 12px;
 }
 
 select option:checked {
-  background-color: #1c2128;
+  background-color: #1a1f2b;
 }
 
 select option:hover {
-  background-color: #1c2128;
+  background-color: #1a1f2b;
 }
 
 /* Hide scrollbar utility */

@@ -182,8 +182,8 @@ export function ReservationView({
                       className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                         editPlatform === p
                           ? p === "airbnb"
-                            ? "bg-[#FF5A5F]/15 text-[#FF5A5F] shadow-sm"
-                            : "bg-[#003580]/20 text-[#4B9CD3] shadow-sm"
+                            ? "bg-[#f43f5e]/15 text-[#f43f5e] shadow-sm"
+                            : "bg-[#2563eb]/20 text-[#4B9CD3] shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -225,8 +225,8 @@ export function ReservationView({
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
                   reservation.platform === "booking"
-                    ? "bg-[#003580]/20 text-[#4B9CD3]"
-                    : "bg-[#FF5A5F]/10 text-[#FF5A5F]"
+                    ? "bg-[#2563eb]/20 text-[#4B9CD3]"
+                    : "bg-[#f43f5e]/10 text-[#f43f5e]"
                 }`}>
                   {reservation.platform === "booking" ? "Booking.com" : "Airbnb"}
                 </span>
@@ -374,14 +374,14 @@ export function ReservationView({
 
       {/* Extraction Log — below guests */}
       {logs.length > 0 && (
-        <div className="rounded-xl border border-[#21262d] bg-[#0d1117]">
+        <div className="rounded-xl border border-[#1e2533] bg-[#0c0f14]">
           <div className="flex items-center justify-between border-b border-border/30 px-4 py-2.5">
-            <span className="text-xs font-medium text-[#9198a1]">
+            <span className="text-xs font-medium text-[#8b92a0]">
               Extraction Log
             </span>
             <button
               onClick={() => setLogs([])}
-              className="text-xs text-[#7d8590] hover:text-[#f0f6fc]"
+              className="text-xs text-[#6b7280] hover:text-[#e8ecf2]"
             >
               Clear
             </button>
@@ -389,16 +389,16 @@ export function ReservationView({
           <div ref={logRef} className="overflow-y-auto p-4 font-[family-name:var(--font-mono)] text-xs leading-relaxed" style={{ maxHeight: 200 }}>
             {logs.map((log, i) => (
               <div key={i} className="flex gap-2.5">
-                <span className="shrink-0 text-[#7d8590]">{log.time}</span>
+                <span className="shrink-0 text-[#6b7280]">{log.time}</span>
                 <span
                   className={
                     log.type === "success"
-                      ? "text-[#3fb950]"
+                      ? "text-[#34d399]"
                       : log.type === "error"
-                      ? "text-[#f85149]"
+                      ? "text-[#ef4444]"
                       : log.type === "processing"
-                      ? "text-[#d29922]"
-                      : "text-[#9198a1]"
+                      ? "text-[#f59e0b]"
+                      : "text-[#8b92a0]"
                   }
                 >
                   {log.message}

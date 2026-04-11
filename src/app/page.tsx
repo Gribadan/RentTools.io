@@ -8,6 +8,7 @@ import { ReservationView } from "@/components/reservation-view";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Dashboard } from "@/components/dashboard";
 import { PropertyCalendar } from "@/components/property-calendar";
+import { PropertyCleaningView } from "@/components/property-cleaning-view";
 import { SyncSettings } from "@/components/sync-settings";
 import { TasksPanel } from "@/components/tasks-panel";
 import type { Property, Guest } from "@/lib/types";
@@ -190,6 +191,13 @@ function AppContent({
               property={selectedProperty}
               onSelectReservation={handleSelectReservation}
               onAddReservation={handleAddReservation}
+            />
+          );
+        case "cleaning":
+          return (
+            <PropertyCleaningView
+              key={`clean-${selectedProperty.id}`}
+              property={selectedProperty}
             />
           );
         case "sync":
