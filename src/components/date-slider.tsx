@@ -86,21 +86,21 @@ function CalendarGrid({
     return (
       <div className="space-y-2 p-4">
         <div className="flex items-center gap-2">
-          <span className="w-10 text-xs text-[#8b92a0]">In</span>
+          <span className="w-10 text-xs text-[#a0a0a8]">In</span>
           <input type="date" value={checkIn} onChange={(e) => onChangeCheckIn(e.target.value)}
-            className="h-8 flex-1 rounded-md border border-[#2a3142] bg-[#0c0f14] px-3 text-sm text-[#e8ecf2] outline-none focus:border-[#6c8fff]" />
+            className="h-8 flex-1 rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-10 text-xs text-[#8b92a0]">Out</span>
+          <span className="w-10 text-xs text-[#a0a0a8]">Out</span>
           <input type="date" value={checkOut} onChange={(e) => onChangeCheckOut(e.target.value)}
-            className="h-8 flex-1 rounded-md border border-[#2a3142] bg-[#0c0f14] px-3 text-sm text-[#e8ecf2] outline-none focus:border-[#6c8fff]" />
+            className="h-8 flex-1 rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]" />
         </div>
         <div className="flex items-center justify-between">
-          <button type="button" onClick={() => setShowClassic(false)} className="text-xs text-[#6c8fff] hover:underline">
+          <button type="button" onClick={() => setShowClassic(false)} className="text-xs text-[#e8e8ec] hover:underline">
             Calendar
           </button>
           {onDone && checkIn && checkOut && (
-            <button type="button" onClick={onDone} className="rounded-md bg-[#059669] px-3 py-1 text-xs font-medium text-white hover:bg-[#047857]">
+            <button type="button" onClick={onDone} className="rounded-md bg-[#ff385c] px-3 py-1 text-xs font-medium text-white hover:bg-[#e0294d]">
               Done
             </button>
           )}
@@ -121,20 +121,20 @@ function CalendarGrid({
             onClick={() => setSelecting("in")}
             className={`rounded-md px-2.5 py-1 text-xs transition-all ${
               selecting === "in"
-                ? "bg-[#6c8fff]/15 text-[#6c8fff] ring-1 ring-[#6c8fff]/30"
-                : "text-[#8b92a0] hover:text-[#d4d8e0]"
+                ? "bg-[#e8e8ec]/15 text-[#e8e8ec] ring-1 ring-[#e8e8ec]/30"
+                : "text-[#a0a0a8] hover:text-[#d4d4d8]"
             }`}
           >
             In: {formatSelected(checkIn)}
           </button>
-          <span className="text-[#2a3142]">→</span>
+          <span className="text-[#333338]">→</span>
           <button
             type="button"
             onClick={() => setSelecting("out")}
             className={`rounded-md px-2.5 py-1 text-xs transition-all ${
               selecting === "out"
-                ? "bg-[#6c8fff]/15 text-[#6c8fff] ring-1 ring-[#6c8fff]/30"
-                : "text-[#8b92a0] hover:text-[#d4d8e0]"
+                ? "bg-[#e8e8ec]/15 text-[#e8e8ec] ring-1 ring-[#e8e8ec]/30"
+                : "text-[#a0a0a8] hover:text-[#d4d4d8]"
             }`}
           >
             Out: {formatSelected(checkOut)}
@@ -144,11 +144,11 @@ function CalendarGrid({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => setShowClassic(true)} className="text-xs text-[#6c8fff] hover:underline">
+          <button type="button" onClick={() => setShowClassic(true)} className="text-xs text-[#e8e8ec] hover:underline">
             Manual
           </button>
           {onDone && checkIn && checkOut && (
-            <button type="button" onClick={onDone} className="rounded-md bg-[#059669] px-3 py-1 text-xs font-medium text-white hover:bg-[#047857]">
+            <button type="button" onClick={onDone} className="rounded-md bg-[#ff385c] px-3 py-1 text-xs font-medium text-white hover:bg-[#e0294d]">
               Done
             </button>
           )}
@@ -174,12 +174,12 @@ function CalendarGrid({
 
           return (
             <div key={monthLabel} className="flex-1">
-              <div className="mb-2 text-center text-xs font-medium text-[#e8ecf2]">
+              <div className="mb-2 text-center text-xs font-medium text-[#e8e8ec]">
                 {monthLabel}
               </div>
               <div className="grid grid-cols-7 gap-0.5">
                 {WEEKDAYS.map((wd) => (
-                  <div key={wd} className="py-1 text-center text-xs text-[#6b7280]">
+                  <div key={wd} className="py-1 text-center text-xs text-[#71717a]">
                     {wd}
                   </div>
                 ))}
@@ -205,19 +205,19 @@ function CalendarGrid({
                       onClick={() => handleDayClick(dateStr)}
                       className={`relative flex h-8 items-center justify-center rounded-md text-xs transition-all ${
                         isPast
-                          ? "text-[#2a3142] cursor-not-allowed"
+                          ? "text-[#333338] cursor-not-allowed"
                           : isStart || isEnd
-                          ? "bg-[#6c8fff] text-white font-semibold"
+                          ? "bg-[#e8e8ec] text-white font-semibold"
                           : inRange
-                          ? "bg-[#6c8fff]/12 text-[#93c5fd]"
+                          ? "bg-[#e8e8ec]/12 text-[#93c5fd]"
                           : isToday
-                          ? "text-[#e8ecf2] ring-1 ring-[#6c8fff]/40"
-                          : "text-[#d4d8e0] hover:bg-[#1a1f2b]"
+                          ? "text-[#e8e8ec] ring-1 ring-[#e8e8ec]/40"
+                          : "text-[#d4d4d8] hover:bg-[#1e1e22]"
                       }`}
                     >
                       {d.getDate()}
                       {isToday && !isStart && !isEnd && (
-                        <span className="absolute bottom-0.5 left-1/2 h-0.5 w-0.5 -translate-x-1/2 rounded-full bg-[#6c8fff]" />
+                        <span className="absolute bottom-0.5 left-1/2 h-0.5 w-0.5 -translate-x-1/2 rounded-full bg-[#e8e8ec]" />
                       )}
                     </button>
                   );
@@ -279,7 +279,7 @@ function CalendarPopover({
   return createPortal(
     <div
       ref={popoverRef}
-      className="fixed z-50 rounded-lg border border-[#2a3142] bg-[#13171e] shadow-2xl shadow-black/50"
+      className="fixed z-50 rounded-lg border border-[#333338] bg-[#18181b] shadow-2xl shadow-black/50"
       style={{ top: pos.top, left: pos.left, width: 480 }}
     >
       <CalendarGrid
@@ -326,15 +326,15 @@ export function DateSlider({
           onClick={() => setOpen(!open)}
           className={`flex w-full items-center justify-between rounded-md border px-2.5 py-2 text-left transition-all ${
             open
-              ? "border-[#6c8fff] bg-[#6c8fff]/5"
-              : "border-[#2a3142] bg-[#0c0f14] hover:border-[#6b7280]"
+              ? "border-[#e8e8ec] bg-[#e8e8ec]/5"
+              : "border-[#333338] bg-[#111113] hover:border-[#71717a]"
           }`}
         >
           <div className="flex items-center gap-2">
-            <svg className="h-3.5 w-3.5 text-[#8b92a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <svg className="h-3.5 w-3.5 text-[#a0a0a8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
             </svg>
-            <span className="text-xs text-[#d4d8e0]">
+            <span className="text-xs text-[#d4d4d8]">
               {checkIn && checkOut
                 ? `${formatDate(checkIn)} — ${formatDate(checkOut)}`
                 : checkIn
@@ -362,7 +362,7 @@ export function DateSlider({
 
   // Inline mode for edit forms in main content
   return (
-    <div className="rounded-lg border border-[#2a3142] bg-[#13171e]">
+    <div className="rounded-lg border border-[#333338] bg-[#18181b]">
       <CalendarGrid
         checkIn={checkIn}
         checkOut={checkOut}

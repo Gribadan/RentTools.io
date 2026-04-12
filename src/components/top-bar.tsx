@@ -54,7 +54,7 @@ export function TopBar({
   ];
 
   return (
-    <header className="border-b border-[#1e2533] bg-[#13171e]">
+    <header className="border-b border-[#27272b] bg-[#18181b]">
       {/* Top row */}
       <div className="flex items-center justify-between px-4 h-14">
         {/* Left: logo + property selector */}
@@ -62,10 +62,10 @@ export function TopBar({
           {/* Logo */}
           <button
             onClick={() => { onSelectProperty(null); onChangeView("dashboard"); }}
-            className="flex items-center gap-2 text-[#e8ecf2] hover:text-[#6c8fff] transition-colors"
+            className="flex items-center gap-2 text-[#e8e8ec] hover:text-[#e8e8ec] transition-colors"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0c0f14]">
-              <svg className="h-4 w-4 text-[#6c8fff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111113]">
+              <svg className="h-4 w-4 text-[#e8e8ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
               </svg>
             </div>
@@ -76,23 +76,23 @@ export function TopBar({
           <div className="relative" ref={propRef}>
             <button
               onClick={() => setPropDropdown(!propDropdown)}
-              className="flex items-center gap-2 rounded-lg border border-[#2a3142] bg-[#0c0f14] px-3 py-1.5 text-sm text-[#e8ecf2] hover:border-[#6c8fff]/50 transition-colors min-w-[160px]"
+              className="flex items-center gap-2 rounded-lg border border-[#333338] bg-[#111113] px-3 py-1.5 text-sm text-[#e8e8ec] hover:border-[#e8e8ec]/50 transition-colors min-w-[160px]"
             >
               <span className="flex-1 text-left truncate">
                 {selectedProperty ? selectedProperty.name : (locale === "ru" ? "Все объекты" : "All properties")}
               </span>
-              <svg className={`h-4 w-4 text-[#6b7280] transition-transform ${propDropdown ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className={`h-4 w-4 text-[#71717a] transition-transform ${propDropdown ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
 
             {propDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-64 rounded-lg border border-[#2a3142] bg-[#13171e] shadow-xl shadow-black/40 z-50">
+              <div className="absolute top-full left-0 mt-1 w-64 rounded-lg border border-[#333338] bg-[#18181b] shadow-xl shadow-black/40 z-50">
                 <div className="p-1">
                   <button
                     onClick={() => { onSelectProperty(null); onChangeView("dashboard"); setPropDropdown(false); }}
                     className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                      !selectedPropertyId ? "bg-[#1a1f2b] text-[#6c8fff]" : "text-[#d4d8e0] hover:bg-[#1a1f2b]"
+                      !selectedPropertyId ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#d4d4d8] hover:bg-[#1e1e22]"
                     }`}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -101,7 +101,7 @@ export function TopBar({
                     {locale === "ru" ? "Обзор (все объекты)" : "Dashboard (all)"}
                   </button>
 
-                  <div className="my-1 h-px bg-[#1e2533]" />
+                  <div className="my-1 h-px bg-[#27272b]" />
 
                   {properties.map(p => (
                     <button
@@ -112,18 +112,18 @@ export function TopBar({
                         setPropDropdown(false);
                       }}
                       className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                        p.id === selectedPropertyId ? "bg-[#1a1f2b] text-[#6c8fff]" : "text-[#d4d8e0] hover:bg-[#1a1f2b]"
+                        p.id === selectedPropertyId ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#d4d4d8] hover:bg-[#1e1e22]"
                       }`}
                     >
                       <span className="h-2 w-2 rounded-full bg-[#34d399]" />
                       <span className="flex-1 text-left truncate">{p.name}</span>
-                      <span className="text-xs text-[#6b7280]">
+                      <span className="text-xs text-[#71717a]">
                         {p.reservations.length}
                       </span>
                     </button>
                   ))}
 
-                  <div className="my-1 h-px bg-[#1e2533]" />
+                  <div className="my-1 h-px bg-[#27272b]" />
 
                   {addingProp ? (
                     <form
@@ -141,15 +141,15 @@ export function TopBar({
                         value={newPropName}
                         onChange={(e) => setNewPropName(e.target.value)}
                         placeholder={t("sidebar.propertyPlaceholder")}
-                        className="h-7 flex-1 rounded border border-[#2a3142] bg-[#0c0f14] px-2 text-xs text-[#e8ecf2] placeholder-[#6b7280] outline-none focus:border-[#6c8fff]"
+                        className="h-7 flex-1 rounded border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec]"
                         autoFocus
                       />
-                      <button type="submit" className="rounded bg-[#059669] px-2 text-xs text-white hover:bg-[#047857]">+</button>
+                      <button type="submit" className="rounded bg-[#ff385c] px-2 text-xs text-white hover:bg-[#e0294d]">+</button>
                     </form>
                   ) : (
                     <button
                       onClick={() => setAddingProp(true)}
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-[#6b7280] hover:bg-[#1a1f2b] hover:text-[#d4d8e0]"
+                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-[#71717a] hover:bg-[#1e1e22] hover:text-[#d4d4d8]"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -169,7 +169,7 @@ export function TopBar({
           <button
             onClick={() => onChangeView("tasks")}
             className={`rounded-md p-2 transition-colors ${
-              activeView === "tasks" ? "bg-[#1a1f2b] text-[#6c8fff]" : "text-[#6b7280] hover:bg-[#1a1f2b] hover:text-[#d4d8e0]"
+              activeView === "tasks" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:bg-[#1e1e22] hover:text-[#d4d4d8]"
             }`}
             title={locale === "ru" ? "Задачи синхронизации" : "Sync tasks"}
           >
@@ -182,7 +182,7 @@ export function TopBar({
           <button
             onClick={() => onChangeView("settings")}
             className={`rounded-md p-2 transition-colors ${
-              activeView === "settings" ? "bg-[#1a1f2b] text-[#6c8fff]" : "text-[#6b7280] hover:bg-[#1a1f2b] hover:text-[#d4d8e0]"
+              activeView === "settings" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:bg-[#1e1e22] hover:text-[#d4d4d8]"
             }`}
             title={t("sidebar.settings")}
           >
@@ -193,14 +193,14 @@ export function TopBar({
           </button>
 
           {/* Language */}
-          <div className="flex items-center rounded-md border border-[#2a3142] overflow-hidden">
+          <div className="flex items-center rounded-md border border-[#333338] overflow-hidden">
             <button
               onClick={() => setLocale("ru")}
-              className={`px-2 py-1 text-xs transition-colors ${locale === "ru" ? "bg-[#1a1f2b] text-[#e8ecf2]" : "text-[#6b7280] hover:text-[#d4d8e0]"}`}
+              className={`px-2 py-1 text-xs transition-colors ${locale === "ru" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:text-[#d4d4d8]"}`}
             >RU</button>
             <button
               onClick={() => setLocale("en")}
-              className={`px-2 py-1 text-xs transition-colors ${locale === "en" ? "bg-[#1a1f2b] text-[#e8ecf2]" : "text-[#6b7280] hover:text-[#d4d8e0]"}`}
+              className={`px-2 py-1 text-xs transition-colors ${locale === "en" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:text-[#d4d4d8]"}`}
             >EN</button>
           </div>
 
@@ -208,16 +208,16 @@ export function TopBar({
           <div className="relative" ref={userRef}>
             <button
               onClick={() => setUserDropdown(!userDropdown)}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-[#8b92a0] hover:bg-[#1a1f2b] hover:text-[#d4d8e0] transition-colors"
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-[#a0a0a8] hover:bg-[#1e1e22] hover:text-[#d4d4d8] transition-colors"
             >
-              <div className="h-6 w-6 rounded-full bg-[#2a3142] flex items-center justify-center text-[10px] font-bold text-[#d4d8e0] uppercase">
+              <div className="h-6 w-6 rounded-full bg-[#333338] flex items-center justify-center text-[10px] font-bold text-[#d4d4d8] uppercase">
                 {username[0]}
               </div>
               <span className="hidden sm:block">{username}</span>
             </button>
 
             {userDropdown && (
-              <div className="absolute top-full right-0 mt-1 w-40 rounded-lg border border-[#2a3142] bg-[#13171e] shadow-xl shadow-black/40 z-50 p-1">
+              <div className="absolute top-full right-0 mt-1 w-40 rounded-lg border border-[#333338] bg-[#18181b] shadow-xl shadow-black/40 z-50 p-1">
                 <button
                   onClick={() => { onLogout(); setUserDropdown(false); }}
                   className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
@@ -242,13 +242,13 @@ export function TopBar({
               onClick={() => onChangeView(tab.key)}
               className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
                 activeView === tab.key
-                  ? "text-[#e8ecf2]"
-                  : "text-[#6b7280] hover:text-[#d4d8e0]"
+                  ? "text-[#e8e8ec]"
+                  : "text-[#71717a] hover:text-[#d4d4d8]"
               }`}
             >
               {tab.label}
               {activeView === tab.key && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t bg-[#fb923c]" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t bg-[#ff385c]" />
               )}
             </button>
           ))}
