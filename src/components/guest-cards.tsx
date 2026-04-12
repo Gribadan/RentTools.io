@@ -52,15 +52,15 @@ function CopyField({
       onClick={handleCopy}
       className={`group/field flex cursor-pointer items-center justify-between rounded-md px-2 py-1 transition-all ${
         highlighted
-          ? "bg-[#6c8fff]/10 ring-1 ring-[#6c8fff]/20"
+          ? "bg-[#e8e8ec]/10 ring-1 ring-[#e8e8ec]/20"
           : "hover:bg-white/5"
       }`}
     >
-      <span className={`text-xs ${highlighted ? "text-[#6c8fff]/80" : "text-muted-foreground/60"}`}>{label}</span>
+      <span className={`text-xs ${highlighted ? "text-[#e8e8ec]/80" : "text-muted-foreground/60"}`}>{label}</span>
       <div className="flex items-center gap-1.5">
-        <span className={`text-sm font-medium ${highlighted ? "text-[#e8ecf2]" : ""}`}>{value || "—"}</span>
+        <span className={`text-sm font-medium ${highlighted ? "text-[#e8e8ec]" : ""}`}>{value || "—"}</span>
         <span className={`text-[11px] transition-all ${
-          justCopied ? "text-[#34d399]" : highlighted ? "text-[#6c8fff]/40" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"
+          justCopied ? "text-[#34d399]" : highlighted ? "text-[#e8e8ec]/40" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"
         }`}>
           {justCopied ? "copied" : "copy"}
         </span>
@@ -121,8 +121,8 @@ function GuestCard({
       {/* Card header */}
       <div className="flex items-center justify-between border-b border-border/20 px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-sm font-semibold text-[#e8ecf2]">{guest.fullName}</span>
-          <span className="shrink-0 text-xs text-[#8b92a0]">{guest.yearsOld}y</span>
+          <span className="truncate text-sm font-semibold text-[#e8e8ec]">{guest.fullName}</span>
+          <span className="shrink-0 text-xs text-[#a0a0a8]">{guest.yearsOld}y</span>
         </div>
         <button
           onClick={() => onDelete(guest.id)}
@@ -176,7 +176,7 @@ function GuestCard({
         {/* Block 4: Children (only if any attached) */}
         {children.length > 0 && (
           <div className="p-1.5">
-            <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#f59e0b]/70">
+            <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#fbbf24]/70">
               Children ({children.length})
             </div>
             {children.map((child) => (

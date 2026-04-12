@@ -83,38 +83,39 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Hybrid dark theme: Apple precision + Airbnb warmth */
 .dark {
-  --background: #0c0f14;
-  --foreground: #d4d8e0;
-  --card: #13171e;
-  --card-foreground: #d4d8e0;
-  --popover: #13171e;
-  --popover-foreground: #d4d8e0;
-  --primary: #6c8fff;
-  --primary-foreground: #ffffff;
-  --secondary: #1a1f2b;
-  --secondary-foreground: #8b92a0;
-  --muted: #1a1f2b;
-  --muted-foreground: #8b92a0;
-  --accent: #1a1f2b;
-  --accent-foreground: #d4d8e0;
+  --background: #111113;
+  --foreground: #e0e0e4;
+  --card: #18181b;
+  --card-foreground: #e0e0e4;
+  --popover: #18181b;
+  --popover-foreground: #e0e0e4;
+  --primary: #e8e8ec;
+  --primary-foreground: #111113;
+  --secondary: #1e1e22;
+  --secondary-foreground: #a0a0a8;
+  --muted: #1e1e22;
+  --muted-foreground: #a0a0a8;
+  --accent: #1e1e22;
+  --accent-foreground: #e0e0e4;
   --destructive: #ef4444;
-  --border: #1e2533;
-  --input: #1a1f2b;
-  --ring: #6c8fff;
-  --chart-1: #6c8fff;
+  --border: #27272b;
+  --input: #1e1e22;
+  --ring: #e8e8ec;
+  --chart-1: #e8e8ec;
   --chart-2: #34d399;
-  --chart-3: #f59e0b;
+  --chart-3: #fbbf24;
   --chart-4: #a78bfa;
   --chart-5: #fb923c;
-  --sidebar: #0c0f14;
-  --sidebar-foreground: #d4d8e0;
-  --sidebar-primary: #6c8fff;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #13171e;
-  --sidebar-accent-foreground: #d4d8e0;
-  --sidebar-border: #1e2533;
-  --sidebar-ring: #6c8fff;
+  --sidebar: #111113;
+  --sidebar-foreground: #e0e0e4;
+  --sidebar-primary: #e8e8ec;
+  --sidebar-primary-foreground: #111113;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #e0e0e4;
+  --sidebar-border: #27272b;
+  --sidebar-ring: #e8e8ec;
 }
 
 @layer base {
@@ -123,9 +124,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
     font-size: 15px;
-    line-height: 1.6;
+    line-height: 1.5;
     letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   html {
     @apply font-sans;
@@ -138,17 +142,17 @@ select {
 }
 
 select option {
-  background-color: #13171e;
-  color: #e2e6ed;
+  background-color: #18181b;
+  color: #e8e8ec;
   padding: 8px 12px;
 }
 
 select option:checked {
-  background-color: #1a1f2b;
+  background-color: #27272b;
 }
 
 select option:hover {
-  background-color: #1a1f2b;
+  background-color: #27272b;
 }
 
 /* Hide scrollbar utility */

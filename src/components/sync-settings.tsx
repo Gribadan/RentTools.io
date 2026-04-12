@@ -142,7 +142,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
   };
 
   const platforms = [
-    { key: "airbnb", label: "Airbnb", color: "#fb923c", url: airbnbUrl, setUrl: setAirbnbUrl },
+    { key: "airbnb", label: "Airbnb", color: "#ff385c", url: airbnbUrl, setUrl: setAirbnbUrl },
     { key: "booking", label: "Booking.com", color: "#93c5fd", url: bookingUrl, setUrl: setBookingUrl },
   ] as const;
 
@@ -151,13 +151,13 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#e8ecf2]">{t("sync.title")}</h1>
-          <p className="mt-0.5 text-sm text-[#8b92a0]">{propertyName}</p>
+          <h1 className="text-xl font-semibold text-[#e8e8ec]">{t("sync.title")}</h1>
+          <p className="mt-0.5 text-sm text-[#a0a0a8]">{propertyName}</p>
         </div>
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-1.5 rounded-md bg-[#059669] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#047857] disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-md bg-[#ff385c] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
         >
           <svg className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -176,12 +176,12 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
           const otherPlatform = platform === "airbnb" ? "booking" : "airbnb";
 
           return (
-            <div key={platform} className="rounded-lg border border-[#1e2533] bg-[#13171e] p-4 space-y-4">
+            <div key={platform} className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-4">
               {/* Platform header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-sm font-semibold text-[#e8ecf2]">{label}</span>
+                  <span className="text-sm font-semibold text-[#e8e8ec]">{label}</span>
                 </div>
                 {isConnected && (
                   <span className="flex items-center gap-1 text-xs text-[#34d399]">
@@ -193,7 +193,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
               {/* Step 1: Export URL from platform */}
               <div className="space-y-2">
-                <label className="text-xs text-[#8b92a0]">
+                <label className="text-xs text-[#a0a0a8]">
                   {t("sync.icalLabel")} {label}
                 </label>
                 <div className="flex gap-1.5">
@@ -201,14 +201,14 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder={t("sync.pastePlaceholder", { platform: label })}
-                    className="h-8 flex-1 rounded-md border border-[#2a3142] bg-[#0c0f14] px-2.5 text-xs text-[#e8ecf2] placeholder-[#6b7280] outline-none focus:border-[#6c8fff]"
+                    className="h-8 flex-1 rounded-md border border-[#333338] bg-[#111113] px-2.5 text-xs text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec]"
                     disabled={isConnected && !isEditing}
                   />
                   {isConnected && !isEditing ? (
                     <div className="flex gap-1">
                       <button
                         onClick={() => setEditingPlatform(platform)}
-                        className="rounded-md bg-[#1e2533] px-2 py-1 text-xs text-[#d4d8e0] hover:bg-[#2a3142]"
+                        className="rounded-md bg-[#27272b] px-2 py-1 text-xs text-[#d4d4d8] hover:bg-[#333338]"
                       >
                         {t("common.edit")}
                       </button>
@@ -224,14 +224,14 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
                       <button
                         onClick={() => handleTest(platform, url)}
                         disabled={!url.trim() || testing === platform}
-                        className="rounded-md bg-[#1e2533] px-2.5 py-1 text-xs text-[#d4d8e0] hover:bg-[#2a3142] disabled:opacity-40"
+                        className="rounded-md bg-[#27272b] px-2.5 py-1 text-xs text-[#d4d4d8] hover:bg-[#333338] disabled:opacity-40"
                       >
                         {testing === platform ? "..." : t("common.test")}
                       </button>
                       <button
                         onClick={() => handleSave(platform, url)}
                         disabled={!url.trim()}
-                        className="rounded-md bg-[#059669] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#047857] disabled:opacity-40"
+                        className="rounded-md bg-[#ff385c] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#e0294d] disabled:opacity-40"
                       >
                         {t("common.save")}
                       </button>
@@ -252,7 +252,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
                 {/* Last sync info */}
                 {link?.lastFetchedAt && (
-                  <p className="text-xs text-[#6b7280]">
+                  <p className="text-xs text-[#71717a]">
                     {t("sync.lastSynced")} {new Date(link.lastFetchedAt).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB")}
                   </p>
                 )}
@@ -260,17 +260,17 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
               {/* Step 2: Import URL for platform */}
               {isConnected && (
-                <div className="space-y-1.5 border-t border-[#1e2533] pt-3">
-                  <label className="text-xs text-[#8b92a0]">
+                <div className="space-y-1.5 border-t border-[#27272b] pt-3">
+                  <label className="text-xs text-[#a0a0a8]">
                     {t("sync.importLabel")} {label}
                   </label>
                   <div className="flex items-center gap-1.5">
-                    <code className="flex-1 truncate rounded-md bg-[#0c0f14] border border-[#2a3142] px-2.5 py-1.5 text-xs text-[#d4d8e0]">
+                    <code className="flex-1 truncate rounded-md bg-[#111113] border border-[#333338] px-2.5 py-1.5 text-xs text-[#d4d4d8]">
                       {feedUrl(platform)}
                     </code>
                     <button
                       onClick={() => copyUrl(feedUrl(platform), `feed-${platform}`)}
-                      className="shrink-0 rounded-md bg-[#1e2533] px-2.5 py-1.5 text-xs text-[#d4d8e0] hover:bg-[#2a3142]"
+                      className="shrink-0 rounded-md bg-[#27272b] px-2.5 py-1.5 text-xs text-[#d4d4d8] hover:bg-[#333338]"
                     >
                       {copied === `feed-${platform}` ? t("common.copied") : t("common.copy")}
                     </button>
@@ -284,9 +284,9 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
       {/* Buffer Settings */}
       {links.length > 0 && (
-        <div className="rounded-lg border border-[#1e2533] bg-[#13171e] p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-[#e8ecf2]">{t("sync.bufferDays")}</h2>
-          <p className="text-xs text-[#8b92a0]">
+        <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-4">
+          <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("sync.bufferDays")}</h2>
+          <p className="text-xs text-[#a0a0a8]">
             {t("sync.bufferDesc")}
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -297,33 +297,33 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
                 <div key={platform} className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-xs font-medium text-[#e8ecf2]">{label}</span>
+                    <span className="text-xs font-medium text-[#e8e8ec]">{label}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-[#6b7280]">{t("sync.before")}</span>
+                      <span className="text-xs text-[#71717a]">{t("sync.before")}</span>
                       <div className="relative">
                         <select
                           value={link.bufferBefore}
                           onChange={(e) => handleUpdateBuffer(platform, "bufferBefore", Number(e.target.value))}
-                          className="h-7 appearance-none rounded-md border border-[#2a3142] bg-[#0c0f14] pl-2.5 pr-7 text-xs text-[#e8ecf2] outline-none focus:border-[#6c8fff]"
+                          className="h-7 appearance-none rounded-md border border-[#333338] bg-[#111113] pl-2.5 pr-7 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
                         >
                           {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "дн." : (n !== 1 ? "days" : "day")}</option>)}
                         </select>
-                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-[#6b7280]">{t("sync.after")}</span>
+                      <span className="text-xs text-[#71717a]">{t("sync.after")}</span>
                       <div className="relative">
                         <select
                           value={link.bufferAfter}
                           onChange={(e) => handleUpdateBuffer(platform, "bufferAfter", Number(e.target.value))}
-                          className="h-7 appearance-none rounded-md border border-[#2a3142] bg-[#0c0f14] pl-2.5 pr-7 text-xs text-[#e8ecf2] outline-none focus:border-[#6c8fff]"
+                          className="h-7 appearance-none rounded-md border border-[#333338] bg-[#111113] pl-2.5 pr-7 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
                         >
                           {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "дн." : (n !== 1 ? "days" : "day")}</option>)}
                         </select>
-                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                        <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                       </div>
                     </div>
                   </div>
@@ -335,47 +335,47 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
       )}
 
       {/* Minimum Nights */}
-      <div className="rounded-lg border border-[#1e2533] bg-[#13171e] p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[#e8ecf2]">{t("sync.minStay")}</h2>
-        <p className="text-xs text-[#8b92a0]">
+      <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("sync.minStay")}</h2>
+        <p className="text-xs text-[#a0a0a8]">
           {t("sync.minStayDesc")}
         </p>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-[#8b92a0]">{t("sync.minNights")}</span>
+          <span className="text-sm text-[#a0a0a8]">{t("sync.minNights")}</span>
           <div className="relative">
             <select
               value={minNights}
               onChange={(e) => onUpdateProperty(propertyId, { minNights: Number(e.target.value) })}
-              className="h-8 appearance-none rounded-md border border-[#2a3142] bg-[#0c0f14] pl-3 pr-8 text-sm text-[#e8ecf2] outline-none focus:border-[#6c8fff]"
+              className="h-8 appearance-none rounded-md border border-[#333338] bg-[#111113] pl-3 pr-8 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
             >
               {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "ноч." : (n !== 1 ? "nights" : "night")}</option>)}
             </select>
-            <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6b7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
           </div>
         </div>
       </div>
 
       {/* Check-in / Check-out times */}
-      <div className="rounded-lg border border-[#1e2533] bg-[#13171e] p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[#e8ecf2]">{t("sync.checkInOutTimes")}</h2>
-        <p className="text-xs text-[#8b92a0]">{t("sync.checkInOutDesc")}</p>
+      <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("sync.checkInOutTimes")}</h2>
+        <p className="text-xs text-[#a0a0a8]">{t("sync.checkInOutDesc")}</p>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#8b92a0]">{t("sync.checkInTime")}</span>
+            <span className="text-sm text-[#a0a0a8]">{t("sync.checkInTime")}</span>
             <input
               type="time"
               value={checkInTime}
               onChange={(e) => onUpdateProperty(propertyId, { checkInTime: e.target.value })}
-              className="h-8 rounded-md border border-[#2a3142] bg-[#0c0f14] px-3 text-sm text-[#e8ecf2] outline-none focus:border-[#6c8fff]"
+              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-[#8b92a0]">{t("sync.checkOutTime")}</span>
+            <span className="text-sm text-[#a0a0a8]">{t("sync.checkOutTime")}</span>
             <input
               type="time"
               value={checkOutTime}
               onChange={(e) => onUpdateProperty(propertyId, { checkOutTime: e.target.value })}
-              className="h-8 rounded-md border border-[#2a3142] bg-[#0c0f14] px-3 text-sm text-[#e8ecf2] outline-none focus:border-[#6c8fff]"
+              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
             />
           </div>
         </div>
@@ -383,10 +383,10 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
       {/* Sync Log */}
       {logs.length > 0 && (
-        <div className="rounded-lg border border-[#1e2533] bg-[#13171e]">
+        <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
           <button
             onClick={() => setShowLogs(!showLogs)}
-            className="flex w-full items-center justify-between px-4 py-3 text-xs font-medium text-[#8b92a0] hover:text-[#e8ecf2]"
+            className="flex w-full items-center justify-between px-4 py-3 text-xs font-medium text-[#a0a0a8] hover:text-[#e8e8ec]"
           >
             <span>Sync Log ({logs.length})</span>
             <svg className={`h-4 w-4 transition-transform ${showLogs ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -394,17 +394,17 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
             </svg>
           </button>
           {showLogs && (
-            <div className="border-t border-[#1e2533] max-h-[200px] overflow-y-auto p-3 font-mono text-xs leading-relaxed">
+            <div className="border-t border-[#27272b] max-h-[200px] overflow-y-auto p-3 font-mono text-xs leading-relaxed">
               {logs.map((log) => (
                 <div key={log.id} className="flex gap-2">
-                  <span className="shrink-0 text-[#6b7280]">
+                  <span className="shrink-0 text-[#71717a]">
                     {new Date(log.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <span className={
                     log.level === "error" ? "text-[#ef4444]"
                     : log.level === "success" ? "text-[#34d399]"
-                    : log.level === "warn" ? "text-[#f59e0b]"
-                    : "text-[#8b92a0]"
+                    : log.level === "warn" ? "text-[#fbbf24]"
+                    : "text-[#a0a0a8]"
                   }>
                     {log.message}
                   </span>
