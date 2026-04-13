@@ -233,11 +233,12 @@ export function PropertyCalendar({
       }
     }
 
-    // Detect conflicts: dates booked on BOTH platforms (inclusive checkout day)
-    // If checkout day of one platform = checkin/block of another, there's no cleaning gap → conflict
+    // Detect conflicts: dates where BOTH platforms have a guest staying overnight.
+    // Uses strict stay sets (exclusive of checkout day) — checkout day of one platform
+    // matching checkin day of another is a valid back-to-back turnover, NOT a conflict.
     const conflictList: { date: string; airbnbName: string; bookingName: string }[] = [];
-    for (const d of airbnb) {
-      if (booking.has(d)) {
+    for (const d of airbnbStay) {
+      if (bookingStay.has(d)) {
         conflictSet.add(d);
       }
     }
