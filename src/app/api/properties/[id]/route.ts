@@ -13,6 +13,7 @@ export async function PATCH(
   if (body.minNights !== undefined) data.minNights = body.minNights;
   if (body.checkInTime !== undefined) data.checkInTime = body.checkInTime;
   if (body.checkOutTime !== undefined) data.checkOutTime = body.checkOutTime;
+  if (body.bookingWindow !== undefined) data.bookingWindow = body.bookingWindow;
 
   const property = await prisma.property.update({
     where: { id: parseInt(id) },

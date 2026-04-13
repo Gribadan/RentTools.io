@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
+import { bookingWindowCutoff } from "@/lib/types";
 
 interface CalendarEvent {
   id: number;
@@ -65,10 +66,14 @@ function computeCleaningDays(
   const maxAfter = Math.max(0, ...links.map(l => l.bufferAfter), 0);
   const minStay = property.minNights || 3;
 
+  // Booking window cutoff — ignore events starting beyond this date
+  const cutoff = bookingWindowCutoff(property.bookingWindow || 365);
+
   interface Booking { start: string; end: string; name: string; platform: string }
   const allBookings: Booking[] = [];
 
   for (const ev of events) {
+    if (ev.startDate >= cutoff) continue; // beyond booking window
     let d = ev.startDate;
     while (d <= ev.endDate) { allBooked.add(d); d = addDaysStr(d, 1); }
     // Include ALL events in cleaning computation — host blocks ("Not available"),

@@ -8,7 +8,7 @@ import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, addDays
 export async function generateFeed(propertyId: number, forPlatform: string): Promise<{ ical: string } | { error: string; status: number }> {
   const property = await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { name: true, minNights: true },
+    select: { name: true, minNights: true, bookingWindow: true },
   });
 
   if (!property) {
@@ -26,9 +26,19 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
   const openOverrides = new Set(dateOverrides.filter(o => o.type === "open").map(o => o.date));
   const closedOverrides = dateOverrides.filter(o => o.type === "closed");
 
-  // All events for buffer calculation
+  // Booking window cutoff — ignore events starting beyond this date
+  const windowDays = property.bookingWindow ?? 365;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() + windowDays);
+  const cutoff = cutoffDate.toISOString().substring(0, 10);
+
+  // All events for buffer calculation (within booking window)
   const allEvents = await prisma.calendarEvent.findMany({
-    where: { propertyId, endDate: { gte: new Date().toISOString().substring(0, 10) } },
+    where: {
+      propertyId,
+      endDate: { gte: new Date().toISOString().substring(0, 10) },
+      startDate: { lt: cutoff },
+    },
     orderBy: { startDate: "asc" },
   });
 

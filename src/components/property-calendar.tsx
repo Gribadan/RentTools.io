@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import type { Property, Reservation, CalendarLink, DateOverride } from "@/lib/types";
-// CleaningSchedule moved to its own tab
+import { bookingWindowCutoff } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/context";
 
 interface CalendarEvent {
@@ -131,8 +131,12 @@ export function PropertyCalendar({
     // Collect all bookings as ranges
     const allBookings: { start: string; end: string; platform: string; name: string }[] = [];
 
+    // Booking window cutoff — ignore events starting beyond this date
+    const cutoff = bookingWindowCutoff(property.bookingWindow || 365);
+
     // Synced calendar events
     for (const ev of syncedEvents) {
+      if (ev.startDate >= cutoff) continue; // beyond booking window
       const platform = ev.platform;
       const dates = platform === "airbnb" ? airbnb : booking;
       const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
