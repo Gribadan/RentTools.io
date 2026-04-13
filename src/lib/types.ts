@@ -39,6 +39,7 @@ export interface Property {
   minNights: number;
   checkInTime: string;  // "HH:MM" — guest arrival time, e.g. "14:00"
   checkOutTime: string; // "HH:MM" — guest departure time, e.g. "12:00"
+  bookingWindow: number; // days forward from today to consider bookings; beyond this, events are ignored
   createdAt: string;
   reservations: Reservation[];
 }
@@ -73,6 +74,16 @@ export interface DateOverride {
   type: "open" | "closed";
   note: string;
   createdAt: string;
+}
+
+/**
+ * Compute the cutoff date string (YYYY-MM-DD) for a booking window.
+ * Events starting on or after this date should be ignored.
+ */
+export function bookingWindowCutoff(windowDays: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + windowDays);
+  return d.toISOString().substring(0, 10);
 }
 
 export interface SyncLogEntry {

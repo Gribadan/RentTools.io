@@ -187,6 +187,9 @@ export const translations = {
   "sync.checkInOutDesc": { en: "Used to display booking bars on the calendar with time-accurate start/end and compute hours available for cleaning between back-to-back guests.", ru: "Используется для отображения полос на календаре с учётом времени и расчёта доступных часов для уборки между гостями." },
   "sync.checkInTime": { en: "Check-in", ru: "Заезд" },
   "sync.checkOutTime": { en: "Check-out", ru: "Выезд" },
+  "sync.bookingWindow": { en: "Booking Window", ru: "Окно бронирования" },
+  "sync.bookingWindowDesc": { en: "How many days forward from today to accept bookings. Events beyond this window are ignored — platforms often block far-future dates that aren't real bookings.", ru: "На сколько дней вперёд от сегодня принимать бронирования. События за пределами окна игнорируются — платформы часто блокируют далёкие даты, которые не являются реальными бронированиями." },
+  "sync.bookingWindowDays": { en: "days forward", ru: "дней вперёд" },
 
   // Date slider
   "dateslider.in": { en: "In", ru: "Заезд" },

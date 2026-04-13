@@ -95,7 +95,7 @@ function AppContent({
     if (res.ok) await fetchProperties();
   };
 
-  const handleUpdateProperty = async (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string }) => {
+  const handleUpdateProperty = async (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => {
     await fetch(`/api/properties/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -209,6 +209,7 @@ function AppContent({
               minNights={selectedProperty.minNights || 3}
               checkInTime={selectedProperty.checkInTime || "14:00"}
               checkOutTime={selectedProperty.checkOutTime || "12:00"}
+              bookingWindow={selectedProperty.bookingWindow || 365}
               onUpdateProperty={handleUpdateProperty}
             />
           );

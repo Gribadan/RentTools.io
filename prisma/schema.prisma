@@ -27,6 +27,7 @@ model Property {
   minNights      Int              @default(3)
   checkInTime    String           @default("14:00")
   checkOutTime   String           @default("12:00")
+  bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored
   createdAt      DateTime         @default(now())
   reservations   Reservation[]
   calendarLinks  CalendarLink[]

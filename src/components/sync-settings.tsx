@@ -19,10 +19,11 @@ interface SyncSettingsProps {
   minNights: number;
   checkInTime: string;
   checkOutTime: string;
-  onUpdateProperty: (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string }) => void;
+  bookingWindow: number;
+  onUpdateProperty: (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => void;
 }
 
-export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, onUpdateProperty }: SyncSettingsProps) {
+export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, bookingWindow, onUpdateProperty }: SyncSettingsProps) {
   const { t, locale } = useI18n();
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
@@ -377,6 +378,26 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
               onChange={(e) => onUpdateProperty(propertyId, { checkOutTime: e.target.value })}
               className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Booking Window */}
+      <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-3">
+        <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("sync.bookingWindow")}</h2>
+        <p className="text-xs text-[#a0a0a8]">{t("sync.bookingWindowDesc")}</p>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <select
+              value={bookingWindow}
+              onChange={(e) => onUpdateProperty(propertyId, { bookingWindow: Number(e.target.value) })}
+              className="h-8 appearance-none rounded-md border border-[#333338] bg-[#111113] pl-3 pr-8 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+            >
+              {[90, 180, 270, 365, 548, 730].map((n) => (
+                <option key={n} value={n}>{n} {t("sync.bookingWindowDays")} ({Math.round(n / 30)} {locale === "ru" ? "мес." : "mo"})</option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
           </div>
         </div>
       </div>
