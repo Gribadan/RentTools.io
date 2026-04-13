@@ -183,7 +183,7 @@ export function ReservationView({
                         editPlatform === p
                           ? p === "airbnb"
                             ? "bg-[#ff385c]/15 text-[#ff385c] shadow-sm"
-                            : "bg-[#222222]/20 text-[#4B9CD3] shadow-sm"
+                            : "bg-[#003580]/20 text-[#4B9CD3] shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -225,7 +225,7 @@ export function ReservationView({
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
                   reservation.platform === "booking"
-                    ? "bg-[#222222]/20 text-[#4B9CD3]"
+                    ? "bg-[#003580]/20 text-[#4B9CD3]"
                     : "bg-[#ff385c]/10 text-[#ff385c]"
                 }`}>
                   {reservation.platform === "booking" ? "Booking.com" : "Airbnb"}

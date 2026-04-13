@@ -143,7 +143,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
   const platforms = [
     { key: "airbnb", label: "Airbnb", color: "#ff385c", url: airbnbUrl, setUrl: setAirbnbUrl },
-    { key: "booking", label: "Booking.com", color: "#93c5fd", url: bookingUrl, setUrl: setBookingUrl },
+    { key: "booking", label: "Booking.com", color: "#003580", url: bookingUrl, setUrl: setBookingUrl },
   ] as const;
 
   return (

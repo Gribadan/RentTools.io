@@ -856,7 +856,7 @@ export function PropertyCalendar({
         {/* Legend */}
         <div className="flex items-center gap-4 border-b border-[#27272b] px-4 py-2">
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#ff385c]" /><span className="text-xs text-[#a0a0a8]">{t("calendar.airbnb")}</span></div>
-          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#222222]" /><span className="text-xs text-[#a0a0a8]">{t("calendar.booking")}</span></div>
+          <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#003580]" /><span className="text-xs text-[#a0a0a8]">{t("calendar.booking")}</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#fbbf24]/30 border border-[#fbbf24]/40" /><span className="text-xs text-[#a0a0a8]">{t("calendar.cleaning")}</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#e8e8ec]/15 border border-[#e8e8ec]/25 border-dashed" /><span className="text-xs text-[#a0a0a8]">{t("calendar.potentialCleaning")}</span></div>
           <div className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-sm bg-[#71717a]/15 border border-[#71717a]/20 border-dashed" /><span className="text-xs text-[#a0a0a8]">&lt;{property.minNights || 3}n</span></div>
@@ -960,7 +960,7 @@ export function PropertyCalendar({
                       className={`absolute top-7 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
                         isConflict ? "bg-[#ef4444] ring-1 ring-[#ef4444]/40" :
                         seg.platform === "booking"
-                          ? "bg-[#222222]"
+                          ? "bg-[#003580]"
                           : "bg-[#ff385c]"
                       } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
                       style={{
@@ -1008,11 +1008,11 @@ export function PropertyCalendar({
                 } ${item.reservationId ? "cursor-pointer" : ""}`}
               >
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                  item.platform === "booking" ? "bg-[#222222]" : "bg-[#ff385c]"
+                  item.platform === "booking" ? "bg-[#003580]" : "bg-[#ff385c]"
                 }`} />
                 <span className="flex-1 text-sm font-medium text-[#e8e8ec] truncate">{item.name}</span>
                 <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                  item.platform === "booking" ? "bg-[#222222]/20 text-[#93c5fd]" : "bg-[#ff385c]/20 text-[#ff385c]"
+                  item.platform === "booking" ? "bg-[#003580]/20 text-[#93c5fd]" : "bg-[#ff385c]/20 text-[#ff385c]"
                 }`}>
                   {item.platform === "booking" ? "Booking" : "Airbnb"}
                 </span>

@@ -242,7 +242,7 @@ export function Dashboard({
                       formPlatform === p
                         ? p === "airbnb"
                           ? "bg-[#ff385c]/15 text-[#ff385c]"
-                          : "bg-[#222222]/25 text-[#93c5fd]"
+                          : "bg-[#003580]/25 text-[#93c5fd]"
                         : "text-[#71717a] hover:text-[#a0a0a8]"
                     }`}
                   >
@@ -317,7 +317,7 @@ export function Dashboard({
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
                     res.platform === "booking"
-                      ? "bg-[#222222]/20 text-[#93c5fd]"
+                      ? "bg-[#003580]/20 text-[#93c5fd]"
                       : "bg-[#ff385c]/10 text-[#ff385c]"
                   }`}
                 >
