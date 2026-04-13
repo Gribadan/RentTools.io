@@ -410,7 +410,11 @@ export function CleaningSchedule({
 
   const formatDate = (d: string) => {
     const date = new Date(d + "T12:00:00");
-    return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { weekday: "short", day: "2-digit", month: "short" });
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+    const opts: Intl.DateTimeFormatOptions = { weekday: "short", day: "2-digit", month: "short" };
+    if (dateYear !== currentYear) opts.year = "numeric";
+    return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", opts);
   };
 
   const formatReason = (day: CleaningDay): string => {
@@ -588,7 +592,15 @@ export function CleaningSchedule({
               <tbody>
                 {futureDays.map((day, i) => {
                   const isOverlap = futureOverlaps.some(o => o.date === day.date);
+                  const prevYear = i > 0 ? futureDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
+                  const thisYear = day.date.substring(0, 4);
+                  const showYearDivider = thisYear !== prevYear;
                   return (
+                    <>{showYearDivider && (
+                      <tr key={`year-${thisYear}`} className="border-b border-[#27272b]">
+                        <td colSpan={10} className="px-4 py-2 text-xs font-semibold text-[#a0a0a8] bg-[#1e1e22]">{thisYear}</td>
+                      </tr>
+                    )}
                     <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[#27272b]/50 ${isOverlap ? "bg-[#fbbf24]/5" : "hover:bg-[#1e1e22]"}`}>
                       <td className="px-4 py-2 text-sm text-[#e8e8ec] whitespace-nowrap">
                         {formatDate(day.date)}
@@ -644,6 +656,7 @@ export function CleaningSchedule({
                         </td>
                       )}
                     </tr>
+                    </>
                   );
                 })}
               </tbody>
