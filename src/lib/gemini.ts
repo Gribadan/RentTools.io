@@ -23,6 +23,27 @@ export async function getGeminiModel() {
   return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 
+/**
+ * Strip diacritics/accents from a string, converting to basic ASCII Latin.
+ * "Genève" → "Geneve", "München" → "Munchen", "café" → "cafe"
+ */
+export function stripDiacritics(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/**
+ * Clean all string fields in extracted passport/visa data — strip diacritics.
+ */
+export function cleanExtractedData<T extends Record<string, unknown>>(data: T): T {
+  const cleaned = { ...data };
+  for (const key of Object.keys(cleaned)) {
+    if (typeof cleaned[key] === "string") {
+      (cleaned as Record<string, unknown>)[key] = stripDiacritics(cleaned[key] as string);
+    }
+  }
+  return cleaned;
+}
+
 export interface PassportData {
   fullName: string;
   firstName: string;
@@ -48,7 +69,7 @@ export interface VisaData {
 export const PASSPORT_PROMPT = `Analyze this document image. It may be a passport or a visa.
 
 CRITICAL RULES:
-1. ALL text output MUST be in English/Latin letters ONLY. If the source is in Cyrillic or another script, transliterate to English. Example: "МИД РОССИИ" becomes "MID ROSSII", "ИВАНОВ ПЕТР" becomes "IVANOV PETR".
+1. ALL text output MUST be in basic ASCII Latin letters ONLY (A-Z, 0-9, spaces, slashes). No Cyrillic, no accented characters (è, ü, ñ, ç, etc.). Transliterate Cyrillic to English, strip diacritics from Latin characters. Examples: "МИД РОССИИ" → "MID ROSSII", "ИВАНОВ ПЕТР" → "IVANOV PETR", "Genève" → "Geneve", "München" → "Munchen".
 2. Passport numbers MUST have NO spaces. Remove all spaces. Example: "55 1840745" becomes "551840745".
 3. Use the English name from the passport (most passports have both native and English names). Always prefer the English/Latin version.
 4. Visa numbers must also have no spaces.
@@ -66,7 +87,7 @@ If it is a PASSPORT, extract these fields in JSON format:
 - dateOfIssue: Date of issue (DD/MM/YYYY)
 - expiryDate: Expiry date (DD/MM/YYYY)
 - passportNumber: Full passport number with series, NO SPACES (e.g. "551840745" not "55 1840745")
-- issuedBy: Issuing authority in English (transliterate if needed, e.g. "MID ROSSII 49302")
+- issuedBy: Issuing authority in basic ASCII Latin only — no accents, diacritics, or special characters. Replace è→e, ü→u, ñ→n, ç→c, etc. Example: "Genève GE" becomes "Geneve GE", "München" becomes "Munchen", "MID ROSSII 49302"
 
 If it is a VISA, extract these fields in JSON format:
 - type: "visa"
