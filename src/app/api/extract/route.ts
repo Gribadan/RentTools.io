@@ -17,12 +17,16 @@ function transliterate(text: string): string {
   return text.split("").map((ch) => CYRILLIC_MAP[ch] ?? ch).join("");
 }
 
+function stripDiacritics(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function sanitizeText(text: string): string {
-  return transliterate(text).trim();
+  return stripDiacritics(transliterate(text)).trim();
 }
 
 function stripSpaces(text: string): string {
-  return transliterate(text).replace(/\s+/g, "").trim();
+  return stripDiacritics(transliterate(text)).replace(/\s+/g, "").trim();
 }
 
 interface ExtractedItem {
