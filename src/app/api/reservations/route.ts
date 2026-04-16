@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { name, checkIn, checkOut, platform, propertyId } = await request.json();
+  const { name, checkIn, checkOut, platform, propertyId, linkedEventUid } = await request.json();
   if (!name?.trim() || !checkIn || !checkOut || !propertyId) {
     return NextResponse.json({ error: "All fields required" }, { status: 400 });
   }
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       checkIn: new Date(checkIn),
       checkOut: new Date(checkOut),
       platform: platform || "airbnb",
+      linkedEventUid: linkedEventUid || null,
       propertyId,
     },
   });
