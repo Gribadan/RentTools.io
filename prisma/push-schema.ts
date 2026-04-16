@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "Property" ADD COLUMN "checkInTime" TEXT NOT NULL DEFAULT '14:00'`,
     `ALTER TABLE "Property" ADD COLUMN "checkOutTime" TEXT NOT NULL DEFAULT '12:00'`,
     `ALTER TABLE "Property" ADD COLUMN "bookingWindow" INTEGER NOT NULL DEFAULT 365`,
+    `ALTER TABLE "Reservation" ADD COLUMN "linkedEventUid" TEXT`,
   ];
   for (const sql of migrations) {
     try {

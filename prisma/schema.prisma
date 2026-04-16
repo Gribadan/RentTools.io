@@ -71,15 +71,16 @@ model SyncLog {
 }
 
 model Reservation {
-  id         Int      @id @default(autoincrement())
-  name       String
-  checkIn    DateTime
-  checkOut   DateTime
-  platform   String   @default("airbnb")
-  propertyId Int
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  guests     Guest[]
-  createdAt  DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  name            String
+  checkIn         DateTime
+  checkOut        DateTime
+  platform        String   @default("airbnb")
+  linkedEventUid  String?  // UID of a synced CalendarEvent this reservation extends (for direct-pay extensions)
+  propertyId      Int
+  property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  guests          Guest[]
+  createdAt       DateTime @default(now())
 }
 
 model DateOverride {

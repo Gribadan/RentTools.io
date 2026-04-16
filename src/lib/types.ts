@@ -27,6 +27,7 @@ export interface Reservation {
   checkIn: string;
   checkOut: string;
   platform: string;
+  linkedEventUid?: string | null;
   propertyId: number;
   createdAt: string;
   guests?: Guest[];

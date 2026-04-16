@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import type { Property, Reservation, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/context";
+import { DateActionsPopover, type DateStatus, type ExtendableBooking } from "@/components/date-actions-popover";
 
 interface CalendarEvent {
   id: number;
@@ -412,7 +413,7 @@ export function PropertyCalendar({
 
   // Build bars (continuous booking spans) for rendering
   const bars = useMemo(() => {
-    const result: { startDate: string; endDate: string; name: string; platform: string; reservationId?: number }[] = [];
+    const result: { startDate: string; endDate: string; name: string; platform: string; reservationId?: number; isExtension?: boolean }[] = [];
     const processed = new Set<string>();
 
     // Collect all event start dates, sorted
@@ -426,6 +427,9 @@ export function PropertyCalendar({
       // Check if a reservation matches this date range — use its name
       let label = ev.name;
       let resId = ev.reservationId;
+      // Mark as extension if the reservation at this start is linked to a synced event
+      const matchingRes = resId ? property.reservations.find(r => r.id === resId) : undefined;
+      const isExtension = !!matchingRes?.linkedEventUid;
 
       // Clean up "Reserved" / "CLOSED - Not available" etc
       if (label.includes("Reserved") || label.includes("CLOSED") || label.includes("Not available")) {
@@ -450,6 +454,7 @@ export function PropertyCalendar({
         name: label,
         platform: ev.platform,
         reservationId: resId,
+        isExtension,
       });
     }
 
@@ -522,6 +527,7 @@ export function PropertyCalendar({
     name: string;
     platform: string;
     reservationId?: number;
+    isExtension?: boolean; // direct-pay extension linked to a synced event
     span: number;          // cells covered in this week row (1..7)
     leftPct: number;       // % from left of first cell (0 for continuation, checkInPct for actual start)
     rightMarginPct: number; // % from right of last cell (0 if continues, 100-checkOutPct for actual end)
@@ -585,73 +591,106 @@ export function PropertyCalendar({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  const [overrideHint, setOverrideHint] = useState<string | null>(null);
+  // Popover state: when user clicks a date in edit mode, show actions
+  const [popoverDate, setPopoverDate] = useState<string | null>(null);
+  const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
 
-  const showHint = (msg: string) => {
-    setOverrideHint(msg);
-    setTimeout(() => setOverrideHint(null), 3500);
+  const openDateActions = (dateStr: string, rect: DOMRect) => {
+    if (!overrideMode) return;
+    setPopoverDate(dateStr);
+    setPopoverAnchor(rect);
   };
 
-  const handleToggleOverride = async (dateStr: string) => {
-    if (!overrideMode) return;
+  const closePopover = () => {
+    setPopoverDate(null);
+    setPopoverAnchor(null);
+  };
 
-    const hasBar = bars.some(b => dateStr >= b.startDate && dateStr <= b.endDate);
-    const isBuffer = bufferDates.has(dateStr);
-    const isPotential = potentialDates.has(dateStr);
-    const isUnbookable = unbookableDates.has(dateStr);
-    const isSameDayCleaning = sameDayCleaningDates.has(dateStr);
-    const isOpenOverride = openOverrides.has(dateStr);
-    const isClosedOverride = closedOverrides.has(dateStr);
+  // Compute extendable bookings for a given date: any booking whose start is date+1 (extending before)
+  // or whose end is date-1 (extending after).
+  const getExtendableBookings = (dateStr: string): ExtendableBooking[] => {
+    const result: ExtendableBooking[] = [];
+    const dayBefore = addDaysStr(dateStr, -1);
+    const dayAfter = addDaysStr(dateStr, 1);
 
-    // Rule: dates held by a real booking (from the platform or internal reservation)
-    // cannot be force-opened — we can't unbook someone else's guest.
-    // Exception: dates that are ONLY blocked by our buffer/cleaning logic CAN be opened.
-    if (hasBar) {
-      if (isOpenOverride || isClosedOverride) {
-        // Allow removing any existing override (cleanup)
-        await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, {
-          method: "DELETE",
+    // Check synced events
+    for (const ev of syncedEvents) {
+      // Skip "Not available" / "Blocked" — those are host blocks, not guest bookings
+      const isBlock = ev.platform === "airbnb" && (ev.summary.includes("Not available") || ev.summary.includes("Blocked"));
+      if (isBlock) continue;
+      // Use endDate exclusive (iCal semantic): event covers [startDate, endDate) as stay; endDate is checkout day
+      if (ev.startDate === dayAfter) {
+        // User's date is the day before the event starts — extending before
+        result.push({
+          name: ev.summary || (ev.platform === "airbnb" ? "Airbnb" : "Booking"),
+          platform: ev.platform,
+          eventUid: ev.uid,
+          side: "before",
         });
-        await fetchOverrides();
-        return;
       }
-      showHint(t("calendar.blockedByBooking"));
-      return;
+      // End date is exclusive (checkout day) — so event "ends" at endDate. Extending after means our date >= endDate
+      if (ev.endDate === dateStr) {
+        result.push({
+          name: ev.summary || (ev.platform === "airbnb" ? "Airbnb" : "Booking"),
+          platform: ev.platform,
+          eventUid: ev.uid,
+          side: "after",
+        });
+      }
     }
 
-    // If already has an override, remove it (toggle off)
-    if (isOpenOverride || isClosedOverride) {
-      await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, {
-        method: "DELETE",
-      });
-      await fetchOverrides();
-      return;
+    // Also check internal reservations (people may want to extend them too)
+    for (const res of property.reservations) {
+      const rStart = toDateStr(new Date(res.checkIn));
+      const rEnd = toDateStr(new Date(res.checkOut));
+      if (rStart === dayAfter) {
+        result.push({ name: res.name, platform: res.platform, side: "before" });
+      }
+      if (rEnd === dateStr) {
+        result.push({ name: res.name, platform: res.platform, side: "after" });
+      }
     }
 
-    // Date is auto-blocked by our logic (buffer/cleaning/unbookable) → force open
-    if (isBuffer || isPotential || isUnbookable || isSameDayCleaning) {
-      await fetch(`/api/date-overrides`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          propertyId: property.id,
-          date: dateStr,
-          type: "open",
-        }),
-      });
-    } else {
-      // Date is completely free → force close it (add manual block/cleaning)
-      await fetch(`/api/date-overrides`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          propertyId: property.id,
-          date: dateStr,
-          type: "closed",
-        }),
-      });
-    }
+    return result;
+  };
+
+  const setOverride = async (dateStr: string, type: "open" | "closed") => {
+    await fetch(`/api/date-overrides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ propertyId: property.id, date: dateStr, type }),
+    });
     await fetchOverrides();
+    closePopover();
+  };
+
+  const deleteOverride = async (dateStr: string) => {
+    await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, {
+      method: "DELETE",
+    });
+    await fetchOverrides();
+    closePopover();
+  };
+
+  const extendBooking = async (dateStr: string, booking: ExtendableBooking) => {
+    // Create an internal reservation for this single day, linked to the event if provided.
+    const checkIn = dateStr;
+    const checkOut = booking.side === "before" ? addDaysStr(dateStr, 1) : addDaysStr(dateStr, 1);
+    await fetch(`/api/reservations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: booking.name,
+        checkIn,
+        checkOut,
+        platform: booking.platform,
+        propertyId: property.id,
+        linkedEventUid: booking.eventUid,
+      }),
+    });
+    closePopover();
+    // Note: property data will be refreshed by parent on reservation change
+    window.location.reload(); // simplest refresh; proper solution would use a callback prop
   };
 
   const [exportCopied, setExportCopied] = useState(false);
@@ -829,16 +868,6 @@ export function PropertyCalendar({
         </div>
       )}
 
-      {/* Override hint toast */}
-      {overrideHint && (
-        <div className="rounded-lg border border-[#ef4444]/30 bg-[#ef4444]/5 p-3 flex items-center gap-3">
-          <svg className="h-4 w-4 text-[#ef4444] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-          </svg>
-          <p className="text-xs text-[#ef4444]">{overrideHint}</p>
-        </div>
-      )}
-
       {/* Calendar */}
       <div className={`rounded-lg border bg-[#18181b] overflow-hidden ${overrideMode ? "border-[#da3633]/30" : "border-[#27272b]"}`}>
         {/* Month nav */}
@@ -911,8 +940,8 @@ export function PropertyCalendar({
               return (
                 <div
                   key={`c-${dayNum}`}
-                  onClick={() => {
-                    if (overrideMode) handleToggleOverride(ds);
+                  onClick={(e) => {
+                    if (overrideMode) openDateActions(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
                   className={`relative h-16 border-r border-[#27272b] last:border-r-0 ${bg} ${
                     overrideMode ? "cursor-pointer hover:bg-[#1e1e22]" : ""
@@ -966,11 +995,14 @@ export function PropertyCalendar({
                         seg.platform === "booking"
                           ? "bg-[#003580]"
                           : "bg-[#ff385c]"
-                      } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""}`}
+                      } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
                       style={{
                         left: `${seg.leftPct}%`,
                         width: `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
                         zIndex: 10,
+                        backgroundImage: seg.isExtension
+                          ? "repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255,255,255,0.22) 6px 8px)"
+                          : undefined,
                       }}
                       title={`${seg.name} · ${seg.startDate} ${property.checkInTime || "14:00"} → ${seg.endDate} ${property.checkOutTime || "12:00"}${isConflict ? " ⚠ CONFLICT" : ""}`}
                     >
@@ -1035,7 +1067,32 @@ export function PropertyCalendar({
         )}
       </div>
 
-      {/* Cleaning Schedule */}
+      {/* Date actions popover */}
+      {popoverDate && popoverAnchor && (
+        <DateActionsPopover
+          date={popoverDate}
+          anchorRect={popoverAnchor}
+          status={{
+            hasBar: bars.some(b => popoverDate >= b.startDate && popoverDate <= b.endDate),
+            barName: bars.find(b => popoverDate >= b.startDate && popoverDate <= b.endDate)?.name,
+            barPlatform: bars.find(b => popoverDate >= b.startDate && popoverDate <= b.endDate)?.platform,
+            isBuffer: bufferDates.has(popoverDate),
+            isPotential: potentialDates.has(popoverDate),
+            isSameDayCleaning: sameDayCleaningDates.has(popoverDate),
+            isUnbookable: unbookableDates.has(popoverDate),
+            isOpenOverride: openOverrides.has(popoverDate),
+            isClosedOverride: closedOverrides.has(popoverDate),
+          }}
+          extendable={getExtendableBookings(popoverDate)}
+          onClose={closePopover}
+          onCloseDate={() => setOverride(popoverDate, "closed")}
+          onOpenDate={() => setOverride(popoverDate, "open")}
+          onAddCleaning={() => setOverride(popoverDate, "closed")}
+          onRemoveCleaning={() => setOverride(popoverDate, "open")}
+          onRemoveOverride={() => deleteOverride(popoverDate)}
+          onExtendBooking={(b) => extendBooking(popoverDate, b)}
+        />
+      )}
     </div>
   );
 }
