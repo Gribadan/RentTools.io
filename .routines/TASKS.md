@@ -99,7 +99,7 @@
   - Return: `{ properties: [{ id, name, airbnbFeed: { url, status, eventCount }, bookingFeed: { ... } }] }`
   - Acceptance criteria: endpoint returns 200 with feed status for each property
 
-- [ ] **RT-3.5** Log sync event counts in Tasks panel summary
+- [x] **RT-3.5** Log sync event counts in Tasks panel summary
   - File: `src/components/tasks-panel.tsx`
   - Below the "Last sync" info, show a breakdown: "Airbnb: 22 events, Booking: 8 events" per property
   - Fetch from `/api/calendar/sync?propertyId=X` for event counts
@@ -230,3 +230,4 @@
 - 2026-05-03 — RT-3.2 — d629741 — Sync Now button next to property name
 - 2026-05-03 — RT-3.3 — 0bb2503 — show bar label on day 1 for cross-month bookings
 - 2026-05-03 — RT-3.4 — 8f50040 — /api/calendar/health endpoint
+- 2026-05-03 — RT-3.5 — d85b3fe — per-property Airbnb/Booking event counts in Tasks panel
