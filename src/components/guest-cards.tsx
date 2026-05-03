@@ -3,6 +3,37 @@
 import { useState, useCallback } from "react";
 import type { Guest } from "@/lib/types";
 
+// Age computed dynamically from DOB so it doesn't go stale across years.
+// Supports DD/MM/YYYY (extraction format) and YYYY-MM-DD.
+function calculateAge(dob: string): number | null {
+  if (!dob) return null;
+  let year: number, month: number, day: number;
+  const ddmm = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(dob);
+  if (ddmm) {
+    day = parseInt(ddmm[1]);
+    month = parseInt(ddmm[2]);
+    year = parseInt(ddmm[3]);
+  } else {
+    const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(dob);
+    if (!iso) return null;
+    year = parseInt(iso[1]);
+    month = parseInt(iso[2]);
+    day = parseInt(iso[3]);
+  }
+  if (!year || !month || !day) return null;
+  const now = new Date();
+  let age = now.getFullYear() - year;
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  if (m < month || (m === month && d < day)) age--;
+  if (age < 0 || age > 150) return null;
+  return age;
+}
+
+function effectiveAge(guest: Guest): number {
+  return calculateAge(guest.dateOfBirth) ?? guest.yearsOld;
+}
+
 interface GuestCardsProps {
   guests: Guest[];
   checkIn: string;
@@ -223,7 +254,7 @@ function GuestCard({
       <div className="flex items-center justify-between border-b border-border/20 px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="truncate text-sm font-semibold text-[#e8e8ec]">{guest.fullName}</span>
-          <span className="shrink-0 text-xs text-[#a0a0a8]">{guest.yearsOld}y</span>
+          <span className="shrink-0 text-xs text-[#a0a0a8]">{effectiveAge(guest)}y</span>
         </div>
         <div className="flex items-center gap-1">
           {editing ? (
@@ -414,9 +445,9 @@ export function GuestCards({
     return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
   })();
 
-  // Separate adults (16+) and children (<16)
-  const adults = guests.filter((g) => g.yearsOld >= 16 && g.parentId === null);
-  const allChildren = guests.filter((g) => g.yearsOld < 16);
+  // Separate adults (16+) and children (<16) using dynamically computed age
+  const adults = guests.filter((g) => effectiveAge(g) >= 16 && g.parentId === null);
+  const allChildren = guests.filter((g) => effectiveAge(g) < 16);
 
   // Auto-assign unlinked children to first adult
   const unlinkedChildren = allChildren.filter((c) => c.parentId === null);
