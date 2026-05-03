@@ -64,6 +64,7 @@ export function PropertyCalendar({
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
   const [overrideMode, setOverrideMode] = useState(false);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   const fetchOverrides = async () => {
     const res = await fetch(`/api/date-overrides?propertyId=${property.id}`);
@@ -72,6 +73,7 @@ export function PropertyCalendar({
   };
 
   useEffect(() => {
+    setLoadingEvents(true);
     Promise.all([
       fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
       fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
@@ -80,7 +82,7 @@ export function PropertyCalendar({
       setSyncedEvents(syncData.events || []);
       setLinks(linksData || []);
       setOverrides(overridesData || []);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoadingEvents(false));
   }, [property.id]);
 
   const today = useMemo(() => {
@@ -877,6 +879,9 @@ export function PropertyCalendar({
           </button>
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold text-[#e8e8ec]">{monthLabel}</h2>
+            {loadingEvents && (
+              <div className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-[#30363d] border-t-[#58a6ff]" />
+            )}
             {monthOffset !== 0 && (
               <button onClick={() => setMonthOffset(0)} className="rounded px-2 py-0.5 text-xs text-[#e8e8ec] hover:bg-[#e8e8ec]/10">{t("calendar.today")}</button>
             )}
