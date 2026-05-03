@@ -15,6 +15,18 @@ interface CalendarEvent {
   endDate: string;
 }
 
+// Module-level per-property cache so switching between recently-viewed
+// properties skips the network round-trip (the calendar remounts via `key` on
+// every property selection, which would otherwise re-fetch every time).
+type CalendarDataCache = {
+  syncedEvents: CalendarEvent[];
+  links: CalendarLink[];
+  overrides: DateOverride[];
+  ts: number;
+};
+const calendarDataCache = new Map<number, CalendarDataCache>();
+const CALENDAR_CACHE_TTL_MS = 30_000;
+
 interface PropertyCalendarProps {
   property: Property;
   onSelectReservation: (id: number) => void;
@@ -60,17 +72,35 @@ export function PropertyCalendar({
 }: PropertyCalendarProps) {
   const { t, locale } = useI18n();
   const [monthOffset, setMonthOffset] = useState(0);
-  const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
-  const [links, setLinks] = useState<CalendarLink[]>([]);
-  const [overrides, setOverrides] = useState<DateOverride[]>([]);
+  const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>(
+    () => calendarDataCache.get(property.id)?.syncedEvents ?? []
+  );
+  const [links, setLinks] = useState<CalendarLink[]>(
+    () => calendarDataCache.get(property.id)?.links ?? []
+  );
+  const [overrides, setOverrides] = useState<DateOverride[]>(
+    () => calendarDataCache.get(property.id)?.overrides ?? []
+  );
   const [overrideMode, setOverrideMode] = useState(false);
-  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingEvents, setLoadingEvents] = useState(() => {
+    const cached = calendarDataCache.get(property.id);
+    return !(cached && Date.now() - cached.ts < CALENDAR_CACHE_TTL_MS);
+  });
   const [syncing, setSyncing] = useState(false);
 
   const fetchOverrides = async () => {
     const res = await fetch(`/api/date-overrides?propertyId=${property.id}`);
     const data = await res.json();
-    setOverrides(data || []);
+    const overridesArr = data || [];
+    setOverrides(overridesArr);
+    const cached = calendarDataCache.get(property.id);
+    if (cached) {
+      calendarDataCache.set(property.id, {
+        ...cached,
+        overrides: overridesArr,
+        ts: Date.now(),
+      });
+    }
   };
 
   const refetchCalendarData = useCallback(async () => {
@@ -81,9 +111,18 @@ export function PropertyCalendar({
         fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
         fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
       ]);
-      setSyncedEvents(syncData.events || []);
-      setLinks(linksData || []);
-      setOverrides(overridesData || []);
+      const events = syncData.events || [];
+      const linksArr = linksData || [];
+      const overridesArr = overridesData || [];
+      setSyncedEvents(events);
+      setLinks(linksArr);
+      setOverrides(overridesArr);
+      calendarDataCache.set(property.id, {
+        syncedEvents: events,
+        links: linksArr,
+        overrides: overridesArr,
+        ts: Date.now(),
+      });
     } catch {
       // ignore
     } finally {
@@ -92,8 +131,12 @@ export function PropertyCalendar({
   }, [property.id]);
 
   useEffect(() => {
-    refetchCalendarData();
-  }, [refetchCalendarData]);
+    const cached = calendarDataCache.get(property.id);
+    const isFresh = cached && Date.now() - cached.ts < CALENDAR_CACHE_TTL_MS;
+    if (!isFresh) {
+      refetchCalendarData();
+    }
+  }, [refetchCalendarData, property.id]);
 
   const handleSyncNow = async () => {
     if (syncing) return;
