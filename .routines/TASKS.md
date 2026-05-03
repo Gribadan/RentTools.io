@@ -168,7 +168,7 @@
   - Include examples with curl
   - Acceptance criteria: every endpoint under `/api/` is documented with at least method, path, and response shape
 
-- [ ] **RT-5.5** Add deployment guide
+- [x] **RT-5.5** Add deployment guide
   - File: `docs/DEPLOYMENT.md`
   - Document: Vercel setup, Turso DB creation, environment variables, seed script, cron setup
   - Include the cron-job.org setup steps
@@ -240,3 +240,4 @@
 - 2026-05-04 — RT-5.2 — d943542 — sanitize lib extracted; 25 tests covering Cyrillic/diacritics/edges
 - 2026-05-04 — RT-5.3 — 7e277c9 — 8 new buffer-logic tests (generateBufferedEvents + generateBufferOnlyEvents)
 - 2026-05-04 — RT-5.4 — 511bc8d — docs/API.md covering all 23 API route handlers
+- 2026-05-04 — RT-5.5 — 313292c — docs/DEPLOYMENT.md (Turso + Vercel + cron-job.org walkthrough)
