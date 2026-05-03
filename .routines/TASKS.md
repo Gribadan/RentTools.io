@@ -52,7 +52,7 @@
   - Return 409 Conflict if overlap found: `{ error: "Overlapping reservation exists", existing: { name, checkIn, checkOut } }`
   - Acceptance criteria: creating two reservations for same property with overlapping dates returns 409
 
-- [ ] **RT-2.3** Add loading spinners to all data-fetching operations
+- [x] **RT-2.3** Add loading spinners to all data-fetching operations
   - File: `src/app/page.tsx`
   - Add `loading` state for `fetchProperties`, show a subtle spinner in the TopBar or main content area while loading
   - Also add loading state to Dashboard and PropertyCalendar for their synced event fetches
@@ -223,3 +223,4 @@
 - 2026-05-03 — RT-1.5 — b8bc811 — min 8-char password on user creation
 - 2026-05-03 — RT-2.1 — 25c5ae7 — added updatedAt to Property/Reservation/Guest
 - 2026-05-03 — RT-2.2 — 45835bc — block overlapping reservations with 409
+- 2026-05-03 — RT-2.3 — 1ae5fbf — loading spinners on properties/calendar/dashboard fetches
