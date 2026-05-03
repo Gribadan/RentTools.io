@@ -39,7 +39,7 @@
 
 ## Week 2 — Data Integrity & UX Polish
 
-- [ ] **RT-2.1** Add `updatedAt` field to Property, Reservation, and Guest models
+- [x] **RT-2.1** Add `updatedAt` field to Property, Reservation, and Guest models
   - File: `prisma/schema.prisma`, `prisma/push-schema.ts`
   - Add `updatedAt DateTime @updatedAt` to Property, Reservation, Guest models
   - Add ALTER TABLE migrations in push-schema.ts
@@ -221,3 +221,4 @@
 - 2026-05-03 — RT-1.3 — e866e9b — validate reservation checkIn/checkOut on POST
 - 2026-05-03 — RT-1.4 — 49cbe7b — confirm() on delete property/reservation/guest (in sidebar.tsx + guest-cards.tsx; delete buttons live there, not in property-calendar/dashboard)
 - 2026-05-03 — RT-1.5 — b8bc811 — min 8-char password on user creation
+- 2026-05-03 — RT-2.1 — 25c5ae7 — added updatedAt to Property/Reservation/Guest
