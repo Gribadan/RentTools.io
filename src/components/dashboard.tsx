@@ -48,6 +48,7 @@ export function Dashboard({
   const [allLinks, setAllLinks] = useState<Record<number, CalendarLink[]>>({});
   const [allOverrides, setAllOverrides] = useState<Record<number, DateOverride[]>>({});
   const [loadingCalendarData, setLoadingCalendarData] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch synced events, links, and overrides for all properties (for cleaning schedule)
   const fetchAllCalendarData = useCallback(async () => {
@@ -90,7 +91,7 @@ export function Dashboard({
     }
   }, [selectedProperty]);
 
-  const displayReservations = selectedProperty
+  const allReservations = selectedProperty
     ? selectedProperty.reservations
         .map((r) => ({ ...r, propertyName: selectedProperty.name, propertyId: selectedProperty.id }))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -103,6 +104,11 @@ export function Dashboard({
           }))
         )
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const displayReservations = trimmedQuery
+    ? allReservations.filter((r) => r.name.toLowerCase().includes(trimmedQuery))
+    : allReservations;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,12 +298,44 @@ export function Dashboard({
         </div>
       )}
 
+      {/* Search */}
+      {allReservations.length > 0 && (
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={locale === "ru" ? "Поиск по имени гостя..." : "Search by guest name..."}
+            className="h-9 w-full rounded-md border border-[#27272b] bg-[#18181b] pl-9 pr-8 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none transition-colors focus:border-[#333338]"
+          />
+          <svg className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.2-5.2M16.5 10.5a6 6 0 11-12 0 6 6 0 0112 0z" />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#71717a] hover:text-[#e8e8ec]"
+              aria-label="Clear search"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Reservations List */}
       {displayReservations.length > 0 ? (
         <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
           <div className="border-b border-[#27272b] px-4 py-3">
             <h2 className="text-xs font-medium text-[#a0a0a8]">
               {selectedProperty ? t("dashboard.reservations") : t("dashboard.recentReservations")}
+              {trimmedQuery && (
+                <span className="ml-2 text-[#71717a]">
+                  · {displayReservations.length} {locale === "ru" ? "найдено" : "found"}
+                </span>
+              )}
             </h2>
           </div>
           <div>
