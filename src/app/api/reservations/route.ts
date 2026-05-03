@@ -22,11 +22,22 @@ export async function POST(request: NextRequest) {
     if (!name?.trim() || !checkIn || !checkOut || !propertyId) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    if (isNaN(checkInDate.getTime())) {
+      return NextResponse.json({ error: "Invalid checkIn date" }, { status: 400 });
+    }
+    if (isNaN(checkOutDate.getTime())) {
+      return NextResponse.json({ error: "Invalid checkOut date" }, { status: 400 });
+    }
+    if (checkOutDate <= checkInDate) {
+      return NextResponse.json({ error: "checkOut must be after checkIn" }, { status: 400 });
+    }
     const reservation = await prisma.reservation.create({
       data: {
         name: name.trim(),
-        checkIn: new Date(checkIn),
-        checkOut: new Date(checkOut),
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
         platform: platform || "airbnb",
         linkedEventUid: linkedEventUid || null,
         propertyId,
