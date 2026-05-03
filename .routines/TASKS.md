@@ -86,7 +86,7 @@
   - Clicking triggers POST `/api/calendar/sync`, shows spinner, then refetches events
   - Acceptance criteria: button triggers sync; spinner shows during sync; calendar updates after
 
-- [ ] **RT-3.3** Fix calendar bar rendering for multi-month bookings
+- [x] **RT-3.3** Fix calendar bar rendering for multi-month bookings
   - File: `src/components/property-calendar.tsx`
   - Test: navigate to a month where a booking starts in a previous month (e.g., Oct booking starting Sep)
   - Ensure the bar renders from day 1 of the month, not missing
@@ -228,3 +228,4 @@
 - 2026-05-03 — RT-2.5 — a1c029d — reservation+guest counts in TopBar property selector
 - 2026-05-03 — RT-3.1 — c3acde7 — sync health indicator in PropertyCalendar header
 - 2026-05-03 — RT-3.2 — d629741 — Sync Now button next to property name
+- 2026-05-03 — RT-3.3 — 0bb2503 — show bar label on day 1 for cross-month bookings
