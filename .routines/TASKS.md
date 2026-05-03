@@ -116,7 +116,7 @@
   - Save via PATCH `/api/guests/[id]` (need to add PATCH handler for all fields)
   - Acceptance criteria: can edit and save any guest field; changes persist after refresh
 
-- [ ] **RT-4.2** Add PATCH endpoint for full guest updates
+- [x] **RT-4.2** Add PATCH endpoint for full guest updates
   - File: `src/app/api/guests/[id]/route.ts`
   - Add PATCH handler accepting any guest field update
   - Validate: passportNumber should be stripped of spaces, issuedBy should use sanitizeAlphanumeric
@@ -232,3 +232,4 @@
 - 2026-05-03 — RT-3.4 — 8f50040 — /api/calendar/health endpoint
 - 2026-05-03 — RT-3.5 — d85b3fe — per-property Airbnb/Booking event counts in Tasks panel
 - 2026-05-04 — RT-4.1 — efb03d0 — inline edit mode + full-field PATCH for guest cards
+- 2026-05-04 — RT-4.2 — e652a5b — sanitize passport (strip spaces) and issuedBy (alphanumeric) on PATCH
