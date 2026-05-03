@@ -128,7 +128,7 @@
   - Generate CSV with all guest fields, download via browser
   - Acceptance criteria: clicking export downloads a .csv file with all guests for that reservation
 
-- [ ] **RT-4.4** Show extraction success rate in reservation view
+- [x] **RT-4.4** Show extraction success rate in reservation view
   - File: `src/components/reservation-view.tsx`
   - After extraction, show summary: "Extracted 3/3 passports successfully" or "2/3 extracted, 1 failed"
   - Include which files failed and why (from the log)
@@ -234,3 +234,4 @@
 - 2026-05-04 — RT-4.1 — efb03d0 — inline edit mode + full-field PATCH for guest cards
 - 2026-05-04 — RT-4.2 — e652a5b — sanitize passport (strip spaces) and issuedBy (alphanumeric) on PATCH
 - 2026-05-04 — RT-4.3 — ec82d36 — Export CSV button above guest cards (RFC 4180 + BOM)
+- 2026-05-04 — RT-4.4 — 62a6ffa — extraction success/failure summary banner with per-file reasons
