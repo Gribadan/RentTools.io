@@ -125,7 +125,7 @@ function GuestCard({
           <span className="shrink-0 text-xs text-[#a0a0a8]">{guest.yearsOld}y</span>
         </div>
         <button
-          onClick={() => onDelete(guest.id)}
+          onClick={() => { if (confirm("Delete this guest? This cannot be undone.")) onDelete(guest.id); }}
           className="rounded-md p-1 text-muted-foreground/25 transition-all hover:bg-destructive/15 hover:text-destructive"
         >
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
