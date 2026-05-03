@@ -156,7 +156,7 @@
   - Test: Cyrillic transliteration, dot/dash stripping, space collapsing, passport number stripping
   - Acceptance criteria: at least 10 test cases covering edge cases (empty strings, mixed scripts, special chars)
 
-- [ ] **RT-5.3** Add unit tests for calendar buffer logic
+- [x] **RT-5.3** Add unit tests for calendar buffer logic
   - File: `src/lib/ical.test.ts` (extend)
   - Test `generateBufferedEvents`: normal buffers, merged buffers, buffer=0, single event, adjacent events
   - Test `generateBufferOnlyEvents`: same-platform buffer generation
@@ -238,3 +238,4 @@
 - 2026-05-04 — RT-4.5 — 25893c0 — compute guest age from DOB at render, fallback to stored yearsOld
 - 2026-05-04 — RT-5.1 — 4c18f85 — vitest installed; 14 ical.ts tests passing
 - 2026-05-04 — RT-5.2 — d943542 — sanitize lib extracted; 25 tests covering Cyrillic/diacritics/edges
+- 2026-05-04 — RT-5.3 — 7e277c9 — 8 new buffer-logic tests (generateBufferedEvents + generateBufferOnlyEvents)
