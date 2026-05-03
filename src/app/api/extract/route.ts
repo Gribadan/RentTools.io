@@ -25,6 +25,14 @@ function sanitizeText(text: string): string {
   return stripDiacritics(transliterate(text)).trim();
 }
 
+// For fields like "issuedBy" where only Latin letters, numbers, and spaces are accepted
+function sanitizeAlphanumeric(text: string): string {
+  return stripDiacritics(transliterate(text))
+    .replace(/[^a-zA-Z0-9\s]/g, " ") // replace dots, dashes, etc. with spaces
+    .replace(/\s+/g, " ")             // collapse multiple spaces
+    .trim();
+}
+
 function stripSpaces(text: string): string {
   return stripDiacritics(transliterate(text)).replace(/\s+/g, "").trim();
 }
@@ -134,7 +142,7 @@ export async function POST(request: NextRequest) {
               dateOfIssue: (item.dateOfIssue || "").trim(),
               expiryDate: (item.expiryDate || "").trim(),
               passportNumber: stripSpaces(item.passportNumber || ""),
-              issuedBy: sanitizeText(item.issuedBy || ""),
+              issuedBy: sanitizeAlphanumeric(item.issuedBy || ""),
               reservationId: resId,
             },
           });
