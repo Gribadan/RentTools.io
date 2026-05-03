@@ -18,7 +18,7 @@
   - Do NOT change routes that already have try-catch (extract, calendar/feed, calendar/cron)
   - Acceptance criteria: no API route can throw an unhandled exception to the client
 
-- [ ] **RT-1.3** Add date validation on reservation creation
+- [x] **RT-1.3** Add date validation on reservation creation
   - File: `src/app/api/reservations/route.ts`
   - Validate: `checkIn` and `checkOut` are valid ISO date strings, `checkOut > checkIn`
   - Return 400 with descriptive error if invalid
@@ -218,3 +218,4 @@
 <!-- - YYYY-MM-DD — RT-X.X — <short SHA> — <one-line summary> -->
 - 2026-05-03 — RT-1.1 — 1008fa3 — NaN validation on 5 dynamic route handlers
 - 2026-05-03 — RT-1.2 — ac0251b — wrapped 15 API routes in try-catch
+- 2026-05-03 — RT-1.3 — e866e9b — validate reservation checkIn/checkOut on POST
