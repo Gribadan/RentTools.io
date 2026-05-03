@@ -83,7 +83,15 @@ function AppContent({
     try {
       const res = await fetch("/api/properties");
       const data = await res.json();
-      setProperties(data);
+      if (Array.isArray(data)) {
+        setProperties(data);
+      } else {
+        console.error("Properties API returned non-array:", data);
+        setProperties([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch properties:", err);
+      setProperties([]);
     } finally {
       setLoadingProperties(false);
     }
