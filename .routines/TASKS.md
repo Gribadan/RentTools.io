@@ -80,7 +80,7 @@
   - Show green dot + "Synced 5m ago" or red dot + "Sync error: ..." in the calendar header
   - Acceptance criteria: calendar header shows sync status; error state shows red with message
 
-- [ ] **RT-3.2** Add "Sync Now" button to property calendar
+- [x] **RT-3.2** Add "Sync Now" button to property calendar
   - File: `src/components/property-calendar.tsx`
   - Add a refresh icon button next to the property name
   - Clicking triggers POST `/api/calendar/sync`, shows spinner, then refetches events
@@ -227,3 +227,4 @@
 - 2026-05-03 — RT-2.4 — 4f59297 — guest-name search filter on Dashboard reservations
 - 2026-05-03 — RT-2.5 — a1c029d — reservation+guest counts in TopBar property selector
 - 2026-05-03 — RT-3.1 — c3acde7 — sync health indicator in PropertyCalendar header
+- 2026-05-03 — RT-3.2 — d629741 — Sync Now button next to property name
