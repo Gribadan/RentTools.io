@@ -207,7 +207,7 @@ export function Sidebar({
                     <span className="truncate text-sm">{property.name}</span>
                   </div>
                   <button
-                    onClick={(e) => { e.stopPropagation(); onDeleteProperty(property.id); }}
+                    onClick={(e) => { e.stopPropagation(); if (confirm("Delete this property? This cannot be undone.")) onDeleteProperty(property.id); }}
                     className="shrink-0 rounded p-0.5 opacity-0 transition-all hover:text-[#f85149] group-hover:opacity-100"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -250,7 +250,7 @@ export function Sidebar({
                             </div>
                           </div>
                           <button
-                            onClick={(e) => { e.stopPropagation(); onDeleteReservation(res.id); }}
+                            onClick={(e) => { e.stopPropagation(); if (confirm("Delete this reservation? This cannot be undone.")) onDeleteReservation(res.id); }}
                             className="shrink-0 rounded p-0.5 opacity-0 transition-all hover:text-[#f85149] group-hover/res:opacity-100"
                           >
                             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
