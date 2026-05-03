@@ -99,6 +99,32 @@ export function PropertyCalendar({
   const month = currentMonth.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthLabel = currentMonth.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", { month: "long", year: "numeric" });
+
+  const syncHealth = useMemo(() => {
+    if (!links || links.length === 0) return null;
+    const errored = links.find(l => l.lastError);
+    const lastFetchedTimes = links
+      .map(l => l.lastFetchedAt ? new Date(l.lastFetchedAt).getTime() : 0)
+      .filter(t => t > 0);
+    const lastFetched = lastFetchedTimes.length > 0 ? Math.max(...lastFetchedTimes) : 0;
+    if (errored) {
+      return { ok: false, message: errored.lastError || "Sync error" };
+    }
+    if (!lastFetched) {
+      return { ok: false, message: locale === "ru" ? "Не синхронизировано" : "Never synced" };
+    }
+    const diffMs = Date.now() - lastFetched;
+    const m = Math.round(diffMs / 60000);
+    let label: string;
+    if (m < 1) label = locale === "ru" ? "только что" : "just now";
+    else if (m < 60) label = locale === "ru" ? `${m} мин. назад` : `${m}m ago`;
+    else {
+      const h = Math.round(m / 60);
+      if (h < 24) label = locale === "ru" ? `${h} ч. назад` : `${h}h ago`;
+      else label = locale === "ru" ? `${Math.round(h / 24)} дн. назад` : `${Math.round(h / 24)}d ago`;
+    }
+    return { ok: true, message: locale === "ru" ? `Синхр. ${label}` : `Synced ${label}` };
+  }, [links, locale]);
   let firstDayOffset = new Date(year, month, 1).getDay() - 1;
   if (firstDayOffset < 0) firstDayOffset = 6;
   // Stable key for forcing React to remount the grid on month change
@@ -780,6 +806,17 @@ export function PropertyCalendar({
           <p className="mt-0.5 text-sm text-[#a0a0a8]">
             {property.reservations.length} {locale === "ru" ? "бронирований" : (property.reservations.length !== 1 ? "reservations" : "reservation")}
           </p>
+          {syncHealth && (
+            <div
+              className="mt-1 flex items-center gap-1.5 text-xs"
+              title={syncHealth.ok ? syncHealth.message : `${locale === "ru" ? "Ошибка синхронизации:" : "Sync error:"} ${syncHealth.message}`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${syncHealth.ok ? "bg-[#34d399]" : "bg-[#f87171]"}`} />
+              <span className={syncHealth.ok ? "text-[#71717a]" : "text-[#f87171]"}>
+                {syncHealth.ok ? syncHealth.message : `${locale === "ru" ? "Ошибка синхр.:" : "Sync error:"} ${syncHealth.message.slice(0, 60)}`}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
