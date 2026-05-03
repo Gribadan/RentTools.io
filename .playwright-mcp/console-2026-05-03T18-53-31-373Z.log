@@ -23,3 +23,15 @@
     at se (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:134718)
     at s$ (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:160495)
     at MessagePort.O (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:8660)
+[  248639ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://rent-tool-theta.vercel.app/api/properties:0
+[  248648ms] TypeError: s.find is not a function
+    at a2 (https://rent-tool-theta.vercel.app/_next/static/chunks/0fgij13ugu-r-.js:1:241635)
+    at ay (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:63845)
+    at oJ (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:84102)
+    at iu (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:95704)
+    at sd (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:138944)
+    at https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:138789
+    at sf (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:138797)
+    at se (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:134718)
+    at s$ (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:160495)
+    at MessagePort.O (https://rent-tool-theta.vercel.app/_next/static/chunks/0rwe2qp_ogn.a.js:1:8660)
