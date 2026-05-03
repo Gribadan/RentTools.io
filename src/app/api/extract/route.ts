@@ -1,41 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGeminiModel, PASSPORT_PROMPT } from "@/lib/gemini";
 import { prisma } from "@/lib/prisma";
-
-const CYRILLIC_MAP: Record<string, string> = {
-  "А":"A","Б":"B","В":"V","Г":"G","Д":"D","Е":"E","Ё":"YO","Ж":"ZH",
-  "З":"Z","И":"I","Й":"Y","К":"K","Л":"L","М":"M","Н":"N","О":"O",
-  "П":"P","Р":"R","С":"S","Т":"T","У":"U","Ф":"F","Х":"KH","Ц":"TS",
-  "Ч":"CH","Ш":"SH","Щ":"SHCH","Ъ":"","Ы":"Y","Ь":"","Э":"E","Ю":"YU","Я":"YA",
-  "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"yo","ж":"zh",
-  "з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o",
-  "п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"kh","ц":"ts",
-  "ч":"ch","ш":"sh","щ":"shch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya",
-};
-
-function transliterate(text: string): string {
-  return text.split("").map((ch) => CYRILLIC_MAP[ch] ?? ch).join("");
-}
-
-function stripDiacritics(str: string): string {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
-
-function sanitizeText(text: string): string {
-  return stripDiacritics(transliterate(text)).trim();
-}
-
-// For fields like "issuedBy" where only Latin letters, numbers, and spaces are accepted
-function sanitizeAlphanumeric(text: string): string {
-  return stripDiacritics(transliterate(text))
-    .replace(/[^a-zA-Z0-9\s]/g, " ") // replace dots, dashes, etc. with spaces
-    .replace(/\s+/g, " ")             // collapse multiple spaces
-    .trim();
-}
-
-function stripSpaces(text: string): string {
-  return stripDiacritics(transliterate(text)).replace(/\s+/g, "").trim();
-}
+import {
+  sanitizeText,
+  sanitizeAlphanumeric,
+  stripSpaces,
+} from "@/lib/sanitize";
 
 interface ExtractedItem {
   type: "passport" | "visa";
