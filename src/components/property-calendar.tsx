@@ -618,7 +618,7 @@ export function PropertyCalendar({
         span,
         leftPct: isActualStart ? checkInPct : 0,
         rightMarginPct: reachesEnd ? 100 - checkOutPct : 0,
-        showLabel: isActualStart,
+        showLabel: isActualStart || isMonthContinuation,
       });
     }
 
