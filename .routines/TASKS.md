@@ -24,7 +24,7 @@
   - Return 400 with descriptive error if invalid
   - Acceptance criteria: POST with `checkOut` before `checkIn` returns 400; POST with `checkIn: "not-a-date"` returns 400
 
-- [ ] **RT-1.4** Add confirmation dialogs before destructive actions
+- [x] **RT-1.4** Add confirmation dialogs before destructive actions
   - Files: `src/components/property-calendar.tsx`, `src/components/guest-cards.tsx`, `src/components/dashboard.tsx`
   - Replace direct `onDelete*` calls with `if (confirm("Delete this [item]? This cannot be undone."))` guards
   - Apply to: delete property, delete reservation, delete guest
@@ -219,3 +219,4 @@
 - 2026-05-03 — RT-1.1 — 1008fa3 — NaN validation on 5 dynamic route handlers
 - 2026-05-03 — RT-1.2 — ac0251b — wrapped 15 API routes in try-catch
 - 2026-05-03 — RT-1.3 — e866e9b — validate reservation checkIn/checkOut on POST
+- 2026-05-03 — RT-1.4 — 49cbe7b — confirm() on delete property/reservation/guest (in sidebar.tsx + guest-cards.tsx; delete buttons live there, not in property-calendar/dashboard)
