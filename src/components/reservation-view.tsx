@@ -156,6 +156,58 @@ export function ReservationView({
     });
   };
 
+  const exportGuestsCsv = () => {
+    if (guests.length === 0) return;
+
+    const headers: (keyof Guest)[] = [
+      "id",
+      "fullName",
+      "firstName",
+      "lastName",
+      "country",
+      "citizenshipCode",
+      "dateOfBirth",
+      "yearsOld",
+      "gender",
+      "dateOfIssue",
+      "expiryDate",
+      "passportNumber",
+      "issuedBy",
+      "hasVisa",
+      "visaNumber",
+      "visaFrom",
+      "visaTo",
+      "parentId",
+    ];
+
+    const escape = (val: unknown): string => {
+      if (val === null || val === undefined) return "";
+      const s = String(val);
+      // RFC 4180: quote field if it contains comma, quote, CR or LF; double internal quotes
+      if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+
+    const rows = [
+      headers.join(","),
+      ...guests.map((g) => headers.map((h) => escape(g[h])).join(",")),
+    ];
+    // BOM so Excel detects UTF-8 correctly
+    const csv = "﻿" + rows.join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dateStr = new Date(reservation.checkIn).toISOString().split("T")[0];
+    const safeName = reservation.name.replace(/[^a-zA-Z0-9_-]+/g, "_");
+    a.download = `guests-${safeName}-${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const stayDays = () => {
     const d1 = new Date(reservation.checkIn);
     const d2 = new Date(reservation.checkOut);
@@ -366,6 +418,20 @@ export function ReservationView({
       )}
 
       {/* Guests */}
+      {guests.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={exportGuestsCsv}
+            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[#a0a0a8] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[#e8e8ec]"
+            title="Export all guest data to CSV"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            Export CSV
+          </button>
+        </div>
+      )}
       <GuestCards
         guests={guests}
         checkIn={reservation.checkIn}
