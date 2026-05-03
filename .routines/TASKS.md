@@ -74,7 +74,7 @@
 
 ## Week 3 — Calendar & Sync Reliability
 
-- [ ] **RT-3.1** Add sync health indicator to property calendar header
+- [x] **RT-3.1** Add sync health indicator to property calendar header
   - File: `src/components/property-calendar.tsx`
   - Fetch last sync time and errors from `/api/calendar/sync?propertyId=X`
   - Show green dot + "Synced 5m ago" or red dot + "Sync error: ..." in the calendar header
@@ -226,3 +226,4 @@
 - 2026-05-03 — RT-2.3 — 1ae5fbf — loading spinners on properties/calendar/dashboard fetches
 - 2026-05-03 — RT-2.4 — 4f59297 — guest-name search filter on Dashboard reservations
 - 2026-05-03 — RT-2.5 — a1c029d — reservation+guest counts in TopBar property selector
+- 2026-05-03 — RT-3.1 — c3acde7 — sync health indicator in PropertyCalendar header
