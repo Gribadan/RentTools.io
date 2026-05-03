@@ -93,7 +93,7 @@
   - Ensure the bar label shows on the first visible day
   - Acceptance criteria: booking spanning Sep 28 — Oct 5 shows bar from Oct 1-5 with label on Oct 1
 
-- [ ] **RT-3.4** Add feed health check endpoint
+- [x] **RT-3.4** Add feed health check endpoint
   - New file: `src/app/api/calendar/health/route.ts`
   - GET: for each property with calendar links, check if feeds are accessible and valid
   - Return: `{ properties: [{ id, name, airbnbFeed: { url, status, eventCount }, bookingFeed: { ... } }] }`
@@ -229,3 +229,4 @@
 - 2026-05-03 — RT-3.1 — c3acde7 — sync health indicator in PropertyCalendar header
 - 2026-05-03 — RT-3.2 — d629741 — Sync Now button next to property name
 - 2026-05-03 — RT-3.3 — 0bb2503 — show bar label on day 1 for cross-month bookings
+- 2026-05-03 — RT-3.4 — 8f50040 — /api/calendar/health endpoint
