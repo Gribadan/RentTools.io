@@ -22,6 +22,7 @@ function AppContent({
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
+  const [loadingProperties, setLoadingProperties] = useState(true);
 
   // Derive state from URL params
   const selectedPropertyId = searchParams.get("property") ? Number(searchParams.get("property")) : null;
@@ -78,9 +79,14 @@ function AppContent({
   }, [selectedReservationId]);
 
   const fetchProperties = async () => {
-    const res = await fetch("/api/properties");
-    const data = await res.json();
-    setProperties(data);
+    setLoadingProperties(true);
+    try {
+      const res = await fetch("/api/properties");
+      const data = await res.json();
+      setProperties(data);
+    } finally {
+      setLoadingProperties(false);
+    }
   };
 
   const fetchGuests = async (reservationId: number) => {
@@ -305,7 +311,13 @@ function AppContent({
         onLogout={handleLogout}
       />
       <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-        {renderContent()}
+        {loadingProperties && properties.length === 0 ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#30363d] border-t-[#58a6ff]" />
+          </div>
+        ) : (
+          renderContent()
+        )}
       </main>
     </div>
   );

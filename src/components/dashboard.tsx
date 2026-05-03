@@ -47,31 +47,37 @@ export function Dashboard({
   const [allSyncedEvents, setAllSyncedEvents] = useState<Record<number, CalendarEvent[]>>({});
   const [allLinks, setAllLinks] = useState<Record<number, CalendarLink[]>>({});
   const [allOverrides, setAllOverrides] = useState<Record<number, DateOverride[]>>({});
+  const [loadingCalendarData, setLoadingCalendarData] = useState(false);
 
   // Fetch synced events, links, and overrides for all properties (for cleaning schedule)
   const fetchAllCalendarData = useCallback(async () => {
     if (selectedProperty || properties.length === 0) return;
-    const results = await Promise.all(
-      properties.map(async (p) => {
-        const [syncRes, linksRes, ovRes] = await Promise.all([
-          fetch(`/api/calendar/sync?propertyId=${p.id}&limit=200`).then(r => r.json()),
-          fetch(`/api/calendar/links?propertyId=${p.id}`).then(r => r.json()),
-          fetch(`/api/date-overrides?propertyId=${p.id}`).then(r => r.json()),
-        ]);
-        return { id: p.id, events: syncRes.events || [], links: linksRes || [], overrides: ovRes || [] };
-      })
-    ).catch(() => []);
-    const evMap: Record<number, CalendarEvent[]> = {};
-    const lnMap: Record<number, CalendarLink[]> = {};
-    const ovMap: Record<number, DateOverride[]> = {};
-    for (const r of results) {
-      evMap[r.id] = r.events;
-      lnMap[r.id] = r.links;
-      ovMap[r.id] = r.overrides;
+    setLoadingCalendarData(true);
+    try {
+      const results = await Promise.all(
+        properties.map(async (p) => {
+          const [syncRes, linksRes, ovRes] = await Promise.all([
+            fetch(`/api/calendar/sync?propertyId=${p.id}&limit=200`).then(r => r.json()),
+            fetch(`/api/calendar/links?propertyId=${p.id}`).then(r => r.json()),
+            fetch(`/api/date-overrides?propertyId=${p.id}`).then(r => r.json()),
+          ]);
+          return { id: p.id, events: syncRes.events || [], links: linksRes || [], overrides: ovRes || [] };
+        })
+      ).catch(() => []);
+      const evMap: Record<number, CalendarEvent[]> = {};
+      const lnMap: Record<number, CalendarLink[]> = {};
+      const ovMap: Record<number, DateOverride[]> = {};
+      for (const r of results) {
+        evMap[r.id] = r.events;
+        lnMap[r.id] = r.links;
+        ovMap[r.id] = r.overrides;
+      }
+      setAllSyncedEvents(evMap);
+      setAllLinks(lnMap);
+      setAllOverrides(ovMap);
+    } finally {
+      setLoadingCalendarData(false);
     }
-    setAllSyncedEvents(evMap);
-    setAllLinks(lnMap);
-    setAllOverrides(ovMap);
   }, [properties, selectedProperty]);
 
   useEffect(() => {
@@ -139,7 +145,12 @@ export function Dashboard({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#e8e8ec]">{title}</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-[#e8e8ec]">
+            {title}
+            {loadingCalendarData && (
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-[#30363d] border-t-[#58a6ff]" />
+            )}
+          </h1>
           <p className="mt-1 text-sm text-[#71717a]">{subtitle}</p>
         </div>
         <button
