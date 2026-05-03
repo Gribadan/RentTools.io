@@ -185,7 +185,7 @@
   - Keep backward compatibility: if no pagination params, return all (existing behavior)
   - Acceptance criteria: `?page=1&limit=5` returns first 5 properties with total count
 
-- [ ] **RT-6.2** Lazy-load synced events in property calendar
+- [x] **RT-6.2** Lazy-load synced events in property calendar
   - File: `src/components/property-calendar.tsx`
   - Only fetch synced events when the calendar component mounts, not on every property selection
   - Add a loading state while events are being fetched
@@ -242,3 +242,4 @@
 - 2026-05-04 — RT-5.4 — 511bc8d — docs/API.md covering all 23 API route handlers
 - 2026-05-04 — RT-5.5 — 313292c — docs/DEPLOYMENT.md (Turso + Vercel + cron-job.org walkthrough)
 - 2026-05-04 — RT-6.1 — d1ed057 — properties API pagination via ?page&limit (backward compatible)
+- 2026-05-04 — RT-6.2 — c13bc69 — per-property calendar data cache (30s TTL) skips refetch on remount
