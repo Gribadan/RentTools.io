@@ -41,10 +41,10 @@ export function CalendarToolbar({
   const syncHealth = useMemo(() => computeSyncHealth(links, locale), [links, locale]);
 
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-semibold text-[#e8e8ec]">{property.name}</h1>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <h1 className="text-xl font-semibold text-[#e8e8ec] truncate">{property.name}</h1>
           <button
             onClick={onSyncNow}
             disabled={syncing}
@@ -71,7 +71,7 @@ export function CalendarToolbar({
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={onToggleOverrideMode}
           className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${

@@ -41,7 +41,7 @@ export function AgendaList({ bars, today, onSelectReservation }: AgendaListProps
               <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
                 item.platform === "booking" ? "bg-[#003580]" : "bg-[#ff385c]"
               }`} />
-              <span className="flex-1 text-sm font-medium text-[#e8e8ec] truncate">{item.name}</span>
+              <span className="flex-1 min-w-0 text-sm font-medium text-[#e8e8ec] truncate">{item.name}</span>
               <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
                 item.platform === "booking" ? "bg-[#003580]/20 text-[#93c5fd]" : "bg-[#ff385c]/20 text-[#ff385c]"
               }`}>
