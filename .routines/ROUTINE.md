@@ -81,12 +81,18 @@ For EACH task you take on:
 
 - **Never skip pre-commit hooks.**
 
-- **Turso/LibSQL compatibility**: Do NOT use Prisma's `@updatedAt`
-  directive — it generates queries incompatible with the LibSQL adapter.
-  Use `DateTime? @default(now())` instead. After any schema change,
-  verify the `/api/properties` endpoint returns data, not a 500 error.
-  Always test schema changes with `npx tsx prisma/push-schema.ts`
-  before committing.
+- **Turso/LibSQL compatibility — CRITICAL**:
+  - Do NOT use Prisma's `@updatedAt` directive — it generates queries
+    incompatible with LibSQL. Use `DateTime?` (nullable) instead.
+  - Do NOT add `NOT NULL` columns to existing tables in migrations —
+    SQLite cannot add NOT NULL columns to tables with existing data
+    unless a DEFAULT is provided. Use nullable columns or add DEFAULT.
+  - After ANY schema change: run `npx tsx prisma/push-schema.ts` AND
+    `npx tsx test-db.ts` (or equivalent query test) to verify the DB
+    is accessible and data is returned. If the properties API returns
+    500 instead of an array, the schema change broke the DB.
+  - Schema migrations in push-schema.ts MUST match prisma/schema.prisma
+    exactly (same nullability, same defaults).
 
 - **This project is live on Vercel with real users.** Be careful with:
   - Schema changes (additive only, never drop columns)
