@@ -197,7 +197,7 @@
   - Keep all in `src/components/calendar/` directory
   - Acceptance criteria: property-calendar.tsx is under 200 lines; all extracted components work correctly
 
-- [ ] **RT-6.4** Add mobile-responsive layout
+- [x] **RT-6.4** Add mobile-responsive layout
   - Files: `src/components/top-bar.tsx`, `src/app/page.tsx`
   - Add hamburger menu for mobile (hide full nav, show drawer)
   - Make calendar grid scroll horizontally on small screens
@@ -244,3 +244,4 @@
 - 2026-05-04 — RT-6.1 — d1ed057 — properties API pagination via ?page&limit (backward compatible)
 - 2026-05-04 — RT-6.2 — c13bc69 — per-property calendar data cache (30s TTL) skips refetch on remount
 - 2026-05-04 — RT-6.3 — e793104 — extracted 13 modules under src/components/calendar/; parent file 1175→191 lines
+- 2026-05-04 — RT-6.4 — 28f082c — mobile hamburger drawer, calendar horizontal scroll, toolbar wraps under sm
