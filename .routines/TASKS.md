@@ -109,7 +109,7 @@
 
 ## Week 4 — Guest Management & Extraction
 
-- [ ] **RT-4.1** Add ability to manually edit guest data after extraction
+- [x] **RT-4.1** Add ability to manually edit guest data after extraction
   - File: `src/components/guest-cards.tsx`
   - Add an "Edit" button on each guest card header
   - Clicking opens inline editing for all fields (name, DOB, passport, etc.)
@@ -231,3 +231,4 @@
 - 2026-05-03 — RT-3.3 — 0bb2503 — show bar label on day 1 for cross-month bookings
 - 2026-05-03 — RT-3.4 — 8f50040 — /api/calendar/health endpoint
 - 2026-05-03 — RT-3.5 — d85b3fe — per-property Airbnb/Booking event counts in Tasks panel
+- 2026-05-04 — RT-4.1 — efb03d0 — inline edit mode + full-field PATCH for guest cards
