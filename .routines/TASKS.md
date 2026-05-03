@@ -30,7 +30,7 @@
   - Apply to: delete property, delete reservation, delete guest
   - Acceptance criteria: clicking delete on any item shows browser confirm dialog; canceling does nothing
 
-- [ ] **RT-1.5** Add password minimum length validation
+- [x] **RT-1.5** Add password minimum length validation
   - Files: `src/app/api/users/route.ts` (POST handler), `src/app/api/auth/login/route.ts`
   - In user creation: reject passwords shorter than 8 characters with 400 error
   - Acceptance criteria: creating user with 5-char password returns 400 with "Password must be at least 8 characters"
@@ -220,3 +220,4 @@
 - 2026-05-03 — RT-1.2 — ac0251b — wrapped 15 API routes in try-catch
 - 2026-05-03 — RT-1.3 — e866e9b — validate reservation checkIn/checkOut on POST
 - 2026-05-03 — RT-1.4 — 49cbe7b — confirm() on delete property/reservation/guest (in sidebar.tsx + guest-cards.tsx; delete buttons live there, not in property-calendar/dashboard)
+- 2026-05-03 — RT-1.5 — b8bc811 — min 8-char password on user creation
