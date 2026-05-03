@@ -40,6 +40,11 @@ export function ReservationView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [extractionResult, setExtractionResult] = useState<{
+    total: number;
+    successful: number;
+    files: { name: string; status: "success" | "failed"; reason?: string }[];
+  } | null>(null);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(reservation.name);
   const [editCheckIn, setEditCheckIn] = useState(
@@ -89,8 +94,10 @@ export function ReservationView({
     setLoading(true);
     setError(null);
     setLogs([]);
+    setExtractionResult(null);
 
     addLog(`Starting extraction for ${files.length} file(s)...`, "info");
+    const fileResults: { name: string; status: "success" | "failed"; reason?: string }[] = [];
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -110,7 +117,9 @@ export function ReservationView({
 
         if (!response.ok) {
           const errData = await response.json().catch(() => ({}));
-          addLog(`[${i + 1}/${files.length}] Failed: ${errData.error || "Unknown error"}`, "error");
+          const reason = errData.error || `HTTP ${response.status}`;
+          addLog(`[${i + 1}/${files.length}] Failed: ${reason}`, "error");
+          fileResults.push({ name: file.name, status: "failed", reason });
           continue;
         }
 
@@ -124,15 +133,20 @@ export function ReservationView({
               "success"
             );
           }
+          fileResults.push({ name: file.name, status: "success" });
         } else {
           addLog(`[${i + 1}/${files.length}] No passport data found in ${file.name}`, "error");
+          fileResults.push({ name: file.name, status: "failed", reason: "No passport data found" });
         }
       } catch {
         addLog(`[${i + 1}/${files.length}] Network error processing ${file.name}`, "error");
+        fileResults.push({ name: file.name, status: "failed", reason: "Network error" });
       }
     }
 
     addLog("Extraction complete.", "info");
+    const successful = fileResults.filter((r) => r.status === "success").length;
+    setExtractionResult({ total: fileResults.length, successful, files: fileResults });
     setFiles([]);
     setLoading(false);
     onGuestsUpdated();
@@ -414,6 +428,47 @@ export function ReservationView({
       {error && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-xs text-destructive">
           {error}
+        </div>
+      )}
+
+      {/* Extraction summary */}
+      {extractionResult && extractionResult.total > 0 && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-xs ${
+            extractionResult.successful === extractionResult.total
+              ? "border-[#34d399]/30 bg-[#34d399]/5 text-[#34d399]"
+              : "border-[#fbbf24]/30 bg-[#fbbf24]/5 text-[#fbbf24]"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="font-medium">
+              {extractionResult.successful === extractionResult.total
+                ? `Extracted ${extractionResult.successful}/${extractionResult.total} passports successfully`
+                : `${extractionResult.successful}/${extractionResult.total} extracted, ${extractionResult.total - extractionResult.successful} failed`}
+            </span>
+            <button
+              onClick={() => setExtractionResult(null)}
+              className="text-muted-foreground/40 hover:text-[#e8e8ec]"
+              aria-label="Dismiss extraction summary"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          {extractionResult.files.some((f) => f.status === "failed") && (
+            <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground/80">
+              {extractionResult.files
+                .filter((f) => f.status === "failed")
+                .map((f, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-destructive/80">✗</span>
+                    <span className="font-medium">{f.name}</span>
+                    {f.reason && <span className="text-muted-foreground/60">— {f.reason}</span>}
+                  </li>
+                ))}
+            </ul>
+          )}
         </div>
       )}
 
