@@ -24,6 +24,7 @@ interface ReservationViewProps {
     data: { name?: string; checkIn?: string; checkOut?: string; platform?: string }
   ) => void;
   onUpdateParent: (childId: number, parentId: number | null) => void;
+  onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
 }
 
 export function ReservationView({
@@ -33,6 +34,7 @@ export function ReservationView({
   onDeleteGuest,
   onUpdateReservation,
   onUpdateParent,
+  onUpdateGuest,
 }: ReservationViewProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -370,6 +372,7 @@ export function ReservationView({
         checkOut={reservation.checkOut}
         onDeleteGuest={onDeleteGuest}
         onUpdateParent={onUpdateParent}
+        onUpdateGuest={onUpdateGuest}
       />
 
       {/* Extraction Log — below guests */}
