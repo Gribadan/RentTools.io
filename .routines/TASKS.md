@@ -150,7 +150,7 @@
   - Create first test: `src/lib/ical.test.ts` — test `parseICal`, `generateICal`, `addDays`, `generateBufferedEvents`
   - Acceptance criteria: `npx vitest run` passes with at least 5 tests for ical.ts
 
-- [ ] **RT-5.2** Add unit tests for extraction sanitization
+- [x] **RT-5.2** Add unit tests for extraction sanitization
   - File: `src/app/api/extract/route.test.ts` or `src/lib/sanitize.test.ts`
   - Extract sanitization functions to `src/lib/sanitize.ts` (transliterate, sanitizeText, sanitizeAlphanumeric, stripSpaces)
   - Test: Cyrillic transliteration, dot/dash stripping, space collapsing, passport number stripping
@@ -237,3 +237,4 @@
 - 2026-05-04 — RT-4.4 — 62a6ffa — extraction success/failure summary banner with per-file reasons
 - 2026-05-04 — RT-4.5 — 25893c0 — compute guest age from DOB at render, fallback to stored yearsOld
 - 2026-05-04 — RT-5.1 — 4c18f85 — vitest installed; 14 ical.ts tests passing
+- 2026-05-04 — RT-5.2 — d943542 — sanitize lib extracted; 25 tests covering Cyrillic/diacritics/edges
