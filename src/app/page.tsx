@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { TopBar, type AppView } from "@/components/top-bar";
 import { ReservationView } from "@/components/reservation-view";
@@ -19,11 +19,51 @@ function AppContent({
   user: { userId: number; username: string; role: string };
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
-  const [selectedReservationId, setSelectedReservationId] = useState<number | null>(null);
   const [guests, setGuests] = useState<Guest[]>([]);
-  const [activeView, setActiveView] = useState<AppView>("dashboard");
+
+  // Derive state from URL params
+  const selectedPropertyId = searchParams.get("property") ? Number(searchParams.get("property")) : null;
+  const selectedReservationId = searchParams.get("reservation") ? Number(searchParams.get("reservation")) : null;
+  const activeView: AppView = (searchParams.get("view") as AppView) ||
+    (selectedReservationId ? "guests" : selectedPropertyId ? "calendar" : "dashboard");
+
+  // Navigate by updating URL params
+  const navigate = useCallback((params: { property?: number | null; reservation?: number | null; view?: AppView }) => {
+    const sp = new URLSearchParams();
+    const propId = params.property !== undefined ? params.property : selectedPropertyId;
+    const resId = params.reservation !== undefined ? params.reservation : (params.property !== undefined ? null : selectedReservationId);
+    const view = params.view || (resId ? "guests" : propId ? "calendar" : "dashboard");
+
+    if (propId) sp.set("property", String(propId));
+    if (resId) sp.set("reservation", String(resId));
+    // Only set view param if it's not the default for the context
+    const defaultView = resId ? "guests" : propId ? "calendar" : "dashboard";
+    if (view !== defaultView) sp.set("view", view);
+
+    const qs = sp.toString();
+    router.push(qs ? `/?${qs}` : "/");
+  }, [router, selectedPropertyId, selectedReservationId]);
+
+  // Convenience setters that update URL
+  const setSelectedPropertyId = useCallback((id: number | null) => {
+    navigate({ property: id, reservation: null });
+  }, [navigate]);
+
+  const setSelectedReservationId = useCallback((id: number | null) => {
+    if (id) {
+      // Find which property this reservation belongs to
+      const prop = properties.find(p => p.reservations.some(r => r.id === id));
+      navigate({ property: prop?.id || selectedPropertyId, reservation: id, view: "guests" });
+    } else {
+      navigate({ reservation: null });
+    }
+  }, [navigate, properties, selectedPropertyId]);
+
+  const setActiveView = useCallback((view: AppView) => {
+    navigate({ view });
+  }, [navigate]);
 
   useEffect(() => {
     fetchProperties();
@@ -61,9 +101,7 @@ function AppContent({
   const handleDeleteProperty = async (id: number) => {
     await fetch(`/api/properties/${id}`, { method: "DELETE" });
     if (selectedPropertyId === id) {
-      setSelectedPropertyId(null);
-      setSelectedReservationId(null);
-      setActiveView("dashboard");
+      navigate({ property: null, reservation: null, view: "dashboard" });
     }
     await fetchProperties();
   };
@@ -142,23 +180,16 @@ function AppContent({
   };
 
   const handleSelectProperty = (id: number | null) => {
-    setSelectedPropertyId(id);
-    setSelectedReservationId(null);
     if (id === null) {
-      setActiveView("dashboard");
-    } else if (activeView === "dashboard") {
-      setActiveView("calendar");
+      navigate({ property: null, reservation: null, view: "dashboard" });
+    } else {
+      navigate({ property: id, reservation: null, view: activeView === "dashboard" ? "calendar" : activeView });
     }
   };
 
   const handleSelectReservation = (id: number) => {
-    // Find the property for this reservation
     const prop = properties.find(p => p.reservations.some(r => r.id === id));
-    if (prop && prop.id !== selectedPropertyId) {
-      setSelectedPropertyId(prop.id);
-    }
-    setSelectedReservationId(id);
-    setActiveView("guests");
+    navigate({ property: prop?.id || selectedPropertyId, reservation: id, view: "guests" });
   };
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
@@ -171,7 +202,7 @@ function AppContent({
         <div className="mx-auto max-w-2xl">
           <SettingsPanel
             userRole={user.role}
-            onClose={() => setActiveView(selectedPropertyId ? "calendar" : "dashboard")}
+            onClose={() => navigate({ view: selectedPropertyId ? "calendar" : "dashboard" })}
           />
         </div>
       );
@@ -281,5 +312,9 @@ function AppContent({
 }
 
 export default function Home() {
-  return <AuthGuard>{(user) => <AppContent user={user} />}</AuthGuard>;
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0d1117] text-[#9198a1]">Loading...</div>}>
+      <AuthGuard>{(user) => <AppContent user={user} />}</AuthGuard>
+    </Suspense>
+  );
 }
