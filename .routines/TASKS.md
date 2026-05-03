@@ -144,7 +144,7 @@
 
 ## Week 5 — Testing & Documentation
 
-- [ ] **RT-5.1** Set up testing framework (Vitest)
+- [x] **RT-5.1** Set up testing framework (Vitest)
   - Install: `vitest`, `@testing-library/react` (if needed)
   - Create `vitest.config.ts` with path aliases matching tsconfig
   - Create first test: `src/lib/ical.test.ts` — test `parseICal`, `generateICal`, `addDays`, `generateBufferedEvents`
@@ -236,3 +236,4 @@
 - 2026-05-04 — RT-4.3 — ec82d36 — Export CSV button above guest cards (RFC 4180 + BOM)
 - 2026-05-04 — RT-4.4 — 62a6ffa — extraction success/failure summary banner with per-file reasons
 - 2026-05-04 — RT-4.5 — 25893c0 — compute guest age from DOB at render, fallback to stored yearsOld
+- 2026-05-04 — RT-5.1 — 4c18f85 — vitest installed; 14 ical.ts tests passing
