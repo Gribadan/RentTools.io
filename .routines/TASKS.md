@@ -12,7 +12,7 @@
   - Use `numId` in all subsequent Prisma calls
   - Acceptance criteria: all 5 route files validate IDs; hitting `/api/properties/abc` returns 400 not 500
 
-- [ ] **RT-1.2** Wrap all API routes in try-catch with consistent error responses
+- [x] **RT-1.2** Wrap all API routes in try-catch with consistent error responses
   - Files: all `route.ts` files under `src/app/api/` that lack try-catch
   - Pattern: wrap handler body in `try { ... } catch (err) { console.error("Route error:", err); return NextResponse.json({ error: "Internal server error" }, { status: 500 }); }`
   - Do NOT change routes that already have try-catch (extract, calendar/feed, calendar/cron)
@@ -217,3 +217,4 @@
 <!-- Append completed tasks here: -->
 <!-- - YYYY-MM-DD — RT-X.X — <short SHA> — <one-line summary> -->
 - 2026-05-03 — RT-1.1 — 1008fa3 — NaN validation on 5 dynamic route handlers
+- 2026-05-03 — RT-1.2 — ac0251b — wrapped 15 API routes in try-catch
