@@ -1,18 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const properties = await prisma.property.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        reservations: {
-          orderBy: { checkIn: "asc" },
-          include: { _count: { select: { guests: true } } },
-        },
+    const { searchParams } = new URL(request.url);
+    const pageParam = searchParams.get("page");
+    const limitParam = searchParams.get("limit");
+
+    const include = {
+      reservations: {
+        orderBy: { checkIn: "asc" as const },
+        include: { _count: { select: { guests: true } } },
       },
-    });
-    return NextResponse.json(properties);
+    };
+    const orderBy = { createdAt: "desc" as const };
+
+    // Backward-compatible: when neither page nor limit is supplied, return the full array.
+    if (pageParam === null && limitParam === null) {
+      const properties = await prisma.property.findMany({ orderBy, include });
+      return NextResponse.json(properties);
+    }
+
+    const page = Math.max(1, parseInt(pageParam ?? "1") || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(limitParam ?? "20") || 20));
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      prisma.property.findMany({ orderBy, include, skip, take: limit }),
+      prisma.property.count(),
+    ]);
+
+    return NextResponse.json({ data, total, page, limit });
   } catch (err) {
     console.error("Route error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
