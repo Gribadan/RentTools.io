@@ -11,6 +11,13 @@ interface ScheduleSettings {
   lastResult: string | null;
 }
 
+interface PropertyEventCounts {
+  id: number;
+  name: string;
+  airbnb: number;
+  booking: number;
+}
+
 export function TasksPanel() {
   const { t } = useI18n();
   const [schedule, setSchedule] = useState<ScheduleSettings>({
@@ -22,16 +29,30 @@ export function TasksPanel() {
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [logLimit, setLogLimit] = useState(100);
+  const [eventCounts, setEventCounts] = useState<PropertyEventCounts[]>([]);
 
   const fetchData = useCallback(async () => {
-    const [schedRes, logsRes] = await Promise.all([
+    const [schedRes, logsRes, propsRes] = await Promise.all([
       fetch("/api/calendar/schedule"),
       fetch(`/api/calendar/sync?limit=${logLimit}`),
+      fetch("/api/properties"),
     ]);
     if (schedRes.ok) setSchedule(await schedRes.json());
+    let allEvents: { propertyId: number; platform: string }[] = [];
     if (logsRes.ok) {
       const data = await logsRes.json();
       setLogs(data.logs || []);
+      allEvents = data.events || [];
+    }
+    if (propsRes.ok) {
+      const props: { id: number; name: string }[] = await propsRes.json();
+      const counts = props.map((p) => ({
+        id: p.id,
+        name: p.name,
+        airbnb: allEvents.filter((e) => e.propertyId === p.id && e.platform === "airbnb").length,
+        booking: allEvents.filter((e) => e.propertyId === p.id && e.platform === "booking").length,
+      }));
+      setEventCounts(counts);
     }
   }, [logLimit]);
 
@@ -187,6 +208,22 @@ export function TasksPanel() {
           )}
           {parsedResult?.error && (
             <p className="text-xs text-[#ef4444]">Error: {parsedResult.error}</p>
+          )}
+
+          {eventCounts.length > 0 && (
+            <div className="border-t border-[#27272b]/60 pt-3 mt-2 space-y-1">
+              <p className="text-xs font-medium text-[#71717a]">Per-platform events</p>
+              {eventCounts.map((p) => (
+                <div key={p.id} className="flex items-center justify-between text-xs">
+                  <span className="truncate text-[#d4d4d8]">{p.name}</span>
+                  <span className="shrink-0 text-[#a0a0a8]">
+                    Airbnb: <span className="text-[#ff385c]">{p.airbnb}</span>
+                    {" · "}
+                    Booking: <span className="text-[#93c5fd]">{p.booking}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
