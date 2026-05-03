@@ -204,7 +204,7 @@
   - Make guest cards stack single-column on mobile
   - Acceptance criteria: app is usable on 375px wide viewport; no horizontal scroll on main content
 
-- [ ] **RT-6.5** Add PWA manifest for mobile home screen
+- [x] **RT-6.5** Add PWA manifest for mobile home screen
   - Files: `public/manifest.json`, `src/app/layout.tsx`
   - Add web app manifest with app name, icons, theme color
   - Add `<link rel="manifest">` to layout
@@ -245,3 +245,4 @@
 - 2026-05-04 — RT-6.2 — c13bc69 — per-property calendar data cache (30s TTL) skips refetch on remount
 - 2026-05-04 — RT-6.3 — e793104 — extracted 13 modules under src/components/calendar/; parent file 1175→191 lines
 - 2026-05-04 — RT-6.4 — 28f082c — mobile hamburger drawer, calendar horizontal scroll, toolbar wraps under sm
+- 2026-05-04 — RT-6.5 — 14bcb92 — manifest.json + icon.svg + appleWebApp metadata; viewport themeColor
