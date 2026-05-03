@@ -64,7 +64,7 @@
   - Filter reservations by guest name (case-insensitive substring match)
   - Acceptance criteria: typing "igor" in search shows only reservations with "igor" in the name; clearing search shows all
 
-- [ ] **RT-2.5** Show total guest count per property in the TopBar property selector
+- [x] **RT-2.5** Show total guest count per property in the TopBar property selector
   - File: `src/components/top-bar.tsx`
   - For each property in the dropdown, show reservation count and total guest count
   - Format: "Property Name (3 reservations, 12 guests)"
@@ -225,3 +225,4 @@
 - 2026-05-03 — RT-2.2 — 45835bc — block overlapping reservations with 409
 - 2026-05-03 — RT-2.3 — 1ae5fbf — loading spinners on properties/calendar/dashboard fetches
 - 2026-05-03 — RT-2.4 — 4f59297 — guest-name search filter on Dashboard reservations
+- 2026-05-03 — RT-2.5 — a1c029d — reservation+guest counts in TopBar property selector
