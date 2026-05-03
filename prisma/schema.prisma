@@ -29,7 +29,7 @@ model Property {
   checkOutTime   String           @default("12:00")
   bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  updatedAt      DateTime?
   reservations   Reservation[]
   calendarLinks  CalendarLink[]
   calendarEvents CalendarEvent[]
