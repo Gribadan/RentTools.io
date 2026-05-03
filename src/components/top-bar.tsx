@@ -103,25 +103,35 @@ export function TopBar({
 
                   <div className="my-1 h-px bg-[#27272b]" />
 
-                  {properties.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        onSelectProperty(p.id);
-                        if (activeView === "dashboard") onChangeView("calendar");
-                        setPropDropdown(false);
-                      }}
-                      className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                        p.id === selectedPropertyId ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#d4d4d8] hover:bg-[#1e1e22]"
-                      }`}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-[#34d399]" />
-                      <span className="flex-1 text-left truncate">{p.name}</span>
-                      <span className="text-xs text-[#71717a]">
-                        {p.reservations.length}
-                      </span>
-                    </button>
-                  ))}
+                  {properties.map(p => {
+                    const resCount = p.reservations.length;
+                    const guestCount = p.reservations.reduce(
+                      (sum, r) => sum + (r._count?.guests ?? 0),
+                      0
+                    );
+                    const countLabel = locale === "ru"
+                      ? `${resCount} брон., ${guestCount} гостей`
+                      : `${resCount} ${resCount === 1 ? "reservation" : "reservations"}, ${guestCount} ${guestCount === 1 ? "guest" : "guests"}`;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          onSelectProperty(p.id);
+                          if (activeView === "dashboard") onChangeView("calendar");
+                          setPropDropdown(false);
+                        }}
+                        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                          p.id === selectedPropertyId ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#d4d4d8] hover:bg-[#1e1e22]"
+                        }`}
+                      >
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-[#34d399]" />
+                        <span className="flex-1 min-w-0 text-left">
+                          <span className="block truncate">{p.name}</span>
+                          <span className="block truncate text-[10px] text-[#71717a]">{countLabel}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
 
                   <div className="my-1 h-px bg-[#27272b]" />
 
