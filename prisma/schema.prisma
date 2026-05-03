@@ -29,6 +29,7 @@ model Property {
   checkOutTime   String           @default("12:00")
   bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored
   createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   reservations   Reservation[]
   calendarLinks  CalendarLink[]
   calendarEvents CalendarEvent[]
@@ -81,6 +82,7 @@ model Reservation {
   property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests          Guest[]
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model DateOverride {
@@ -117,4 +119,5 @@ model Guest {
   reservationId    Int
   reservation      Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 }
