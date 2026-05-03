@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import type { Property, Reservation, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
 import { useI18n } from "@/lib/i18n/context";
@@ -65,6 +65,7 @@ export function PropertyCalendar({
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
   const [overrideMode, setOverrideMode] = useState(false);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchOverrides = async () => {
     const res = await fetch(`/api/date-overrides?propertyId=${property.id}`);
@@ -72,18 +73,40 @@ export function PropertyCalendar({
     setOverrides(data || []);
   };
 
-  useEffect(() => {
+  const refetchCalendarData = useCallback(async () => {
     setLoadingEvents(true);
-    Promise.all([
-      fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
-      fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
-      fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
-    ]).then(([syncData, linksData, overridesData]) => {
+    try {
+      const [syncData, linksData, overridesData] = await Promise.all([
+        fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
+        fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
+        fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
+      ]);
       setSyncedEvents(syncData.events || []);
       setLinks(linksData || []);
       setOverrides(overridesData || []);
-    }).catch(() => {}).finally(() => setLoadingEvents(false));
+    } catch {
+      // ignore
+    } finally {
+      setLoadingEvents(false);
+    }
   }, [property.id]);
+
+  useEffect(() => {
+    refetchCalendarData();
+  }, [refetchCalendarData]);
+
+  const handleSyncNow = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      await fetch("/api/calendar/sync", { method: "POST" });
+      await refetchCalendarData();
+    } catch {
+      // ignore
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const today = useMemo(() => {
     const d = new Date();
@@ -802,7 +825,19 @@ export function PropertyCalendar({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#e8e8ec]">{property.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-[#e8e8ec]">{property.name}</h1>
+            <button
+              onClick={handleSyncNow}
+              disabled={syncing}
+              title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+              className="rounded-md p-1.5 text-[#a0a0a8] transition-colors hover:bg-[#1e1e22] hover:text-[#e8e8ec] disabled:opacity-50"
+            >
+              <svg className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            </button>
+          </div>
           <p className="mt-0.5 text-sm text-[#a0a0a8]">
             {property.reservations.length} {locale === "ru" ? "бронирований" : (property.reservations.length !== 1 ? "reservations" : "reservation")}
           </p>
