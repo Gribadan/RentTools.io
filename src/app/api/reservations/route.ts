@@ -33,6 +33,29 @@ export async function POST(request: NextRequest) {
     if (checkOutDate <= checkInDate) {
       return NextResponse.json({ error: "checkOut must be after checkIn" }, { status: 400 });
     }
+
+    const overlap = await prisma.reservation.findFirst({
+      where: {
+        propertyId,
+        checkIn: { lt: checkOutDate },
+        checkOut: { gt: checkInDate },
+      },
+      select: { name: true, checkIn: true, checkOut: true },
+    });
+    if (overlap) {
+      return NextResponse.json(
+        {
+          error: "Overlapping reservation exists",
+          existing: {
+            name: overlap.name,
+            checkIn: overlap.checkIn,
+            checkOut: overlap.checkOut,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
     const reservation = await prisma.reservation.create({
       data: {
         name: name.trim(),
