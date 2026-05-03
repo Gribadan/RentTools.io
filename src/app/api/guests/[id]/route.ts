@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { stripSpaces, sanitizeAlphanumeric } from "@/lib/sanitize";
 
 const ALLOWED_STRING_FIELDS = [
   "fullName",
@@ -17,19 +18,6 @@ const ALLOWED_STRING_FIELDS = [
   "visaFrom",
   "visaTo",
 ] as const;
-
-// Strip all whitespace — for passport numbers like "AB 123 456" → "AB123456"
-function stripSpaces(s: string): string {
-  return s.replace(/\s+/g, "").trim();
-}
-
-// Keep Latin letters, digits, and single spaces — for "issuedBy" authority strings
-function sanitizeAlphanumeric(s: string): string {
-  return s
-    .replace(/[^a-zA-Z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 export async function PATCH(
   request: NextRequest,
