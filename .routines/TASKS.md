@@ -122,7 +122,7 @@
   - Validate: passportNumber should be stripped of spaces, issuedBy should use sanitizeAlphanumeric
   - Acceptance criteria: PATCH with `{ fullName: "New Name" }` updates the guest; sanitization applies
 
-- [ ] **RT-4.3** Add guest data export to CSV
+- [x] **RT-4.3** Add guest data export to CSV
   - File: `src/components/reservation-view.tsx`
   - Add "Export CSV" button next to the guest cards section
   - Generate CSV with all guest fields, download via browser
@@ -233,3 +233,4 @@
 - 2026-05-03 — RT-3.5 — d85b3fe — per-property Airbnb/Booking event counts in Tasks panel
 - 2026-05-04 — RT-4.1 — efb03d0 — inline edit mode + full-field PATCH for guest cards
 - 2026-05-04 — RT-4.2 — e652a5b — sanitize passport (strip spaces) and issuedBy (alphanumeric) on PATCH
+- 2026-05-04 — RT-4.3 — ec82d36 — Export CSV button above guest cards (RFC 4180 + BOM)
