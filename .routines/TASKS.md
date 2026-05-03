@@ -134,7 +134,7 @@
   - Include which files failed and why (from the log)
   - Acceptance criteria: extraction results show per-file status clearly
 
-- [ ] **RT-4.5** Auto-calculate yearsOld from DOB on each page load
+- [x] **RT-4.5** Auto-calculate yearsOld from DOB on each page load
   - File: `src/components/guest-cards.tsx`
   - Instead of showing the stored `yearsOld` (which gets stale), calculate age from `dateOfBirth` dynamically
   - Keep the stored value as fallback if DOB is missing
@@ -235,3 +235,4 @@
 - 2026-05-04 — RT-4.2 — e652a5b — sanitize passport (strip spaces) and issuedBy (alphanumeric) on PATCH
 - 2026-05-04 — RT-4.3 — ec82d36 — Export CSV button above guest cards (RFC 4180 + BOM)
 - 2026-05-04 — RT-4.4 — 62a6ffa — extraction success/failure summary banner with per-file reasons
+- 2026-05-04 — RT-4.5 — 25893c0 — compute guest age from DOB at render, fallback to stored yearsOld
