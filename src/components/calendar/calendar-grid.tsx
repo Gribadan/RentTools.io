@@ -116,7 +116,8 @@ export function CalendarGrid({
   };
 
   return (
-    <>
+    <div className="overflow-x-auto">
+      <div className="min-w-[640px]">
       <div className="grid grid-cols-7 border-b border-[#27272b]">
         {WEEKDAYS.map(wd => (
           <div key={wd} className="py-2 text-center text-xs font-medium text-[#71717a]">{wd}</div>
@@ -234,6 +235,7 @@ export function CalendarGrid({
           </div>
         ))}
       </div>
-    </>
+      </div>
+    </div>
   );
 }
