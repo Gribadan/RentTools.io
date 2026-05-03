@@ -81,6 +81,13 @@ For EACH task you take on:
 
 - **Never skip pre-commit hooks.**
 
+- **Turso/LibSQL compatibility**: Do NOT use Prisma's `@updatedAt`
+  directive — it generates queries incompatible with the LibSQL adapter.
+  Use `DateTime? @default(now())` instead. After any schema change,
+  verify the `/api/properties` endpoint returns data, not a 500 error.
+  Always test schema changes with `npx tsx prisma/push-schema.ts`
+  before committing.
+
 - **This project is live on Vercel with real users.** Be careful with:
   - Schema changes (additive only, never drop columns)
   - Calendar feed routes (platforms actively fetch these)
