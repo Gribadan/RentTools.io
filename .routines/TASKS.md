@@ -178,7 +178,7 @@
 
 ## Week 6 — Performance & Polish
 
-- [ ] **RT-6.1** Add pagination to properties API
+- [x] **RT-6.1** Add pagination to properties API
   - File: `src/app/api/properties/route.ts`
   - Accept `?page=1&limit=20` query params
   - Return `{ data: [...], total: N, page: 1, limit: 20 }`
@@ -241,3 +241,4 @@
 - 2026-05-04 — RT-5.3 — 7e277c9 — 8 new buffer-logic tests (generateBufferedEvents + generateBufferOnlyEvents)
 - 2026-05-04 — RT-5.4 — 511bc8d — docs/API.md covering all 23 API route handlers
 - 2026-05-04 — RT-5.5 — 313292c — docs/DEPLOYMENT.md (Turso + Vercel + cron-job.org walkthrough)
+- 2026-05-04 — RT-6.1 — d1ed057 — properties API pagination via ?page&limit (backward compatible)
