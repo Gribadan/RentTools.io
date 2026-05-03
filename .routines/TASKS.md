@@ -162,7 +162,7 @@
   - Test `generateBufferOnlyEvents`: same-platform buffer generation
   - Acceptance criteria: at least 8 test cases for buffer logic
 
-- [ ] **RT-5.4** Add API documentation README
+- [x] **RT-5.4** Add API documentation README
   - File: `docs/API.md`
   - Document all API endpoints: method, path, request body, response format, auth requirements
   - Include examples with curl
@@ -239,3 +239,4 @@
 - 2026-05-04 — RT-5.1 — 4c18f85 — vitest installed; 14 ical.ts tests passing
 - 2026-05-04 — RT-5.2 — d943542 — sanitize lib extracted; 25 tests covering Cyrillic/diacritics/edges
 - 2026-05-04 — RT-5.3 — 7e277c9 — 8 new buffer-logic tests (generateBufferedEvents + generateBufferOnlyEvents)
+- 2026-05-04 — RT-5.4 — 511bc8d — docs/API.md covering all 23 API route handlers
