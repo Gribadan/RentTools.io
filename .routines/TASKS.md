@@ -6,7 +6,7 @@
 
 ## Week 1 — Security & Stability
 
-- [ ] **RT-1.1** Add parseInt/NaN validation on all dynamic route params
+- [x] **RT-1.1** Add parseInt/NaN validation on all dynamic route params
   - Files: `src/app/api/properties/[id]/route.ts`, `src/app/api/reservations/[id]/route.ts`, `src/app/api/guests/[id]/route.ts`, `src/app/api/users/[id]/route.ts`, `src/app/api/calendar/links/[id]/route.ts`
   - For each: after `const { id } = await params`, add `const numId = parseInt(id); if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });`
   - Use `numId` in all subsequent Prisma calls
@@ -216,3 +216,4 @@
 
 <!-- Append completed tasks here: -->
 <!-- - YYYY-MM-DD — RT-X.X — <short SHA> — <one-line summary> -->
+- 2026-05-03 — RT-1.1 — 1008fa3 — NaN validation on 5 dynamic route handlers
