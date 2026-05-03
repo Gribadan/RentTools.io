@@ -58,7 +58,7 @@
   - Also add loading state to Dashboard and PropertyCalendar for their synced event fetches
   - Acceptance criteria: initial page load shows spinner until properties loaded; no flash of empty content
 
-- [ ] **RT-2.4** Add reservation search/filter to Dashboard
+- [x] **RT-2.4** Add reservation search/filter to Dashboard
   - File: `src/components/dashboard.tsx`
   - Add a search input above the reservations list
   - Filter reservations by guest name (case-insensitive substring match)
@@ -224,3 +224,4 @@
 - 2026-05-03 — RT-2.1 — 25c5ae7 — added updatedAt to Property/Reservation/Guest
 - 2026-05-03 — RT-2.2 — 45835bc — block overlapping reservations with 409
 - 2026-05-03 — RT-2.3 — 1ae5fbf — loading spinners on properties/calendar/dashboard fetches
+- 2026-05-03 — RT-2.4 — 4f59297 — guest-name search filter on Dashboard reservations
