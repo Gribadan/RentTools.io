@@ -4,6 +4,7 @@ import {
   generateICal,
   addDays,
   generateBufferedEvents,
+  generateBufferOnlyEvents,
 } from "./ical";
 
 describe("addDays", () => {
@@ -157,5 +158,95 @@ describe("generateBufferedEvents", () => {
       "airbnb"
     );
     expect(buffered).toHaveLength(2);
+  });
+
+  it("merges events when their buffers overlap", () => {
+    // A: 06-01..06-05 +1 checkout +2 buffer-after → ends 06-08
+    // B: starts 06-08 (within A's buffer) → ranges touch → merge
+    const buffered = generateBufferedEvents(
+      [
+        { uid: "a", summary: "S", startDate: "2026-06-01", endDate: "2026-06-05" },
+        { uid: "b", summary: "S", startDate: "2026-06-08", endDate: "2026-06-12" },
+      ],
+      0,
+      2,
+      "airbnb"
+    );
+    expect(buffered).toHaveLength(1);
+    expect(buffered[0].startDate).toBe("2026-06-01");
+    expect(buffered[0].endDate).toBe("2026-06-15"); // 06-12 +1 checkout +2 buffer
+  });
+
+  it("includes the source platform in the event UID and summary", () => {
+    const buffered = generateBufferedEvents(
+      [{ uid: "x", summary: "S", startDate: "2026-08-01", endDate: "2026-08-03" }],
+      1,
+      1,
+      "booking"
+    );
+    expect(buffered[0].uid).toContain("booking");
+    expect(buffered[0].summary).toContain("booking");
+    expect(buffered[0].summary).toContain("buffer");
+  });
+
+  it("omits the buffer suffix in the label when both buffers are zero", () => {
+    const buffered = generateBufferedEvents(
+      [{ uid: "x", summary: "S", startDate: "2026-08-01", endDate: "2026-08-03" }],
+      0,
+      0,
+      "airbnb"
+    );
+    expect(buffered[0].summary).toBe("Blocked (airbnb)");
+  });
+});
+
+describe("generateBufferOnlyEvents", () => {
+  it("returns empty when no events", () => {
+    expect(generateBufferOnlyEvents([], 1, 1)).toEqual([]);
+  });
+
+  it("emits one event before and one after when both buffers > 0", () => {
+    const events = generateBufferOnlyEvents(
+      [{ uid: "u1", summary: "S", startDate: "2026-09-10", endDate: "2026-09-15" }],
+      2,
+      1
+    );
+    expect(events).toHaveLength(2);
+    // before: 09-08..09-10 (exclusive end on booking start)
+    expect(events[0].startDate).toBe("2026-09-08");
+    expect(events[0].endDate).toBe("2026-09-10");
+    // after: starts day after checkout, runs +bufferAfter days
+    expect(events[1].startDate).toBe("2026-09-16");
+    expect(events[1].endDate).toBe("2026-09-17");
+  });
+
+  it("skips the before-buffer when bufferBefore is 0", () => {
+    const events = generateBufferOnlyEvents(
+      [{ uid: "u1", summary: "S", startDate: "2026-09-10", endDate: "2026-09-15" }],
+      0,
+      2
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0].startDate).toBe("2026-09-16");
+  });
+
+  it("skips the after-buffer when bufferAfter is 0", () => {
+    const events = generateBufferOnlyEvents(
+      [{ uid: "u1", summary: "S", startDate: "2026-09-10", endDate: "2026-09-15" }],
+      2,
+      0
+    );
+    expect(events).toHaveLength(1);
+    expect(events[0].startDate).toBe("2026-09-08");
+  });
+
+  it("uses the provided label", () => {
+    const events = generateBufferOnlyEvents(
+      [{ uid: "u1", summary: "S", startDate: "2026-09-10", endDate: "2026-09-15" }],
+      1,
+      0,
+      "Cleaning gap"
+    );
+    expect(events[0].summary).toBe("Cleaning gap");
   });
 });
