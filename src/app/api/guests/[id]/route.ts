@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const ALLOWED_STRING_FIELDS = [
+  "fullName",
+  "firstName",
+  "lastName",
+  "country",
+  "citizenshipCode",
+  "dateOfBirth",
+  "gender",
+  "dateOfIssue",
+  "expiryDate",
+  "passportNumber",
+  "issuedBy",
+  "visaNumber",
+  "visaFrom",
+  "visaTo",
+] as const;
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -13,6 +30,19 @@ export async function PATCH(
     const data: Record<string, unknown> = {};
 
     if ("parentId" in body) data.parentId = body.parentId;
+
+    for (const key of ALLOWED_STRING_FIELDS) {
+      if (key in body && typeof body[key] === "string") {
+        data[key] = body[key];
+      }
+    }
+
+    if ("yearsOld" in body && typeof body.yearsOld === "number") {
+      data.yearsOld = body.yearsOld;
+    }
+    if ("hasVisa" in body && typeof body.hasVisa === "boolean") {
+      data.hasVisa = body.hasVisa;
+    }
 
     const guest = await prisma.guest.update({
       where: { id: numId },

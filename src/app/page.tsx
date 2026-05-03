@@ -181,6 +181,17 @@ function AppContent({
     }
   };
 
+  const handleUpdateGuest = async (id: number, fields: Partial<Guest>) => {
+    await fetch(`/api/guests/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (selectedReservationId) {
+      await fetchGuests(selectedReservationId);
+    }
+  };
+
   const handleGuestsUpdated = useCallback(() => {
     if (selectedReservationId) {
       fetchGuests(selectedReservationId);
@@ -269,6 +280,7 @@ function AppContent({
                 onDeleteGuest={handleDeleteGuest}
                 onUpdateReservation={handleUpdateReservation}
                 onUpdateParent={handleUpdateParent}
+                onUpdateGuest={handleUpdateGuest}
               />
             );
           }

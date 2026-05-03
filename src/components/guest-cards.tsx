@@ -9,6 +9,7 @@ interface GuestCardsProps {
   checkOut: string;
   onDeleteGuest: (id: number) => void;
   onUpdateParent: (childId: number, parentId: number | null) => void;
+  onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
 }
 
 // Global last-copied tracking so highlight persists when switching tabs
@@ -69,6 +70,59 @@ function CopyField({
   );
 }
 
+function EditField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-md px-2 py-1">
+      <span className="text-xs text-muted-foreground/60">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-2/3 rounded border border-border/40 bg-background/50 px-2 py-0.5 text-sm font-medium text-[#e8e8ec] focus:border-primary/60 focus:outline-none"
+      />
+    </div>
+  );
+}
+
+function EditSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-md px-2 py-1">
+      <span className="text-xs text-muted-foreground/60">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-2/3 rounded border border-border/40 bg-background/50 px-2 py-0.5 text-sm font-medium text-[#e8e8ec] focus:border-primary/60 focus:outline-none"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function GuestCard({
   guest,
   children,
@@ -76,6 +130,7 @@ function GuestCard({
   onDelete,
   onDrop,
   onDragStart,
+  onUpdateGuest,
 }: {
   guest: Guest;
   children: Guest[];
@@ -83,8 +138,12 @@ function GuestCard({
   onDelete: (id: number) => void;
   onDrop: (childId: number, parentId: number) => void;
   onDragStart: (e: React.DragEvent, childId: number) => void;
+  onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
 }) {
   const [dragOver, setDragOver] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState<Guest>(guest);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -107,6 +166,48 @@ function GuestCard({
     [guest.id, onDrop]
   );
 
+  const startEdit = () => {
+    setDraft(guest);
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setDraft(guest);
+    setEditing(false);
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const fields: Partial<Guest> = {
+        fullName: draft.fullName,
+        firstName: draft.firstName,
+        lastName: draft.lastName,
+        country: draft.country,
+        citizenshipCode: draft.citizenshipCode,
+        dateOfBirth: draft.dateOfBirth,
+        gender: draft.gender,
+        dateOfIssue: draft.dateOfIssue,
+        expiryDate: draft.expiryDate,
+        passportNumber: draft.passportNumber,
+        issuedBy: draft.issuedBy,
+        visaNumber: draft.visaNumber,
+        visaFrom: draft.visaFrom,
+        visaTo: draft.visaTo,
+        hasVisa: draft.hasVisa,
+        yearsOld: draft.yearsOld,
+      };
+      await onUpdateGuest(guest.id, fields);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setField = <K extends keyof Guest>(key: K, value: Guest[K]) => {
+    setDraft((d) => ({ ...d, [key]: value }));
+  };
+
   return (
     <div
       className={`rounded-xl border transition-all ${
@@ -124,83 +225,175 @@ function GuestCard({
           <span className="truncate text-sm font-semibold text-[#e8e8ec]">{guest.fullName}</span>
           <span className="shrink-0 text-xs text-[#a0a0a8]">{guest.yearsOld}y</span>
         </div>
-        <button
-          onClick={() => { if (confirm("Delete this guest? This cannot be undone.")) onDelete(guest.id); }}
-          className="rounded-md p-1 text-muted-foreground/25 transition-all hover:bg-destructive/15 hover:text-destructive"
-        >
-          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1">
+          {editing ? (
+            <>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-[#34d399] transition-all hover:bg-[#34d399]/15 disabled:opacity-40"
+              >
+                {saving ? "saving…" : "save"}
+              </button>
+              <button
+                onClick={cancelEdit}
+                disabled={saving}
+                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-muted-foreground/60 transition-all hover:bg-white/5 hover:text-[#e8e8ec] disabled:opacity-40"
+              >
+                cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={startEdit}
+                className="rounded-md p-1 text-muted-foreground/30 transition-all hover:bg-white/5 hover:text-[#e8e8ec]"
+                title="Edit guest"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+              </button>
+              <button
+                onClick={() => { if (confirm("Delete this guest? This cannot be undone.")) onDelete(guest.id); }}
+                className="rounded-md p-1 text-muted-foreground/25 transition-all hover:bg-destructive/15 hover:text-destructive"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="divide-y divide-border/15">
-        {/* Block 1: Citizenship, DOB, Passport */}
-        <div className="p-1.5">
-          <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
-            Identity
-          </div>
-          <CopyField label="Citizenship" value={guest.citizenshipCode} fieldKey={`${guest.id}-ctz`} />
-          <CopyField label="Date of birth" value={guest.dateOfBirth} fieldKey={`${guest.id}-dob`} />
-          <CopyField label="Passport" value={guest.passportNumber} fieldKey={`${guest.id}-pp`} />
-        </div>
-
-        {/* Block 2: Issue, Authority, Name, Gender, Stay */}
-        <div className="p-1.5">
-          <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
-            Document
-          </div>
-          <CopyField label="Date of issue" value={guest.dateOfIssue} fieldKey={`${guest.id}-doi`} />
-          <CopyField label="Issued by" value={guest.issuedBy} fieldKey={`${guest.id}-ib`} />
-          <CopyField label="Full name" value={`${guest.lastName} ${guest.firstName}`} fieldKey={`${guest.id}-fn`} />
-          <CopyField label="Gender" value={guest.gender === "M" ? "Male" : guest.gender === "F" ? "Female" : guest.gender} fieldKey={`${guest.id}-gen`} />
-          <CopyField label="Arrived on (days)" value={String(stayDays)} fieldKey={`${guest.id}-stay`} />
-        </div>
-
-        {/* Block 3: Visit info + Visa (if uploaded) */}
-        <div className="p-1.5">
-          <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#34d399]/70">
-            {guest.hasVisa ? "Visa & Visit" : "Visit"}
-          </div>
-          {guest.hasVisa && (
-            <>
-              <CopyField label="Visa number" value={guest.visaNumber} fieldKey={`${guest.id}-vn`} />
-              <CopyField label="Visa from" value={guest.visaFrom} fieldKey={`${guest.id}-vf`} />
-              <CopyField label="Visa to" value={guest.visaTo} fieldKey={`${guest.id}-vt`} />
-            </>
-          )}
-          <CopyField label="Visit type" value="Tourist" fieldKey={`${guest.id}-vtype`} />
-          <CopyField label="Guest type" value="Other" fieldKey={`${guest.id}-gtype`} />
-        </div>
-
-        {/* Block 4: Children (only if any attached) */}
-        {children.length > 0 && (
-          <div className="p-1.5">
-            <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#fbbf24]/70">
-              Children ({children.length})
-            </div>
-            {children.map((child) => (
-              <div
-                key={child.id}
-                draggable
-                onDragStart={(e) => onDragStart(e, child.id)}
-                className="group/child ml-1 cursor-grab rounded-lg border border-border/15 bg-white/[0.02] p-1.5 mb-1 active:cursor-grabbing"
-              >
-                <div className="flex items-center justify-between px-1">
-                  <span className="text-[11px] font-medium">{child.fullName}</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-muted-foreground/30">drag to move</span>
-                    <svg className="h-3 w-3 text-muted-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
-                    </svg>
-                  </div>
-                </div>
-                <CopyField label="Name" value={child.fullName} fieldKey={`${child.id}-cfn`} />
-                <CopyField label="Date of birth" value={child.dateOfBirth} fieldKey={`${child.id}-cdob`} />
-                <CopyField label="Gender" value={child.gender === "M" ? "Male" : child.gender === "F" ? "Female" : child.gender} fieldKey={`${child.id}-cgen`} />
+        {editing ? (
+          <>
+            <div className="p-1.5">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
+                Identity
               </div>
-            ))}
-          </div>
+              <EditField label="Full name" value={draft.fullName} onChange={(v) => setField("fullName", v)} />
+              <EditField label="First name" value={draft.firstName} onChange={(v) => setField("firstName", v)} />
+              <EditField label="Last name" value={draft.lastName} onChange={(v) => setField("lastName", v)} />
+              <EditField label="Country" value={draft.country} onChange={(v) => setField("country", v)} />
+              <EditField label="Citizenship" value={draft.citizenshipCode} onChange={(v) => setField("citizenshipCode", v)} />
+              <EditField label="Date of birth" value={draft.dateOfBirth} onChange={(v) => setField("dateOfBirth", v)} />
+              <EditField
+                label="Years old"
+                value={String(draft.yearsOld)}
+                type="number"
+                onChange={(v) => setField("yearsOld", parseInt(v) || 0)}
+              />
+              <EditSelect
+                label="Gender"
+                value={draft.gender}
+                onChange={(v) => setField("gender", v)}
+                options={[
+                  { value: "", label: "—" },
+                  { value: "M", label: "Male" },
+                  { value: "F", label: "Female" },
+                ]}
+              />
+            </div>
+            <div className="p-1.5">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
+                Document
+              </div>
+              <EditField label="Passport" value={draft.passportNumber} onChange={(v) => setField("passportNumber", v)} />
+              <EditField label="Issued by" value={draft.issuedBy} onChange={(v) => setField("issuedBy", v)} />
+              <EditField label="Date of issue" value={draft.dateOfIssue} onChange={(v) => setField("dateOfIssue", v)} />
+              <EditField label="Expiry date" value={draft.expiryDate} onChange={(v) => setField("expiryDate", v)} />
+            </div>
+            <div className="p-1.5">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#34d399]/70">
+                Visa
+              </div>
+              <EditSelect
+                label="Has visa"
+                value={draft.hasVisa ? "yes" : "no"}
+                onChange={(v) => setField("hasVisa", v === "yes")}
+                options={[
+                  { value: "no", label: "No" },
+                  { value: "yes", label: "Yes" },
+                ]}
+              />
+              <EditField label="Visa number" value={draft.visaNumber} onChange={(v) => setField("visaNumber", v)} />
+              <EditField label="Visa from" value={draft.visaFrom} onChange={(v) => setField("visaFrom", v)} />
+              <EditField label="Visa to" value={draft.visaTo} onChange={(v) => setField("visaTo", v)} />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Block 1: Citizenship, DOB, Passport */}
+            <div className="p-1.5">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
+                Identity
+              </div>
+              <CopyField label="Citizenship" value={guest.citizenshipCode} fieldKey={`${guest.id}-ctz`} />
+              <CopyField label="Date of birth" value={guest.dateOfBirth} fieldKey={`${guest.id}-dob`} />
+              <CopyField label="Passport" value={guest.passportNumber} fieldKey={`${guest.id}-pp`} />
+            </div>
+
+            {/* Block 2: Issue, Authority, Name, Gender, Stay */}
+            <div className="p-1.5">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-primary/60">
+                Document
+              </div>
+              <CopyField label="Date of issue" value={guest.dateOfIssue} fieldKey={`${guest.id}-doi`} />
+              <CopyField label="Issued by" value={guest.issuedBy} fieldKey={`${guest.id}-ib`} />
+              <CopyField label="Full name" value={`${guest.lastName} ${guest.firstName}`} fieldKey={`${guest.id}-fn`} />
+              <CopyField label="Gender" value={guest.gender === "M" ? "Male" : guest.gender === "F" ? "Female" : guest.gender} fieldKey={`${guest.id}-gen`} />
+              <CopyField label="Arrived on (days)" value={String(stayDays)} fieldKey={`${guest.id}-stay`} />
+            </div>
+
+            {/* Block 3: Visit info + Visa (if uploaded) */}
+            <div className="p-1.5">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#34d399]/70">
+                {guest.hasVisa ? "Visa & Visit" : "Visit"}
+              </div>
+              {guest.hasVisa && (
+                <>
+                  <CopyField label="Visa number" value={guest.visaNumber} fieldKey={`${guest.id}-vn`} />
+                  <CopyField label="Visa from" value={guest.visaFrom} fieldKey={`${guest.id}-vf`} />
+                  <CopyField label="Visa to" value={guest.visaTo} fieldKey={`${guest.id}-vt`} />
+                </>
+              )}
+              <CopyField label="Visit type" value="Tourist" fieldKey={`${guest.id}-vtype`} />
+              <CopyField label="Guest type" value="Other" fieldKey={`${guest.id}-gtype`} />
+            </div>
+
+            {/* Block 4: Children (only if any attached) */}
+            {children.length > 0 && (
+              <div className="p-1.5">
+                <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#fbbf24]/70">
+                  Children ({children.length})
+                </div>
+                {children.map((child) => (
+                  <div
+                    key={child.id}
+                    draggable
+                    onDragStart={(e) => onDragStart(e, child.id)}
+                    className="group/child ml-1 cursor-grab rounded-lg border border-border/15 bg-white/[0.02] p-1.5 mb-1 active:cursor-grabbing"
+                  >
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-[11px] font-medium">{child.fullName}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] text-muted-foreground/30">drag to move</span>
+                        <svg className="h-3 w-3 text-muted-foreground/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5" />
+                        </svg>
+                      </div>
+                    </div>
+                    <CopyField label="Name" value={child.fullName} fieldKey={`${child.id}-cfn`} />
+                    <CopyField label="Date of birth" value={child.dateOfBirth} fieldKey={`${child.id}-cdob`} />
+                    <CopyField label="Gender" value={child.gender === "M" ? "Male" : child.gender === "F" ? "Female" : child.gender} fieldKey={`${child.id}-cgen`} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -213,6 +406,7 @@ export function GuestCards({
   checkOut,
   onDeleteGuest,
   onUpdateParent,
+  onUpdateGuest,
 }: GuestCardsProps) {
   const stayDays = (() => {
     const d1 = new Date(checkIn);
@@ -275,6 +469,7 @@ export function GuestCards({
             onDelete={onDeleteGuest}
             onDrop={handleDrop}
             onDragStart={handleDragStart}
+            onUpdateGuest={onUpdateGuest}
           />
         ))}
       </div>
