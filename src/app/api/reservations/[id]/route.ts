@@ -6,6 +6,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const numId = parseInt(id);
+  if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   const body = await request.json();
   const data: Record<string, unknown> = {};
 
@@ -15,7 +17,7 @@ export async function PATCH(
   if (body.platform !== undefined) data.platform = body.platform;
 
   const reservation = await prisma.reservation.update({
-    where: { id: parseInt(id) },
+    where: { id: numId },
     data,
   });
   return NextResponse.json(reservation);
@@ -26,6 +28,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  await prisma.reservation.delete({ where: { id: parseInt(id) } });
+  const numId = parseInt(id);
+  if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+  await prisma.reservation.delete({ where: { id: numId } });
   return NextResponse.json({ success: true });
 }

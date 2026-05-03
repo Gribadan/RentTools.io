@@ -13,6 +13,7 @@ export async function DELETE(
 
   const { id } = await params;
   const userId = parseInt(id);
+  if (isNaN(userId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
   // Prevent deleting yourself
   if (userId === session.userId) {
