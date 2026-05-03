@@ -18,6 +18,19 @@ const ALLOWED_STRING_FIELDS = [
   "visaTo",
 ] as const;
 
+// Strip all whitespace — for passport numbers like "AB 123 456" → "AB123456"
+function stripSpaces(s: string): string {
+  return s.replace(/\s+/g, "").trim();
+}
+
+// Keep Latin letters, digits, and single spaces — for "issuedBy" authority strings
+function sanitizeAlphanumeric(s: string): string {
+  return s
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -33,7 +46,10 @@ export async function PATCH(
 
     for (const key of ALLOWED_STRING_FIELDS) {
       if (key in body && typeof body[key] === "string") {
-        data[key] = body[key];
+        let value = body[key] as string;
+        if (key === "passportNumber") value = stripSpaces(value);
+        else if (key === "issuedBy") value = sanitizeAlphanumeric(value);
+        data[key] = value;
       }
     }
 
