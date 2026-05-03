@@ -191,7 +191,7 @@
   - Add a loading state while events are being fetched
   - Acceptance criteria: switching between properties doesn't trigger unnecessary re-fetches; loading spinner shows
 
-- [ ] **RT-6.3** Split property-calendar.tsx into smaller components
+- [x] **RT-6.3** Split property-calendar.tsx into smaller components
   - File: `src/components/property-calendar.tsx` (currently 700+ lines)
   - Extract: `CalendarGrid`, `CalendarLegend`, `CalendarNavigation`, `AgendaList` as separate components
   - Keep all in `src/components/calendar/` directory
@@ -243,3 +243,4 @@
 - 2026-05-04 — RT-5.5 — 313292c — docs/DEPLOYMENT.md (Turso + Vercel + cron-job.org walkthrough)
 - 2026-05-04 — RT-6.1 — d1ed057 — properties API pagination via ?page&limit (backward compatible)
 - 2026-05-04 — RT-6.2 — c13bc69 — per-property calendar data cache (30s TTL) skips refetch on remount
+- 2026-05-04 — RT-6.3 — e793104 — extracted 13 modules under src/components/calendar/; parent file 1175→191 lines
