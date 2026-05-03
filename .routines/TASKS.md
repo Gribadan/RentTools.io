@@ -46,7 +46,7 @@
   - Run `npx prisma generate`
   - Acceptance criteria: `npx prisma generate` succeeds; `npx tsx prisma/push-schema.ts` succeeds
 
-- [ ] **RT-2.2** Prevent duplicate reservations on overlapping dates
+- [x] **RT-2.2** Prevent duplicate reservations on overlapping dates
   - File: `src/app/api/reservations/route.ts`
   - Before creating: query existing reservations for same propertyId where date ranges overlap
   - Return 409 Conflict if overlap found: `{ error: "Overlapping reservation exists", existing: { name, checkIn, checkOut } }`
@@ -222,3 +222,4 @@
 - 2026-05-03 — RT-1.4 — 49cbe7b — confirm() on delete property/reservation/guest (in sidebar.tsx + guest-cards.tsx; delete buttons live there, not in property-calendar/dashboard)
 - 2026-05-03 — RT-1.5 — b8bc811 — min 8-char password on user creation
 - 2026-05-03 — RT-2.1 — 25c5ae7 — added updatedAt to Property/Reservation/Guest
+- 2026-05-03 — RT-2.2 — 45835bc — block overlapping reservations with 409
