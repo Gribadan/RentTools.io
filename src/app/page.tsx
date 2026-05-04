@@ -12,7 +12,21 @@ import { PropertyCleaningView } from "@/components/property-cleaning-view";
 import { SyncSettings } from "@/components/sync-settings";
 import { TasksPanel } from "@/components/tasks-panel";
 import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
+import { CleanerApp } from "@/components/cleaner-app";
 import type { Property, Guest } from "@/lib/types";
+
+function CleanerShell({
+  user,
+}: {
+  user: { userId: number; username: string; role: string };
+}) {
+  const router = useRouter();
+  const handleLogout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }, [router]);
+  return <CleanerApp user={user} onLogout={handleLogout} />;
+}
 
 function AppContent({
   user,
@@ -349,7 +363,15 @@ function AppContent({
 export default function Home() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0d1117] text-[#9198a1]">Loading...</div>}>
-      <AuthGuard>{(user) => <AppContent user={user} />}</AuthGuard>
+      <AuthGuard>
+        {(user) =>
+          user.role === "cleaner" ? (
+            <CleanerShell user={user} />
+          ) : (
+            <AppContent user={user} />
+          )
+        }
+      </AuthGuard>
     </Suspense>
   );
 }
