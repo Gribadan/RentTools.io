@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PlatformInstructions } from "@/components/platform-instructions";
 
 interface DraftLink {
   platform: string;
@@ -160,10 +161,10 @@ export default function OnboardPage() {
                 <div>
                   <h1 className="text-xl font-semibold sm:text-2xl">Paste your Airbnb iCal URL</h1>
                   <p className="mt-1 text-sm text-[#a0a0a8]">
-                    Open Airbnb → Calendar → Availability settings → Sync calendars → Export. Skip
-                    if you don&apos;t use Airbnb.
+                    Skip if you don&apos;t use Airbnb.
                   </p>
                 </div>
+                <PlatformInstructions platform="airbnb" mode="export" />
                 <input
                   value={state.airbnb}
                   onChange={(e) => setState((s) => ({ ...s, airbnb: e.target.value }))}
@@ -195,10 +196,10 @@ export default function OnboardPage() {
                 <div>
                   <h1 className="text-xl font-semibold sm:text-2xl">Paste your Booking.com iCal URL</h1>
                   <p className="mt-1 text-sm text-[#a0a0a8]">
-                    Open admin.booking.com → Rates &amp; Availability → Sync calendars → Export. Skip
-                    if you don&apos;t use Booking.com.
+                    Skip if you don&apos;t use Booking.com.
                   </p>
                 </div>
+                <PlatformInstructions platform="booking" mode="export" />
                 <input
                   value={state.booking}
                   onChange={(e) => setState((s) => ({ ...s, booking: e.target.value }))}
