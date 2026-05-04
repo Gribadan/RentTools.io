@@ -586,7 +586,7 @@
   - For now: "Built by a real owner of 2 properties tired of juggling 4 calendar tabs"
   - Acceptance criteria: section is honest and removable when real users appear
 
-- [ ] **RT-14.8** Make the repo public-flip-safe (CI sanity check)
+- [x] **RT-14.8** Make the repo public-flip-safe (CI sanity check)
   - File: `.github/workflows/ci.yml` (new or extended) — on every PR: `npm ci`, `npx next build`, `npx vitest run`. No secrets needed because the build doesn't contact Turso/Gemini at compile time
   - Document in CONTRIBUTING.md that PRs need a green CI before review
   - Acceptance criteria: opening a PR triggers CI; the badge shows green on master; the failure path produces a clear error
@@ -743,3 +743,4 @@
 - 2026-05-04 — RT-14.5 — 0e9766f — robots.txt sitemap → renttools.io; app/sitemap.ts emits 5 entries; /terms (9 sections) + /privacy (GDPR data inventory, retention, controller/processor split for guest passport data); middleware whitelists /terms /privacy
 - 2026-05-04 — RT-14.6 — 44ed2f8 — CONTRIBUTING.md refreshed for public audience (filing-an-issue section, local setup link, post-/dashboard route layout, code-of-conduct lite no-real-guest-data clause); .github/ISSUE_TEMPLATE/bug.md + feature.md
 - 2026-05-04 — RT-14.7 — 5937cb9 — landing "Used by" placeholder: honest eyebrow + maintainer origin line + explicit no-fake-testimonials note; section easily removable when real users appear
+- 2026-05-04 — RT-14.8 — 6666e46 — CI workflow at .github/workflows/ci.yml (npm ci + next build + vitest run on push/PR), hermetic with placeholder DATABASE_URL/JWT_SECRET so no real secrets needed; CI status badge in README; CONTRIBUTING.md CI section
