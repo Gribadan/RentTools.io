@@ -51,4 +51,4 @@ jobs:
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               "${DROPLET_USER}@${DROPLET_HOST}" \
-              'bash -lc "/home/app/rent-tool/scripts/deploy.sh"'
+              'bash -lc "bash /home/app/rent-tool/scripts/deploy.sh"'
