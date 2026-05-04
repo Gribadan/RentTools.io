@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import { CleanerAssignmentSection } from "@/components/cleaner-assignment-section";
+import { MessageTemplatesPanel } from "@/components/message-templates-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { CalendarLink, SyncLogEntry } from "@/lib/types";
 
@@ -460,6 +461,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
       )}
 
       <CleanerAssignmentSection propertyId={propertyId} />
+      <MessageTemplatesPanel propertyId={propertyId} />
     </div>
   );
 }
