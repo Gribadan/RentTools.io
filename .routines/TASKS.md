@@ -525,7 +525,7 @@
   - Document the GitHub secret setup: generate keypair (`ssh-keygen -t ed25519 -f droplet_deploy`), add `.pub` to droplet's `~/.ssh/authorized_keys`, add private key as `DEPLOY_KEY` repo secret, add `DROPLET_HOST` and `DROPLET_USER` repo variables
   - Acceptance criteria: pushing to master triggers a successful deploy in under 3 minutes; failing builds don't kill the running service (deploy.sh aborts on failure before the systemctl restart)
 
-- [ ] **RT-13.14** Resource sanity check + alerting
+- [x] **RT-13.14** Resource sanity check + alerting  *(script + cron line + DROPLET-SETUP §11 baseline delivered; on-droplet `apt install htop/iotop/vnstat`, Telegram bot wiring, and forced-breach smoke test bundled with RT-13.11 cutover)*
   - On the droplet: install `htop`, `iotop`, `vnstat`; confirm steady-state RAM is under 600 MB and CPU under 20%
   - Add a small `scripts/check-resources.sh` that posts a warning to an email-via-Mailgun-free / Telegram bot if RAM > 90% or disk > 80%
   - Run hourly via cron
@@ -728,6 +728,7 @@
 - 2026-05-04 — RT-13.8 — 845a122 — deploy/cron/rent-tool.cron + scripts/cron-sync.sh wrapper (sources CRON_SECRET from .env.production) + DROPLET-SETUP.md §6 with chmod/install/logrotate steps; on-droplet `crontab -u app` install bundled with RT-13.11 cutover
 - 2026-05-04 — RT-13.9 — 43204e3 — backup-db.sh (sqlite3 .backup + integrity_check + tiered hardlink retention 14/8/6) + 03:15 cron line + DROPLET-SETUP.md §7 install + restore procedure
 - 2026-05-04 — RT-13.13 — e10a57e — scripts/deploy.sh (dirty-check + build-before-restart + health smoke-test) + .github/workflows/deploy.yml (gated on vars.DROPLET_HOST so inert until secrets land) + DROPLET-SETUP.md §10 keypair/sudoers/secrets walkthrough
+- 2026-05-04 — RT-13.14 — a31fe34 — scripts/check-resources.sh hourly RAM/disk threshold check (Telegram + webhook fan-out, log-only fallback so safe before alert sink wired) + cron line + DROPLET-SETUP.md §11 baseline + smoke-test command
 - 2026-05-04 — RT-13.4 — ee63b45 — deploy/systemd/rent-tool.service unit (Type=simple, User=app, MemoryMax=900M, hardening flags, EnvironmentFile=.env.production); deployed to droplet, active
 - 2026-05-04 — RT-13.5 — ee63b45 — deploy/nginx/rent-tool.conf with TLS, CF-Connecting-IP real-IP, HTTP→HTTPS redirect; Let's Encrypt cert issued via DNS-01 with certbot-dns-cloudflare plugin (covers renttools.io / www / staging, expires 2026-08-02, auto-renews); CF proxied + Full (strict) SSL mode + always_use_https=on
 - 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
