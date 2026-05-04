@@ -16,7 +16,7 @@ interface HealthResponse {
 }
 
 function shortSha(): string {
-  const sha = process.env.VERCEL_GIT_COMMIT_SHA || process.env.GIT_COMMIT_SHA || "";
+  const sha = process.env.GIT_COMMIT_SHA || "";
   if (!sha) return "dev";
   return sha.slice(0, 7);
 }

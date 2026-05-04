@@ -102,8 +102,7 @@ For EACH task you take on:
   Prefer additive changes. If a task forces a breaking change, write
   a `Blocked:` note and move on.
 
-- **Manual-deploy tasks**: some tasks (especially Week 13 droplet setup,
-  DNS cutover, Vercel decommission) require commands run on a server you
+- **Manual-deploy tasks**: some tasks require commands run on a server you
   cannot SSH to. For those, your job is to **prepare the files** the
   task points to (scripts, configs, docs) and verify the build passes.
   Then mark the task `[x]` only if the file deliverables are complete
@@ -122,16 +121,12 @@ For EACH task you take on:
 ## Project context
 
 - **Stack**: Next.js 16 (App Router), TypeScript, Tailwind, Prisma 7
-- **Database**:
-  - **Source of truth (still)**: Turso (LibSQL) — production data lives here until cutover
-  - **Migration target**: self-hosted SQLite at `file:./data/prod.db` on the DO droplet
-  - `src/lib/prisma.ts` resolves to whichever is set via env vars (DATABASE_URL preferred, falls back to TURSO_*)
+- **Database**: self-hosted SQLite at `file:./data/prod.db` on the DO droplet
+  - `src/lib/prisma.ts` resolves to whichever is set via env vars (DATABASE_URL preferred; the libSQL adapter retains support for TURSO_* if a self-hoster wants Turso)
 - **Deploy**:
-  - **Production today**: Vercel auto-deploy from `master` (active, real users)
-  - **Migration target**: DigitalOcean droplet at `64.226.83.37` (renttools.io)
-  - Droplet bootstrap is DONE (Node 22, nginx, certbot, systemd, ufw, fail2ban, swap, app user, deploy key)
+  - **Production**: DigitalOcean droplet at `64.226.83.37` (renttools.io), Cloudflare-proxied with Full (strict) TLS
+  - Auto-deploy: GitHub Actions on push to `master` runs `scripts/deploy.sh` over SSH
   - TLS cert issued for renttools.io via Let's Encrypt DNS-01 (auto-renewing)
-  - Cutover happens at RT-13.11 — DO NOT touch Vercel until cutover succeeds
 - **Hosting model**: free public SaaS at the owner's domain. Anyone can sign up and use it. The owner pays for hosting + Gemini API. Users get rate-limited per account to protect the free tier.
 - **DB push**: `npx tsx prisma/push-schema.ts` (NOT `prisma db push` — works for both Turso and local SQLite via the same adapter script)
 - **Build check**: `npx next build`

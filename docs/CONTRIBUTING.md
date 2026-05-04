@@ -30,7 +30,7 @@ npm run db:seed
 npm run dev
 ```
 
-For deeper deployment guides see [docs/DEPLOYMENT.md](DEPLOYMENT.md) (legacy Vercel + Turso) and [docs/DROPLET-SETUP.md](DROPLET-SETUP.md) (current production droplet).
+For deeper deployment guidance see [docs/DROPLET-SETUP.md](DROPLET-SETUP.md) — production droplet runbook (systemd, nginx, cron, backups).
 
 ## Code style
 

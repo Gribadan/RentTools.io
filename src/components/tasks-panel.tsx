@@ -180,7 +180,7 @@ export function TasksPanel() {
             </div>
 
             <div className="rounded-md border border-[#333338] bg-[#111113] p-3 space-y-2">
-              <p className="text-xs font-medium text-[#a0a0a8]">Setup: add this URL to a free cron service</p>
+              <p className="text-xs font-medium text-[#a0a0a8]">Self-hosters: trigger this URL from cron</p>
               {cronUrl ? (
                 <code className="block text-xs text-[#d4d4d8] break-all select-all cursor-pointer rounded bg-[#18181b] p-2 border border-[#27272b]">{cronUrl}</code>
               ) : (
@@ -188,14 +188,9 @@ export function TasksPanel() {
                   {cronUrlConfigured ? "Loading…" : "Set CRON_SECRET in your environment to enable this URL."}
                 </p>
               )}
-              <div className="text-xs text-[#71717a] space-y-1">
-                <p>Vercel free plan only runs cron once per day. For more frequent sync, use a free external service:</p>
-                <p>
-                  <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[#e8e8ec] hover:underline">cron-job.org</a>
-                  {" "}— free, supports every 1 minute. Create account → New Job → paste the URL above → set your interval.
-                </p>
-                <p>Vercel daily cron also runs at 6:00 AM UTC as a fallback.</p>
-              </div>
+              <p className="text-xs text-[#71717a]">
+                On the hosted instance this runs from the system cron every 10 minutes. Self-hosters can wire it into <code className="text-[#a0a0a8]">crontab</code> or any external scheduler (e.g. <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[#e8e8ec] hover:underline">cron-job.org</a>).
+              </p>
             </div>
           </>
         )}

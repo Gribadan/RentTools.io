@@ -1,10 +1,9 @@
 /**
  * Simple in-memory rate limiter.
  *
- * Limitation: in-memory state is per-process. On Vercel serverless functions,
- * each cold-start creates a new instance. Good enough as a basic abuse deterrent
- * for an early-stage app. For real protection, move to Redis-backed (Upstash) or
- * Vercel Rate Limit when scaling.
+ * Limitation: state is per-process and resets on restart. Fine for the
+ * single-server droplet deployment as a basic abuse deterrent. If we ever
+ * scale horizontally, swap for a Redis-backed bucket.
  */
 
 interface Bucket {

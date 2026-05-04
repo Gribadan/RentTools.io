@@ -56,8 +56,6 @@ npm run dev          # http://localhost:3000
 
 For production on a $6 DigitalOcean droplet (systemd + nginx + Let's Encrypt + cron + daily backups), see [docs/DROPLET-SETUP.md](docs/DROPLET-SETUP.md).
 
-For the legacy Vercel + Turso path, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
 ## Features
 
 - [x] Multi-tenant: signup, per-user property scoping, ownership cascade across nested resources
@@ -91,10 +89,10 @@ The full backlog with status and acceptance criteria lives in [.routines/TASKS.m
 | Charts      | recharts                                     |
 | Auth        | jose JWT in HTTP-only cookie + bcryptjs      |
 | ORM         | Prisma 7 client + LibSQL adapter             |
-| Database    | SQLite (self-hosted) or Turso (LibSQL cloud) |
+| Database    | SQLite (self-hosted) — adapter also supports Turso/LibSQL cloud |
 | AI          | Google Gemini (`@google/generative-ai`)      |
 | Tests       | Vitest                                       |
-| Deployment  | systemd + nginx on DigitalOcean (or Vercel)  |
+| Deployment  | systemd + nginx on DigitalOcean              |
 
 ## Project layout
 
@@ -126,7 +124,6 @@ scripts/
   migrate-turso-to-local.ts
 docs/
   API.md                # endpoint reference
-  DEPLOYMENT.md         # legacy Vercel + Turso walkthrough
   DROPLET-SETUP.md      # production droplet runbook
   CONTRIBUTING.md       # code style, branching, commit format
 .routines/
