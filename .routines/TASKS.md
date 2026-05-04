@@ -507,6 +507,7 @@
   - Acceptance criteria: hitting `https://your-domain.com/api/health` returns 200 ok; an artificially-killed service triggers the monitor within 5 minutes
 
 - [ ] **RT-13.11** Stage on subdomain + cutover
+  Blocked: requires user-driven DNS edits + manual 30-item smoke test in a low-traffic window.
   - DNS: point `staging.your-domain.com` at the droplet IP (still keep the apex pointing at Vercel)
   - Smoke test on `staging.`: log in, verify all properties + bookings + cleanings + guests appear, generate a manager invite, accept it from another browser, edit a reservation, run a manual sync, hit the calendar feed URL
   - Once green, swap DNS: apex `@` and `www` → droplet IP; lower TTL to 60s a day before to reduce cutover delay
