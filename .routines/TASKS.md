@@ -604,7 +604,7 @@
   - File: `src/lib/site-settings.ts` (new) — `getSetting(key, fallback)` and `setSetting(key, value)` helpers; small in-memory cache with 60s TTL to avoid hitting the DB on every request
   - Acceptance criteria: schema pushes cleanly; helpers work; default values appear when DB is empty
 
-- [ ] **RT-15.2** Admin-only middleware guard
+- [x] **RT-15.2** Admin-only middleware guard
   - File: `src/lib/auth.ts` — add `requireSuperadmin()` helper that throws/returns 403 if session.role !== "superadmin"
   - File: `src/app/api/admin/*` (new path namespace) — every route under `/api/admin/` calls `requireSuperadmin()` first
   - Acceptance criteria: a regular user hitting `/api/admin/anything` returns 403; superadmin gets through
@@ -745,3 +745,4 @@
 - 2026-05-04 — RT-14.7 — 5937cb9 — landing "Used by" placeholder: honest eyebrow + maintainer origin line + explicit no-fake-testimonials note; section easily removable when real users appear
 - 2026-05-04 — RT-14.8 — 6666e46 — CI workflow at .github/workflows/ci.yml (npm ci + next build + vitest run on push/PR), hermetic with placeholder DATABASE_URL/JWT_SECRET so no real secrets needed; CI status badge in README; CONTRIBUTING.md CI section
 - 2026-05-04 — RT-15.1 — d11f496 — SiteSetting table {key, value, updatedAt?} + push-schema migration with 4 seeded defaults (signup_enabled, extraction_per_user_daily_limit, landing_announcement, support_email); src/lib/site-settings.ts with getSetting/setSetting + 60s in-process cache; verified against Turso
+- 2026-05-04 — RT-15.2 — 2b4f526 — requireSuperadmin() helper in src/lib/auth.ts (returns {session,response} discriminated union — 401 if unauth, 403 if non-superadmin) + middleware-level boundary guard for /api/admin/* (extracts role from JWT payload, returns 403 before any route resolves) so even non-existent admin paths are gated
