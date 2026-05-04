@@ -223,7 +223,7 @@
   - Run schema push, verify both existing properties show `userId=1`
   - Acceptance criteria: schema pushes cleanly; existing data intact; new properties require userId
 
-- [ ] **RT-7.2** Filter Properties API by current user
+- [x] **RT-7.2** Filter Properties API by current user
   - File: `src/app/api/properties/route.ts` (GET) — use `getSession()` from `lib/auth.ts` to get userId, filter `where: { userId }`
   - File: `src/app/api/properties/route.ts` (POST) — set `userId` from session on create
   - File: `src/app/api/properties/[id]/route.ts` (PATCH/DELETE) — refuse if property's userId != session userId (return 404, not 403, to avoid leaking existence)
@@ -468,3 +468,4 @@
 - 2026-05-04 — RT-6.4 — 28f082c — mobile hamburger drawer, calendar horizontal scroll, toolbar wraps under sm
 - 2026-05-04 — RT-6.5 — 14bcb92 — manifest.json + icon.svg + appleWebApp metadata; viewport themeColor
 - 2026-05-04 — RT-7.1 — 7edeedb — Property.userId FK with index; backfilled both rows to userId=1
+- 2026-05-04 — RT-7.2 — 8fca1af — properties API filtered/scoped to session.userId; foreign properties return 404
