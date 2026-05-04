@@ -42,14 +42,22 @@ export async function GET(request: NextRequest) {
     const propertyId = request.nextUrl.searchParams.get("propertyId");
     const limit = Number(request.nextUrl.searchParams.get("limit") || "50");
 
-    // Resolve which propertyIds the current user owns; logs/events are scoped to that set
+    // Resolve which propertyIds the current user can access — owners via Property.userId,
+    // cleaners via CleanerAssignment. Logs/events are scoped to that set
     // (logs without propertyId are global — keep them visible to everyone authenticated).
-    const ownedIds = (
-      await prisma.property.findMany({
-        where: { userId: session.userId },
-        select: { id: true },
-      })
-    ).map((p) => p.id);
+    const ownedIds = session.role === "cleaner"
+      ? (
+          await prisma.cleanerAssignment.findMany({
+            where: { cleanerId: session.userId },
+            select: { propertyId: true },
+          })
+        ).map((a) => a.propertyId)
+      : (
+          await prisma.property.findMany({
+            where: { userId: session.userId },
+            select: { id: true },
+          })
+        ).map((p) => p.id);
 
     if (propertyId) {
       const numId = Number(propertyId);

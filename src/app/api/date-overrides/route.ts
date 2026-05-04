@@ -11,6 +11,21 @@ async function ensureOwnsProperty(propertyId: number, userId: number) {
   return !!property && property.userId === userId;
 }
 
+async function userCanReadProperty(
+  propertyId: number,
+  userId: number,
+  role: string
+): Promise<boolean> {
+  if (role === "cleaner") {
+    const a = await prisma.cleanerAssignment.findUnique({
+      where: { cleanerId_propertyId: { cleanerId: userId, propertyId } },
+      select: { id: true },
+    });
+    return !!a;
+  }
+  return ensureOwnsProperty(propertyId, userId);
+}
+
 // GET /api/date-overrides?propertyId=1
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +42,7 @@ export async function GET(request: NextRequest) {
     }
 
     const numId = Number(propertyId);
-    if (!(await ensureOwnsProperty(numId, session.userId))) {
+    if (!(await userCanReadProperty(numId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

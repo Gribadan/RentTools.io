@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
       },
     };
     const orderBy = { createdAt: "desc" as const };
-    const where = { userId: session.userId };
+    const where =
+      session.role === "cleaner"
+        ? { cleanerAssignments: { some: { cleanerId: session.userId } } }
+        : { userId: session.userId };
 
     // Backward-compatible: when neither page nor limit is supplied, return the full array.
     if (pageParam === null && limitParam === null) {
