@@ -514,6 +514,7 @@
   - Acceptance criteria: staging passes a 30-item checklist; production DNS swap is completed during a low-traffic window; old Vercel URL still serves (rollback ready) for 7 days before being decommissioned
 
 - [ ] **RT-13.12** Decommission Vercel + Turso
+  Blocked: depends on RT-13.11 cutover + 7-day clean-operation window before code/docs can drop Vercel references.
   - Remove the GitHub → Vercel integration so future pushes don't trigger Vercel builds
   - Export Turso data one final time as a safety backup (`turso db shell <db> .dump > final-backup.sql`), store in `.local/`
   - After 7 days of clean operation on the droplet: delete the Vercel project and the Turso database
