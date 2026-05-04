@@ -1,8 +1,18 @@
 #!/bin/bash
-# rent-tool — droplet-side deploy script.
+# rent-tool — full droplet-side build + deploy (FALLBACK).
 #
-# Runs on the droplet under the `app` user (or via `sudo -u app`).
-# Triggered by .github/workflows/deploy.yml after a push to master.
+# Builds AND deploys on the droplet. Slow (~18 min on the 458 MB box) and
+# only kept around as a fallback when the CI build pipeline is unavailable
+# (eg GH Actions outage, working from a branch that hasn't been pushed).
+#
+# Normal deploys are now handled by .github/workflows/deploy.yml +
+# scripts/install-build.sh: the runner does the heavy build and ships
+# the artifact, the install script swaps it in (~30s on the droplet).
+#
+# To use this fallback manually:
+#   ssh app@<droplet>
+#   cd /home/app/rent-tool
+#   bash scripts/deploy.sh
 #
 # Aborts cleanly on any failed step BEFORE touching the running service,
 # so a broken build never kills production. The systemctl restart is
