@@ -120,11 +120,13 @@ export default function PrivacyPage() {
                 the Profile panel.
               </li>
               <li>
-                <span className="font-medium text-[#e8e8ec]">Deletion:</span> you can delete
-                your account from the Profile panel. All your properties, reservations,
-                guests, calendar links, audit entries and message templates are removed
-                from the production database within 7 days. Backups containing the deleted
-                data age out within 6 months.
+                <span className="font-medium text-[#e8e8ec]">Deletion:</span> Profile &gt;
+                Danger zone &gt; <em>Delete my account</em> permanently removes your account
+                immediately, along with every property, reservation, guest, calendar link,
+                message template, cleaning record, audit entry and extraction log we hold
+                for you. The action requires re-typing your username and current password
+                and cannot be undone. Backups containing the deleted data age out within
+                6 months.
               </li>
               <li>
                 <span className="font-medium text-[#e8e8ec]">Rectification:</span> all

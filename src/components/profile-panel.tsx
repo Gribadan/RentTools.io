@@ -25,6 +25,11 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -32,6 +37,10 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
     setSuccess(false);
     setCurrentPassword("");
     setNewPassword("");
+    setDeleteOpen(false);
+    setDeletePassword("");
+    setDeleteConfirm("");
+    setDeleteError("");
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => setUser(data?.user ?? null))
@@ -145,7 +154,115 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
         >
           Recent activity
         </button>
+
+        <div className="mt-6 border-t border-[#27272b] pt-4">
+          <h3 className="text-sm font-semibold text-[#e8e8ec]">Danger zone</h3>
+          <p className="mt-1 text-xs text-[#a0a0a8]">
+            Permanently delete your account and every property, reservation, guest,
+            and log we hold. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            onClick={() => setDeleteOpen(true)}
+            className="mt-3 h-9 w-full rounded-md border border-[#ef4444]/40 text-sm text-[#ef4444] transition-colors hover:bg-[#ef4444]/10"
+          >
+            Delete my account
+          </button>
+        </div>
       </div>
+
+      {deleteOpen && user && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-[#27272b] bg-[#18181b] p-6 shadow-2xl">
+            <h3 className="text-base font-semibold text-[#e8e8ec]">Delete account</h3>
+            <p className="mt-2 text-sm text-[#a0a0a8]">
+              Type your username <span className="font-mono text-[#e8e8ec]">{user.username}</span>{" "}
+              and your current password to confirm. We will immediately remove all your
+              properties, reservations, guests, calendar links, message templates, cleaning
+              records, and audit history. You will be logged out.
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#a0a0a8]" htmlFor="del-confirm">
+                  Confirm username
+                </label>
+                <input
+                  id="del-confirm"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#ef4444]"
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-[#a0a0a8]" htmlFor="del-pw">
+                  Current password
+                </label>
+                <input
+                  id="del-pw"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#ef4444]"
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
+
+            {deleteError && (
+              <div className="mt-3 rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 px-3 py-2 text-xs text-[#ef4444]">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteOpen(false)}
+                disabled={deleteBusy}
+                className="h-9 flex-1 rounded-md border border-[#333338] text-sm text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={
+                  deleteBusy ||
+                  deleteConfirm !== user.username ||
+                  deletePassword.length === 0
+                }
+                onClick={async () => {
+                  setDeleteBusy(true);
+                  setDeleteError("");
+                  try {
+                    const res = await fetch("/api/auth/delete-account", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        password: deletePassword,
+                        confirmUsername: deleteConfirm,
+                      }),
+                    });
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      setDeleteError(data.error || "Failed to delete");
+                      return;
+                    }
+                    window.location.href = "/login";
+                  } finally {
+                    setDeleteBusy(false);
+                  }
+                }}
+                className="h-9 flex-1 rounded-md bg-[#ef4444] text-sm font-medium text-white transition-colors hover:bg-[#dc2626] disabled:opacity-50"
+              >
+                {deleteBusy ? "Deleting…" : "Permanently delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AuditPanel open={auditOpen} onClose={() => setAuditOpen(false)} />
     </div>
   );
