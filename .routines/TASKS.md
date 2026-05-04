@@ -643,7 +643,7 @@
   - File: `src/components/profile-panel.tsx` — "Download my data" button
   - Acceptance criteria: clicking the button downloads a usable JSON file; admin panel from RT-15.3 has the same button for the admin's own data
 
-- [ ] **RT-15.9** Email contact (no email infra needed yet — just `mailto:`)
+- [x] **RT-15.9** Email contact (no email infra needed yet — just `mailto:`)
   - File: `src/components/admin-panel.tsx` — `support_email` setting populates a `mailto:` link in the footer of every page
   - File: `src/app/(app)/layout.tsx` — footer shows "Need help? <support_email>" when set
   - Defer: actual SMTP / Resend integration — not needed for free tier; users emailing the owner directly is fine until traffic justifies automated email
@@ -752,3 +752,4 @@
 - 2026-05-04 — RT-15.6 — 18c77dc — AnnouncementBanner client component (fetches /api/site-config, renders dismissible blue banner when landing_announcement non-empty, dismissal keyed by FNV-1a hash of text in localStorage so editing the announcement re-shows it); wired into both authenticated shells: src/app/dashboard/page.tsx (above TopBar) and src/components/cleaner-app.tsx (above cleaner header)
 - 2026-05-04 — RT-15.7 — 94dd0f4 — GDPR delete: /api/auth/delete-account (POST, requires {password, confirmUsername}; refuses last-superadmin to prevent lockout; explicit deleteMany on ExtractionLog + AuditLog since neither FKs User, then prisma.user.delete relies on cascades for Property tree; clearSession() at end); ProfilePanel "Danger zone" with red modal requiring re-typed username + password (submit disabled until both correct), hard-redirects to /login on success; privacy page Deletion bullet rewritten to match reality (immediate, full data scope, 6-month backup tail)
 - 2026-05-04 — RT-15.8 — 30c96b7 — GDPR export: /api/auth/export-data (GET, any authenticated user — Content-Disposition JSON dump of user record + owned properties with full nested tree + auditLogs + extractionLogs + manager grants given/received + invites created); ProfilePanel "Download my data" button below Recent activity triggers Blob download. Superadmin keeps the parallel /api/admin/export-my-data button from RT-15.3
+- 2026-05-04 — RT-15.9 — 0faa7c5 — SupportFooter client component (fetches /api/site-config, renders "Need help? <mailto>" only when support_email set) wired below <main> in dashboard + cleaner shells; landing page footer adds the same link via server-side getSetting (no extra fetch). SMTP/Resend integration deferred per task
