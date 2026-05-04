@@ -1,387 +1,205 @@
-"use client";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { AuthGuard } from "@/components/auth-guard";
-import { TopBar, type AppView } from "@/components/top-bar";
-import { ReservationView } from "@/components/reservation-view";
-import { SettingsPanel } from "@/components/settings-panel";
-import { Dashboard } from "@/components/dashboard";
-import { PropertyCalendar } from "@/components/property-calendar";
-import { PropertyCleaningView } from "@/components/property-cleaning-view";
-import { SyncSettings } from "@/components/sync-settings";
-import { TasksPanel } from "@/components/tasks-panel";
-import { ReportsPanel } from "@/components/reports-panel";
-import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
-import { CleanerApp } from "@/components/cleaner-app";
-import type { Property, Guest } from "@/lib/types";
+const REPO_URL = "https://github.com/Gribadan/rent-tool";
 
-function CleanerShell({
-  user,
-}: {
-  user: { userId: number; username: string; role: string };
-}) {
-  const router = useRouter();
-  const handleLogout = useCallback(async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-  }, [router]);
-  return <CleanerApp user={user} onLogout={handleLogout} />;
-}
-
-function AppContent({
-  user,
-}: {
-  user: { userId: number; username: string; role: string };
-}) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
-  const [loadingProperties, setLoadingProperties] = useState(true);
-
-  // Derive state from URL params
-  const selectedPropertyId = searchParams.get("property") ? Number(searchParams.get("property")) : null;
-  const selectedReservationId = searchParams.get("reservation") ? Number(searchParams.get("reservation")) : null;
-  const activeView: AppView = (searchParams.get("view") as AppView) ||
-    (selectedReservationId ? "guests" : selectedPropertyId ? "calendar" : "dashboard");
-
-  // Navigate by updating URL params
-  const navigate = useCallback((params: { property?: number | null; reservation?: number | null; view?: AppView }) => {
-    const sp = new URLSearchParams();
-    const propId = params.property !== undefined ? params.property : selectedPropertyId;
-    const resId = params.reservation !== undefined ? params.reservation : (params.property !== undefined ? null : selectedReservationId);
-    const view = params.view || (resId ? "guests" : propId ? "calendar" : "dashboard");
-
-    if (propId) sp.set("property", String(propId));
-    if (resId) sp.set("reservation", String(resId));
-    // Only set view param if it's not the default for the context
-    const defaultView = resId ? "guests" : propId ? "calendar" : "dashboard";
-    if (view !== defaultView) sp.set("view", view);
-
-    const qs = sp.toString();
-    router.push(qs ? `/?${qs}` : "/");
-  }, [router, selectedPropertyId, selectedReservationId]);
-
-  // Convenience setters that update URL
-  const setSelectedPropertyId = useCallback((id: number | null) => {
-    navigate({ property: id, reservation: null });
-  }, [navigate]);
-
-  const setSelectedReservationId = useCallback((id: number | null) => {
-    if (id) {
-      // Find which property this reservation belongs to
-      const prop = properties.find(p => p.reservations.some(r => r.id === id));
-      navigate({ property: prop?.id || selectedPropertyId, reservation: id, view: "guests" });
-    } else {
-      navigate({ reservation: null });
-    }
-  }, [navigate, properties, selectedPropertyId]);
-
-  const setActiveView = useCallback((view: AppView) => {
-    navigate({ view });
-  }, [navigate]);
-
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  useEffect(() => {
-    if (selectedReservationId) {
-      fetchGuests(selectedReservationId);
-    } else {
-      setGuests([]);
-    }
-  }, [selectedReservationId]);
-
-  const fetchProperties = async () => {
-    setLoadingProperties(true);
-    try {
-      const res = await fetch("/api/properties");
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setProperties(data);
-      } else {
-        console.error("Properties API returned non-array:", data);
-        setProperties([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch properties:", err);
-      setProperties([]);
-    } finally {
-      setLoadingProperties(false);
-    }
-  };
-
-  const fetchGuests = async (reservationId: number) => {
-    const res = await fetch(`/api/guests?reservationId=${reservationId}`);
-    const data = await res.json();
-    setGuests(data);
-  };
-
-  const handleAddProperty = async (name: string) => {
-    const res = await fetch("/api/properties", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (res.ok) await fetchProperties();
-  };
-
-  const handleDeleteProperty = async (id: number) => {
-    await fetch(`/api/properties/${id}`, { method: "DELETE" });
-    if (selectedPropertyId === id) {
-      navigate({ property: null, reservation: null, view: "dashboard" });
-    }
-    await fetchProperties();
-  };
-
-  const handleAddReservation = async (data: {
-    name: string;
-    checkIn: string;
-    checkOut: string;
-    platform: string;
-    propertyId: number;
-  }) => {
-    const res = await fetch("/api/reservations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (res.ok) await fetchProperties();
-  };
-
-  const handleUpdateReservation = async (
-    id: number,
-    data: { name?: string; checkIn?: string; checkOut?: string; platform?: string }
-  ) => {
-    const res = await fetch(`/api/reservations/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (res.ok) await fetchProperties();
-  };
-
-  const handleUpdateProperty = async (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => {
-    await fetch(`/api/properties/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    await fetchProperties();
-  };
-
-  const handleDeleteReservation = async (id: number) => {
-    await fetch(`/api/reservations/${id}`, { method: "DELETE" });
-    if (selectedReservationId === id) setSelectedReservationId(null);
-    await fetchProperties();
-  };
-
-  const handleDeleteGuest = async (id: number) => {
-    await fetch(`/api/guests/${id}`, { method: "DELETE" });
-    if (selectedReservationId) {
-      await fetchGuests(selectedReservationId);
-      await fetchProperties();
-    }
-  };
-
-  const handleUpdateParent = async (childId: number, parentId: number | null) => {
-    await fetch(`/api/guests/${childId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ parentId }),
-    });
-    if (selectedReservationId) {
-      await fetchGuests(selectedReservationId);
-    }
-  };
-
-  const handleUpdateGuest = async (id: number, fields: Partial<Guest>) => {
-    await fetch(`/api/guests/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(fields),
-    });
-    if (selectedReservationId) {
-      await fetchGuests(selectedReservationId);
-    }
-  };
-
-  const handleGuestsUpdated = useCallback(() => {
-    if (selectedReservationId) {
-      fetchGuests(selectedReservationId);
-      fetchProperties();
-    }
-  }, [selectedReservationId]);
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-  };
-
-  const handleSelectProperty = (id: number | null) => {
-    if (id === null) {
-      navigate({ property: null, reservation: null, view: "dashboard" });
-    } else {
-      navigate({ property: id, reservation: null, view: activeView === "dashboard" ? "calendar" : activeView });
-    }
-  };
-
-  const handleSelectReservation = (id: number) => {
-    const prop = properties.find(p => p.reservations.some(r => r.id === id));
-    navigate({ property: prop?.id || selectedPropertyId, reservation: id, view: "guests" });
-  };
-
-  const selectedProperty = properties.find(p => p.id === selectedPropertyId);
-  const selectedReservation = selectedProperty?.reservations.find(r => r.id === selectedReservationId);
-
-  const renderContent = () => {
-    // Global views (no property selected)
-    if (activeView === "settings") {
-      return (
-        <div className="mx-auto max-w-2xl">
-          <SettingsPanel
-            userRole={user.role}
-            onClose={() => navigate({ view: selectedPropertyId ? "calendar" : "dashboard" })}
-          />
-        </div>
-      );
-    }
-
-    if (activeView === "tasks") {
-      return <TasksPanel />;
-    }
-
-    if (activeView === "reports") {
-      return <ReportsPanel properties={properties} onImported={fetchProperties} />;
-    }
-
-    // Property views
-    if (selectedProperty) {
-      switch (activeView) {
-        case "calendar":
-          return (
-            <PropertyCalendar
-              key={`cal-${selectedProperty.id}`}
-              property={selectedProperty}
-              onSelectReservation={handleSelectReservation}
-              onAddReservation={handleAddReservation}
-            />
-          );
-        case "cleaning":
-          return (
-            <PropertyCleaningView
-              key={`clean-${selectedProperty.id}`}
-              property={selectedProperty}
-            />
-          );
-        case "sync":
-          return (
-            <SyncSettings
-              key={`sync-${selectedProperty.id}`}
-              propertyId={selectedProperty.id}
-              propertyName={selectedProperty.name}
-              minNights={selectedProperty.minNights || 3}
-              checkInTime={selectedProperty.checkInTime || "14:00"}
-              checkOutTime={selectedProperty.checkOutTime || "12:00"}
-              bookingWindow={selectedProperty.bookingWindow || 365}
-              ownerUserId={selectedProperty.userId}
-              onUpdateProperty={handleUpdateProperty}
-            />
-          );
-        case "guests":
-          if (selectedReservation) {
-            return (
-              <ReservationView
-                key={selectedReservation.id}
-                reservation={selectedReservation}
-                guests={guests}
-                propertyName={selectedProperty.name}
-                onGuestsUpdated={handleGuestsUpdated}
-                onDeleteGuest={handleDeleteGuest}
-                onUpdateReservation={handleUpdateReservation}
-                onUpdateParent={handleUpdateParent}
-                onUpdateGuest={handleUpdateGuest}
-              />
-            );
-          }
-          // Show reservation list for this property
-          return (
-            <Dashboard
-              properties={properties}
-              selectedProperty={selectedProperty}
-              onSelectProperty={handleSelectProperty}
-              onSelectReservation={handleSelectReservation}
-              onAddReservation={handleAddReservation}
-            />
-          );
-        default:
-          return (
-            <PropertyCalendar
-              key={`cal-${selectedProperty.id}`}
-              property={selectedProperty}
-              onSelectReservation={handleSelectReservation}
-              onAddReservation={handleAddReservation}
-            />
-          );
-      }
-    }
-
-    // Dashboard (no property selected)
-    return (
-      <Dashboard
-        properties={properties}
-        selectedProperty={null}
-        onSelectProperty={handleSelectProperty}
-        onSelectReservation={handleSelectReservation}
-        onAddReservation={handleAddReservation}
-        onAddProperty={handleAddProperty}
-      />
-    );
-  };
+export default async function HomePage() {
+  const session = await getSession();
+  if (session) redirect("/dashboard");
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0d1117]">
-      <TopBar
-        properties={properties}
-        selectedPropertyId={selectedPropertyId}
-        activeView={activeView}
-        onSelectProperty={handleSelectProperty}
-        onChangeView={setActiveView}
-        onAddProperty={handleAddProperty}
-        onOpenReservation={(propId, resId) =>
-          navigate({ property: propId, reservation: resId, view: "guests" })
-        }
-        username={user.username}
-        onLogout={handleLogout}
-      />
-      <SyncAlertsBanner />
-      <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8">
-        {loadingProperties && properties.length === 0 ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#30363d] border-t-[#58a6ff]" />
+    <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
+      <header className="border-b border-[#1e2329]">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e1e22]">
+              <svg className="h-4 w-4 text-[#e8e8ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
+              </svg>
+            </div>
+            <span className="text-base font-semibold">Rent Tool</span>
           </div>
-        ) : (
-          renderContent()
-        )}
+          <nav className="flex items-center gap-2 sm:gap-4">
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden text-sm text-[#a0a0a8] hover:text-[#e8e8ec] sm:inline"
+            >
+              GitHub
+            </a>
+            <Link
+              href="/login"
+              className="text-sm text-[#a0a0a8] hover:text-[#e8e8ec]"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/signup"
+              className="rounded-md bg-[#ff385c] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#e0294d]"
+            >
+              Sign up free
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <section className="px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="mb-4 text-sm font-medium uppercase tracking-wider text-[#ff385c]">
+              Open source · Free hosted version
+            </p>
+            <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+              Rent Tool
+            </h1>
+            <p className="mt-4 text-xl text-[#a0a0a8] sm:text-2xl">
+              Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free here.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/signup"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md bg-[#ff385c] px-6 text-sm font-medium text-white transition-colors hover:bg-[#e0294d] sm:w-auto"
+              >
+                Sign up free
+              </Link>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 w-full items-center justify-center rounded-md border border-[#333338] bg-[#18181b] px-6 text-sm font-medium text-[#e8e8ec] transition-colors hover:bg-[#1e1e22] sm:w-auto"
+              >
+                View source on GitHub
+              </a>
+            </div>
+            <p className="mt-6 text-xs text-[#71717a]">
+              No credit card. Self-host in 5 minutes if you'd rather run your own.
+            </p>
+          </div>
+        </section>
+
+        <section className="px-4 pb-16 sm:px-6 sm:pb-24">
+          <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-3">
+            <FeatureCard
+              title="Calendar sync"
+              body="Pull Airbnb and Booking.com via iCal. Add manual bookings alongside synced ones with conflicts highlighted. Per-property buffer days."
+            />
+            <FeatureCard
+              title="Cleaning automation"
+              body="Daily / weekly cleaning schedule generated from check-out → check-in dates. Mark done, skipped, print today's list. Cleaner role with restricted view."
+            />
+            <FeatureCard
+              title="Guest documents"
+              body="Drop a passport photo, get the fields back. Per-property message templates with variables. Cmd-K guest search across every property you own."
+            />
+          </div>
+        </section>
+
+        <section className="px-4 pb-16 sm:px-6 sm:pb-24">
+          <div className="mx-auto max-w-6xl">
+            <h2 className="mb-6 text-center text-2xl font-semibold sm:text-3xl">
+              See it in action
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <ScreenshotCard caption="Calendar with synced + manual bookings" />
+              <ScreenshotCard caption="Cleaning schedule" />
+              <ScreenshotCard caption="Guest cards" />
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 pb-16 sm:px-6 sm:pb-24">
+          <div className="mx-auto max-w-2xl rounded-lg border border-[#1e2329] bg-[#0f1419] p-6 sm:p-8">
+            <h2 className="text-xl font-semibold sm:text-2xl">
+              Built by a real owner
+            </h2>
+            <p className="mt-3 text-sm text-[#a0a0a8] sm:text-base">
+              Built by a real owner of 2 properties tired of juggling 4 calendar tabs. Used in production daily; the issues that matter get fixed first.
+            </p>
+          </div>
+        </section>
+
+        <section className="px-4 pb-16 sm:px-6 sm:pb-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-2xl font-semibold sm:text-3xl">
+              Two ways to use it
+            </h2>
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-6 text-left">
+                <h3 className="text-base font-semibold">Free hosted version</h3>
+                <p className="mt-2 text-sm text-[#a0a0a8]">
+                  Sign up here. The same code, hosted by the maintainer, free for personal use. Rate-limited per account.
+                </p>
+                <Link
+                  href="/signup"
+                  className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-[#ff385c] px-4 text-sm font-medium text-white transition-colors hover:bg-[#e0294d]"
+                >
+                  Sign up
+                </Link>
+              </div>
+              <div className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-6 text-left">
+                <h3 className="text-base font-semibold">Self-host</h3>
+                <p className="mt-2 text-sm text-[#a0a0a8]">
+                  Clone the repo, point to a SQLite file, and run on a $6 droplet. MIT licensed.
+                </p>
+                <a
+                  href={REPO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-flex h-9 items-center justify-center rounded-md border border-[#333338] bg-[#18181b] px-4 text-sm font-medium text-[#e8e8ec] transition-colors hover:bg-[#1e1e22]"
+                >
+                  Read the docs
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
+
+      <footer className="border-t border-[#1e2329]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
+          <p>© 2026 Rent Tool · MIT License</p>
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#e8e8ec]">
+              GitHub
+            </a>
+            <Link href="/terms" className="hover:text-[#e8e8ec]">
+              Terms
+            </Link>
+            <Link href="/privacy" className="hover:text-[#e8e8ec]">
+              Privacy
+            </Link>
+            <Link href="/login" className="hover:text-[#e8e8ec]">
+              Sign in
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   );
 }
 
-export default function Home() {
+function FeatureCard({ title, body }: { title: string; body: string }) {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0d1117] text-[#9198a1]">Loading...</div>}>
-      <AuthGuard>
-        {(user) =>
-          user.role === "cleaner" ? (
-            <CleanerShell user={user} />
-          ) : (
-            <AppContent user={user} />
-          )
-        }
-      </AuthGuard>
-    </Suspense>
+    <div className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-6">
+      <h3 className="text-base font-semibold text-[#e8e8ec]">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-[#a0a0a8]">{body}</p>
+    </div>
+  );
+}
+
+function ScreenshotCard({ caption }: { caption: string }) {
+  // Screenshots land in /public/docs/screenshots/ later; for now show a placeholder
+  // so the layout is final and the maintainer can drop files in without code changes.
+  return (
+    <figure className="overflow-hidden rounded-lg border border-[#1e2329] bg-[#0f1419]">
+      <div className="flex aspect-[4/3] items-center justify-center bg-gradient-to-br from-[#111113] to-[#1a1d24] text-xs text-[#71717a]">
+        Screenshot
+      </div>
+      <figcaption className="border-t border-[#1e2329] px-4 py-3 text-xs text-[#a0a0a8]">
+        {caption}
+      </figcaption>
+    </figure>
   );
 }

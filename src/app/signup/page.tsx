@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 
 function safeNext(raw: string | null): string {
-  if (!raw) return "/";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  if (!raw) return "/dashboard";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
   return raw;
 }
 
@@ -117,7 +117,7 @@ function SignupPageInner() {
 
         <p className="mt-4 text-center text-xs text-[#a0a0a8]">
           {t("signup.haveAccount")}{" "}
-          <Link href={next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-[#e8e8ec] hover:underline">
+          <Link href={next !== "/dashboard" ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-[#e8e8ec] hover:underline">
             {t("signup.signInLink")}
           </Link>
         </p>

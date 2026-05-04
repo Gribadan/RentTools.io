@@ -59,7 +59,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         return;
       }
       // Success — redirect to dashboard
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (e) {
       setState({ status: "error", message: e instanceof Error ? e.message : "Network error" });
     } finally {
@@ -104,7 +104,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
               {accepting ? (isRu ? "Принимаем…" : "Accepting…") : (isRu ? "Принять приглашение" : "Accept invitation")}
             </button>
             <button
-              onClick={() => router.replace("/")}
+              onClick={() => router.replace("/dashboard")}
               className="h-10 w-full rounded-lg border border-[#27272b] text-sm text-[#d4d4d8] hover:bg-[#1e1e22]"
             >
               {isRu ? "Отказаться" : "Decline"}
@@ -118,7 +118,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
               {isRu ? "Вы уже приняли это приглашение." : "You already accepted this invitation."}
             </p>
             <button
-              onClick={() => router.replace("/")}
+              onClick={() => router.replace("/dashboard")}
               className="h-10 w-full rounded-lg bg-[#ff385c] text-sm font-medium text-white hover:bg-[#e0294d]"
             >
               {isRu ? "Открыть приложение" : "Open app"}
@@ -140,7 +140,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
               {state.status === "used" && (isRu ? "Приглашение уже использовано другим пользователем." : "This invitation was already used by someone else.")}
             </p>
             <button
-              onClick={() => router.replace("/")}
+              onClick={() => router.replace("/dashboard")}
               className="h-10 w-full rounded-lg border border-[#27272b] text-sm text-[#d4d4d8] hover:bg-[#1e1e22]"
             >
               {isRu ? "Открыть приложение" : "Open app"}
