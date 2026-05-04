@@ -353,7 +353,7 @@
   - File: `src/components/cleaning-schedule.tsx` — when marking done, show optional file picker; thumbnails appear in the row
   - Acceptance criteria: cleaner can attach photos; owner sees thumbnails on the cleaning record
 
-- [ ] **RT-10.5** Daily/weekly cleaning summary view
+- [x] **RT-10.5** Daily/weekly cleaning summary view
   - File: `src/components/cleaning-summary.tsx` (new) — shows today's cleanings, tomorrow's, this week's; print button (CSS print stylesheet)
   - File: `src/components/property-cleaning-view.tsx` — link to summary at top
   - Acceptance criteria: cleaner can print a paper schedule for the day/week
@@ -486,3 +486,4 @@
 - 2026-05-04 — RT-10.1 — 1bc29e1 — cleaner role short-circuits to CleanerApp with cleaning-only dashboard view
 - 2026-05-04 — RT-10.2 — 9f6f5ea — CleanerAssignment table + REST endpoints + SyncSettings panel; cleaner /api/properties scoped via assignments
 - 2026-05-04 — RT-10.3 — fe2f0f8 — CleaningRecord table + /api/cleaning-records + done/skipped badges and toggle button in CleaningSchedule
+- 2026-05-04 — RT-10.5 — 3ac6a0d — printable Today/Tomorrow/Week cleaning summary modal wired into PropertyCleaningView + CleanerApp
