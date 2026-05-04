@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
+import { CleaningSummary } from "@/components/cleaning-summary";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -25,6 +26,7 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
   const [links, setLinks] = useState<Record<number, CalendarLink[]>>({});
   const [overrides, setOverrides] = useState<Record<number, DateOverride[]>>({});
   const [loading, setLoading] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -139,14 +141,32 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
               </p>
             </div>
           ) : (
-            <CleaningSchedule
-              properties={properties}
-              syncedEvents={syncedEvents}
-              links={links}
-              overrides={overrides}
-              mode="dashboard"
-              onOverrideChanged={fetchData}
-            />
+            <>
+              <div className="mb-3 flex justify-end">
+                <button
+                  onClick={() => setSummaryOpen(true)}
+                  className="rounded-md border border-[#333338] bg-[#18181b] px-3 py-1.5 text-xs text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+                >
+                  {locale === "ru" ? "Краткий план / печать" : "Summary / print"}
+                </button>
+              </div>
+              <CleaningSchedule
+                properties={properties}
+                syncedEvents={syncedEvents}
+                links={links}
+                overrides={overrides}
+                mode="dashboard"
+                onOverrideChanged={fetchData}
+              />
+              <CleaningSummary
+                open={summaryOpen}
+                onClose={() => setSummaryOpen(false)}
+                properties={properties}
+                syncedEvents={syncedEvents}
+                links={links}
+                overrides={overrides}
+              />
+            </>
           )}
         </div>
       </main>
