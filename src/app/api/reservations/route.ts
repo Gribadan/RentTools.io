@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const propertyId = request.nextUrl.searchParams.get("propertyId");
+    const where = propertyId
+      ? { propertyId: parseInt(propertyId), property: { userId: session.userId } }
+      : { property: { userId: session.userId } };
     const reservations = await prisma.reservation.findMany({
-      where: propertyId ? { propertyId: parseInt(propertyId) } : undefined,
+      where,
       orderBy: { checkIn: "asc" },
       include: { _count: { select: { guests: true } } },
     });
@@ -18,10 +25,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { name, checkIn, checkOut, platform, propertyId, linkedEventUid } = await request.json();
     if (!name?.trim() || !checkIn || !checkOut || !propertyId) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
+
+    const owner = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { userId: true },
+    });
+    if (!owner || owner.userId !== session.userId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     if (isNaN(checkInDate.getTime())) {
