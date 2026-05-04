@@ -113,8 +113,16 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
     }
   };
 
-  // Hide entire section for non-owners (they can't manage managers anyway)
-  if (forbidden) return null;
+  // For non-owners, show an informational notice instead of hiding entirely
+  // (the user might be a manager themselves and want to know who else is)
+  if (forbidden) {
+    return (
+      <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-2">
+        <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("managers.title")}</h2>
+        <p className="text-xs text-[#a0a0a8]">{t("managers.ownerOnly")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-3">
