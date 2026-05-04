@@ -425,7 +425,7 @@
   - File: `src/components/reports-panel.tsx` — "Import reservations" button with file picker + dry-run preview
   - Acceptance criteria: importing the CSV from RT-12.2 round-trips cleanly with zero errors
 
-- [ ] **RT-12.6** README + setup guide for new developer
+- [x] **RT-12.6** README + setup guide for new developer
   - File: `README.md` — overhaul: what the app does, screenshots (3-4), tech stack, prerequisites (Node, Turso CLI, Gemini key), 5-minute local setup steps, how to run sync manually, how to deploy
   - File: `docs/CONTRIBUTING.md` (new) — code style rules, branch naming, commit message format (we use Conventional Commits + Co-Authored-By), how to run vitest, how to add a route
   - Acceptance criteria: a new dev cloning the repo can be running locally in under 10 minutes following only the README
@@ -497,3 +497,4 @@
 - 2026-05-04 — RT-12.3 — a1d390d — Recent Activity feed (audit+sync merged, /api/activity) on dashboard
 - 2026-05-04 — RT-12.4 — 28694c6 — Global ? overlay + calendar arrow/T/E shortcuts (Cmd+K already wired in top-bar)
 - 2026-05-04 — RT-12.5 — 3735179 — /api/reservations/import (dry-run + commit) + Reports panel CSV import UI
+- 2026-05-04 — RT-12.6 — a3cf903 — README rewrite (5-step Turso setup) + docs/CONTRIBUTING.md (no screenshots)
