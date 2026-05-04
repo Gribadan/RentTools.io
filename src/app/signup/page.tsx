@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 
 function safeNext(raw: string | null): string {
   if (!raw) return "/dashboard";
@@ -109,6 +110,14 @@ function SignupPageInner() {
           </div>
         ) : (
         <div className="rounded-lg border border-[#333338] bg-[#18181b] p-6">
+          <div className="mb-4 space-y-3">
+            <GoogleSignInButton next={next !== "/dashboard" ? next : undefined} label={t("signup.continueWithGoogle")} />
+            <div className="flex items-center gap-3 text-xs text-[#71717a]">
+              <span className="h-px flex-1 bg-[#333338]" />
+              <span>{t("login.or")}</span>
+              <span className="h-px flex-1 bg-[#333338]" />
+            </div>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm text-[#d4d4d8]" htmlFor="username">{t("login.username")}</label>

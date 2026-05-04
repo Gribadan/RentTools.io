@@ -34,6 +34,9 @@ export const translations = {
   "login.connectionError": { en: "Connection error", ru: "Ошибка соединения" },
   "login.noAccount": { en: "Don't have an account?", ru: "Нет аккаунта?" },
   "login.signUpLink": { en: "Sign up", ru: "Зарегистрироваться" },
+  "login.continueWithGoogle": { en: "Continue with Google", ru: "Войти через Google" },
+  "login.or": { en: "or", ru: "или" },
+  "login.googleError": { en: "Google sign-in failed. Try again or use your password.", ru: "Не удалось войти через Google. Попробуйте снова или используйте пароль." },
 
   // Signup
   "signup.title": { en: "Create account", ru: "Создать аккаунт" },
@@ -43,6 +46,7 @@ export const translations = {
   "signup.failed": { en: "Sign up failed", ru: "Ошибка регистрации" },
   "signup.haveAccount": { en: "Already have an account?", ru: "Уже есть аккаунт?" },
   "signup.signInLink": { en: "Sign in", ru: "Войти" },
+  "signup.continueWithGoogle": { en: "Sign up with Google", ru: "Регистрация через Google" },
 
   // Welcome modal (first-time)
   "welcome.title": { en: "Welcome to RentTools", ru: "Добро пожаловать в RentTools" },
