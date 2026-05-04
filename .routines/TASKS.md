@@ -544,7 +544,7 @@
 
 > Goal: make the GitHub repo public so people with the same property-management pain can use it. Position as "open-source AND free at the owner's hosted instance." This is the polish week: README, license, landing page, marketing copy.
 
-- [ ] **RT-14.1** Comprehensive README rewrite
+- [x] **RT-14.1** Comprehensive README rewrite
   - File: `README.md`
   - Top section: tagline ("Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free at <our-domain>"), 3 screenshots (calendar, cleaning schedule, guest cards), badges (license, build status if any)
   - Sections: What it does, Free hosted version (link), Self-host (5-min quickstart pointing at docs/DEPLOYMENT.md and docs/DROPLET-SETUP.md), Features (bullet list with checkboxes for what exists), Roadmap (link to .routines/TASKS.md), Tech stack, Contributing (link to docs/CONTRIBUTING.md), License
@@ -736,3 +736,4 @@
 - 2026-05-04 — RT-13.5 — ee63b45 — deploy/nginx/rent-tool.conf with TLS, CF-Connecting-IP real-IP, HTTP→HTTPS redirect; Let's Encrypt cert issued via DNS-01 with certbot-dns-cloudflare plugin (covers renttools.io / www / staging, expires 2026-08-02, auto-renews); CF proxied + Full (strict) SSL mode + always_use_https=on
 - 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
 - 2026-05-04 — RT-13.7 — ee63b45 — scripts/migrate-turso-to-local.ts runs in dry-run + --write modes, copies all 17 tables in topological order preserving IDs; ran successfully on droplet: 2 users, 2 properties, 9 reservations, 23 guests, 24 calendar events, 502 sync logs all OK
+- 2026-05-04 — RT-14.1 — f4ff93c — README rewrite for public audience: tagline, badges, hosted-version CTA (renttools.io), 5-min self-host quickstart, feature checkboxes, project layout, MIT license reference
