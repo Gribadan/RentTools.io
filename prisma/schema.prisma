@@ -13,6 +13,7 @@ model User {
   password           String
   role               String               @default("user") // "superadmin" | "user" | "cleaner"
   createdAt          DateTime             @default(now())
+  lastLoginAt        DateTime?
   alertsDismissedAt  DateTime?
   properties         Property[]
   cleanerAssignments CleanerAssignment[]  @relation("CleanerAssignments")
