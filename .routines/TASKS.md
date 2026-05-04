@@ -597,7 +597,7 @@
 
 > Goal: give the owner (you) a single place to control site-wide settings without SSHing in. Make sure the free public hosting can't be ruined by abuse — rate limits, signup gates, opt-in moderation knobs.
 
-- [ ] **RT-15.1** Add `SiteSetting` table for global key-value config
+- [x] **RT-15.1** Add `SiteSetting` table for global key-value config
   - File: `prisma/schema.prisma` — `model SiteSetting { id Int @id @default(autoincrement()); key String @unique; value String; updatedAt DateTime? }`
   - File: `prisma/push-schema.ts` — additive migration with idempotent CREATE
   - Seed initial keys (only if missing): `signup_enabled` (default "true"), `extraction_per_user_daily_limit` (default "20"), `landing_announcement` (default ""), `support_email` (default ""), `terms_text` and `privacy_text` (defaults from the static pages of RT-14.5 — but stored in DB so admin can edit)
@@ -744,3 +744,4 @@
 - 2026-05-04 — RT-14.6 — 44ed2f8 — CONTRIBUTING.md refreshed for public audience (filing-an-issue section, local setup link, post-/dashboard route layout, code-of-conduct lite no-real-guest-data clause); .github/ISSUE_TEMPLATE/bug.md + feature.md
 - 2026-05-04 — RT-14.7 — 5937cb9 — landing "Used by" placeholder: honest eyebrow + maintainer origin line + explicit no-fake-testimonials note; section easily removable when real users appear
 - 2026-05-04 — RT-14.8 — 6666e46 — CI workflow at .github/workflows/ci.yml (npm ci + next build + vitest run on push/PR), hermetic with placeholder DATABASE_URL/JWT_SECRET so no real secrets needed; CI status badge in README; CONTRIBUTING.md CI section
+- 2026-05-04 — RT-15.1 — d11f496 — SiteSetting table {key, value, updatedAt?} + push-schema migration with 4 seeded defaults (signup_enabled, extraction_per_user_daily_limit, landing_announcement, support_email); src/lib/site-settings.ts with getSetting/setSetting + 60s in-process cache; verified against Turso
