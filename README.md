@@ -2,6 +2,7 @@
 
 > Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free at **[renttools.io](https://renttools.io)**.
 
+[![CI](https://github.com/Gribadan/rent-tool/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Gribadan/rent-tool/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript)](https://www.typescriptlang.org/)
