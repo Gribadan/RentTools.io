@@ -216,7 +216,7 @@
 
 > Currently every logged-in user sees ALL properties/reservations. Before sharing the app with anyone else, isolate per user. No payments — just clean data ownership so multiple owners can use the same instance safely.
 
-- [ ] **RT-7.1** Add `userId` FK to Property + backfill existing rows to current superadmin
+- [x] **RT-7.1** Add `userId` FK to Property + backfill existing rows to current superadmin
   - File: `prisma/schema.prisma` — add `userId Int` to `Property` with `user User @relation(fields: [userId], references: [id], onDelete: Cascade)`
   - File: `prisma/push-schema.ts` — add migration `ALTER TABLE "Property" ADD COLUMN "userId" INTEGER NOT NULL DEFAULT 1` then drop the default in a follow-up migration
   - Add reverse relation on `User`: `properties Property[]`
@@ -467,3 +467,4 @@
 - 2026-05-04 — RT-6.3 — e793104 — extracted 13 modules under src/components/calendar/; parent file 1175→191 lines
 - 2026-05-04 — RT-6.4 — 28f082c — mobile hamburger drawer, calendar horizontal scroll, toolbar wraps under sm
 - 2026-05-04 — RT-6.5 — 14bcb92 — manifest.json + icon.svg + appleWebApp metadata; viewport themeColor
+- 2026-05-04 — RT-7.1 — 7edeedb — Property.userId FK with index; backfilled both rows to userId=1
