@@ -1,4 +1,4 @@
-# Rent Tool — Task Backlog
+# RentTools — Task Backlog
 
 > Ordered by priority. Work top-to-bottom. Each task is atomic — one commit per task.
 

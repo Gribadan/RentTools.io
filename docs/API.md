@@ -1,4 +1,4 @@
-# Rent Tool API
+# RentTools API
 
 All endpoints are JSON unless noted. Base URL: `/`.
 
