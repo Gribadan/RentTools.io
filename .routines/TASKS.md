@@ -609,7 +609,7 @@
   - File: `src/app/api/admin/*` (new path namespace) — every route under `/api/admin/` calls `requireSuperadmin()` first
   - Acceptance criteria: a regular user hitting `/api/admin/anything` returns 403; superadmin gets through
 
-- [ ] **RT-15.3** Admin panel UI (Settings tab → "Admin" subsection, superadmin only)
+- [x] **RT-15.3** Admin panel UI (Settings tab → "Admin" subsection, superadmin only)
   - File: `src/components/admin-panel.tsx` (new)
   - File: `src/components/settings-panel.tsx` — when `userRole === "superadmin"`, render `<AdminPanel />` below the existing settings sections; hide entirely for non-admins
   - Sections: Site settings (toggle signup, support email, landing announcement banner), User management (existing), Extraction quota (the daily-limit setting from RT-15.1), System status (links to /api/health, /api/calendar/health), Data export (button to download a full JSON dump of the owner's own data — useful for backups and trust)
@@ -746,3 +746,4 @@
 - 2026-05-04 — RT-14.8 — 6666e46 — CI workflow at .github/workflows/ci.yml (npm ci + next build + vitest run on push/PR), hermetic with placeholder DATABASE_URL/JWT_SECRET so no real secrets needed; CI status badge in README; CONTRIBUTING.md CI section
 - 2026-05-04 — RT-15.1 — d11f496 — SiteSetting table {key, value, updatedAt?} + push-schema migration with 4 seeded defaults (signup_enabled, extraction_per_user_daily_limit, landing_announcement, support_email); src/lib/site-settings.ts with getSetting/setSetting + 60s in-process cache; verified against Turso
 - 2026-05-04 — RT-15.2 — 2b4f526 — requireSuperadmin() helper in src/lib/auth.ts (returns {session,response} discriminated union — 401 if unauth, 403 if non-superadmin) + middleware-level boundary guard for /api/admin/* (extracts role from JWT payload, returns 403 before any route resolves) so even non-existent admin paths are gated
+- 2026-05-04 — RT-15.3 — 5b221db — AdminPanel component (Site settings editor for 4 whitelisted keys via setSetting() so 60s cache invalidates, System status links to /api/health + /api/calendar/health, Data export button hitting /api/admin/export-my-data); rendered below existing settings sections only when userRole === "superadmin"; new /api/admin/site-settings (GET/PUT, key whitelist + per-key validation) and /api/admin/export-my-data (Content-Disposition JSON dump of caller's properties + reservations + guests + calendar links + templates + cleaning records) — both via requireSuperadmin() and middleware-gated
