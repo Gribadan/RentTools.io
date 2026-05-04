@@ -291,7 +291,7 @@
 
 > If something breaks, we should know before the user does. If they hit a bug, they should see something useful — not a stack trace.
 
-- [ ] **RT-9.1** Structured request logger middleware
+- [x] **RT-9.1** Structured request logger middleware
   - File: `src/lib/logger.ts` (new) — minimal JSON logger: `log({ level, msg, ...fields })` writes to `console.log` in dev, structured JSON to `console.log` in prod (Vercel collects stdout)
   - File: `src/middleware.ts` — log every request: timestamp, method, path, status, duration ms, userId (if session), ip
   - Acceptance criteria: Vercel logs show one structured line per request; can grep by userId or path
@@ -477,3 +477,4 @@
 - 2026-05-04 — RT-8.3 — f33a616 — shared EmptyState card on calendar/cleaning/sync; en/ru strings
 - 2026-05-04 — RT-8.4 — a60ba89 — OnboardingTooltip on Edit Dates + Airbnb iCal label; localStorage one-shot per id
 - 2026-05-04 — RT-8.5 — 15fcbf0 — change-password endpoint + /api/auth/me + ProfilePanel modal accessed from top-bar user dropdown
+- 2026-05-04 — RT-9.1 — cb58d62 — JSON request logger emitted from middleware; method/path/status/durationMs/userId/ip per request
