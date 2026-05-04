@@ -575,7 +575,7 @@
   - Footer link to both from the landing page and from inside the app
   - Acceptance criteria: pages load with reasonable text; no lorem ipsum; passes a basic GDPR-readiness review
 
-- [ ] **RT-14.6** CONTRIBUTING.md update
+- [x] **RT-14.6** CONTRIBUTING.md update
   - File: `docs/CONTRIBUTING.md` — already exists; review and update for the public-repo audience
   - Add: how to file an issue (template if useful), how to set up locally (link DEPLOYMENT.md), our commit message convention (Conventional Commits + Co-Authored-By if AI-paired), code-of-conduct lite
   - File: `.github/ISSUE_TEMPLATE/bug.md` and `.github/ISSUE_TEMPLATE/feature.md` (new) — minimal templates
@@ -741,3 +741,4 @@
 - 2026-05-04 — RT-14.3 — 3c4da59 — server-component landing at /, dashboard moved to /dashboard, getSession redirect for logged-in users, middleware exact-match for "/", default safeNext flipped from "/" to "/dashboard" across login/signup/invite
 - 2026-05-04 — RT-14.4 — cd0bf2d — Metadata API: openGraph + twitter card + canonical + metadataBase https://renttools.io; dynamic 1200x630 OG image via next/og ImageResponse at app/opengraph-image.tsx (no static png needed); robots index/follow
 - 2026-05-04 — RT-14.5 — 0e9766f — robots.txt sitemap → renttools.io; app/sitemap.ts emits 5 entries; /terms (9 sections) + /privacy (GDPR data inventory, retention, controller/processor split for guest passport data); middleware whitelists /terms /privacy
+- 2026-05-04 — RT-14.6 — 44ed2f8 — CONTRIBUTING.md refreshed for public audience (filing-an-issue section, local setup link, post-/dashboard route layout, code-of-conduct lite no-real-guest-data clause); .github/ISSUE_TEMPLATE/bug.md + feature.md
