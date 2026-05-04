@@ -5,7 +5,7 @@ const JWT_SECRET_RAW = process.env.JWT_SECRET || "fallback-secret-change-me";
 const SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
 const IS_DEFAULT_SECRET = JWT_SECRET_RAW === "fallback-secret-change-me";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/calendar/feed", "/api/calendar/cron"];
+const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/login", "/api/auth/signup", "/api/calendar/feed", "/api/calendar/cron"];
 
 // Security headers applied to every response
 function withSecurityHeaders(response: NextResponse): NextResponse {
