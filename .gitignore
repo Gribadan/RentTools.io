@@ -57,3 +57,7 @@ next-env.d.ts
 *.sqlite3
 *.dump
 *.sql.gz
+
+# Sentry build plugin auth token
+.env.sentry-build-plugin
+.sentryclirc
