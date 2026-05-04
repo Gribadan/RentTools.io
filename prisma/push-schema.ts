@@ -29,8 +29,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS "AppSettings_key_key" ON "AppSettings"("key");
 
 CREATE TABLE IF NOT EXISTS "Property" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL DEFAULT 1,
     "name" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Property_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS "Reservation" (
@@ -152,6 +154,8 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "Property" ADD COLUMN "updatedAt" DATETIME`,
     `ALTER TABLE "Reservation" ADD COLUMN "updatedAt" DATETIME`,
     `ALTER TABLE "Guest" ADD COLUMN "updatedAt" DATETIME`,
+    `ALTER TABLE "Property" ADD COLUMN "userId" INTEGER NOT NULL DEFAULT 1`,
+    `CREATE INDEX IF NOT EXISTS "Property_userId_idx" ON "Property"("userId")`,
   ];
   for (const sql of migrations) {
     try {

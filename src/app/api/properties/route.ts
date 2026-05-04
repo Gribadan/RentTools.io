@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
-    const property = await prisma.property.create({ data: { name: name.trim() } });
+    // TODO(RT-7.2): replace hard-coded userId with session userId.
+    const property = await prisma.property.create({ data: { name: name.trim(), userId: 1 } });
     return NextResponse.json(property);
   } catch (err) {
     console.error("Route error:", err);
