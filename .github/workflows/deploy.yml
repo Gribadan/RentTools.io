@@ -54,6 +54,11 @@ jobs:
       NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
+      # Google OAuth + One Tap — only the public client ID is baked into the
+      # client bundle at build time; the secret stays server-side via
+      # .env.production on the droplet.
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+
       # Surfaced in /api/health and on Sentry events as the release identifier.
       GIT_COMMIT_SHA: ${{ github.sha }}
       NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.sha }}
