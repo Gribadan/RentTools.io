@@ -1,0 +1,33 @@
+[Unit]
+Description=rent-tool Next.js app
+After=network.target
+
+[Service]
+Type=simple
+User=app
+Group=app
+WorkingDirectory=/home/app/rent-tool
+EnvironmentFile=/home/app/rent-tool/.env.production
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rent-tool
+
+# Resource limits — keep node well within droplet RAM + swap
+LimitNOFILE=65536
+MemoryMax=900M
+MemorySwapMax=2G
+
+# Hardening — minimal privileges
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/app/rent-tool
+
+[Install]
+WantedBy=multi-user.target
