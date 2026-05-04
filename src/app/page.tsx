@@ -11,6 +11,7 @@ import { PropertyCalendar } from "@/components/property-calendar";
 import { PropertyCleaningView } from "@/components/property-cleaning-view";
 import { SyncSettings } from "@/components/sync-settings";
 import { TasksPanel } from "@/components/tasks-panel";
+import { ReportsPanel } from "@/components/reports-panel";
 import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
 import { CleanerApp } from "@/components/cleaner-app";
 import type { Property, Guest } from "@/lib/types";
@@ -250,6 +251,10 @@ function AppContent({
 
     if (activeView === "tasks") {
       return <TasksPanel />;
+    }
+
+    if (activeView === "reports") {
+      return <ReportsPanel properties={properties} />;
     }
 
     // Property views
