@@ -50,10 +50,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -77,7 +77,7 @@ jobs:
           echo "Artifact size: $(ls -lh build.tar.gz | awk '{print $5}')"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-${{ github.sha }}
           path: build.tar.gz
@@ -91,7 +91,7 @@ jobs:
 
     steps:
       - name: Checkout (for scripts/install-build.sh)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Just the install script; no need for a deep clone.
           sparse-checkout: |
@@ -99,7 +99,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: build-${{ github.sha }}
 
