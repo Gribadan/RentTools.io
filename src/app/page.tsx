@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { getSetting } from "@/lib/site-settings";
 
 const REPO_URL = "https://github.com/Gribadan/rent-tool";
 
 export default async function HomePage() {
   const session = await getSession();
   if (session) redirect("/dashboard");
+  const supportEmail = (await getSetting("support_email", "")).trim();
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
@@ -173,6 +175,11 @@ export default async function HomePage() {
             <Link href="/privacy" className="hover:text-[#e8e8ec]">
               Privacy
             </Link>
+            {supportEmail && (
+              <a href={`mailto:${supportEmail}`} className="hover:text-[#e8e8ec]">
+                Need help? {supportEmail}
+              </a>
+            )}
             <Link href="/login" className="hover:text-[#e8e8ec]">
               Sign in
             </Link>
