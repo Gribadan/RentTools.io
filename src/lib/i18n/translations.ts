@@ -259,13 +259,20 @@ export const translations = {
   // Managers
   "managers.title": { en: "Managers", ru: "Менеджеры" },
   "managers.desc": { en: "Grant another user full management access to this property. Managers can edit reservations, sync calendars, and manage cleaning — but cannot delete the property or add other managers.", ru: "Предоставьте другому пользователю полный доступ к управлению этим объектом. Менеджеры могут редактировать брони, синхронизировать календари и управлять уборкой — но не могут удалить объект или добавить других менеджеров." },
-  "managers.addPlaceholder": { en: "Username to invite", ru: "Логин для приглашения" },
-  "managers.add": { en: "Add manager", ru: "Добавить менеджера" },
   "managers.empty": { en: "No managers yet. Only you can manage this property.", ru: "Пока нет менеджеров. Только вы управляете этим объектом." },
   "managers.you": { en: "you", ru: "вы" },
   "managers.owner": { en: "owner", ru: "владелец" },
   "managers.confirmRemove": { en: "Remove this manager? They will lose access to the property.", ru: "Удалить менеджера? Он потеряет доступ к объекту." },
   "managers.ownerOnly": { en: "Only the property owner can manage managers.", ru: "Только владелец объекта может управлять менеджерами." },
+  "managers.generateInvite": { en: "Generate invite link", ru: "Создать ссылку-приглашение" },
+  "managers.generating": { en: "Generating…", ru: "Создаём…" },
+  "managers.inviteCreated": { en: "Invite link ready — copy and send it to the person you want to invite. They'll log in (or sign up) and accept the invite to gain access.", ru: "Ссылка готова — скопируйте и отправьте её. Получатель войдёт (или зарегистрируется) и примет приглашение, чтобы получить доступ." },
+  "managers.copyLink": { en: "Copy link", ru: "Копировать ссылку" },
+  "managers.linkCopied": { en: "Copied", ru: "Скопировано" },
+  "managers.expiresIn": { en: "Expires in {n} days", ru: "Истекает через {n} дн." },
+  "managers.pendingInvites": { en: "Pending invites", ru: "Ожидающие приглашения" },
+  "managers.revokeInvite": { en: "Revoke", ru: "Отменить" },
+  "managers.confirmRevoke": { en: "Revoke this invite? The link will stop working.", ru: "Отменить приглашение? Ссылка перестанет работать." },
 
   // Date slider
   "dateslider.in": { en: "In", ru: "Заезд" },

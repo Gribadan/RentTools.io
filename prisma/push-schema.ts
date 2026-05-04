@@ -259,6 +259,42 @@ CREATE INDEX IF NOT EXISTS "PropertyManager_managerId_idx" ON "PropertyManager"(
     }
   }
 
+  // PropertyManagerInvite — invite tokens for granting manager access via link
+  const inviteSchema = `
+CREATE TABLE IF NOT EXISTS "PropertyManagerInvite" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "token" TEXT NOT NULL,
+    "createdById" INTEGER NOT NULL,
+    "acceptedById" INTEGER,
+    "acceptedAt" DATETIME,
+    "expiresAt" DATETIME NOT NULL,
+    "revokedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PropertyManagerInvite_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PropertyManagerInvite_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PropertyManagerInvite_acceptedById_fkey" FOREIGN KEY ("acceptedById") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PropertyManagerInvite_token_key" ON "PropertyManagerInvite"("token");
+CREATE INDEX IF NOT EXISTS "PropertyManagerInvite_propertyId_idx" ON "PropertyManagerInvite"("propertyId");
+CREATE INDEX IF NOT EXISTS "PropertyManagerInvite_token_idx" ON "PropertyManagerInvite"("token");
+`;
+
+  const inviteStatements = inviteSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of inviteStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // MessageTemplate table — guest pre/post-arrival templates per property
   const messageTemplateSchema = `
 CREATE TABLE IF NOT EXISTS "MessageTemplate" (

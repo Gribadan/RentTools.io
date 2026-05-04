@@ -72,12 +72,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Build a login redirect that preserves the requested path as ?next=
+  const buildLoginRedirect = () => {
+    const url = new URL("/login", request.url);
+    const target = pathname + (request.nextUrl.search || "");
+    if (target && target !== "/" && target !== "/login") {
+      url.searchParams.set("next", target);
+    }
+    return NextResponse.redirect(url);
+  };
+
   // Check session cookie
   const token = request.cookies.get("rent-tool-session")?.value;
   if (!token) {
     const r = pathname.startsWith("/api/")
       ? withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }))
-      : NextResponse.redirect(new URL("/login", request.url));
+      : buildLoginRedirect();
     logRequest(request, r, startedAt);
     return r;
   }
@@ -93,7 +103,7 @@ export async function middleware(request: NextRequest) {
   } catch {
     const r = pathname.startsWith("/api/")
       ? withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }))
-      : NextResponse.redirect(new URL("/login", request.url));
+      : buildLoginRedirect();
     logRequest(request, r, startedAt);
     return r;
   }

@@ -1,12 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 
+function safeNext(raw: string | null): string {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+}
+
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#111113]" />}>
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
   const { t, locale, setLocale } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +47,7 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/");
+      router.push(next);
       router.refresh();
     } catch {
       setError(t("login.connectionError"));
@@ -101,7 +117,7 @@ export default function SignupPage() {
 
         <p className="mt-4 text-center text-xs text-[#a0a0a8]">
           {t("signup.haveAccount")}{" "}
-          <Link href="/login" className="text-[#e8e8ec] hover:underline">
+          <Link href={next !== "/" ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="text-[#e8e8ec] hover:underline">
             {t("signup.signInLink")}
           </Link>
         </p>
