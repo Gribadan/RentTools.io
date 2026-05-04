@@ -364,7 +364,7 @@
 
 > Things that pay back daily: pre-arrival messages, document libraries, easier guest-to-reservation linking.
 
-- [ ] **RT-11.1** Guest message templates per property
+- [x] **RT-11.1** Guest message templates per property
   - File: `prisma/schema.prisma` — add `MessageTemplate { id, propertyId, name, language, subject, body, sendOffsetDays (negative=before checkin, positive=after), createdAt }`
   - File: `src/app/api/message-templates/route.ts` (new)
   - File: `src/components/message-templates-panel.tsx` (new, in property Settings tab) — CRUD for templates with variable hints (`{{guestName}}`, `{{checkIn}}`, `{{checkOut}}`, `{{wifiPassword}}`)
@@ -487,3 +487,4 @@
 - 2026-05-04 — RT-10.2 — 9f6f5ea — CleanerAssignment table + REST endpoints + SyncSettings panel; cleaner /api/properties scoped via assignments
 - 2026-05-04 — RT-10.3 — fe2f0f8 — CleaningRecord table + /api/cleaning-records + done/skipped badges and toggle button in CleaningSchedule
 - 2026-05-04 — RT-10.5 — 3ac6a0d — printable Today/Tomorrow/Week cleaning summary modal wired into PropertyCleaningView + CleanerApp
+- 2026-05-04 — RT-11.1 — 06347b0 — MessageTemplate table + /api/message-templates + MessageTemplatesPanel with variable preview in SyncSettings
