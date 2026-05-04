@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
+import { CleaningSummary } from "@/components/cleaning-summary";
+import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
 interface CalendarEvent {
@@ -17,9 +19,11 @@ interface PropertyCleaningViewProps {
 }
 
 export function PropertyCleaningView({ property }: PropertyCleaningViewProps) {
+  const { locale } = useI18n();
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     const [syncRes, linksRes, ovRes] = await Promise.all([
@@ -38,6 +42,14 @@ export function PropertyCleaningView({ property }: PropertyCleaningViewProps) {
 
   return (
     <div className="mx-auto max-w-5xl">
+      <div className="mb-3 flex justify-end">
+        <button
+          onClick={() => setSummaryOpen(true)}
+          className="rounded-md border border-[#333338] bg-[#18181b] px-3 py-1.5 text-xs text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+        >
+          {locale === "ru" ? "Краткий план / печать" : "Summary / print"}
+        </button>
+      </div>
       <CleaningSchedule
         properties={[property]}
         syncedEvents={{ [property.id]: syncedEvents }}
@@ -46,6 +58,14 @@ export function PropertyCleaningView({ property }: PropertyCleaningViewProps) {
         mode="property"
         selectedPropertyId={property.id}
         onOverrideChanged={fetchData}
+      />
+      <CleaningSummary
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        properties={[property]}
+        syncedEvents={{ [property.id]: syncedEvents }}
+        links={{ [property.id]: links }}
+        overrides={{ [property.id]: overrides }}
       />
     </div>
   );
