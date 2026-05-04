@@ -723,4 +723,4 @@
 - 2026-05-04 — RT-12.7 — da3d132 — Pin next 16.2.4/react/prisma/gemini; clears high-severity Next CVE; 0 high/critical
 - 2026-05-04 — RT-13.2 — pending — docs/DROPLET-SETUP.md complete provisioning runbook + troubleshooting
 - 2026-05-04 — RT-13.3 — pending — scripts/server-bootstrap.sh idempotent root install (swap, ufw, fail2ban, Node 22, nginx, certbot, app user); ran successfully on 64.226.83.37; server-deploy.sh deferred to RT-13.13
-- 2026-05-04 — RT-13.1 — pending — secret-pattern grep across full git history returns 3 false positives only (env example, doc placeholder, lockfile integrity hash); no real credentials in history; safe to flip repo public
+- 2026-05-04 — RT-13.1 — cc07fc0 — secret-pattern grep across full git history returns 3 false positives only (env example, doc placeholder, lockfile integrity hash); no real credentials in history; safe to flip repo public
