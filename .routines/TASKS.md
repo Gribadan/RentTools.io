@@ -272,7 +272,7 @@
   - Examples: Calendar empty → "No bookings yet — sync a calendar or add one manually"; Sync settings empty → "Connect Airbnb or Booking.com to start syncing"
   - Acceptance criteria: all main views have helpful empty states instead of blank space
 
-- [ ] **RT-8.4** Inline tooltips on first visit to a tab (per-property)
+- [x] **RT-8.4** Inline tooltips on first visit to a tab (per-property)
   - File: `src/components/onboarding-tooltips.tsx` (new) — small dismissible tooltip component anchored to a specific element
   - File: `src/components/property-calendar.tsx` — show tooltip on the "Edit Dates" button on first visit: "Click any date to override its status"
   - File: `src/components/sync-settings.tsx` — tooltip on the iCal field: "Paste your Airbnb iCal export URL here"
@@ -475,3 +475,4 @@
 - 2026-05-04 — RT-8.1 — 96175fa — welcome modal for empty workspaces; localStorage-persisted dismissal
 - 2026-05-04 — RT-8.2 — f841922 — POST /api/properties/sample seeds Sample Apartment + 3 demo reservations
 - 2026-05-04 — RT-8.3 — f33a616 — shared EmptyState card on calendar/cleaning/sync; en/ru strings
+- 2026-05-04 — RT-8.4 — a60ba89 — OnboardingTooltip on Edit Dates + Airbnb iCal label; localStorage one-shot per id
