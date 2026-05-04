@@ -550,7 +550,7 @@
   - Sections: What it does, Free hosted version (link), Self-host (5-min quickstart pointing at docs/DEPLOYMENT.md and docs/DROPLET-SETUP.md), Features (bullet list with checkboxes for what exists), Roadmap (link to .routines/TASKS.md), Tech stack, Contributing (link to docs/CONTRIBUTING.md), License
   - Acceptance criteria: a developer who has never seen the project can decide in 60 seconds whether to self-host or use the hosted version, and find the next step
 
-- [ ] **RT-14.2** Add LICENSE file
+- [x] **RT-14.2** Add LICENSE file
   - File: `LICENSE` (new) — MIT (recommended for max adoption; allows commercial use with attribution)
   - Update `package.json`: `"license": "MIT"`
   - Acceptance criteria: GitHub recognizes the license in the repo banner
@@ -737,3 +737,4 @@
 - 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
 - 2026-05-04 — RT-13.7 — ee63b45 — scripts/migrate-turso-to-local.ts runs in dry-run + --write modes, copies all 17 tables in topological order preserving IDs; ran successfully on droplet: 2 users, 2 properties, 9 reservations, 23 guests, 24 calendar events, 502 sync logs all OK
 - 2026-05-04 — RT-14.1 — f4ff93c — README rewrite for public audience: tagline, badges, hosted-version CTA (renttools.io), 5-min self-host quickstart, feature checkboxes, project layout, MIT license reference
+- 2026-05-04 — RT-14.2 — 83142c5 — MIT LICENSE file (copyright 2026 Gribadan) + "license": "MIT" in package.json
