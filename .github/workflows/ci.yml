@@ -28,6 +28,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Forbidden-paths check
+        # Defence-in-depth alongside .gitignore + .githooks/pre-commit.
+        # Scans tracked files in this commit for patterns that should
+        # never appear in the public repo (AI-tool config, local notes,
+        # task backlogs, env files, keys, DB dumps).
+        run: |
+          set -euo pipefail
+          FORBIDDEN='^\.routines/|^\.local/|^\.claude/|^\.cursor/|^\.aider|^\.playwright-mcp/|^CLAUDE\.md$|^claude\.md$|^AGENTS\.md$|^agents\.md$|^MEMORY\.md$|^TASKS\.md$|^ROUTINE\.md$|^OPS-ROUTINE\.md$|^\.env$|^\.env\.local$|^\.env\.production$|\.db$|\.sqlite[0-9]*$|\.dump$|\.sql\.gz$|^id_(rsa|ed25519|ecdsa)|\.ppk$|\.pfx$|\.p12$|^authorized_keys$|\.sentryclirc$|^\.env\.sentry-build-plugin$'
+          # Allow .env.example explicitly (matches \.env\..+ otherwise).
+          BAD=$(git ls-files | grep -E "$FORBIDDEN" | grep -vE '^\.env\.example$' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::Found forbidden tracked files in the public repo:"
+            echo "$BAD" | sed 's/^/  /'
+            echo ""
+            echo "These should not be committed. Either:"
+            echo "  1) Untrack: git rm --cached <path>; commit"
+            echo "  2) Or add an explicit allow for it in .githooks/pre-commit + this workflow"
+            exit 1
+          fi
+          echo "Forbidden-paths scan: clean."
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:

@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# Pre-commit safety net for the public repo.
+#
+# Blocks staged files matching patterns that should NEVER reach a public
+# branch. The .gitignore is the first defence; this hook catches the case
+# where someone runs `git add -f`, a tool stages a file before .gitignore
+# was updated, or a path is added before the pattern is updated.
+#
+# Activated by `git config core.hooksPath .githooks` (set automatically
+# by `npm install` postinstall — see package.json).
+#
+# To bypass on a specific commit (only do this if you understand why):
+#   git commit --no-verify
+
+set -euo pipefail
+
+# Patterns that should never be in a public commit. Each is checked against
+# the full path of every staged file. Pattern syntax is bash regex.
+FORBIDDEN_PATTERNS=(
+  '^\.routines/'
+  '^\.local/'
+  '^\.claude/'
+  '^\.cursor/'
+  '^\.aider'
+  '^\.playwright-mcp/'
+  '^CLAUDE\.md$'
+  '^claude\.md$'
+  '^AGENTS\.md$'
+  '^agents\.md$'
+  '^MEMORY\.md$'
+  '^TASKS\.md$'
+  '^ROUTINE\.md$'
+  '^OPS-ROUTINE\.md$'
+  '^\.env$'
+  '^\.env\.[^.]+$'
+  '\.db$'
+  '\.sqlite[0-9]*$'
+  '\.dump$'
+  '\.sql\.gz$'
+  '^id_(rsa|ed25519|ecdsa)'
+  '\.ppk$'
+  '\.pfx$'
+  '\.p12$'
+  '^authorized_keys$'
+  '\.sentryclirc$'
+  '^\.env\.sentry-build-plugin$'
+)
+
+# .env.example is the one allowed exception
+ALLOW_PATTERNS=(
+  '^\.env\.example$'
+)
+
+# Collect staged paths (added, copied, modified, renamed). 'D'eleted are fine.
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR)
+
+violations=()
+for path in "${staged[@]}"; do
+  # Allow-list check first
+  for allow in "${ALLOW_PATTERNS[@]}"; do
+    if [[ "$path" =~ $allow ]]; then
+      continue 2
+    fi
+  done
+  # Forbidden check
+  for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
+    if [[ "$path" =~ $pattern ]]; then
+      violations+=("$path -> matches /$pattern/")
+      break
+    fi
+  done
+done
+
+if (( ${#violations[@]} > 0 )); then
+  echo
+  echo "ERROR: Refusing to commit. The following staged paths look private:"
+  for v in "${violations[@]}"; do
+    printf '  %s\n' "$v"
+  done
+  echo
+  echo "If this is a false positive, edit .githooks/pre-commit to refine the"
+  echo "patterns, or commit with --no-verify after double-checking."
+  exit 1
+fi
+
+exit 0
