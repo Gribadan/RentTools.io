@@ -58,6 +58,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Audit dependencies (high/critical only)
+        # RT-21.9: gate merges to master on the absence of known
+        # high/critical CVEs. Moderate findings are surfaced via
+        # Dependabot PRs (.github/dependabot.yml) without blocking CI.
+        run: npm audit --audit-level=high
+
       - name: Type-check + production build
         run: npx next build
 
