@@ -567,7 +567,7 @@
   - File: `public/og.png` (new) — actual image (placeholder is fine to start)
   - Acceptance criteria: pasting the URL into Twitter/Slack/Telegram shows a rich card preview
 
-- [ ] **RT-14.5** Robots, sitemap, terms, privacy
+- [x] **RT-14.5** Robots, sitemap, terms, privacy
   - File: `public/robots.txt` — already exists, verify content
   - File: `src/app/sitemap.ts` (new, Next 16 conventions) — list `/`, `/signup`, `/login`, `/terms`, `/privacy`
   - File: `src/app/terms/page.tsx` (new) — minimal ToS markdown rendered statically. Cover: free service, no warranty, no liability, user owns their data, owner reserves right to suspend abuse
@@ -740,3 +740,4 @@
 - 2026-05-04 — RT-14.2 — 83142c5 — MIT LICENSE file (copyright 2026 Gribadan) + "license": "MIT" in package.json
 - 2026-05-04 — RT-14.3 — 3c4da59 — server-component landing at /, dashboard moved to /dashboard, getSession redirect for logged-in users, middleware exact-match for "/", default safeNext flipped from "/" to "/dashboard" across login/signup/invite
 - 2026-05-04 — RT-14.4 — cd0bf2d — Metadata API: openGraph + twitter card + canonical + metadataBase https://renttools.io; dynamic 1200x630 OG image via next/og ImageResponse at app/opengraph-image.tsx (no static png needed); robots index/follow
+- 2026-05-04 — RT-14.5 — 0e9766f — robots.txt sitemap → renttools.io; app/sitemap.ts emits 5 entries; /terms (9 sections) + /privacy (GDPR data inventory, retention, controller/processor split for guest passport data); middleware whitelists /terms /privacy
