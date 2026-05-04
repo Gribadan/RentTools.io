@@ -15,6 +15,18 @@ interface CalendarEvent {
   endDate: string;
 }
 
+interface ActivityItem {
+  id: string;
+  kind: "audit" | "sync";
+  level: "info" | "warn" | "error" | "success";
+  timestamp: string;
+  summary: string;
+  resourceType?: string;
+  resourceId?: number | null;
+  propertyId?: number | null;
+  propertyName?: string | null;
+}
+
 interface DashboardProps {
   properties: Property[];
   selectedProperty: Property | null;
@@ -52,6 +64,8 @@ export function Dashboard({
   const [allOverrides, setAllOverrides] = useState<Record<number, DateOverride[]>>({});
   const [loadingCalendarData, setLoadingCalendarData] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   // Fetch synced events, links, and overrides for all properties (for cleaning schedule)
   const fetchAllCalendarData = useCallback(async () => {
@@ -87,6 +101,25 @@ export function Dashboard({
   useEffect(() => {
     fetchAllCalendarData();
   }, [fetchAllCalendarData]);
+
+  const fetchActivity = useCallback(async () => {
+    setLoadingActivity(true);
+    try {
+      const res = await fetch("/api/activity");
+      if (res.ok) {
+        const data = await res.json();
+        setActivity((data.items || []) as ActivityItem[]);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingActivity(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActivity();
+  }, [fetchActivity, properties.length]);
 
   useEffect(() => {
     if (selectedProperty) {
@@ -421,6 +454,78 @@ export function Dashboard({
               ? t("dashboard.noReservations")
               : t("dashboard.noReservationsGlobal")}
           </p>
+        </div>
+      )}
+
+      {/* Recent Activity */}
+      {properties.length > 0 && (activity.length > 0 || loadingActivity) && (
+        <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
+          <div className="flex items-center justify-between border-b border-[#27272b] px-4 py-3">
+            <h2 className="text-xs font-medium text-[#a0a0a8]">
+              {locale === "ru" ? "Недавняя активность" : "Recent activity"}
+            </h2>
+            <button
+              onClick={fetchActivity}
+              className="text-[10px] text-[#71717a] hover:text-[#d4d4d8]"
+              title={locale === "ru" ? "Обновить" : "Refresh"}
+            >
+              {loadingActivity ? (locale === "ru" ? "Загрузка..." : "Loading...") : (locale === "ru" ? "Обновить" : "Refresh")}
+            </button>
+          </div>
+          {activity.length === 0 ? (
+            <p className="px-4 py-6 text-center text-xs text-[#71717a]">
+              {locale === "ru" ? "Активности пока нет" : "No activity yet"}
+            </p>
+          ) : (
+            <ul>
+              {activity.map((item) => {
+                const ts = new Date(item.timestamp);
+                const diffMs = Date.now() - ts.getTime();
+                const diffMin = Math.max(1, Math.floor(diffMs / 60000));
+                const relative = diffMin < 60
+                  ? (locale === "ru" ? `${diffMin} мин. назад` : `${diffMin}m ago`)
+                  : diffMin < 60 * 24
+                  ? (locale === "ru" ? `${Math.floor(diffMin / 60)} ч. назад` : `${Math.floor(diffMin / 60)}h ago`)
+                  : (locale === "ru" ? `${Math.floor(diffMin / (60 * 24))} дн. назад` : `${Math.floor(diffMin / (60 * 24))}d ago`);
+                const dotClass =
+                  item.level === "error"
+                    ? "bg-[#ef4444]"
+                    : item.level === "warn"
+                    ? "bg-[#fbbf24]"
+                    : item.level === "success"
+                    ? "bg-[#34d399]"
+                    : "bg-[#71717a]";
+                const clickable = item.kind === "audit" && item.resourceType === "reservation" && item.resourceId && item.propertyId;
+                const onClick = clickable
+                  ? () => handleRowClick(item.propertyId!, item.resourceId!)
+                  : item.propertyId
+                  ? () => onSelectProperty(item.propertyId!)
+                  : undefined;
+                return (
+                  <li
+                    key={item.id}
+                    className={`flex items-start gap-3 border-b border-[#27272b]/50 px-4 py-2.5 last:border-b-0 ${
+                      onClick ? "cursor-pointer hover:bg-[#1e1e22]" : ""
+                    }`}
+                    onClick={onClick}
+                  >
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-[#e8e8ec]">
+                        {item.summary}
+                        {item.propertyName && (
+                          <span className="ml-1 text-[#71717a]">· {item.propertyName}</span>
+                        )}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[11px] text-[#71717a]" title={ts.toLocaleString()}>
+                      {relative}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
 
