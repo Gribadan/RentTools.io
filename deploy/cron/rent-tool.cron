@@ -1,0 +1,21 @@
+# rent-tool — calendar sync cron
+#
+# Install:
+#   sudo crontab -u app -e
+#   …paste the lines below…
+#
+# The wrapper script (scripts/cron-sync.sh) sources CRON_SECRET from
+# /home/app/rent-tool/.env.production, so the secret is NEVER inlined
+# in the crontab. Keep .env.production at chmod 600.
+#
+# Verify after install:
+#   sudo crontab -u app -l
+#   tail -f /home/app/logs/rent-tool-cron.log
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+MAILTO=""
+
+# Sync all calendars every 10 minutes (the app's own cron handler also
+# enforces a configurable per-account frequency, so over-firing is safe).
+*/10 * * * * /home/app/rent-tool/scripts/cron-sync.sh >> /home/app/logs/rent-tool-cron.log 2>&1

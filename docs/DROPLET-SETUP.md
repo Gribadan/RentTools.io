@@ -121,12 +121,69 @@ in this repo. Copy it to `/etc/systemd/system/`, reload, enable, start.
 Covered by RT-13.5. The nginx config lives at `deploy/nginx/rent-tool.conf`.
 Then run `certbot --nginx -d your-domain.com` to get the certs.
 
-## 6. Cron, backups, monitoring
+## 6. Cron for calendar sync (RT-13.8)
 
-Covered by RT-13.8 / RT-13.9 / RT-13.10. Crontab lives at
-`deploy/cron/rent-tool.cron`. Backup script at `scripts/backup-db.sh`.
+Calendar sync runs natively from the droplet's own cron — no third-party
+scheduler. The crontab template lives at `deploy/cron/rent-tool.cron`
+and calls a wrapper at `scripts/cron-sync.sh` so the `CRON_SECRET` is
+sourced from `.env.production` rather than inlined in the crontab.
 
-## 7. Migrate data from Turso (if applicable)
+Install (as root on the droplet):
+
+```bash
+# 1. Make sure the wrapper is executable (git should preserve this,
+#    but re-applying is harmless).
+sudo chmod +x /home/app/rent-tool/scripts/cron-sync.sh
+
+# 2. Lock down the env file so other users on the box can't read it.
+sudo chmod 600 /home/app/rent-tool/.env.production
+sudo chown app:app /home/app/rent-tool/.env.production
+
+# 3. Install the crontab for the `app` user. EDITOR=cat lets us pipe
+#    the file in non-interactively; otherwise: `sudo crontab -u app -e`
+#    and paste the contents.
+sudo -u app crontab /home/app/rent-tool/deploy/cron/rent-tool.cron
+
+# 4. Verify.
+sudo -u app crontab -l
+```
+
+The wrapper logs to `/home/app/logs/rent-tool-cron.log`. Tail it after
+the next 10-minute boundary to confirm:
+
+```bash
+tail -f /home/app/logs/rent-tool-cron.log
+# expect lines like:
+# [2026-05-04T19:30:01Z] OK {"ok":true,...,"results":[...]}
+```
+
+Successful runs accumulate `SyncLog` rows in the database (`level=info`).
+Failures show up in the log file with `FAIL rc=...` and as `level=error`
+rows in `SyncLog`, which the in-app banner picks up after 3 consecutive
+failures (RT-9.4).
+
+**Rotating the log.** If the log gets large, add a small logrotate snippet:
+
+```bash
+sudo tee /etc/logrotate.d/rent-tool-cron >/dev/null <<'EOF'
+/home/app/logs/rent-tool-cron.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+    copytruncate
+    su app app
+}
+EOF
+```
+
+## 7. Backups + monitoring
+
+Covered by RT-13.9 / RT-13.10. Backup script at `scripts/backup-db.sh`,
+public health endpoint at `/api/health` (already wired in the app).
+
+## 8. Migrate data from Turso (if applicable)
 
 Covered by RT-13.7. The migration script at `scripts/migrate-turso-to-local.ts`
 copies all tables from your Turso instance to the local SQLite file.

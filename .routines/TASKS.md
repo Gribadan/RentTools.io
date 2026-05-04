@@ -724,3 +724,7 @@
 - 2026-05-04 — RT-13.2 — pending — docs/DROPLET-SETUP.md complete provisioning runbook + troubleshooting
 - 2026-05-04 — RT-13.3 — pending — scripts/server-bootstrap.sh idempotent root install (swap, ufw, fail2ban, Node 22, nginx, certbot, app user); ran successfully on 64.226.83.37; server-deploy.sh deferred to RT-13.13
 - 2026-05-04 — RT-13.1 — cc07fc0 — secret-pattern grep across full git history returns 3 false positives only (env example, doc placeholder, lockfile integrity hash); no real credentials in history; safe to flip repo public
+- 2026-05-04 — RT-13.4 — ee63b45 — deploy/systemd/rent-tool.service unit (Type=simple, User=app, MemoryMax=900M, hardening flags, EnvironmentFile=.env.production); deployed to droplet, active
+- 2026-05-04 — RT-13.5 — ee63b45 — deploy/nginx/rent-tool.conf with TLS, CF-Connecting-IP real-IP, HTTP→HTTPS redirect; Let's Encrypt cert issued via DNS-01 with certbot-dns-cloudflare plugin (covers renttools.io / www / staging, expires 2026-08-02, auto-renews); CF proxied + Full (strict) SSL mode + always_use_https=on
+- 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
+- 2026-05-04 — RT-13.7 — ee63b45 — scripts/migrate-turso-to-local.ts runs in dry-run + --write modes, copies all 17 tables in topological order preserving IDs; ran successfully on droplet: 2 users, 2 properties, 9 reservations, 23 guests, 24 calendar events, 502 sync logs all OK
