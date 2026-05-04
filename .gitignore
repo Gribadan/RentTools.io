@@ -1,6 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# This file is the FIRST line of defence against accidentally committing
+# secrets, internal notes, or AI-tool config to a public repo. The second
+# line is .githooks/pre-commit (auto-installed via `npm install` postinstall).
+# The third is the CI check in .github/workflows/ci.yml.
+# Add new forbidden patterns to ALL THREE places when you find a leak.
 
-# dependencies
+# === Dependencies & build artifacts ===
 /node_modules
 /.pnp
 .pnp.*
@@ -9,67 +14,110 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
-# testing
 /coverage
-
-# next.js
 /.next/
 /out/
-
-# production
 /build
+/dist
+*.tsbuildinfo
+next-env.d.ts
+/src/generated/
+.swc/
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# === Logs ===
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# === OS / IDE ===
+.DS_Store
+Thumbs.db
+*.pem
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === AI / dev-tool config (NEVER public) ===
+# Claude Code, Anthropic Agent SDK, Cursor, GitHub Copilot internal config,
+# any tool that drops a config file at the project root.
+CLAUDE.md
+claude.md
+Claude.md
+.claude/
+AGENTS.md
+agents.md
+.cursor/
+.cursorrules
+.cursor-tutor
+.aider*
+.continue/
+.copilot/
+
+# === Internal task tracking / AI agent prompts ===
+# Routine prompts, task backlogs, ops runbooks — useful internally,
+# noise + clutter for public users.
+.routines/
+ROUTINE.md
+TASKS.md
+OPS-ROUTINE.md
+
+# === Local-only personal stuff ===
+# Everything inside .local/ stays local. Do NOT add a !exception here —
+# the previous repo had .local/README.md tracked which leaked the layout
+# of secret files. If you need to document the .local/ layout, do it in
+# the main README's "self-host" section instead.
+.local/
+
+# === MCP / testing artifacts ===
+.playwright-mcp/
+.mcp/
+playwright-report/
+test-results/
+
+# === Env files (only .env.example may ever be committed) ===
+.env
+.env.*
 !.env.example
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-/src/generated/prisma
+# === Databases ===
 *.db
 *.db-journal
-
-# Local-only personal data — credentials, SSH keys, deployment notes, hosting
-# admin passwords, anything you do NOT want in a public repo.
-# Everything inside .local/ is ignored except the README that documents the layout.
-/.local/*
-!/.local/README.md
-
-# Backups (database snapshots, exports)
-/backups/
 *.sqlite
 *.sqlite3
-*.dump
-*.sql.gz
-
-# Sentry build plugin auth token
-.env.sentry-build-plugin
-.sentryclirc
-
-# Local SQLite dev DB — never commit, contains personal data
 /dev.db
 /data/
 
-# MCP test artifacts
-/.playwright-mcp/
+# === Backups & dumps ===
+/backups/
+*.dump
+*.sql
+*.sql.gz
+*.tar.gz
+*.zip
 
-# IDE / editor
-/.claude/
-/.vscode/
-/.idea/
+# === Sentry build artifacts ===
+.env.sentry-build-plugin
+.sentryclirc
+
+# === SSH / signing keys (never, under any circumstance) ===
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*.ppk
+*.pfx
+*.p12
+*.cer
+authorized_keys
+
+# === Auto-generated memory / scratch ===
+# Anthropic Memory tool may write MEMORY.md to the project — block it.
+MEMORY.md
+memory.md
+.memory/
+
+# === Vercel ===
+.vercel

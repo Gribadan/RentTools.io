@@ -13,6 +13,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "prepare": "node -e \"try{require('child_process').execSync('git config core.hooksPath .githooks',{stdio:'ignore'})}catch(e){}\"",
     "postinstall": "prisma generate",
     "build": "next build",
     "db:push": "tsx prisma/push-schema.ts",
