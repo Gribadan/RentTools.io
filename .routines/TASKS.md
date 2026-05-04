@@ -382,6 +382,7 @@
   - Acceptance criteria: owner can upload house rules PDF, wifi instructions photo; files survive page reload
 
 - [ ] **RT-11.4** Document variable in message templates
+  Blocked: depends on RT-11.3 PropertyDocument storage which needs Vercel Blob token.
   - File: `src/components/message-templates-panel.tsx` — variables list includes `{{document:rules}}` style references
   - At render time, replace with public download URL (signed if Vercel Blob, plain URL if dev)
   - Acceptance criteria: rendered template includes working links to property documents
