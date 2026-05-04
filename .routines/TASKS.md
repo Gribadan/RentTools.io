@@ -341,7 +341,7 @@
   - File: `src/components/cleaning-schedule.tsx` — when current user is a cleaner, filter to only assigned properties
   - Acceptance criteria: owner can assign 1+ cleaners per property; cleaner sees only those properties
 
-- [ ] **RT-10.3** Cleaning status tracking (pending/done/skipped)
+- [x] **RT-10.3** Cleaning status tracking (pending/done/skipped)
   - File: `prisma/schema.prisma` — add `CleaningRecord { id, propertyId, date, status (pending/done/skipped), doneAt, doneByUserId, notes, photos (JSON array of URLs) }`
   - File: `src/components/cleaning-schedule.tsx` — each row shows current status with a button to mark done/skip; persists to a `CleaningRecord`
   - File: `src/app/api/cleaning-records/route.ts` (new)
@@ -484,3 +484,4 @@
 - 2026-05-04 — RT-9.5 — 1bd61f2 — AuditLog table + logAudit helper + /api/audit + AuditPanel reachable from Profile
 - 2026-05-04 — RT-10.1 — 1bc29e1 — cleaner role short-circuits to CleanerApp with cleaning-only dashboard view
 - 2026-05-04 — RT-10.2 — 9f6f5ea — CleanerAssignment table + REST endpoints + SyncSettings panel; cleaner /api/properties scoped via assignments
+- 2026-05-04 — RT-10.3 — fe2f0f8 — CleaningRecord table + /api/cleaning-records + done/skipped badges and toggle button in CleaningSchedule
