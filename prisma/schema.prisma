@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id         Int        @id @default(autoincrement())
-  username   String     @unique
-  password   String
-  role       String     @default("user") // "superadmin" or "user"
-  createdAt  DateTime   @default(now())
-  properties Property[]
+  id                 Int        @id @default(autoincrement())
+  username           String     @unique
+  password           String
+  role               String     @default("user") // "superadmin" or "user"
+  createdAt          DateTime   @default(now())
+  alertsDismissedAt  DateTime?
+  properties         Property[]
 }
 
 model AppSettings {
@@ -51,6 +52,7 @@ model CalendarLink {
   bufferAfter   Int       @default(1) // days after booking to block
   lastFetchedAt DateTime?
   lastError     String?
+  failureCount  Int       @default(0)
   createdAt     DateTime  @default(now())
 }
 

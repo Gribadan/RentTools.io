@@ -11,6 +11,7 @@ import { PropertyCalendar } from "@/components/property-calendar";
 import { PropertyCleaningView } from "@/components/property-cleaning-view";
 import { SyncSettings } from "@/components/sync-settings";
 import { TasksPanel } from "@/components/tasks-panel";
+import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
 import type { Property, Guest } from "@/lib/types";
 
 function AppContent({
@@ -331,6 +332,7 @@ function AppContent({
         username={user.username}
         onLogout={handleLogout}
       />
+      <SyncAlertsBanner />
       <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8">
         {loadingProperties && properties.length === 0 ? (
           <div className="flex h-full items-center justify-center">
