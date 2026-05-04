@@ -255,7 +255,7 @@
 
 > A new user lands and sees... nothing. Make the first 60 seconds productive.
 
-- [ ] **RT-8.1** Welcome modal on first login (when user has zero properties)
+- [x] **RT-8.1** Welcome modal on first login (when user has zero properties)
   - File: `src/components/welcome-modal.tsx` (new) — friendly modal: "Welcome! Let's get started." with two CTAs: "Add my first property" and "Use a sample property"
   - File: `src/components/dashboard.tsx` — show modal when `properties.length === 0`
   - Persist dismissal in localStorage so it doesn't show again after first dismiss
@@ -472,3 +472,4 @@
 - 2026-05-04 — RT-7.2 — 8fca1af — properties API filtered/scoped to session.userId; foreign properties return 404
 - 2026-05-04 — RT-7.3 — 4a5b200 — ownership cascade across reservations/guests/calendar links/sync/overrides; nested 404s on foreign access
 - 2026-05-04 — RT-7.5 — 949a6f6 — public signup endpoint + page; i18n strings for en/ru; public-paths whitelist updated
+- 2026-05-04 — RT-8.1 — 96175fa — welcome modal for empty workspaces; localStorage-persisted dismissal
