@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface SiteSettingRow {
   value: string;
@@ -10,6 +18,34 @@ interface SiteSettingRow {
 }
 
 type SiteSettingsMap = Record<string, SiteSettingRow>;
+
+interface AdminUserRow {
+  id: number;
+  username: string;
+  role: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+  propertyCount: number;
+  reservationCount: number;
+  extractionCount30d: number;
+}
+
+type SortKey =
+  | "username"
+  | "role"
+  | "createdAt"
+  | "propertyCount"
+  | "reservationCount"
+  | "extractionCount30d"
+  | "lastLoginAt";
+type SortDir = "asc" | "desc";
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toISOString().slice(0, 10);
+}
 
 const FIELDS: Array<{
   key: string;
@@ -55,8 +91,15 @@ export function AdminPanel() {
   const [message, setMessage] = useState<{ key: string; text: string; ok: boolean } | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
   useEffect(() => {
     void load();
+    void loadUsers();
   }, []);
 
   const load = async () => {
@@ -89,6 +132,52 @@ export function AdminPanel() {
     }
     setTimeout(() => setMessage((m) => (m && m.key === key ? null : m)), 4000);
   };
+
+  const loadUsers = async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) {
+        setUsersError(`Failed to load users (${res.status})`);
+        return;
+      }
+      const data = (await res.json()) as AdminUserRow[];
+      setUsers(data);
+    } catch {
+      setUsersError("Failed to load users");
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "username" || key === "role" ? "asc" : "desc");
+    }
+  };
+
+  const sortedUsers = useMemo(() => {
+    const copy = [...users];
+    copy.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      let cmp = 0;
+      if (av === null && bv === null) cmp = 0;
+      else if (av === null) cmp = -1;
+      else if (bv === null) cmp = 1;
+      else if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
+      else cmp = String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }, [users, sortKey, sortDir]);
+
+  const sortIndicator = (key: SortKey) =>
+    sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const exportData = async () => {
     setExporting(true);
@@ -191,6 +280,106 @@ export function AdminPanel() {
           >
             Calendar sync health → /api/calendar/health
           </a>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Admin · Users
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-lg text-xs"
+            onClick={() => void loadUsers()}
+            disabled={usersLoading}
+          >
+            {usersLoading ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
+        <div className="rounded-xl border border-border/60 bg-card/50 p-2">
+          {usersError && (
+            <p className="px-3 py-2 text-xs text-destructive">{usersError}</p>
+          )}
+          {!usersError && users.length === 0 && !usersLoading && (
+            <p className="px-3 py-2 text-xs text-muted-foreground">No users yet.</p>
+          )}
+          {users.length > 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => toggleSort("username")}
+                    >
+                      Username{sortIndicator("username")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => toggleSort("role")}
+                    >
+                      Role{sortIndicator("role")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => toggleSort("createdAt")}
+                    >
+                      Signup{sortIndicator("createdAt")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none text-right"
+                      onClick={() => toggleSort("propertyCount")}
+                    >
+                      Properties{sortIndicator("propertyCount")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none text-right"
+                      onClick={() => toggleSort("reservationCount")}
+                    >
+                      Reservations{sortIndicator("reservationCount")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none text-right"
+                      onClick={() => toggleSort("extractionCount30d")}
+                    >
+                      Extractions 30d{sortIndicator("extractionCount30d")}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer select-none"
+                      onClick={() => toggleSort("lastLoginAt")}
+                    >
+                      Last login{sortIndicator("lastLoginAt")}
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedUsers.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell className="font-medium">{u.username}</TableCell>
+                      <TableCell className="text-muted-foreground">{u.role}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(u.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {u.propertyCount}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {u.reservationCount}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {u.extractionCount30d}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(u.lastLoginAt)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </div>
       </section>
 
