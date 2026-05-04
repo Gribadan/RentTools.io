@@ -55,7 +55,7 @@ export default async function HomePage() {
             </p>
             <div className="mt-7 flex justify-center sm:mt-9">
               <Link
-                href="/signup"
+                href="/onboard"
                 className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-md bg-[#ff385c] px-8 text-base font-medium text-white transition-colors hover:bg-[#e0294d]"
               >
                 Start now

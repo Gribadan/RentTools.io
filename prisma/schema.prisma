@@ -242,6 +242,22 @@ model Guest {
   updatedAt        DateTime    @updatedAt
 }
 
+// Anonymous pre-signup wizard state. Created when a visitor starts
+// /onboard, claimed by the signup endpoint when they create an account
+// (the draft's links + propertyName are materialised as a real Property
+// + CalendarLinks). Drafts older than 14 days with no claim are
+// candidates for cleanup, but pruning is opportunistic, not enforced.
+model OnboardingDraft {
+  id              Int       @id @default(autoincrement())
+  sessionToken    String    @unique
+  propertyName    String    @default("")
+  links           String    @default("[]") // JSON array of { platform, icalExportUrl }
+  claimedByUserId Int?
+  claimedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime?
+}
+
 // One row per /api/extract POST. Powers the daily per-user rate limit
 // (RT-15.5) and gives admins an audit trail of who pushed what through
 // the Gemini pipeline. No FK to User on purpose so deleting a user
