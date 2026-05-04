@@ -104,9 +104,19 @@ export function TasksPanel() {
     return `${Math.floor(hours / 24)}d ago`;
   };
 
-  const cronUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/api/calendar/cron?secret=${encodeURIComponent("rent-tool-secret-key-change-in-production-2024")}`
-    : "";
+  const [cronUrl, setCronUrl] = useState<string | null>(null);
+  const [cronUrlConfigured, setCronUrlConfigured] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/calendar/cron-url")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setCronUrl(data.url);
+        setCronUrlConfigured(!!data.configured);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -171,7 +181,13 @@ export function TasksPanel() {
 
             <div className="rounded-md border border-[#333338] bg-[#111113] p-3 space-y-2">
               <p className="text-xs font-medium text-[#a0a0a8]">Setup: add this URL to a free cron service</p>
-              <code className="block text-xs text-[#d4d4d8] break-all select-all cursor-pointer rounded bg-[#18181b] p-2 border border-[#27272b]">{cronUrl}</code>
+              {cronUrl ? (
+                <code className="block text-xs text-[#d4d4d8] break-all select-all cursor-pointer rounded bg-[#18181b] p-2 border border-[#27272b]">{cronUrl}</code>
+              ) : (
+                <p className="text-xs text-[#71717a] italic">
+                  {cronUrlConfigured ? "Loading…" : "Set CRON_SECRET in your environment to enable this URL."}
+                </p>
+              )}
               <div className="text-xs text-[#71717a] space-y-1">
                 <p>Vercel free plan only runs cron once per day. For more frequent sync, use a free external service:</p>
                 <p>
