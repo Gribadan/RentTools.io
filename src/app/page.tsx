@@ -110,12 +110,15 @@ export default async function HomePage() {
         </section>
 
         <section className="px-4 pb-16 sm:px-6 sm:pb-24">
-          <div className="mx-auto max-w-2xl rounded-lg border border-[#1e2329] bg-[#0f1419] p-6 sm:p-8">
-            <h2 className="text-xl font-semibold sm:text-2xl">
-              Built by a real owner
-            </h2>
-            <p className="mt-3 text-sm text-[#a0a0a8] sm:text-base">
-              Built by a real owner of 2 properties tired of juggling 4 calendar tabs. Used in production daily; the issues that matter get fixed first.
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-medium uppercase tracking-wider text-[#71717a]">
+              Used by
+            </p>
+            <p className="mt-3 text-base text-[#d4d4d8] sm:text-lg">
+              Built by a real owner of 2 properties tired of juggling 4 calendar tabs.
+            </p>
+            <p className="mt-2 text-sm text-[#71717a]">
+              Real testimonials, logos and case studies will live here once self-hosters and hosted-instance users are happy to be named — no fake quotes in the meantime.
             </p>
           </div>
         </section>
