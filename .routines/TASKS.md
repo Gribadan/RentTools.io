@@ -655,7 +655,7 @@
   - File: `prisma/schema.prisma` — add `User.lastLoginAt DateTime?` if not already present; update on successful login
   - Acceptance criteria: admin can spot heavy users / dormant accounts; sortable by any column
 
-- [ ] **RT-15.11** Admin: kill switch on a user (suspend/unsuspend)
+- [x] **RT-15.11** Admin: kill switch on a user (suspend/unsuspend)
   - File: `prisma/schema.prisma` — `User.suspendedAt DateTime?`; nullable
   - File: `src/lib/auth.ts` — login refuses suspended users with a clear message; existing sessions are cleared on next request
   - File: `src/components/admin-panel.tsx` — suspend / unsuspend buttons in the per-user row
@@ -754,3 +754,4 @@
 - 2026-05-04 — RT-15.8 — 30c96b7 — GDPR export: /api/auth/export-data (GET, any authenticated user — Content-Disposition JSON dump of user record + owned properties with full nested tree + auditLogs + extractionLogs + manager grants given/received + invites created); ProfilePanel "Download my data" button below Recent activity triggers Blob download. Superadmin keeps the parallel /api/admin/export-my-data button from RT-15.3
 - 2026-05-04 — RT-15.9 — 0faa7c5 — SupportFooter client component (fetches /api/site-config, renders "Need help? <mailto>" only when support_email set) wired below <main> in dashboard + cleaner shells; landing page footer adds the same link via server-side getSetting (no extra fetch). SMTP/Resend integration deferred per task
 - 2026-05-04 — RT-15.10 — d1a05e2 — User.lastLoginAt added (recorded on successful login); GET /api/admin/users (superadmin-only) returns username/role/signup/lastLoginAt + property + reservation + 30d extraction counts via groupBy; AdminPanel "Users" section renders sortable table (any column, asc/desc toggle) so admin can spot heavy users / dormant accounts
+- 2026-05-04 — RT-15.11 — d75cd3c — User.suspendedAt nullable column added (push-schema migration); login route 403s before createSession when suspendedAt set; getSession() now does a userId lookup post jose-verify and clears the cookie + returns null if user is suspended OR missing (try/catch around cookie.delete since server components are read-only); POST/DELETE /api/admin/users/:id/suspend (superadmin-only, refuses to suspend self or other superadmins); /api/admin/users payload includes suspendedAt; AdminPanel Users table renders "suspended" badge + per-row Suspend/Unsuspend button (hidden for superadmin rows) with confirm prompt and inline error
