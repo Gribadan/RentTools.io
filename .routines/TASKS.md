@@ -501,6 +501,7 @@
   - Acceptance criteria: backups appear under `/home/app/backups/`; old ones are pruned; a documented restore procedure has been tested at least once
 
 - [ ] **RT-13.10** Public-facing health endpoint behind nginx
+  Blocked: nginx block live (1ca4999); uptime-monitor signup needs interactive email registration.
   - File: `deploy/nginx/rent-tool.conf` — add `location = /api/health` block with a 5s timeout so monitoring can hit it without going through the proxy timeout
   - Free uptime monitor: register the URL on uptime.com or BetterStack free tier; alert if 3 consecutive checks fail
   - Acceptance criteria: hitting `https://your-domain.com/api/health` returns 200 ok; an artificially-killed service triggers the monitor within 5 minutes
