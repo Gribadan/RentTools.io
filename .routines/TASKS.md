@@ -279,7 +279,7 @@
   - Persist seen-state in localStorage keyed by `tooltip:<id>`
   - Acceptance criteria: each tooltip shows once per browser, then never again
 
-- [ ] **RT-8.5** Profile page (change password, see account info)
+- [x] **RT-8.5** Profile page (change password, see account info)
   - File: `src/app/api/auth/change-password/route.ts` (new) — POST: verify current password, hash new password, update
   - File: `src/components/profile-panel.tsx` (new) — shows username, role, account-created date, change-password form
   - File: `src/components/top-bar.tsx` — add "Profile" entry to user dropdown above logout
@@ -476,3 +476,4 @@
 - 2026-05-04 — RT-8.2 — f841922 — POST /api/properties/sample seeds Sample Apartment + 3 demo reservations
 - 2026-05-04 — RT-8.3 — f33a616 — shared EmptyState card on calendar/cleaning/sync; en/ru strings
 - 2026-05-04 — RT-8.4 — a60ba89 — OnboardingTooltip on Edit Dates + Airbnb iCal label; localStorage one-shot per id
+- 2026-05-04 — RT-8.5 — 15fcbf0 — change-password endpoint + /api/auth/me + ProfilePanel modal accessed from top-bar user dropdown
