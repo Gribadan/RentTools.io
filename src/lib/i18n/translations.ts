@@ -65,6 +65,18 @@ export const translations = {
   "tooltip.editDates": { en: "Click any date to override its status.", ru: "Нажмите на дату, чтобы изменить её статус." },
   "tooltip.icalUrl": { en: "Paste your Airbnb iCal export URL here.", ru: "Вставьте сюда iCal-ссылку из Airbnb." },
 
+  // Profile
+  "profile.title": { en: "Profile", ru: "Профиль" },
+  "profile.username": { en: "Username", ru: "Логин" },
+  "profile.role": { en: "Role", ru: "Роль" },
+  "profile.createdAt": { en: "Member since", ru: "С нами с" },
+  "profile.changePassword": { en: "Change password", ru: "Сменить пароль" },
+  "profile.currentPassword": { en: "Current password", ru: "Текущий пароль" },
+  "profile.newPassword": { en: "New password", ru: "Новый пароль" },
+  "profile.save": { en: "Save", ru: "Сохранить" },
+  "profile.saved": { en: "Password updated", ru: "Пароль обновлён" },
+  "profile.close": { en: "Close", ru: "Закрыть" },
+
   // Sidebar
   "sidebar.title": { en: "Rent Tool", ru: "Rent Tool" },
   "sidebar.subtitle": { en: "Properties & guests", ru: "Объекты и гости" },

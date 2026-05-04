@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { ProfilePanel } from "@/components/profile-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
 
@@ -30,6 +31,7 @@ export function TopBar({
   const { t, locale, setLocale } = useI18n();
   const [propDropdown, setPropDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [addingProp, setAddingProp] = useState(false);
   const [newPropName, setNewPropName] = useState("");
@@ -286,6 +288,15 @@ export function TopBar({
             {userDropdown && (
               <div className="absolute top-full right-0 mt-1 w-40 rounded-lg border border-[#333338] bg-[#18181b] shadow-xl shadow-black/40 z-50 p-1">
                 <button
+                  onClick={() => { setProfileOpen(true); setUserDropdown(false); }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#d4d4d8] hover:bg-[#1e1e22] transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {t("profile.title")}
+                </button>
+                <button
                   onClick={() => { onLogout(); setUserDropdown(false); }}
                   className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
                 >
@@ -296,6 +307,7 @@ export function TopBar({
                 </button>
               </div>
             )}
+            <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
           </div>
         </div>
       </div>
