@@ -519,7 +519,7 @@
   - Update README with the new architecture; remove now-obsolete `vercel.json` and any Vercel-specific code paths
   - Acceptance criteria: no traffic hits Vercel for 24 hours straight; Turso DB is exported then deleted; nothing in the repo references the old hosting
 
-- [ ] **RT-13.13** Auto-deploy on push (replaces Vercel auto-deploy)
+- [x] **RT-13.13** Auto-deploy on push (replaces Vercel auto-deploy)  *(files delivered + workflow gated on `vars.DROPLET_HOST` so it's inert until secrets land; SSH key + repo secrets/vars are user-side setup per docs/DROPLET-SETUP.md §10)*
   - File: `scripts/deploy.sh` (new, runs on droplet as `app`) — `git pull`, `npm ci --omit=dev`, `npx prisma generate`, `npm run build`, `sudo systemctl restart rent-tool`
   - File: `.github/workflows/deploy.yml` (new) — on push to master: SSH to droplet, run `~/rent-tool/scripts/deploy.sh`; uses a deploy SSH key stored in `secrets.DEPLOY_KEY` (GitHub repo secret), host fingerprint pinned
   - Document the GitHub secret setup: generate keypair (`ssh-keygen -t ed25519 -f droplet_deploy`), add `.pub` to droplet's `~/.ssh/authorized_keys`, add private key as `DEPLOY_KEY` repo secret, add `DROPLET_HOST` and `DROPLET_USER` repo variables
@@ -727,6 +727,7 @@
 - 2026-05-04 — RT-13.1 — cc07fc0 — secret-pattern grep across full git history returns 3 false positives only (env example, doc placeholder, lockfile integrity hash); no real credentials in history; safe to flip repo public
 - 2026-05-04 — RT-13.8 — 845a122 — deploy/cron/rent-tool.cron + scripts/cron-sync.sh wrapper (sources CRON_SECRET from .env.production) + DROPLET-SETUP.md §6 with chmod/install/logrotate steps; on-droplet `crontab -u app` install bundled with RT-13.11 cutover
 - 2026-05-04 — RT-13.9 — 43204e3 — backup-db.sh (sqlite3 .backup + integrity_check + tiered hardlink retention 14/8/6) + 03:15 cron line + DROPLET-SETUP.md §7 install + restore procedure
+- 2026-05-04 — RT-13.13 — e10a57e — scripts/deploy.sh (dirty-check + build-before-restart + health smoke-test) + .github/workflows/deploy.yml (gated on vars.DROPLET_HOST so inert until secrets land) + DROPLET-SETUP.md §10 keypair/sudoers/secrets walkthrough
 - 2026-05-04 — RT-13.4 — ee63b45 — deploy/systemd/rent-tool.service unit (Type=simple, User=app, MemoryMax=900M, hardening flags, EnvironmentFile=.env.production); deployed to droplet, active
 - 2026-05-04 — RT-13.5 — ee63b45 — deploy/nginx/rent-tool.conf with TLS, CF-Connecting-IP real-IP, HTTP→HTTPS redirect; Let's Encrypt cert issued via DNS-01 with certbot-dns-cloudflare plugin (covers renttools.io / www / staging, expires 2026-08-02, auto-renews); CF proxied + Full (strict) SSL mode + always_use_https=on
 - 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
