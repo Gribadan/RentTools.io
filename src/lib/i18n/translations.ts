@@ -53,6 +53,14 @@ export const translations = {
   "welcome.useSample": { en: "Use a sample property", ru: "Создать пример" },
   "welcome.dismiss": { en: "Skip for now", ru: "Пропустить" },
 
+  // Empty states
+  "empty.calendar.title": { en: "No bookings yet", ru: "Бронирований пока нет" },
+  "empty.calendar.desc": { en: "Sync a calendar or add a booking manually to get started.", ru: "Синхронизируйте календарь или добавьте бронирование вручную." },
+  "empty.cleaning.title": { en: "No cleanings scheduled", ru: "Уборки не запланированы" },
+  "empty.cleaning.desc": { en: "Cleaning days appear automatically the day after each check-out.", ru: "Уборки появятся автоматически на следующий день после выезда." },
+  "empty.sync.title": { en: "Not connected", ru: "Не подключено" },
+  "empty.sync.desc": { en: "Connect Airbnb or Booking.com to start syncing reservations.", ru: "Подключите Airbnb или Booking.com, чтобы начать синхронизацию." },
+
   // Sidebar
   "sidebar.title": { en: "Rent Tool", ru: "Rent Tool" },
   "sidebar.subtitle": { en: "Properties & guests", ru: "Объекты и гости" },

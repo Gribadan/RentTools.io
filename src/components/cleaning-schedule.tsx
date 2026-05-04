@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
@@ -577,7 +578,17 @@ export function CleaningSchedule({
           </div>
         )}
         {futureDays.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-[#71717a]">{t("cleaning.noUpcoming")}</p>
+          <div className="p-4">
+            <EmptyState
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+              title={t("empty.cleaning.title")}
+              description={t("empty.cleaning.desc")}
+            />
+          </div>
         ) : (
           <div className="max-h-[400px] overflow-y-auto">
             <table className="w-full">
