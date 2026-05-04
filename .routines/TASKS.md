@@ -649,7 +649,7 @@
   - Defer: actual SMTP / Resend integration — not needed for free tier; users emailing the owner directly is fine until traffic justifies automated email
   - Acceptance criteria: setting the email in admin panel makes the mailto link appear in the footer
 
-- [ ] **RT-15.10** Admin: per-user usage view
+- [x] **RT-15.10** Admin: per-user usage view
   - File: `src/components/admin-panel.tsx` — "Users" section: table of all users with columns: username, role, signup date, # properties, # reservations, # extractions in last 30d, last login (if tracked — add to schema if not)
   - File: `src/app/api/admin/users/route.ts` (new) — superadmin-only GET that returns the aggregated data
   - File: `prisma/schema.prisma` — add `User.lastLoginAt DateTime?` if not already present; update on successful login
@@ -753,3 +753,4 @@
 - 2026-05-04 — RT-15.7 — 94dd0f4 — GDPR delete: /api/auth/delete-account (POST, requires {password, confirmUsername}; refuses last-superadmin to prevent lockout; explicit deleteMany on ExtractionLog + AuditLog since neither FKs User, then prisma.user.delete relies on cascades for Property tree; clearSession() at end); ProfilePanel "Danger zone" with red modal requiring re-typed username + password (submit disabled until both correct), hard-redirects to /login on success; privacy page Deletion bullet rewritten to match reality (immediate, full data scope, 6-month backup tail)
 - 2026-05-04 — RT-15.8 — 30c96b7 — GDPR export: /api/auth/export-data (GET, any authenticated user — Content-Disposition JSON dump of user record + owned properties with full nested tree + auditLogs + extractionLogs + manager grants given/received + invites created); ProfilePanel "Download my data" button below Recent activity triggers Blob download. Superadmin keeps the parallel /api/admin/export-my-data button from RT-15.3
 - 2026-05-04 — RT-15.9 — 0faa7c5 — SupportFooter client component (fetches /api/site-config, renders "Need help? <mailto>" only when support_email set) wired below <main> in dashboard + cleaner shells; landing page footer adds the same link via server-side getSetting (no extra fetch). SMTP/Resend integration deferred per task
+- 2026-05-04 — RT-15.10 — d1a05e2 — User.lastLoginAt added (recorded on successful login); GET /api/admin/users (superadmin-only) returns username/role/signup/lastLoginAt + property + reservation + 30d extraction counts via groupBy; AdminPanel "Users" section renders sortable table (any column, asc/desc toggle) so admin can spot heavy users / dormant accounts
