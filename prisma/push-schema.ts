@@ -435,6 +435,33 @@ CREATE UNIQUE INDEX IF NOT EXISTS "SiteSetting_key_key" ON "SiteSetting"("key");
     }
   }
 
+  // ExtractionLog — one row per /api/extract POST for daily quota counting
+  const extractionLogSchema = `
+CREATE TABLE IF NOT EXISTS "ExtractionLog" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL,
+    "fileCount" INTEGER NOT NULL DEFAULT 0,
+    "success" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "ExtractionLog_userId_createdAt_idx" ON "ExtractionLog"("userId", "createdAt");
+`;
+
+  const extractionLogStatements = extractionLogSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of extractionLogStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // Seed default SiteSetting keys (idempotent — only inserts if missing)
   const siteSettingDefaults: Array<{ key: string; value: string }> = [
     { key: "signup_enabled", value: "true" },
