@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar";
@@ -99,6 +99,34 @@ export function PropertyCalendar({
     closePopover();
     window.location.reload();
   };
+
+  useEffect(() => {
+    const isTyping = (t: EventTarget | null) => {
+      if (!(t instanceof HTMLElement)) return false;
+      const tag = t.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+      return t.isContentEditable;
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setMonthOffset((o) => o - 1);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setMonthOffset((o) => o + 1);
+      } else if (e.key === "t" || e.key === "T") {
+        e.preventDefault();
+        setMonthOffset(0);
+      } else if (e.key === "e" || e.key === "E") {
+        e.preventDefault();
+        setOverrideMode((m) => !m);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   const handleExport = () => {
     const text = buildCalendarExportText({
