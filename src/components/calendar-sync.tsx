@@ -251,7 +251,7 @@ function SetupWizard({
         "If you already have Booking.com linked there — remove it first",
         "Click \"Import calendar\"",
         "Paste the URL below into the \"Calendar address (URL)\" field",
-        "Give it a name like \"Rent Tool Sync\"",
+        "Give it a name like \"RentTools Sync\"",
         "Click \"Import calendar\" to save",
       ] : [
         "Complete steps 1 & 2 first to generate the import URL",
@@ -281,7 +281,7 @@ function SetupWizard({
         "If you already have Airbnb linked there — remove it first",
         "Find the \"Import\" section (or \"Add connection\")",
         "Paste the URL below into the iCal URL field",
-        "Give it a name like \"Rent Tool Sync\"",
+        "Give it a name like \"RentTools Sync\"",
         "Click \"Save\" or \"Add\"",
       ] : [
         "Complete steps 1 & 2 first to generate the import URL",

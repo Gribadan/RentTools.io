@@ -1,4 +1,4 @@
-# Rent Tool — Ops Routine Prompt
+# RentTools — Ops Routine Prompt
 
 You are running as a **scheduled ops routine**. Unlike the code-tasks
 routine (`.routines/ROUTINE.md`), you do **not** modify the codebase.

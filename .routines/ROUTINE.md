@@ -1,4 +1,4 @@
-# Rent Tool — Scheduled Routine Prompt
+# RentTools — Scheduled Routine Prompt
 
 You are running as a scheduled routine. Read `D:\Python\rent-tool\.routines\TASKS.md`.
 

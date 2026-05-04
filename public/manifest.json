@@ -1,7 +1,7 @@
 {
-  "name": "Rent Tool",
-  "short_name": "Rent Tool",
-  "description": "Property and reservation management",
+  "name": "RentTools",
+  "short_name": "RentTools",
+  "description": "Free, open-source property manager for short-term rental hosts. Sync Airbnb + Booking.com, automate cleaning.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
