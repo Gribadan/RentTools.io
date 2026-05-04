@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /api/
+Disallow: /login
+Allow: /
+
+Sitemap: https://rent-tool-theta.vercel.app/sitemap.xml
