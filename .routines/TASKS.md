@@ -375,6 +375,7 @@
   - Acceptance criteria: owner can pick a template, copy the rendered text, paste into Airbnb/WhatsApp
 
 - [ ] **RT-11.3** Property documents tab
+  Blocked: needs Vercel Blob token (same as RT-10.4); read-only Vercel FS prevents prod-safe local fallback.
   - File: `prisma/schema.prisma` — add `PropertyDocument { id, propertyId, name, type (pdf/image/text), content/url, createdAt }`
   - File: `src/app/api/property-documents/route.ts` (new) — upload to Vercel Blob, store URL
   - File: `src/components/property-documents-panel.tsx` (new) — accessible as a sub-tab of Settings; list, upload, delete
