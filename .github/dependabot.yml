@@ -1,0 +1,52 @@
+# Dependency hygiene (RT-21.9). Weekly PRs for npm + GitHub Actions
+# updates. Combined with the `npm audit --audit-level=high` step in
+# .github/workflows/ci.yml, this keeps known-vulnerable transitive deps
+# from sticking around silently.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+      include: scope
+    groups:
+      # Bundle minor/patch upgrades together so review effort scales with
+      # interesting changes, not transitive churn. Major bumps come as
+      # individual PRs because they usually need real attention.
+      minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Major-version bumps for the framework + ORM are intentional, big,
+      # and need a planned migration window — skip Dependabot's default
+      # nag and rely on manual review.
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      - dependency-name: prisma
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Europe/London"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: ci
+      include: scope
