@@ -242,7 +242,7 @@
   - File: `src/app/api/properties/[id]/rotate-feed-token/route.ts` (new) — generates new token, updates property
   - Acceptance criteria: feed URL with wrong/no token returns 404; rotating token invalidates old URL
 
-- [ ] **RT-7.5** Public signup endpoint + UI
+- [x] **RT-7.5** Public signup endpoint + UI
   - File: `src/app/api/auth/signup/route.ts` (new) — accept username + password, validate (min 3 chars username, min 8 chars password), refuse if username exists, hash password with bcrypt, create user with role="user", create session
   - File: `src/app/signup/page.tsx` (new) — form mirroring login page
   - File: `src/app/login/page.tsx` — add "Don't have an account? Sign up" link
@@ -471,3 +471,4 @@
 - 2026-05-04 — RT-7.1 — 7edeedb — Property.userId FK with index; backfilled both rows to userId=1
 - 2026-05-04 — RT-7.2 — 8fca1af — properties API filtered/scoped to session.userId; foreign properties return 404
 - 2026-05-04 — RT-7.3 — 4a5b200 — ownership cascade across reservations/guests/calendar links/sync/overrides; nested 404s on foreign access
+- 2026-05-04 — RT-7.5 — 949a6f6 — public signup endpoint + page; i18n strings for en/ru; public-paths whitelist updated
