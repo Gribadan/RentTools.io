@@ -70,13 +70,25 @@ openssl rand -hex 32
 
 Before flipping the GitHub repo to public, walk through:
 
-- [ ] Check `git log -p | grep -iE "(eyJ|libsql://|AIza|password)"` — no real secrets in history
+- [ ] **Rotate ALL passwords that were ever committed.** The old `README.txt` (now moved to `.local/credentials.txt`) contained Gribadan's and Yakov's passwords in plaintext. Even though the file was moved, it's permanently in git history. **Change both passwords in the app before going public** — see "Rotating leaked passwords" below.
+- [ ] Run `git log -p --all | rg -i "(eyJ[A-Za-z0-9_-]{20}|libsql://[a-z0-9.-]+\.turso\.io|AIza[A-Za-z0-9_-]{30,}|admin\.booking\.com/.*\?|airbnb\.[^/]+/calendar/ical/[0-9]+\.ics)"` — must return zero hits OR every hit must be a now-rotated credential
 - [ ] `.env`, `.env.local`, `.env.production` are NOT tracked (they aren't — they're in `.gitignore`)
 - [ ] No hardcoded fallback secrets in source files (cron URL is now server-rendered, JWT fallback only triggers in dev with explicit refusal in production)
 - [ ] `.local/` is gitignored
 - [ ] No backup `.sqlite` files committed
 - [ ] No `node_modules/` committed
 - [ ] All Airbnb/Booking iCal URLs are stored on the server only (they're per-property tokens — anyone with the URL can read your booking data)
+
+## Rotating leaked passwords
+
+The `README.txt` was committed in `7f1c55d` (2026-04-04), `70b5a4c` (2026-04-04), and `fb9eb45` (2026-04-05) before being moved here. Anyone reading the public git history can see those passwords. To make them harmless:
+
+1. Log in as Gribadan → Profile → Change password → use a NEW strong password (`openssl rand -base64 18`)
+2. Log in as Yakov → Profile → Change password → use a NEW strong password
+3. Save the new passwords in `.local/credentials.txt` (the gitignored file you now have)
+4. Optional: rewrite git history with `git filter-repo --path README.txt --invert-paths` and force-push. This DOES rewrite history (which is normally avoided) but for a soon-to-be-public repo it's the cleanest move. Coordinate with anyone else who has the repo cloned.
+
+If you skip step 4, the old passwords are still visible in history — but the rotation in steps 1–2 makes them useless against your account.
 
 ---
 
