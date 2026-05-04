@@ -1,6 +1,36 @@
 # Contributing
 
-This project ships from `master` to Vercel on every push, so the bar is "build is green and feature works." Be deliberate about schema changes — there are real users.
+Issues and PRs are welcome. The hosted instance at [renttools.io](https://renttools.io) auto-deploys on every push to `master`, so the bar is **"build is green and the feature works"**. Be deliberate about schema changes — there are real users.
+
+## Filing an issue
+
+Before opening a new issue, search [existing issues](https://github.com/Gribadan/rent-tool/issues?q=is%3Aissue) — your problem may already be tracked.
+
+If you don't find a match:
+
+- **Bugs**: open a [bug report](https://github.com/Gribadan/rent-tool/issues/new?template=bug.md). Include reproduction steps, expected vs. actual behavior, and your environment (self-hosted or hosted, browser, OS).
+- **Features**: open a [feature request](https://github.com/Gribadan/rent-tool/issues/new?template=feature.md). Describe the *use case* you're stuck on, not just the solution you have in mind. Many feature requests get rolled into the open-source roadmap in [.routines/TASKS.md](../.routines/TASKS.md).
+
+The issue templates live in [`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE).
+
+## Getting set up locally
+
+The 5-minute quickstart is in [README.md](../README.md#self-host-5-minute-quickstart). The TL;DR:
+
+```bash
+git clone https://github.com/Gribadan/rent-tool.git
+cd rent-tool
+npm install
+mkdir -p data
+echo "DATABASE_URL=file:./data/prod.db" >> .env.local
+echo "GEMINI_API_KEY=..." >> .env.local
+echo "JWT_SECRET=$(openssl rand -hex 32)" >> .env.local
+npm run db:push
+npm run db:seed
+npm run dev
+```
+
+For deeper deployment guides see [docs/DEPLOYMENT.md](DEPLOYMENT.md) (legacy Vercel + Turso) and [docs/DROPLET-SETUP.md](DROPLET-SETUP.md) (current production droplet).
 
 ## Code style
 
@@ -22,18 +52,19 @@ This project ships from `master` to Vercel on every push, so the bar is "build i
 - **Mutations** should call `logAudit(...)` from `src/lib/audit.ts` so they appear in the activity feed and audit panel.
 - **Schema changes** must be additive in production:
   - Edit `prisma/schema.prisma`
-  - Add the matching `ALTER TABLE` to `prisma/push-schema.ts` (this is what runs against Turso — `prisma db push` does not work with the LibSQL adapter)
+  - Add the matching `ALTER TABLE` to `prisma/push-schema.ts` (this is what runs against both Turso and the local SQLite file — `prisma db push` does not work with the LibSQL adapter)
   - SQLite cannot add `NOT NULL` columns to tables with data unless you supply a `DEFAULT`
   - Do **not** use Prisma's `@updatedAt` directive — it generates SQL incompatible with LibSQL. Use `updatedAt DateTime?` (nullable) and update in code if you care
 - **i18n**: user-facing strings should ship in both English and Russian. The codebase mixes a `useI18n()` hook (`src/lib/i18n/`) with inline `locale === "ru"` ternaries — match whichever pattern the file already uses.
+- **Routes**: the marketing landing lives at `src/app/page.tsx`; the authenticated app shell lives at `src/app/dashboard/page.tsx`. Wire new in-app features through the dashboard, not the landing.
 
 ## Branching and commits
 
 - Branch from `master`: `git checkout -b feat/<short-description>` (or `fix/`, `chore/`, `docs/`).
 - **Conventional Commits**: `<type>(<scope>): <subject>` — e.g. `feat(reports): add CSV export with date range`. Types in use: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
 - One logical change per commit. Don't bundle unrelated work.
-- Append `Co-Authored-By: Claude <noreply@anthropic.com>` when an AI assistant wrote the change. The scheduled `/.routines/TASKS.md` runs follow this same format.
-- Never force-push `master`. Never bypass hooks (`--no-verify`).
+- Append `Co-Authored-By: Claude <noreply@anthropic.com>` when an AI assistant wrote the change. The scheduled `.routines/` runs follow this same format and reference the task id (e.g. `feat(api): RT-7.4 — public iCal feed token`).
+- Never force-push `master`. Never bypass hooks (`--no-verify`) — if a hook fails, fix the underlying issue.
 
 ## Testing
 
@@ -52,11 +83,23 @@ This project ships from `master` to Vercel on every push, so the bar is "build i
 
 ## Adding a UI feature
 
-1. Build the smallest working version first. Wire it into `src/app/page.tsx` (or a parent component) so the user can actually reach it.
+1. Build the smallest working version first. Wire it into `src/app/dashboard/page.tsx` (or a parent component) so the user can actually reach it.
 2. Add empty states. The existing `<EmptyState>` component is the source of truth for "no data yet" cards.
 3. Add loading + error states wherever you `fetch`. Don't leave `console.log` debugging behind.
 4. Run `npm run build` before committing. The CI gate is the build, not lint warnings.
+5. If the change touches the landing page, terms, or privacy pages, eyeball it at 375px width too — mobile users matter.
 
 ## Releasing
 
-There is no release ceremony — pushing to `master` deploys to production via Vercel. The cron-job.org tick handles the periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts` make sure the existing schedule still calls the right URL with the right `CRON_SECRET`.
+There is no release ceremony — pushing to `master` deploys to production. The 10-minute cron tick on the droplet handles periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts` make sure `deploy/cron/rent-tool.cron` still calls the right URL with the right `CRON_SECRET`.
+
+## Code of conduct (lite)
+
+Be nice. The maintainer is one person, the hosted instance is free, and most contributors are juggling jobs and lives. Specifically:
+
+- **No personal attacks, harassment, or discrimination.** Disagree with code or design — never with people.
+- **Assume good faith.** A short reply isn't rudeness; a request for changes isn't rejection. Both sides are usually trying to ship a good product.
+- **Keep guest data private.** Don't post real passport photos, real reservations, or real guest names in issues, screenshots, or test fixtures. Use synthetic data — the sample-property generator (`/api/properties/sample`) is there for a reason.
+- **No spam, scraping, or commercial promotion.** Issues and PRs are for improving the project.
+
+If something feels off, [open an issue](https://github.com/Gribadan/rent-tool/issues/new) and tag it `meta`. The maintainer will read it.
