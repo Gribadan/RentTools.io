@@ -532,7 +532,7 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
   };
 
   const copyFeedUrl = (forPlatform: string) => {
-    const url = `${window.location.origin}/api/calendar/feed/${propertyId}.ics?for=${forPlatform}`;
+    const url = `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
     navigator.clipboard.writeText(url);
     setCopied(forPlatform);
     setTimeout(() => setCopied(null), 2000);
@@ -540,7 +540,7 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
 
   const feedUrl = (forPlatform: string) => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/api/calendar/feed/${propertyId}.ics?for=${forPlatform}`;
+    return `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
   };
 
   /* ── calendar data ── */
