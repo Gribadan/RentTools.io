@@ -42,6 +42,7 @@ export interface Property {
   checkInTime: string;  // "HH:MM" — guest arrival time, e.g. "14:00"
   checkOutTime: string; // "HH:MM" — guest departure time, e.g. "12:00"
   bookingWindow: number; // days forward from today to consider bookings; beyond this, events are ignored
+  feedToken: string | null; // optional token gating the public iCal feed
   createdAt: string;
   reservations: Reservation[];
 }

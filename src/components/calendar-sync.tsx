@@ -426,18 +426,48 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [calOffset, setCalOffset] = useState(0); // month offset for calendar nav
+  const [feedToken, setFeedToken] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
 
   const fetchData = useCallback(async () => {
-    const [linksRes, syncRes] = await Promise.all([
+    const [linksRes, syncRes, tokenRes] = await Promise.all([
       fetch(`/api/calendar/links?propertyId=${propertyId}`),
       fetch(`/api/calendar/sync?propertyId=${propertyId}&limit=30`),
+      fetch(`/api/properties/${propertyId}/rotate-feed-token`),
     ]);
     const linksData = await linksRes.json();
     const syncData = await syncRes.json();
     setLinks(Array.isArray(linksData) ? linksData : []);
     setEvents(syncData.events || []);
     setLogs(syncData.logs || []);
+    if (tokenRes.ok) {
+      const tokenData = await tokenRes.json();
+      setFeedToken(typeof tokenData.feedToken === "string" ? tokenData.feedToken : null);
+    }
   }, [propertyId]);
+
+  const handleRotateToken = async () => {
+    setRotating(true);
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/rotate-feed-token`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.feedToken === "string") setFeedToken(data.feedToken);
+      }
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const handleClearToken = async () => {
+    setRotating(true);
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/rotate-feed-token`, { method: "DELETE" });
+      if (res.ok) setFeedToken(null);
+    } finally {
+      setRotating(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -531,16 +561,16 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
     setTestResults((prev) => { const next = { ...prev }; delete next[platform]; return next; });
   };
 
-  const copyFeedUrl = (forPlatform: string) => {
-    const url = `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
-    navigator.clipboard.writeText(url);
-    setCopied(forPlatform);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
   const feedUrl = (forPlatform: string) => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
+    const base = `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
+    return feedToken ? `${base}?token=${feedToken}` : base;
+  };
+
+  const copyFeedUrl = (forPlatform: string) => {
+    navigator.clipboard.writeText(feedUrl(forPlatform));
+    setCopied(forPlatform);
+    setTimeout(() => setCopied(null), 2000);
   };
 
   /* ── calendar data ── */
@@ -576,6 +606,35 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
           {syncing ? "Syncing..." : "Sync Now"}
         </Button>
       </div>
+
+      {/* ── Feed token bar ── */}
+      {hasLinks && (
+        <div className="rounded-lg border border-[#21262d] bg-[#0d1117] p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="text-[11px] text-[#7d8590]">
+            {feedToken
+              ? "Feed URLs include a private token. Rotate to invalidate the old URL."
+              : "Feed URLs are public. Add a token to make them unguessable."}
+          </div>
+          <div className="flex gap-2">
+            {feedToken && (
+              <button
+                onClick={handleClearToken}
+                disabled={rotating}
+                className="rounded px-2.5 py-1 text-[11px] text-[#7d8590] hover:text-[#f0f6fc] disabled:opacity-40"
+              >
+                Make public
+              </button>
+            )}
+            <button
+              onClick={handleRotateToken}
+              disabled={rotating}
+              className="rounded bg-[#21262d] px-2.5 py-1 text-[11px] text-[#c9d1d9] hover:bg-[#30363d] disabled:opacity-40"
+            >
+              {rotating ? "..." : feedToken ? "Rotate token" : "Generate token"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Platform Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
