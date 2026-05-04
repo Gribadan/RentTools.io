@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateFeed } from "@/lib/feed";
+import { generateFeed, parseFeedFilename } from "@/lib/feed";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { timingSafeEqual } from "node:crypto";
@@ -32,8 +32,7 @@ export async function GET(
       });
     }
     const propertyId = Number(pid);
-    const match = filename.match(/^for-(\w+)\.ics$/i);
-    const forPlatform = match?.[1] || "airbnb";
+    const forPlatform = parseFeedFilename(filename);
 
     if (isNaN(propertyId)) {
       return new NextResponse("Invalid property ID", { status: 400 });

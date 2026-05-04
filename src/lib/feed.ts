@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, addDays, type ICalEvent } from "@/lib/ical";
 
+export { parseFeedFilename } from "@/lib/feed-utils";
+
 /**
  * Generate an iCal feed for a property+platform.
  * Single source of truth — used by all feed routes.
