@@ -1,5 +1,17 @@
 name: Deploy to droplet
 
+# Two-stage pipeline:
+#   1. build  — runs the heavy `npm ci + next build` on a 4-vCPU / 16 GB GH-hosted
+#               runner. Produces a tarball with the built .next/ + the generated
+#               Prisma client. Total ~3 min including dependency cache hits.
+#   2. deploy — ships the tarball to the production droplet via scp, then triggers
+#               scripts/install-build.sh which atomically swaps the artifact in
+#               and restarts the systemd service. Total ~30s if package-lock
+#               unchanged, ~4 min if a fresh `npm ci` is needed on the droplet.
+#
+# Replaces the previous on-droplet build path which took ~18 min on the small
+# 458 MB box because V8 had to spill TypeScript-checking heap to swap.
+
 on:
   push:
     branches: [master]
@@ -10,24 +22,93 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: SSH deploy
+  build:
+    name: Build on runner
     runs-on: ubuntu-latest
 
-    # Inert until the user sets the DROPLET_HOST repo variable.
-    # Until then, every push is a no-op instead of a red X.
+    # Inert until the user wires DROPLET_HOST. Until then every push is a no-op.
+    if: ${{ vars.DROPLET_HOST != '' }}
+
+    env:
+      # The build doesn't query the DB but src/lib/prisma.ts initialises the
+      # adapter at import time, which needs a URL it can parse. Use a throwaway
+      # local SQLite path that never has to exist.
+      DATABASE_URL: "file:./ci-build.db"
+      JWT_SECRET: "ci-only-build-passes"
+      CRON_SECRET: "ci-only-build-passes"
+
+      # Sentry SDK init at build time — DSN gets baked into the client bundle,
+      # auth token uploads source maps for readable stack traces. Both are
+      # GitHub Actions secrets; if either is missing the build still passes,
+      # just without source-map upload.
+      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+      # Surfaced in /api/health and on Sentry events as the release identifier.
+      GIT_COMMIT_SHA: ${{ github.sha }}
+      NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build (next build)
+        run: npm run build
+
+      - name: Bundle artifact
+        run: |
+          # Bundle .next/ + the generated Prisma client. Source files (src/,
+          # prisma/, scripts/) are NOT shipped in the tarball — install-build.sh
+          # does a `git reset --hard` on the droplet to keep them in sync with
+          # the SHA that produced this build.
+          tar -czf build.tar.gz .next src/generated/prisma
+          echo "Artifact size: $(ls -lh build.tar.gz | awk '{print $5}')"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+          path: build.tar.gz
+          retention-days: 3
+
+  deploy:
+    name: Ship to droplet
+    needs: build
+    runs-on: ubuntu-latest
     if: ${{ vars.DROPLET_HOST != '' }}
 
     steps:
-      - name: Trigger droplet-side deploy
+      - name: Checkout (for scripts/install-build.sh)
+        uses: actions/checkout@v4
+        with:
+          # Just the install script; no need for a deep clone.
+          sparse-checkout: |
+            scripts/install-build.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-${{ github.sha }}
+
+      - name: SSH key setup
         env:
-          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
-          DROPLET_USER: ${{ vars.DROPLET_USER }}
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           KNOWN_HOSTS: ${{ vars.DROPLET_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
-
           if [ -z "${DEPLOY_KEY:-}" ]; then
             echo "::error::Missing DEPLOY_KEY secret. See docs/DROPLET-SETUP.md §10."
             exit 1
@@ -36,25 +117,44 @@ jobs:
             echo "::error::Missing DROPLET_KNOWN_HOSTS variable. Run \`ssh-keyscan <ip>\` and paste output."
             exit 1
           fi
-
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           # GitHub Actions strips trailing newlines from secrets; OpenSSH refuses
-          # to load a key without one (errors with "error in libcrypto"). Force
-          # a trailing \n via printf '%s\n'.
+          # to load a key without one. Force a trailing \n via printf '%s\n'.
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
-          # ServerAliveInterval keeps the connection open during long silent
-          # build phases (TypeScript checking + Sentry source-map upload can
-          # run for 5+ minutes without writing to stdout, which otherwise
-          # tripped the runner's idle timeout).
+      - name: Ship build + install script to droplet
+        env:
+          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
+          DROPLET_USER: ${{ vars.DROPLET_USER }}
+        run: |
+          set -euo pipefail
+          # Always run the install script we just checked out, not whatever
+          # version happens to be on the droplet — keeps the script and the
+          # artifact format in lockstep, even on the very first run when the
+          # droplet doesn't yet have install-build.sh in its checkout.
+          scp -i ~/.ssh/id_deploy \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              build.tar.gz \
+              scripts/install-build.sh \
+              "${DROPLET_USER}@${DROPLET_HOST}:/tmp/"
+
+      - name: Install build + restart service
+        env:
+          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
+          DROPLET_USER: ${{ vars.DROPLET_USER }}
+        run: |
+          set -euo pipefail
+          # ServerAliveInterval keeps the connection open during the conditional
+          # `npm ci` step (up to 4 min of silence if dependencies changed).
           ssh -i ~/.ssh/id_deploy \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               -o ServerAliveInterval=30 \
               -o ServerAliveCountMax=20 \
               "${DROPLET_USER}@${DROPLET_HOST}" \
-              'bash -lc "bash /home/app/rent-tool/scripts/deploy.sh"'
+              "bash -lc 'GIT_COMMIT_SHA=${{ github.sha }} bash /tmp/install-build.sh /tmp/build.tar.gz'"

@@ -1,9 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-# This file is the FIRST line of defence against accidentally committing
-# secrets, internal notes, or AI-tool config to a public repo. The second
-# line is .githooks/pre-commit (auto-installed via `npm install` postinstall).
-# The third is the CI check in .github/workflows/ci.yml.
-# Add new forbidden patterns to ALL THREE places when you find a leak.
+# This file is the first line of defence against accidentally committing secrets,
+# local notes, or development-tool config to a public repo. The second line is
+# .githooks/pre-commit (auto-installed via `npm install` postinstall). The third
+# is the forbidden-paths check in .github/workflows/ci.yml.
+# Add any new pattern to all three places when you find one that leaked.
 
 # === Dependencies & build artifacts ===
 /node_modules
@@ -31,7 +31,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# === OS / IDE ===
+# === OS / IDE config ===
 .DS_Store
 Thumbs.db
 *.pem
@@ -41,9 +41,9 @@ Thumbs.db
 *.swo
 *~
 
-# === AI / dev-tool config (NEVER public) ===
-# Claude Code, Anthropic Agent SDK, Cursor, GitHub Copilot internal config,
-# any tool that drops a config file at the project root.
+# === Editor / agent config files dropped at the project root ===
+# Various editor and command-line tools may write local config or scratch
+# files into the repo. None of them belong in a public commit.
 CLAUDE.md
 claude.md
 Claude.md
@@ -57,22 +57,23 @@ agents.md
 .continue/
 .copilot/
 
-# === Internal task tracking / AI agent prompts ===
-# Routine prompts, task backlogs, ops runbooks — useful internally,
-# noise + clutter for public users.
+# === Internal-only docs ===
+# Routine prompts, task backlogs, ops runbooks. Useful for the maintainer,
+# not for public users.
 .routines/
 ROUTINE.md
 TASKS.md
 OPS-ROUTINE.md
+MEMORY.md
+memory.md
+.memory/
 
 # === Local-only personal stuff ===
 # Everything inside .local/ stays local. Do NOT add a !exception here —
-# the previous repo had .local/README.md tracked which leaked the layout
-# of secret files. If you need to document the .local/ layout, do it in
-# the main README's "self-host" section instead.
+# leaking even a README from this folder reveals the layout of secret files.
 .local/
 
-# === MCP / testing artifacts ===
+# === Test / browser-automation artifacts ===
 .playwright-mcp/
 .mcp/
 playwright-report/
@@ -112,12 +113,6 @@ id_ecdsa*
 *.p12
 *.cer
 authorized_keys
-
-# === Auto-generated memory / scratch ===
-# Anthropic Memory tool may write MEMORY.md to the project — block it.
-MEMORY.md
-memory.md
-.memory/
 
 # === Vercel ===
 .vercel
