@@ -18,6 +18,8 @@ model User {
   cleanerAssignments CleanerAssignment[]  @relation("CleanerAssignments")
   managedProperties  PropertyManager[]    @relation("ManagerAssignments")
   grantedManagers    PropertyManager[]    @relation("ManagerGrants")
+  createdInvites     PropertyManagerInvite[] @relation("InviteCreators")
+  acceptedInvites    PropertyManagerInvite[] @relation("InviteAcceptors")
 }
 
 model AppSettings {
@@ -45,6 +47,7 @@ model Property {
   cleaningRecords    CleaningRecord[]
   messageTemplates   MessageTemplate[]
   managers           PropertyManager[]
+  managerInvites     PropertyManagerInvite[]
 
   @@index([userId])
 }
@@ -62,6 +65,24 @@ model PropertyManager {
   @@unique([managerId, propertyId])
   @@index([propertyId])
   @@index([managerId])
+}
+
+model PropertyManagerInvite {
+  id           Int       @id @default(autoincrement())
+  propertyId   Int
+  property     Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  token        String    @unique
+  createdById  Int
+  createdBy    User      @relation("InviteCreators", fields: [createdById], references: [id], onDelete: Cascade)
+  acceptedById Int?      // null until accepted; references the user who accepted
+  acceptedBy   User?     @relation("InviteAcceptors", fields: [acceptedById], references: [id], onDelete: SetNull)
+  acceptedAt   DateTime?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([propertyId])
+  @@index([token])
 }
 
 model MessageTemplate {
