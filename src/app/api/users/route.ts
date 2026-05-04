@@ -2,14 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const role = request.nextUrl.searchParams.get("role");
+    const where = role ? { role } : {};
+
     const users = await prisma.user.findMany({
+      where,
       select: { id: true, username: true, role: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     });

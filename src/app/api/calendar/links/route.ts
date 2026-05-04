@@ -11,9 +11,13 @@ export async function GET(request: NextRequest) {
 
     const propertyId = request.nextUrl.searchParams.get("propertyId");
 
-    const where = propertyId
-      ? { propertyId: Number(propertyId), property: { userId: session.userId } }
+    const baseFilter = session.role === "cleaner"
+      ? { property: { cleanerAssignments: { some: { cleanerId: session.userId } } } }
       : { property: { userId: session.userId } };
+
+    const where = propertyId
+      ? { propertyId: Number(propertyId), ...baseFilter }
+      : baseFilter;
 
     const links = await prisma.calendarLink.findMany({
       where,

@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id                 Int        @id @default(autoincrement())
-  username           String     @unique
+  id                 Int                  @id @default(autoincrement())
+  username           String               @unique
   password           String
-  role               String     @default("user") // "superadmin" | "user" | "cleaner"
-  createdAt          DateTime   @default(now())
+  role               String               @default("user") // "superadmin" | "user" | "cleaner"
+  createdAt          DateTime             @default(now())
   alertsDismissedAt  DateTime?
   properties         Property[]
+  cleanerAssignments CleanerAssignment[]  @relation("CleanerAssignments")
 }
 
 model AppSettings {
@@ -34,12 +35,26 @@ model Property {
   bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored
   createdAt      DateTime         @default(now())
   updatedAt      DateTime?
-  reservations   Reservation[]
-  calendarLinks  CalendarLink[]
-  calendarEvents CalendarEvent[]
-  dateOverrides  DateOverride[]
+  reservations       Reservation[]
+  calendarLinks      CalendarLink[]
+  calendarEvents     CalendarEvent[]
+  dateOverrides      DateOverride[]
+  cleanerAssignments CleanerAssignment[]
 
   @@index([userId])
+}
+
+model CleanerAssignment {
+  id         Int      @id @default(autoincrement())
+  cleanerId  Int
+  cleaner    User     @relation("CleanerAssignments", fields: [cleanerId], references: [id], onDelete: Cascade)
+  propertyId Int
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([cleanerId, propertyId])
+  @@index([cleanerId])
+  @@index([propertyId])
 }
 
 model CalendarLink {
