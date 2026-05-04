@@ -261,7 +261,7 @@
   - Persist dismissal in localStorage so it doesn't show again after first dismiss
   - Acceptance criteria: new user sees welcome on first login; dismissing it doesn't reappear
 
-- [ ] **RT-8.2** Sample property generator
+- [x] **RT-8.2** Sample property generator
   - File: `src/app/api/properties/sample/route.ts` (new) — POST creates a property "Sample Apartment" with realistic settings (minNights=2, buffers=0, checkInTime=15:00, checkOutTime=11:00) + 3 mock internal reservations spread across the next 30 days
   - File: `src/components/welcome-modal.tsx` — "Use sample" button calls this endpoint
   - Acceptance criteria: clicking "Use sample" creates a fully-populated demo property the user can explore and delete
@@ -473,3 +473,4 @@
 - 2026-05-04 — RT-7.3 — 4a5b200 — ownership cascade across reservations/guests/calendar links/sync/overrides; nested 404s on foreign access
 - 2026-05-04 — RT-7.5 — 949a6f6 — public signup endpoint + page; i18n strings for en/ru; public-paths whitelist updated
 - 2026-05-04 — RT-8.1 — 96175fa — welcome modal for empty workspaces; localStorage-persisted dismissal
+- 2026-05-04 — RT-8.2 — f841922 — POST /api/properties/sample seeds Sample Apartment + 3 demo reservations
