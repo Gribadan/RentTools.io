@@ -537,6 +537,129 @@
 
 ---
 
+## Week 14 — Public open-source release
+
+> Goal: make the GitHub repo public so people with the same property-management pain can use it. Position as "open-source AND free at the owner's hosted instance." This is the polish week: README, license, landing page, marketing copy.
+
+- [ ] **RT-14.1** Comprehensive README rewrite
+  - File: `README.md`
+  - Top section: tagline ("Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free at <our-domain>"), 3 screenshots (calendar, cleaning schedule, guest cards), badges (license, build status if any)
+  - Sections: What it does, Free hosted version (link), Self-host (5-min quickstart pointing at docs/DEPLOYMENT.md and docs/DROPLET-SETUP.md), Features (bullet list with checkboxes for what exists), Roadmap (link to .routines/TASKS.md), Tech stack, Contributing (link to docs/CONTRIBUTING.md), License
+  - Acceptance criteria: a developer who has never seen the project can decide in 60 seconds whether to self-host or use the hosted version, and find the next step
+
+- [ ] **RT-14.2** Add LICENSE file
+  - File: `LICENSE` (new) — MIT (recommended for max adoption; allows commercial use with attribution)
+  - Update `package.json`: `"license": "MIT"`
+  - Acceptance criteria: GitHub recognizes the license in the repo banner
+
+- [ ] **RT-14.3** Public landing page at `/`
+  - File: `src/app/page.tsx` — currently redirects to login or shows dashboard. Refactor: create a separate `src/app/(app)/dashboard/page.tsx` that's the authenticated view, and make `/` a marketing landing page when the user is NOT logged in
+  - Landing content: hero with tagline, 3 feature cards (calendar sync, cleaning automation, guest docs), screenshots, "Sign up free" CTA → `/signup`, "View source on GitHub" CTA, footer with links to repo, ToS, privacy
+  - Logged-in users hitting `/` should redirect to the dashboard
+  - Acceptance criteria: anonymous visitor sees marketing page; logged-in visitor sees dashboard; mobile layout works at 375px
+
+- [ ] **RT-14.4** Open Graph + meta tags for sharing
+  - File: `src/app/layout.tsx` — add OG title, OG description, OG image (a 1200x630 banner from `/public/og.png` — generate via screenshotting the calendar with a custom overlay), Twitter card meta
+  - Add `<meta name="theme-color">`, `<link rel="canonical">`
+  - File: `public/og.png` (new) — actual image (placeholder is fine to start)
+  - Acceptance criteria: pasting the URL into Twitter/Slack/Telegram shows a rich card preview
+
+- [ ] **RT-14.5** Robots, sitemap, terms, privacy
+  - File: `public/robots.txt` — already exists, verify content
+  - File: `src/app/sitemap.ts` (new, Next 16 conventions) — list `/`, `/signup`, `/login`, `/terms`, `/privacy`
+  - File: `src/app/terms/page.tsx` (new) — minimal ToS markdown rendered statically. Cover: free service, no warranty, no liability, user owns their data, owner reserves right to suspend abuse
+  - File: `src/app/privacy/page.tsx` (new) — what data is collected (email/username, properties, bookings synced from platforms, guest passport data), where it's stored (DO droplet, Vercel/Turso during migration), retention policy, how to export/delete account
+  - Footer link to both from the landing page and from inside the app
+  - Acceptance criteria: pages load with reasonable text; no lorem ipsum; passes a basic GDPR-readiness review
+
+- [ ] **RT-14.6** CONTRIBUTING.md update
+  - File: `docs/CONTRIBUTING.md` — already exists; review and update for the public-repo audience
+  - Add: how to file an issue (template if useful), how to set up locally (link DEPLOYMENT.md), our commit message convention (Conventional Commits + Co-Authored-By if AI-paired), code-of-conduct lite
+  - File: `.github/ISSUE_TEMPLATE/bug.md` and `.github/ISSUE_TEMPLATE/feature.md` (new) — minimal templates
+  - Acceptance criteria: a first-time contributor can clone, run locally, find an issue, and submit a useful PR
+
+- [ ] **RT-14.7** Showcase / testimonials section (placeholder)
+  - File: `src/app/page.tsx` — landing page section "Used by …" with a placeholder for future logos / quotes; don't ship fake testimonials
+  - For now: "Built by a real owner of 2 properties tired of juggling 4 calendar tabs"
+  - Acceptance criteria: section is honest and removable when real users appear
+
+- [ ] **RT-14.8** Make the repo public-flip-safe (CI sanity check)
+  - File: `.github/workflows/ci.yml` (new or extended) — on every PR: `npm ci`, `npx next build`, `npx vitest run`. No secrets needed because the build doesn't contact Turso/Gemini at compile time
+  - Document in CONTRIBUTING.md that PRs need a green CI before review
+  - Acceptance criteria: opening a PR triggers CI; the badge shows green on master; the failure path produces a clear error
+
+---
+
+## Week 15 — Admin panel & free-hosting protections
+
+> Goal: give the owner (you) a single place to control site-wide settings without SSHing in. Make sure the free public hosting can't be ruined by abuse — rate limits, signup gates, opt-in moderation knobs.
+
+- [ ] **RT-15.1** Add `SiteSetting` table for global key-value config
+  - File: `prisma/schema.prisma` — `model SiteSetting { id Int @id @default(autoincrement()); key String @unique; value String; updatedAt DateTime? }`
+  - File: `prisma/push-schema.ts` — additive migration with idempotent CREATE
+  - Seed initial keys (only if missing): `signup_enabled` (default "true"), `extraction_per_user_daily_limit` (default "20"), `landing_announcement` (default ""), `support_email` (default ""), `terms_text` and `privacy_text` (defaults from the static pages of RT-14.5 — but stored in DB so admin can edit)
+  - File: `src/lib/site-settings.ts` (new) — `getSetting(key, fallback)` and `setSetting(key, value)` helpers; small in-memory cache with 60s TTL to avoid hitting the DB on every request
+  - Acceptance criteria: schema pushes cleanly; helpers work; default values appear when DB is empty
+
+- [ ] **RT-15.2** Admin-only middleware guard
+  - File: `src/lib/auth.ts` — add `requireSuperadmin()` helper that throws/returns 403 if session.role !== "superadmin"
+  - File: `src/app/api/admin/*` (new path namespace) — every route under `/api/admin/` calls `requireSuperadmin()` first
+  - Acceptance criteria: a regular user hitting `/api/admin/anything` returns 403; superadmin gets through
+
+- [ ] **RT-15.3** Admin panel UI (Settings tab → "Admin" subsection, superadmin only)
+  - File: `src/components/admin-panel.tsx` (new)
+  - File: `src/components/settings-panel.tsx` — when `userRole === "superadmin"`, render `<AdminPanel />` below the existing settings sections; hide entirely for non-admins
+  - Sections: Site settings (toggle signup, support email, landing announcement banner), User management (existing), Extraction quota (the daily-limit setting from RT-15.1), System status (links to /api/health, /api/calendar/health), Data export (button to download a full JSON dump of the owner's own data — useful for backups and trust)
+  - Acceptance criteria: a regular user sees no admin section; superadmin sees the panel and can change all SiteSettings live; changes take effect within 60s (cache TTL)
+
+- [ ] **RT-15.4** Signup toggle gate
+  - File: `src/app/api/auth/signup/route.ts` — check `getSetting("signup_enabled", "true")`. If "false", return 403 "Signups are temporarily disabled"
+  - File: `src/app/signup/page.tsx` — fetch `/api/site-config` (new public endpoint returning a SAFE subset of settings) on mount; if signup disabled, show a friendly notice and hide the form
+  - File: `src/app/api/site-config/route.ts` (new, PUBLIC) — returns only the public-safe keys: signup_enabled, landing_announcement, support_email
+  - Acceptance criteria: toggling signup off in admin panel makes the signup page show "disabled" within 60s; toggling back on restores it
+
+- [ ] **RT-15.5** Per-user daily extraction rate limit
+  - File: `src/app/api/extract/route.ts` — before processing files, count how many AuditLog (or new ExtractionLog) entries the user has from the last 24h. If >= `extraction_per_user_daily_limit`, return 429 "Daily limit reached, try again tomorrow"
+  - File: `prisma/schema.prisma` — add `ExtractionLog { id, userId, fileCount, success, createdAt }` so we can count without polluting AuditLog
+  - File: extraction route — write one ExtractionLog row per request
+  - Acceptance criteria: a user who has done 20 extractions in 24h gets 429; 1 hour later (when oldest extraction ages out), the next attempt works again
+
+- [ ] **RT-15.6** Site-wide announcement banner
+  - File: `src/app/(app)/layout.tsx` (or wherever the authenticated layout is after RT-14.3) — fetch `landing_announcement` from `/api/site-config`; if non-empty, render a dismissible banner above the top bar
+  - Dismissal stored in localStorage keyed by content hash so a NEW announcement re-shows
+  - Acceptance criteria: setting an announcement in admin panel makes it appear for all logged-in users; dismissing hides it; changing the announcement re-shows it
+
+- [ ] **RT-15.7** Account deletion (GDPR)
+  - File: `src/app/api/auth/delete-account/route.ts` (new) — POST: requires current password confirmation; cascades delete the user and ALL their data (Property cascades cover Reservation/Guest/etc.); irreversible
+  - File: `src/components/profile-panel.tsx` — "Delete account" red button at bottom; opens a confirmation modal that requires typing the username to confirm
+  - File: `docs/PRIVACY.md` (or `src/app/privacy/page.tsx` from RT-14.5) — document the deletion path
+  - Acceptance criteria: a user can delete their account end-to-end; verifying with the DB shows zero rows tied to that userId
+
+- [ ] **RT-15.8** Account data export (GDPR)
+  - File: `src/app/api/auth/export-data/route.ts` (new) — GET: returns a JSON dump of everything tied to the current user (properties, reservations, guests, overrides, message templates, audit log, cleaning records, manager grants given/received)
+  - File: `src/components/profile-panel.tsx` — "Download my data" button
+  - Acceptance criteria: clicking the button downloads a usable JSON file; admin panel from RT-15.3 has the same button for the admin's own data
+
+- [ ] **RT-15.9** Email contact (no email infra needed yet — just `mailto:`)
+  - File: `src/components/admin-panel.tsx` — `support_email` setting populates a `mailto:` link in the footer of every page
+  - File: `src/app/(app)/layout.tsx` — footer shows "Need help? <support_email>" when set
+  - Defer: actual SMTP / Resend integration — not needed for free tier; users emailing the owner directly is fine until traffic justifies automated email
+  - Acceptance criteria: setting the email in admin panel makes the mailto link appear in the footer
+
+- [ ] **RT-15.10** Admin: per-user usage view
+  - File: `src/components/admin-panel.tsx` — "Users" section: table of all users with columns: username, role, signup date, # properties, # reservations, # extractions in last 30d, last login (if tracked — add to schema if not)
+  - File: `src/app/api/admin/users/route.ts` (new) — superadmin-only GET that returns the aggregated data
+  - File: `prisma/schema.prisma` — add `User.lastLoginAt DateTime?` if not already present; update on successful login
+  - Acceptance criteria: admin can spot heavy users / dormant accounts; sortable by any column
+
+- [ ] **RT-15.11** Admin: kill switch on a user (suspend/unsuspend)
+  - File: `prisma/schema.prisma` — `User.suspendedAt DateTime?`; nullable
+  - File: `src/lib/auth.ts` — login refuses suspended users with a clear message; existing sessions are cleared on next request
+  - File: `src/components/admin-panel.tsx` — suspend / unsuspend buttons in the per-user row
+  - Acceptance criteria: suspending a user immediately blocks new logins; unsuspending lets them back in
+
+---
+
 ## Done log
 
 <!-- Append completed tasks here: -->

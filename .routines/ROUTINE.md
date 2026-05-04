@@ -94,13 +94,22 @@ For EACH task you take on:
   - Schema migrations in push-schema.ts MUST match prisma/schema.prisma
     exactly (same nullability, same defaults).
 
-- **This project is live on Vercel with real users.** Be careful with:
+- **This project is live with real users.** Be careful with:
   - Schema changes (additive only, never drop columns)
   - Calendar feed routes (platforms actively fetch these)
   - Extraction API (handles real passport data)
   - Auth/session logic
   Prefer additive changes. If a task forces a breaking change, write
   a `Blocked:` note and move on.
+
+- **Manual-deploy tasks**: some tasks (especially Week 13 droplet setup,
+  DNS cutover, Vercel decommission) require commands run on a server you
+  cannot SSH to. For those, your job is to **prepare the files** the
+  task points to (scripts, configs, docs) and verify the build passes.
+  Then mark the task `[x]` only if the file deliverables are complete
+  AND the task body explicitly says "no execution required for this
+  task". Otherwise, write `Blocked: requires manual server execution`
+  and skip — the user will execute and mark done afterward.
 
 - **Don't touch tasks out of order** unless the current task is blocked
   (in which case you skip it and continue to the next).
@@ -112,18 +121,26 @@ For EACH task you take on:
 
 ## Project context
 
-- **Stack**: Next.js 16 (App Router), TypeScript, Tailwind, Prisma 7, Turso (LibSQL)
-- **Deploy**: Vercel, auto-deploy from `master` branch
-- **DB push**: `npx tsx prisma/push-schema.ts` (NOT `prisma db push` — Turso needs the adapter script)
+- **Stack**: Next.js 16 (App Router), TypeScript, Tailwind, Prisma 7
+- **Database**:
+  - Currently: **Turso (LibSQL)** — cloud-hosted SQLite via the libsql adapter
+  - Migrating: **self-hosted SQLite file** on a DigitalOcean droplet (Week 13)
+  - The Prisma client uses an adapter that supports both via env vars
+- **Deploy**:
+  - Currently: Vercel, auto-deploy from `master` branch
+  - Migrating: DigitalOcean droplet with systemd + nginx + GitHub Actions auto-deploy (Week 13)
+- **Hosting model**: free public SaaS at the owner's domain. Anyone can sign up and use it. The owner pays for hosting + Gemini API. Users get rate-limited per account to protect the free tier.
+- **DB push**: `npx tsx prisma/push-schema.ts` (NOT `prisma db push` — works for both Turso and local SQLite via the same adapter script)
 - **Build check**: `npx next build`
-- **No tests yet** — test setup is a task in the backlog (RT-5.1)
+- **Tests**: vitest installed; run `npx vitest` (covers ical.ts, sanitize.ts, buffer logic)
 - **Key files**:
   - `src/app/page.tsx` — main app with URL-based routing
   - `src/components/` — all UI components
   - `src/app/api/` — all API routes
-  - `src/lib/` — utilities (ical.ts, calendar-sync.ts, auth.ts, prisma.ts, gemini.ts)
+  - `src/lib/` — utilities (ical.ts, calendar-sync.ts, auth.ts, prisma.ts, gemini.ts, ownership.ts)
   - `prisma/schema.prisma` — data model
-  - `prisma/push-schema.ts` — migration script for Turso
+  - `prisma/push-schema.ts` — migration script (Turso + local SQLite)
+  - `.local/` — gitignored personal credentials, deploy notes, SSH keys (NEVER reference contents in commits)
 
 ---
 
