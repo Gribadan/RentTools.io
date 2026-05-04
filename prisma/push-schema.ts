@@ -227,6 +227,38 @@ CREATE INDEX IF NOT EXISTS "CleanerAssignment_propertyId_idx" ON "CleanerAssignm
     }
   }
 
+  // MessageTemplate table — guest pre/post-arrival templates per property
+  const messageTemplateSchema = `
+CREATE TABLE IF NOT EXISTS "MessageTemplate" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "language" TEXT NOT NULL DEFAULT 'en',
+    "subject" TEXT NOT NULL DEFAULT '',
+    "body" TEXT NOT NULL,
+    "sendOffsetDays" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "MessageTemplate_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "MessageTemplate_propertyId_idx" ON "MessageTemplate"("propertyId");
+`;
+
+  const messageTemplateStatements = messageTemplateSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of messageTemplateStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // CleaningRecord table — track cleaning status per property × date
   const cleaningRecordSchema = `
 CREATE TABLE IF NOT EXISTS "CleaningRecord" (

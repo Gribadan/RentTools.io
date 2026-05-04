@@ -41,8 +41,24 @@ model Property {
   dateOverrides      DateOverride[]
   cleanerAssignments CleanerAssignment[]
   cleaningRecords    CleaningRecord[]
+  messageTemplates   MessageTemplate[]
 
   @@index([userId])
+}
+
+model MessageTemplate {
+  id             Int      @id @default(autoincrement())
+  propertyId     Int
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name           String
+  language       String   @default("en")
+  subject        String   @default("")
+  body           String
+  sendOffsetDays Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime?
+
+  @@index([propertyId])
 }
 
 model CleaningRecord {
