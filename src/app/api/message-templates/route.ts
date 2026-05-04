@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const propertyId = parseInt(propertyIdParam);
     if (isNaN(propertyId)) return NextResponse.json({ error: "Invalid propertyId" }, { status: 400 });
 
-    if (!(await ownsProperty(propertyId, session.userId))) {
+    if (!(await canManageProperty(propertyId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (!(await ownsProperty(propertyId, session.userId))) {
+    if (!(await canManageProperty(propertyId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

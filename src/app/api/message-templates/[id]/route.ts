@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { canManageProperty } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
-async function loadOwnedTemplate(id: number, userId: number) {
+async function loadManageableTemplate(id: number, userId: number, role: string) {
   const t = await prisma.messageTemplate.findUnique({
     where: { id },
-    select: { id: true, propertyId: true, property: { select: { userId: true } } },
+    select: { id: true, propertyId: true },
   });
-  if (!t || t.property.userId !== userId) return null;
+  if (!t) return null;
+  if (!(await canManageProperty(t.propertyId, userId, role))) return null;
   return t;
 }
 
@@ -25,7 +27,7 @@ export async function PATCH(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedTemplate(numId, session.userId);
+    const owned = await loadManageableTemplate(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await request.json();
@@ -60,7 +62,7 @@ export async function DELETE(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedTemplate(numId, session.userId);
+    const owned = await loadManageableTemplate(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.messageTemplate.delete({ where: { id: numId } });
