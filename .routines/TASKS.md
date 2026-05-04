@@ -561,7 +561,7 @@
   - Logged-in users hitting `/` should redirect to the dashboard
   - Acceptance criteria: anonymous visitor sees marketing page; logged-in visitor sees dashboard; mobile layout works at 375px
 
-- [ ] **RT-14.4** Open Graph + meta tags for sharing
+- [x] **RT-14.4** Open Graph + meta tags for sharing
   - File: `src/app/layout.tsx` — add OG title, OG description, OG image (a 1200x630 banner from `/public/og.png` — generate via screenshotting the calendar with a custom overlay), Twitter card meta
   - Add `<meta name="theme-color">`, `<link rel="canonical">`
   - File: `public/og.png` (new) — actual image (placeholder is fine to start)
@@ -739,3 +739,4 @@
 - 2026-05-04 — RT-14.1 — f4ff93c — README rewrite for public audience: tagline, badges, hosted-version CTA (renttools.io), 5-min self-host quickstart, feature checkboxes, project layout, MIT license reference
 - 2026-05-04 — RT-14.2 — 83142c5 — MIT LICENSE file (copyright 2026 Gribadan) + "license": "MIT" in package.json
 - 2026-05-04 — RT-14.3 — 3c4da59 — server-component landing at /, dashboard moved to /dashboard, getSession redirect for logged-in users, middleware exact-match for "/", default safeNext flipped from "/" to "/dashboard" across login/signup/invite
+- 2026-05-04 — RT-14.4 — cd0bf2d — Metadata API: openGraph + twitter card + canonical + metadataBase https://renttools.io; dynamic 1200x630 OG image via next/og ImageResponse at app/opengraph-image.tsx (no static png needed); robots index/follow
