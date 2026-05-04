@@ -49,6 +49,7 @@ model Property {
   checkInTime    String           @default("14:00")
   checkOutTime   String           @default("12:00")
   bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored
+  feedToken      String?          @unique // optional opt-in token gating the public iCal feed; null = public
   createdAt      DateTime         @default(now())
   updatedAt      DateTime?
   reservations       Reservation[]

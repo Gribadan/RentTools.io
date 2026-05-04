@@ -179,6 +179,8 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "User" ADD COLUMN "alertsDismissedAt" DATETIME`,
     `ALTER TABLE "User" ADD COLUMN "lastLoginAt" DATETIME`,
     `ALTER TABLE "User" ADD COLUMN "suspendedAt" DATETIME`,
+    `ALTER TABLE "Property" ADD COLUMN "feedToken" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Property_feedToken_key" ON "Property"("feedToken")`,
   ];
   for (const sql of migrations) {
     try {

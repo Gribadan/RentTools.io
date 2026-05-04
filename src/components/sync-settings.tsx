@@ -44,14 +44,19 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
   const [bookingUrl, setBookingUrl] = useState("");
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
 
+  // Public feed token (null = public feed; non-null = ?token=… required)
+  const [feedToken, setFeedToken] = useState<string | null>(null);
+  const [rotating, setRotating] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, [propertyId]);
 
   const fetchData = async () => {
-    const [linksRes, syncRes] = await Promise.all([
+    const [linksRes, syncRes, tokenRes] = await Promise.all([
       fetch(`/api/calendar/links?propertyId=${propertyId}`),
       fetch(`/api/calendar/sync?propertyId=${propertyId}&limit=50`),
+      fetch(`/api/properties/${propertyId}/rotate-feed-token`),
     ]);
     if (linksRes.ok) {
       const data = await linksRes.json();
@@ -65,6 +70,33 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
     if (syncRes.ok) {
       const data = await syncRes.json();
       setLogs(data.logs || []);
+    }
+    if (tokenRes.ok) {
+      const data = await tokenRes.json();
+      setFeedToken(typeof data.feedToken === "string" ? data.feedToken : null);
+    }
+  };
+
+  const handleRotateToken = async () => {
+    setRotating(true);
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/rotate-feed-token`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.feedToken === "string") setFeedToken(data.feedToken);
+      }
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const handleClearToken = async () => {
+    setRotating(true);
+    try {
+      const res = await fetch(`/api/properties/${propertyId}/rotate-feed-token`, { method: "DELETE" });
+      if (res.ok) setFeedToken(null);
+    } finally {
+      setRotating(false);
     }
   };
 
@@ -139,7 +171,8 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
   const feedUrl = (forPlatform: string) => {
     if (typeof window === "undefined") return "";
-    return `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
+    const base = `${window.location.origin}/api/calendar/feed/${propertyId}/for-${forPlatform}.ics`;
+    return feedToken ? `${base}?token=${feedToken}` : base;
   };
 
   const copyUrl = (url: string, key: string) => {
@@ -308,6 +341,45 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
           );
         })}
       </div>
+
+      {/* Feed Token (private feed URL) */}
+      {links.length > 0 && (
+        <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[#e8e8ec]">Feed access token</h2>
+              <p className="mt-0.5 text-xs text-[#a0a0a8]">
+                {feedToken
+                  ? "Your feed URLs include a private token. Rotating invalidates the old URL — re-paste the new one into Airbnb / Booking."
+                  : "Your feed URLs are public. Add a token to make them unguessable; old screenshots / leaks become useless after a rotation."}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {feedToken && (
+                <button
+                  onClick={handleClearToken}
+                  disabled={rotating}
+                  className="rounded-md px-2.5 py-1 text-xs text-[#a0a0a8] hover:text-[#e8e8ec] disabled:opacity-40"
+                >
+                  Make public
+                </button>
+              )}
+              <button
+                onClick={handleRotateToken}
+                disabled={rotating}
+                className="rounded-md bg-[#ff385c] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#e0294d] disabled:opacity-40"
+              >
+                {rotating ? "..." : feedToken ? "Rotate" : "Generate token"}
+              </button>
+            </div>
+          </div>
+          {feedToken && (
+            <code className="block truncate rounded-md border border-[#333338] bg-[#111113] px-2.5 py-1.5 text-xs text-[#d4d4d8]">
+              ?token={feedToken}
+            </code>
+          )}
+        </div>
+      )}
 
       {/* Buffer Settings */}
       {links.length > 0 && (
