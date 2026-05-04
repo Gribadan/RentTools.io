@@ -309,7 +309,7 @@
   - Wrap `app/error.tsx` with `Sentry.captureException(error)` call
   - Acceptance criteria: throwing an unhandled error shows up in Sentry within 30 seconds
 
-- [ ] **RT-9.4** Sync failure auto-alert
+- [x] **RT-9.4** Sync failure auto-alert
   - File: `src/lib/calendar-sync.ts` — when a `CalendarLink` fails 3 consecutive sync attempts (track in `lastError` + `failureCount`), write a `SyncLog` row with level=error and a clear message
   - File: `src/app/page.tsx` — fetch unread sync alerts on app mount; show a top-of-page banner if any exist
   - Banner has dismiss button that marks alerts as read
@@ -480,3 +480,4 @@
 - 2026-05-04 — RT-8.5 — 15fcbf0 — change-password endpoint + /api/auth/me + ProfilePanel modal accessed from top-bar user dropdown
 - 2026-05-04 — RT-9.1 — cb58d62 — JSON request logger emitted from middleware; method/path/status/durationMs/userId/ip per request
 - 2026-05-04 — RT-9.2 — a3c88dc — public /api/health endpoint with DB ping + 2h sync-staleness check; returns 503 on failure
+- 2026-05-04 — RT-9.4 — 821c53c — CalendarLink.failureCount + alertsDismissedAt watermark; [ALERT] SyncLog rows surfaced via SyncAlertsBanner
