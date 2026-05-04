@@ -414,7 +414,7 @@
   - Each item: relative time ("2 hours ago"), icon, summary, click → relevant page
   - Acceptance criteria: dashboard always shows at least the last sync attempt and most recent booking change
 
-- [ ] **RT-12.4** Keyboard shortcuts
+- [x] **RT-12.4** Keyboard shortcuts
   - File: `src/components/keyboard-shortcuts.tsx` (new) — global key handler component mounted in layout
   - Bindings: `←/→` previous/next month in calendar, `T` jump to today, `E` toggle edit dates, `?` show shortcut overlay, `cmd/ctrl+K` open guest search
   - File: shortcut overlay shows all bindings
@@ -495,3 +495,4 @@
 - 2026-05-04 — RT-12.1 — 542fb6b — Reports view with recharts BarChart of last-12-month occupancy per property
 - 2026-05-04 — RT-12.2 — 950a10f — /api/reservations/export CSV (BOM) + Reports panel date-range picker
 - 2026-05-04 — RT-12.3 — a1d390d — Recent Activity feed (audit+sync merged, /api/activity) on dashboard
+- 2026-05-04 — RT-12.4 — 28694c6 — Global ? overlay + calendar arrow/T/E shortcuts (Cmd+K already wired in top-bar)
