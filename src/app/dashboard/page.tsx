@@ -13,6 +13,7 @@ import { SyncSettings } from "@/components/sync-settings";
 import { TasksPanel } from "@/components/tasks-panel";
 import { ReportsPanel } from "@/components/reports-panel";
 import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { CleanerApp } from "@/components/cleaner-app";
 import type { Property, Guest } from "@/lib/types";
 
@@ -343,6 +344,7 @@ function AppContent({
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0d1117]">
+      <AnnouncementBanner />
       <TopBar
         properties={properties}
         selectedPropertyId={selectedPropertyId}

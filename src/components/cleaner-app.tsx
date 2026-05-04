@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
 import { CleaningSummary } from "@/components/cleaning-summary";
+import { AnnouncementBanner } from "@/components/announcement-banner";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -80,6 +81,7 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#0d1117]">
+      <AnnouncementBanner />
       <header className="flex items-center justify-between border-b border-[#27272b] bg-[#18181b] px-4 h-14">
         <div className="flex items-center gap-2 text-[#e8e8ec]">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111113]">
