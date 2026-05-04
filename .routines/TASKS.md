@@ -370,7 +370,7 @@
   - File: `src/components/message-templates-panel.tsx` (new, in property Settings tab) — CRUD for templates with variable hints (`{{guestName}}`, `{{checkIn}}`, `{{checkOut}}`, `{{wifiPassword}}`)
   - Acceptance criteria: owner can save templates; preview rendered output with sample variables
 
-- [ ] **RT-11.2** Render template button on reservation view
+- [x] **RT-11.2** Render template button on reservation view
   - File: `src/components/reservation-view.tsx` — "Generate message" dropdown showing available templates; clicking a template renders it with reservation variables filled in; copy-to-clipboard button
   - Acceptance criteria: owner can pick a template, copy the rendered text, paste into Airbnb/WhatsApp
 
@@ -488,3 +488,4 @@
 - 2026-05-04 — RT-10.3 — fe2f0f8 — CleaningRecord table + /api/cleaning-records + done/skipped badges and toggle button in CleaningSchedule
 - 2026-05-04 — RT-10.5 — 3ac6a0d — printable Today/Tomorrow/Week cleaning summary modal wired into PropertyCleaningView + CleanerApp
 - 2026-05-04 — RT-11.1 — 06347b0 — MessageTemplate table + /api/message-templates + MessageTemplatesPanel with variable preview in SyncSettings
+- 2026-05-04 — RT-11.2 — a45e75c — generate-message dropdown on reservation view with rendered preview + copy-to-clipboard
