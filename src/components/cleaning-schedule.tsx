@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
+
+interface CleaningRecord {
+  id: number;
+  propertyId: number;
+  date: string;
+  status: "pending" | "done" | "skipped";
+  doneAt?: string | null;
+  notes?: string;
+}
 
 interface CalendarEvent {
   id: number;
@@ -289,6 +298,48 @@ export function CleaningSchedule({
 }: CleaningScheduleProps) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
+  const [records, setRecords] = useState<Record<string, CleaningRecord>>({});
+
+  const propertyIdsKey = useMemo(
+    () => properties.map((p) => p.id).sort((a, b) => a - b).join(","),
+    [properties]
+  );
+
+  const fetchRecords = useCallback(async () => {
+    if (!propertyIdsKey) {
+      setRecords({});
+      return;
+    }
+    try {
+      const res = await fetch(`/api/cleaning-records?propertyIds=${propertyIdsKey}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const map: Record<string, CleaningRecord> = {};
+      for (const r of (data.records || []) as CleaningRecord[]) {
+        map[`${r.propertyId}-${r.date}`] = r;
+      }
+      setRecords(map);
+    } catch {
+      // best-effort
+    }
+  }, [propertyIdsKey]);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
+
+  const handleMarkStatus = async (
+    propertyId: number,
+    date: string,
+    status: "done" | "skipped" | "pending"
+  ) => {
+    await fetch("/api/cleaning-records", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ propertyId, date, status }),
+    });
+    fetchRecords();
+  };
   const [showAddForm, setShowAddForm] = useState(false);
   const [addDate, setAddDate] = useState("");
   const [addNote, setAddNote] = useState("");
@@ -623,13 +674,33 @@ export function CleaningSchedule({
                         {isOverlap && <span className="ml-1.5 text-[10px] text-[#fbbf24] font-medium">{t("cleaning.overlap")}</span>}
                       </td>
                       <td className="px-4 py-2">
-                        <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
-                          day.type === "cleaning"
-                            ? "bg-[#fbbf24]/10 text-[#fbbf24]"
-                            : "bg-[#e8e8ec]/10 text-[#e8e8ec]"
-                        }`}>
-                          {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
+                            day.type === "cleaning"
+                              ? "bg-[#fbbf24]/10 text-[#fbbf24]"
+                              : "bg-[#e8e8ec]/10 text-[#e8e8ec]"
+                          }`}>
+                            {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
+                          </span>
+                          {(() => {
+                            const rec = records[`${day.propertyId}-${day.date}`];
+                            if (rec?.status === "done") {
+                              return (
+                                <span className="inline-block rounded bg-[#34d399]/15 px-1.5 py-0.5 text-xs font-medium text-[#34d399]">
+                                  {locale === "ru" ? "Сделано" : "Done"}
+                                </span>
+                              );
+                            }
+                            if (rec?.status === "skipped") {
+                              return (
+                                <span className="inline-block rounded bg-[#71717a]/20 px-1.5 py-0.5 text-xs font-medium text-[#a0a0a8]">
+                                  {locale === "ru" ? "Пропущено" : "Skipped"}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       </td>
                       {mode === "dashboard" && (
                         <td className="px-4 py-2 text-sm text-[#a0a0a8]">{day.property}</td>
@@ -660,15 +731,43 @@ export function CleaningSchedule({
                       </td>
                       {onOverrideChanged && (
                         <td className="px-4 py-2 text-right">
-                          <button
-                            onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
-                            title={t("cleaning.skip")}
-                            className="rounded p-1 text-[#71717a] hover:bg-[#ef4444]/10 hover:text-[#ef4444] transition-colors"
-                          >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            {(() => {
+                              const rec = records[`${day.propertyId}-${day.date}`];
+                              const isDone = rec?.status === "done";
+                              return (
+                                <button
+                                  onClick={() =>
+                                    handleMarkStatus(
+                                      day.propertyId,
+                                      day.date,
+                                      isDone ? "pending" : "done"
+                                    )
+                                  }
+                                  title={isDone ? (locale === "ru" ? "Отменить" : "Undo") : (locale === "ru" ? "Сделано" : "Done")}
+                                  className={
+                                    "rounded p-1 transition-colors " +
+                                    (isDone
+                                      ? "bg-[#34d399]/15 text-[#34d399] hover:bg-[#34d399]/25"
+                                      : "text-[#71717a] hover:bg-[#34d399]/10 hover:text-[#34d399]")
+                                  }
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                  </svg>
+                                </button>
+                              );
+                            })()}
+                            <button
+                              onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
+                              title={t("cleaning.skip")}
+                              className="rounded p-1 text-[#71717a] hover:bg-[#ef4444]/10 hover:text-[#ef4444] transition-colors"
+                            >
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>

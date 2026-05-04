@@ -40,8 +40,26 @@ model Property {
   calendarEvents     CalendarEvent[]
   dateOverrides      DateOverride[]
   cleanerAssignments CleanerAssignment[]
+  cleaningRecords    CleaningRecord[]
 
   @@index([userId])
+}
+
+model CleaningRecord {
+  id            Int      @id @default(autoincrement())
+  propertyId    Int
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  date          String   // YYYY-MM-DD
+  status        String   @default("pending") // "pending" | "done" | "skipped"
+  doneAt        DateTime?
+  doneByUserId  Int?
+  notes         String   @default("")
+  photos        String   @default("[]") // JSON array of URLs
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime?
+
+  @@unique([propertyId, date])
+  @@index([propertyId, date])
 }
 
 model CleanerAssignment {
