@@ -90,15 +90,26 @@ export async function syncAllCalendars(): Promise<{
 
         if (error) {
           summary.errors++;
-          await prisma.calendarLink.update({
+          const updated = await prisma.calendarLink.update({
             where: { id: link.id },
-            data: { lastError: error, lastFetchedAt: new Date() },
+            data: {
+              lastError: error,
+              lastFetchedAt: new Date(),
+              failureCount: { increment: 1 },
+            },
           });
           await log(
             `${propertyName} / ${link.platform}: Fetch failed — ${error}`,
             "error",
             propertyId
           );
+          if (updated.failureCount === 3) {
+            await log(
+              `[ALERT] ${propertyName} / ${link.platform}: 3 consecutive sync failures — the feed may be broken. Latest error: ${error}`,
+              "error",
+              propertyId
+            );
+          }
           continue;
         }
 
@@ -190,7 +201,7 @@ export async function syncAllCalendars(): Promise<{
         // Update link status
         await prisma.calendarLink.update({
           where: { id: link.id },
-          data: { lastFetchedAt: new Date(), lastError: null },
+          data: { lastFetchedAt: new Date(), lastError: null, failureCount: 0 },
         });
 
         summary.newEvents += newEvents.length;

@@ -156,6 +156,8 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "Guest" ADD COLUMN "updatedAt" DATETIME`,
     `ALTER TABLE "Property" ADD COLUMN "userId" INTEGER NOT NULL DEFAULT 1`,
     `CREATE INDEX IF NOT EXISTS "Property_userId_idx" ON "Property"("userId")`,
+    `ALTER TABLE "CalendarLink" ADD COLUMN "failureCount" INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE "User" ADD COLUMN "alertsDismissedAt" DATETIME`,
   ];
   for (const sql of migrations) {
     try {
