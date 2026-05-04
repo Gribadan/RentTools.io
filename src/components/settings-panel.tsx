@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AdminPanel } from "@/components/admin-panel";
 
 interface User {
   id: number;
@@ -230,6 +231,8 @@ export function SettingsPanel({ userRole, onClose }: SettingsPanelProps) {
           </Table>
         </div>
       </section>
+
+      {isSuperAdmin && <AdminPanel />}
     </div>
   );
 }
