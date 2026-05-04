@@ -301,6 +301,48 @@ build` BEFORE restarting the service, applies migrations via
 `prisma/push-schema.ts`, and smoke-tests `/api/health` after restart.
 A broken build never kills the running service.
 
+## 11. Resource baseline + hourly alerts (RT-13.14)
+
+Steady-state target on the $6 droplet (1 GB RAM, 25 GB SSD):
+
+| Metric | Idle | Under sync load | Hard ceiling |
+|--------|------|-----------------|--------------|
+| RAM used | < 400 MB | < 600 MB | 900 MB (systemd `MemoryMax`) |
+| Disk used | < 3 GB | n/a | 80% triggers alert |
+| Load 1m | < 0.3 | < 0.8 | n/a |
+
+Install ops tooling (run once as root):
+
+```bash
+apt-get install -y htop iotop vnstat
+systemctl enable --now vnstat   # cumulative bandwidth
+```
+
+`scripts/check-resources.sh` runs hourly via cron and posts an alert when
+RAM ≥ 90% or disk ≥ 80% (overridable via `RAM_WARN_PCT` / `DISK_WARN_PCT`
+in `.env.production`). It tries Telegram first, then a generic webhook,
+then falls back to log-only — so the cron is safe even before you wire
+up an alert sink.
+
+To enable Telegram alerts:
+
+```bash
+# 1. Create a bot via @BotFather, get the token.
+# 2. Send any message to the bot, then visit:
+#    https://api.telegram.org/bot<TOKEN>/getUpdates
+#    The "chat.id" field is your TELEGRAM_CHAT_ID.
+# 3. Add to /home/app/rent-tool/.env.production:
+echo 'TELEGRAM_BOT_TOKEN=...' >> /home/app/rent-tool/.env.production
+echo 'TELEGRAM_CHAT_ID=...'   >> /home/app/rent-tool/.env.production
+```
+
+Test the alert path manually (forces a fake threshold breach):
+
+```bash
+RAM_WARN_PCT=1 DISK_WARN_PCT=1 sudo -u app /home/app/rent-tool/scripts/check-resources.sh
+# expect a Telegram message + a line in /home/app/logs/rent-tool-resources.log
+```
+
 ---
 
 ## Troubleshooting

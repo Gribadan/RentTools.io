@@ -22,3 +22,7 @@ MAILTO=""
 
 # Daily SQLite backup at 03:15 with tiered retention (14 daily / 8 weekly / 6 monthly).
 15 3 * * * /home/app/rent-tool/scripts/backup-db.sh >> /home/app/logs/rent-tool-backup.log 2>&1
+
+# Hourly resource check — alerts on RAM > RAM_WARN_PCT% or disk > DISK_WARN_PCT%.
+# Reads TELEGRAM_BOT_TOKEN/CHAT_ID or ALERT_WEBHOOK_URL from .env.production.
+5 * * * * /home/app/rent-tool/scripts/check-resources.sh >> /home/app/logs/rent-tool-resources.log 2>&1
