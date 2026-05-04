@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateFeed } from "@/lib/feed";
+import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * GET /api/calendar/feed/[propertyId]?for=airbnb
@@ -18,6 +19,16 @@ export async function GET(
 
     if (isNaN(propertyId)) {
       return new NextResponse("Invalid property ID", { status: 400 });
+    }
+
+    // Rate limit: 60 requests per minute per IP per propertyId
+    const ip = clientIp(request);
+    const rl = checkRateLimit(`feed:${ip}:${pid}`, 60, 60);
+    if (!rl.ok) {
+      return new NextResponse("Rate limit exceeded", {
+        status: 429,
+        headers: { "Retry-After": String(rl.resetSeconds) },
+      });
     }
 
     const result = await generateFeed(propertyId, forPlatform);
