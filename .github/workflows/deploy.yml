@@ -39,7 +39,10 @@ jobs:
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          printf '%s' "$DEPLOY_KEY" > ~/.ssh/id_deploy
+          # GitHub Actions strips trailing newlines from secrets; OpenSSH refuses
+          # to load a key without one (errors with "error in libcrypto"). Force
+          # a trailing \n via printf '%s\n'.
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
