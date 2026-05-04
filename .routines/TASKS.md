@@ -398,7 +398,7 @@
 
 > Final pass before declaring "v1." Reports for owners, polish for users, tooling for the next dev.
 
-- [ ] **RT-12.1** Occupancy report per property
+- [x] **RT-12.1** Occupancy report per property
   - File: `src/components/reports-panel.tsx` (new, accessible from top bar) — bar chart of occupancy % per month for last 12 months
   - Compute: occupied days / total days; consider an "occupied day" any day a bar covers
   - Use a small chart lib (`recharts`) — no heavy DataViz framework
@@ -492,3 +492,4 @@
 - 2026-05-04 — RT-11.1 — 06347b0 — MessageTemplate table + /api/message-templates + MessageTemplatesPanel with variable preview in SyncSettings
 - 2026-05-04 — RT-11.2 — a45e75c — generate-message dropdown on reservation view with rendered preview + copy-to-clipboard
 - 2026-05-04 — RT-11.5 — 3654eaf — /api/guests/search + top-bar guest search with Cmd-K shortcut and debounced dropdown
+- 2026-05-04 — RT-12.1 — 542fb6b — Reports view with recharts BarChart of last-12-month occupancy per property
