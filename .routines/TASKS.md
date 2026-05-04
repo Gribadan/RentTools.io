@@ -453,12 +453,12 @@
   - If any historical commit contains a secret: rotate that secret BEFORE making the repo public; rewriting history with `git filter-repo` is optional but rotation is mandatory
   - Acceptance criteria: clean grep; rotated any leaked credentials; the repo settings page can be flipped to public without leaking active secrets
 
-- [ ] **RT-13.2** Documented runbook for the droplet
+- [x] **RT-13.2** Documented runbook for the droplet
   - File: `docs/DROPLET-SETUP.md` (new) — step-by-step provisioning runbook covering: choose droplet ($6 Basic, Ubuntu 24.04 LTS, NYC3 or closest), set hostname, harden (root pw → key auth, disable password auth, ufw allow 22/80/443, install fail2ban, create non-root `app` user with sudo)
   - Add: enable 2 GB swap (RAM is tight on 1 GB; build needs headroom): `fallocate -l 2G /swapfile; chmod 600 /swapfile; mkswap /swapfile; swapon /swapfile; echo '/swapfile none swap sw 0 0' >> /etc/fstab`
   - Acceptance criteria: a fresh Ubuntu droplet can be brought to "ready for app deploy" by following the runbook top-to-bottom in under 30 minutes
 
-- [ ] **RT-13.3** App user + Node + nginx install script
+- [x] **RT-13.3** App user + Node + nginx install script  *(server-bootstrap.sh done; server-deploy.sh deferred to RT-13.13)*
   - File: `scripts/server-bootstrap.sh` (new, runs as root on droplet) — installs Node 22 LTS via NodeSource, installs nginx, certbot (snap or apt), git; creates `app` user with home `/home/app` and adds `~/.ssh/authorized_keys` from a template
   - File: `scripts/server-deploy.sh` (new, runs as `app`) — clones the repo to `/home/app/rent-tool`, runs `npm ci --omit=dev`, `npx prisma generate`, `npm run build`
   - Document in DROPLET-SETUP.md the commands to run each script
@@ -721,3 +721,5 @@
 - 2026-05-04 — RT-12.5 — 3735179 — /api/reservations/import (dry-run + commit) + Reports panel CSV import UI
 - 2026-05-04 — RT-12.6 — a3cf903 — README rewrite (5-step Turso setup) + docs/CONTRIBUTING.md (no screenshots)
 - 2026-05-04 — RT-12.7 — da3d132 — Pin next 16.2.4/react/prisma/gemini; clears high-severity Next CVE; 0 high/critical
+- 2026-05-04 — RT-13.2 — pending — docs/DROPLET-SETUP.md complete provisioning runbook + troubleshooting
+- 2026-05-04 — RT-13.3 — pending — scripts/server-bootstrap.sh idempotent root install (swap, ufw, fail2ban, Node 22, nginx, certbot, app user); ran successfully on 64.226.83.37; server-deploy.sh deferred to RT-13.13
