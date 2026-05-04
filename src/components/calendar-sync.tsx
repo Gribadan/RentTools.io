@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PlatformInstructions } from "@/components/platform-instructions";
 import type { CalendarLink, CalendarEvent, SyncLogEntry } from "@/lib/types";
 
 interface CalendarSyncProps {
@@ -202,20 +203,22 @@ function SetupWizard({
   // Determine current step
   const currentStep = !step1 ? 1 : !step2 ? 2 : !step3 ? 3 : 4;
 
-  const steps = [
+  type StepConfig = {
+    num: number;
+    done: boolean;
+    title: string;
+    panel: React.ReactNode;
+    action: React.ReactNode;
+  };
+  const blockedNote = (
+    <p className="text-[11px] text-[#7d8590]">Complete steps 1 &amp; 2 first to generate the import URL.</p>
+  );
+  const steps: StepConfig[] = [
     {
       num: 1,
       done: step1,
       title: "Get your Airbnb iCal link",
-      instructions: [
-        "Open airbnb.com and go to your listing",
-        "Click \"Calendar\" in the top menu",
-        "Click the gear icon (Availability Settings) in the top-right",
-        "Scroll down to the \"Sync calendars\" section",
-        "Click \"Export Calendar\"",
-        "Copy the URL that appears (starts with https://www.airbnb.com/calendar/ical/...)",
-        "Paste it below and click Save",
-      ],
+      panel: <PlatformInstructions platform="airbnb" mode="export" />,
       action: !step1 ? (
         <button onClick={() => onStartEdit("airbnb")} className="rounded bg-[#FF5A5F]/20 px-3 py-1.5 text-[11px] font-medium text-[#f78166] hover:bg-[#FF5A5F]/30 w-full sm:w-auto">
           Add Airbnb URL
@@ -226,15 +229,7 @@ function SetupWizard({
       num: 2,
       done: step2,
       title: "Get your Booking.com iCal link",
-      instructions: [
-        "Open admin.booking.com (Booking.com Extranet)",
-        "Go to \"Rates & Availability\" in the left menu",
-        "Click \"Sync calendars\" (or \"Calendar Sync\")",
-        "Find the \"Export\" section",
-        "Click \"Copy Link\" next to your iCal export URL",
-        "The link looks like https://admin.booking.com/hotel/hoteladmin/ical.html?...",
-        "Paste it below and click Save",
-      ],
+      panel: <PlatformInstructions platform="booking" mode="export" />,
       action: !step2 ? (
         <button onClick={() => onStartEdit("booking")} className="rounded bg-[#003580]/30 px-3 py-1.5 text-[11px] font-medium text-[#79c0ff] hover:bg-[#003580]/40 w-full sm:w-auto">
           Add Booking URL
@@ -245,17 +240,7 @@ function SetupWizard({
       num: 3,
       done: step3,
       title: "Import our feed into Airbnb",
-      instructions: step1 && step2 ? [
-        "Go back to Airbnb → Calendar → gear icon (Availability Settings)",
-        "Scroll to the \"Sync calendars\" section",
-        "If you already have Booking.com linked there — remove it first",
-        "Click \"Import calendar\"",
-        "Paste the URL below into the \"Calendar address (URL)\" field",
-        "Give it a name like \"RentTools Sync\"",
-        "Click \"Import calendar\" to save",
-      ] : [
-        "Complete steps 1 & 2 first to generate the import URL",
-      ],
+      panel: step1 && step2 ? <PlatformInstructions platform="airbnb" mode="import" /> : blockedNote,
       action: step1 && step2 && !step3 ? (
         <div className="space-y-2 w-full">
           <div className="flex items-center gap-1.5">
@@ -276,16 +261,7 @@ function SetupWizard({
       num: 4,
       done: step4,
       title: "Import our feed into Booking.com",
-      instructions: step1 && step2 ? [
-        "Go back to admin.booking.com → Rates & Availability → Sync calendars",
-        "If you already have Airbnb linked there — remove it first",
-        "Find the \"Import\" section (or \"Add connection\")",
-        "Paste the URL below into the iCal URL field",
-        "Give it a name like \"RentTools Sync\"",
-        "Click \"Save\" or \"Add\"",
-      ] : [
-        "Complete steps 1 & 2 first to generate the import URL",
-      ],
+      panel: step1 && step2 ? <PlatformInstructions platform="booking" mode="import" /> : blockedNote,
       action: step1 && step2 && !step4 ? (
         <div className="space-y-2 w-full">
           <div className="flex items-center gap-1.5">
@@ -378,21 +354,7 @@ function SetupWizard({
 
                   {/* Detailed instructions — shown for current & completed steps */}
                   {(isCurrent || step.done) && (
-                    <ol className={`mt-1.5 space-y-0.5 text-[11px] list-none ${step.done ? "text-[#7d8590]" : "text-[#9198a1]"}`}>
-                      {step.instructions.map((line, i) => (
-                        <li key={i} className="flex items-start gap-1.5">
-                          <span className={`shrink-0 mt-px font-mono text-[9px] w-3.5 text-center rounded ${step.done ? "text-[#484f58]" : "text-[#7d8590] bg-[#21262d]"}`}>{i + 1}</span>
-                          <span>{line}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-
-                  {/* Collapsed summary for locked/future steps */}
-                  {!isCurrent && !step.done && (
-                    <p className="text-[11px] mt-0.5 text-[#484f58]">
-                      {step.instructions[0]}...
-                    </p>
+                    <div className="mt-2">{step.panel}</div>
                   )}
 
                   {/* Action */}
