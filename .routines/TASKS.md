@@ -266,7 +266,7 @@
   - File: `src/components/welcome-modal.tsx` — "Use sample" button calls this endpoint
   - Acceptance criteria: clicking "Use sample" creates a fully-populated demo property the user can explore and delete
 
-- [ ] **RT-8.3** Empty-state illustrations on each tab
+- [x] **RT-8.3** Empty-state illustrations on each tab
   - Files: `src/components/property-calendar.tsx`, `src/components/cleaning-schedule.tsx`, `src/components/sync-settings.tsx`
   - When the data array is empty, show a centered card with an SVG icon, a one-line explainer, and a primary CTA
   - Examples: Calendar empty → "No bookings yet — sync a calendar or add one manually"; Sync settings empty → "Connect Airbnb or Booking.com to start syncing"
@@ -474,3 +474,4 @@
 - 2026-05-04 — RT-7.5 — 949a6f6 — public signup endpoint + page; i18n strings for en/ru; public-paths whitelist updated
 - 2026-05-04 — RT-8.1 — 96175fa — welcome modal for empty workspaces; localStorage-persisted dismissal
 - 2026-05-04 — RT-8.2 — f841922 — POST /api/properties/sample seeds Sample Apartment + 3 demo reservations
+- 2026-05-04 — RT-8.3 — f33a616 — shared EmptyState card on calendar/cleaning/sync; en/ru strings
