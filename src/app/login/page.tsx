@@ -7,8 +7,8 @@ import { useI18n } from "@/lib/i18n/context";
 
 // Only allow same-origin redirects (must start with "/" but not "//")
 function safeNext(raw: string | null): string {
-  if (!raw) return "/";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  if (!raw) return "/dashboard";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
   return raw;
 }
 
@@ -116,7 +116,7 @@ function LoginPageInner() {
 
         <p className="mt-4 text-center text-xs text-[#a0a0a8]">
           {t("login.noAccount")}{" "}
-          <Link href={next !== "/" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-[#e8e8ec] hover:underline">
+          <Link href={next !== "/dashboard" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-[#e8e8ec] hover:underline">
             {t("login.signUpLink")}
           </Link>
         </p>

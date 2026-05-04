@@ -57,7 +57,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public paths
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // Special-case "/" so it behaves as exact-match (PUBLIC_PATHS uses startsWith,
+  // and "/" would match every path). The landing page itself redirects to
+  // /dashboard for logged-in visitors via getSession().
+  if (pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     const r = withSecurityHeaders(NextResponse.next());
     logRequest(request, r, startedAt);
     return r;
