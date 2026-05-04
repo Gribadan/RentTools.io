@@ -638,7 +638,7 @@
   - File: `docs/PRIVACY.md` (or `src/app/privacy/page.tsx` from RT-14.5) — document the deletion path
   - Acceptance criteria: a user can delete their account end-to-end; verifying with the DB shows zero rows tied to that userId
 
-- [ ] **RT-15.8** Account data export (GDPR)
+- [x] **RT-15.8** Account data export (GDPR)
   - File: `src/app/api/auth/export-data/route.ts` (new) — GET: returns a JSON dump of everything tied to the current user (properties, reservations, guests, overrides, message templates, audit log, cleaning records, manager grants given/received)
   - File: `src/components/profile-panel.tsx` — "Download my data" button
   - Acceptance criteria: clicking the button downloads a usable JSON file; admin panel from RT-15.3 has the same button for the admin's own data
@@ -751,3 +751,4 @@
 - 2026-05-04 — RT-15.5 — 06b1793 — ExtractionLog model {userId, fileCount, success, createdAt} + (userId, createdAt) index; push-schema.ts idempotent migration pushed to Turso (verified queryable); /api/extract reads extraction_per_user_daily_limit (default 20, 0 disables) and counts last-24h ExtractionLog rows before Gemini call → returns 429 with {limit, usedInLast24h} when at cap; writes one log row per request (success=true happy path / success=false in catch) so failures still count against quota
 - 2026-05-04 — RT-15.6 — 18c77dc — AnnouncementBanner client component (fetches /api/site-config, renders dismissible blue banner when landing_announcement non-empty, dismissal keyed by FNV-1a hash of text in localStorage so editing the announcement re-shows it); wired into both authenticated shells: src/app/dashboard/page.tsx (above TopBar) and src/components/cleaner-app.tsx (above cleaner header)
 - 2026-05-04 — RT-15.7 — 94dd0f4 — GDPR delete: /api/auth/delete-account (POST, requires {password, confirmUsername}; refuses last-superadmin to prevent lockout; explicit deleteMany on ExtractionLog + AuditLog since neither FKs User, then prisma.user.delete relies on cascades for Property tree; clearSession() at end); ProfilePanel "Danger zone" with red modal requiring re-typed username + password (submit disabled until both correct), hard-redirects to /login on success; privacy page Deletion bullet rewritten to match reality (immediate, full data scope, 6-month backup tail)
+- 2026-05-04 — RT-15.8 — 30c96b7 — GDPR export: /api/auth/export-data (GET, any authenticated user — Content-Disposition JSON dump of user record + owned properties with full nested tree + auditLogs + extractionLogs + manager grants given/received + invites created); ProfilePanel "Download my data" button below Recent activity triggers Blob download. Superadmin keeps the parallel /api/admin/export-my-data button from RT-15.3
