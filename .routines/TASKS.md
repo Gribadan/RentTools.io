@@ -531,7 +531,7 @@
   - Run hourly via cron
   - Acceptance criteria: alert fires when you intentionally fill /tmp; resource baseline is documented in `docs/DROPLET-SETUP.md`
 
-- [ ] **RT-13.15** Update routine prompt for new ops
+- [x] **RT-13.15** Update routine prompt for new ops
   - File: `.routines/ROUTINE.md` — keep as-is for code tasks
   - Add a separate `.routines/OPS-ROUTINE.md` for ops checks: every-week loop that checks backup integrity, looks for failing crons, checks disk usage trend
   - Acceptance criteria: the ops routine can run end-to-end and produce a one-paragraph status report
@@ -729,6 +729,7 @@
 - 2026-05-04 — RT-13.9 — 43204e3 — backup-db.sh (sqlite3 .backup + integrity_check + tiered hardlink retention 14/8/6) + 03:15 cron line + DROPLET-SETUP.md §7 install + restore procedure
 - 2026-05-04 — RT-13.13 — e10a57e — scripts/deploy.sh (dirty-check + build-before-restart + health smoke-test) + .github/workflows/deploy.yml (gated on vars.DROPLET_HOST so inert until secrets land) + DROPLET-SETUP.md §10 keypair/sudoers/secrets walkthrough
 - 2026-05-04 — RT-13.14 — a31fe34 — scripts/check-resources.sh hourly RAM/disk threshold check (Telegram + webhook fan-out, log-only fallback so safe before alert sink wired) + cron line + DROPLET-SETUP.md §11 baseline + smoke-test command
+- 2026-05-04 — RT-13.15 — 75669cd — .routines/OPS-ROUTINE.md read-only weekly checklist (service/health/cron/backup-integrity/disk/RAM/cert) with fixed under-12-line report format; ROUTINE.md unchanged
 - 2026-05-04 — RT-13.4 — ee63b45 — deploy/systemd/rent-tool.service unit (Type=simple, User=app, MemoryMax=900M, hardening flags, EnvironmentFile=.env.production); deployed to droplet, active
 - 2026-05-04 — RT-13.5 — ee63b45 — deploy/nginx/rent-tool.conf with TLS, CF-Connecting-IP real-IP, HTTP→HTTPS redirect; Let's Encrypt cert issued via DNS-01 with certbot-dns-cloudflare plugin (covers renttools.io / www / staging, expires 2026-08-02, auto-renews); CF proxied + Full (strict) SSL mode + always_use_https=on
 - 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
