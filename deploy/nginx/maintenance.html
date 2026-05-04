@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="10">
+<title>Updating — Rent Tool</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1117;
+    --fg: #e8e8ec;
+    --muted: #a0a0a8;
+    --accent: #ff385c;
+    --border: #1e2329;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    padding: 24px;
+  }
+  main {
+    max-width: 440px;
+    text-align: center;
+  }
+  .icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--accent);
+    animation: spin 1.4s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+  }
+  p {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  .meta {
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--muted);
+    opacity: 0.75;
+  }
+  a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<main>
+  <div class="icon" role="img" aria-label="Updating">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+      <path d="M21 4v5h-5"></path>
+    </svg>
+  </div>
+  <h1>We&rsquo;ll be right back</h1>
+  <p>Rent Tool is being updated. This usually takes under a minute.</p>
+  <p>Your data is safe. Refresh in a moment.</p>
+  <div class="meta">
+    Status: <a href="https://status.renttools.io" rel="noopener">status.renttools.io</a> &middot; this page reloads automatically
+  </div>
+</main>
+</body>
+</html>
