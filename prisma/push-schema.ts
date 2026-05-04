@@ -439,6 +439,36 @@ CREATE UNIQUE INDEX IF NOT EXISTS "SiteSetting_key_key" ON "SiteSetting"("key");
     }
   }
 
+  // OnboardingDraft — anonymous /onboard wizard state, claimed at signup
+  const onboardingDraftSchema = `
+CREATE TABLE IF NOT EXISTS "OnboardingDraft" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "sessionToken" TEXT NOT NULL,
+    "propertyName" TEXT NOT NULL DEFAULT '',
+    "links" TEXT NOT NULL DEFAULT '[]',
+    "claimedByUserId" INTEGER,
+    "claimedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "OnboardingDraft_sessionToken_key" ON "OnboardingDraft"("sessionToken");
+`;
+
+  const onboardingDraftStatements = onboardingDraftSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of onboardingDraftStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // ExtractionLog — one row per /api/extract POST for daily quota counting
   const extractionLogSchema = `
 CREATE TABLE IF NOT EXISTS "ExtractionLog" (
