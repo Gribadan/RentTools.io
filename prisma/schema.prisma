@@ -8,11 +8,12 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  role      String   @default("user") // "superadmin" or "user"
-  createdAt DateTime @default(now())
+  id         Int        @id @default(autoincrement())
+  username   String     @unique
+  password   String
+  role       String     @default("user") // "superadmin" or "user"
+  createdAt  DateTime   @default(now())
+  properties Property[]
 }
 
 model AppSettings {
@@ -23,6 +24,8 @@ model AppSettings {
 
 model Property {
   id             Int              @id @default(autoincrement())
+  userId         Int
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   minNights      Int              @default(3)
   checkInTime    String           @default("14:00")
@@ -34,6 +37,8 @@ model Property {
   calendarLinks  CalendarLink[]
   calendarEvents CalendarEvent[]
   dateOverrides  DateOverride[]
+
+  @@index([userId])
 }
 
 model CalendarLink {
