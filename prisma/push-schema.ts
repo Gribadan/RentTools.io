@@ -227,6 +227,40 @@ CREATE INDEX IF NOT EXISTS "CleanerAssignment_propertyId_idx" ON "CleanerAssignm
     }
   }
 
+  // CleaningRecord table — track cleaning status per property × date
+  const cleaningRecordSchema = `
+CREATE TABLE IF NOT EXISTS "CleaningRecord" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "date" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "doneAt" DATETIME,
+    "doneByUserId" INTEGER,
+    "notes" TEXT NOT NULL DEFAULT '',
+    "photos" TEXT NOT NULL DEFAULT '[]',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "CleaningRecord_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CleaningRecord_propertyId_date_key" ON "CleaningRecord"("propertyId", "date");
+CREATE INDEX IF NOT EXISTS "CleaningRecord_propertyId_date_idx" ON "CleaningRecord"("propertyId", "date");
+`;
+
+  const cleaningRecordStatements = cleaningRecordSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of cleaningRecordStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // DateOverride table for manual open/close of calendar dates
   const dateOverrideSchema = `
 CREATE TABLE IF NOT EXISTS "DateOverride" (
