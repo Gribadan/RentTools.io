@@ -15,6 +15,16 @@ name: Deploy to droplet
 on:
   push:
     branches: [master]
+    # Skip the (slow + minute-burning) deploy when only the public docs,
+    # issue templates, or the safety-hook itself change. The CI workflow
+    # still runs on these so we keep typecheck + tests + the forbidden-paths
+    # scan as a gate.
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - 'docs/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.githooks/**'
   workflow_dispatch: {}
 
 concurrency:
