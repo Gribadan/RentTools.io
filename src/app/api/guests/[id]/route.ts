@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { stripSpaces, sanitizeAlphanumeric } from "@/lib/sanitize";
+import { getSession } from "@/lib/auth";
 
 const ALLOWED_STRING_FIELDS = [
   "fullName",
@@ -19,14 +20,33 @@ const ALLOWED_STRING_FIELDS = [
   "visaTo",
 ] as const;
 
+async function loadOwnedGuest(guestId: number, userId: number) {
+  const guest = await prisma.guest.findUnique({
+    where: { id: guestId },
+    select: {
+      id: true,
+      reservation: { select: { property: { select: { userId: true } } } },
+    },
+  });
+  if (!guest || guest.reservation.property.userId !== userId) return null;
+  return guest;
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
+    const owned = await loadOwnedGuest(numId, session.userId);
+    if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const body = await request.json();
     const data: Record<string, unknown> = {};
 
@@ -64,9 +84,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { id } = await params;
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
+    const owned = await loadOwnedGuest(numId, session.userId);
+    if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     await prisma.guest.delete({ where: { id: numId } });
     return NextResponse.json({ success: true });
   } catch (err) {

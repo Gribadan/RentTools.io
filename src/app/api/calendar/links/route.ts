@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 // GET /api/calendar/links?propertyId=1
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const propertyId = request.nextUrl.searchParams.get("propertyId");
 
-    const where = propertyId ? { propertyId: Number(propertyId) } : {};
+    const where = propertyId
+      ? { propertyId: Number(propertyId), property: { userId: session.userId } }
+      : { property: { userId: session.userId } };
+
     const links = await prisma.calendarLink.findMany({
       where,
       include: { property: { select: { id: true, name: true } } },
@@ -23,6 +30,9 @@ export async function GET(request: NextRequest) {
 // POST /api/calendar/links
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const { propertyId, platform, icalExportUrl, bufferBefore, bufferAfter } = body;
 
@@ -38,6 +48,14 @@ export async function POST(request: NextRequest) {
         { error: "platform must be 'airbnb' or 'booking'" },
         { status: 400 }
       );
+    }
+
+    const owner = await prisma.property.findUnique({
+      where: { id: Number(propertyId) },
+      select: { userId: true },
+    });
+    if (!owner || owner.userId !== session.userId) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     // Check if link already exists for this property+platform
