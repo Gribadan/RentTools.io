@@ -49,7 +49,12 @@ npx prisma generate
 
 # 5. Build. Failures here mean the new code is broken — bail BEFORE
 #    restarting so the running service keeps serving the old build.
-npm run build
+#
+# NODE_OPTIONS bumps V8's max-old-space-size to 1400 MB. The droplet only has
+# 458 MB physical RAM, but with 2 GB swap V8 can use it — the default cap is
+# ~250 MB which OOMs during TypeScript checking + Sentry source-map upload.
+# This is a stop-gap until builds move to GH Actions runners.
+NODE_OPTIONS="--max-old-space-size=1400" npm run build
 
 # 6. Apply any new schema migrations against the local SQLite file.
 #    push-schema.ts is idempotent + additive-only. The script reads
