@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+import {
+  clearFailedLoginAttempts,
+  isAccountLocked,
+  recordFailedLogin,
+} from "@/lib/account-lockout";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,13 +36,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // RT-21.5: account-level lockout. Block before validating the password
+    // so the 429 fires regardless of whether the attacker is guessing the
+    // right one. Lockout is per-username, not per-IP.
+    const lock = isAccountLocked(username);
+    if (lock.locked) {
+      return NextResponse.json(
+        { error: `Account temporarily locked due to repeated failed logins. Try again in ${lock.secondsRemaining}s.` },
+        { status: 429, headers: { "Retry-After": String(lock.secondsRemaining) } }
+      );
+    }
+
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
+      recordFailedLogin(username);
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
     const valid = await verifyPassword(password, user.password);
     if (!valid) {
+      recordFailedLogin(username);
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
@@ -48,6 +66,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    clearFailedLoginAttempts(username);
     await createSession(user.id, user.username, user.role);
 
     await prisma.user.update({
