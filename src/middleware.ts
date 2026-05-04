@@ -100,6 +100,19 @@ export async function middleware(request: NextRequest) {
     const userId = typeof (payload as { userId?: unknown }).userId === "number"
       ? (payload as { userId: number }).userId
       : undefined;
+    const role = typeof (payload as { role?: unknown }).role === "string"
+      ? (payload as { role: string }).role
+      : undefined;
+
+    // Gate /api/admin/* at the boundary — only superadmins can reach any admin route.
+    if (pathname.startsWith("/api/admin/") && role !== "superadmin") {
+      const r = withSecurityHeaders(
+        NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      );
+      logRequest(request, r, startedAt, userId);
+      return r;
+    }
+
     const r = withSecurityHeaders(NextResponse.next());
     logRequest(request, r, startedAt, userId);
     return r;
