@@ -25,6 +25,7 @@ interface AdminUserRow {
   role: string;
   createdAt: string;
   lastLoginAt: string | null;
+  suspendedAt: string | null;
   propertyCount: number;
   reservationCount: number;
   extractionCount30d: number;
@@ -96,6 +97,7 @@ export function AdminPanel() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [suspendingId, setSuspendingId] = useState<number | null>(null);
 
   useEffect(() => {
     void load();
@@ -178,6 +180,27 @@ export function AdminPanel() {
 
   const sortIndicator = (key: SortKey) =>
     sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+
+  const toggleSuspend = async (user: AdminUserRow) => {
+    const isSuspended = !!user.suspendedAt;
+    const verb = isSuspended ? "unsuspend" : "suspend";
+    if (!confirm(`${isSuspended ? "Unsuspend" : "Suspend"} ${user.username}?`)) return;
+    setSuspendingId(user.id);
+    setUsersError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/suspend`, {
+        method: isSuspended ? "DELETE" : "POST",
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setUsersError(data.error ?? `Failed to ${verb} user`);
+        return;
+      }
+      await loadUsers();
+    } finally {
+      setSuspendingId(null);
+    }
+  };
 
   const exportData = async () => {
     setExporting(true);
@@ -352,30 +375,59 @@ export function AdminPanel() {
                     >
                       Last login{sortIndicator("lastLoginAt")}
                     </TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedUsers.map((u) => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.username}</TableCell>
-                      <TableCell className="text-muted-foreground">{u.role}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(u.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {u.propertyCount}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {u.reservationCount}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {u.extractionCount30d}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(u.lastLoginAt)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sortedUsers.map((u) => {
+                    const isSuspended = !!u.suspendedAt;
+                    const isSuperadmin = u.role === "superadmin";
+                    return (
+                      <TableRow key={u.id} className={isSuspended ? "opacity-60" : ""}>
+                        <TableCell className="font-medium">
+                          {u.username}
+                          {isSuspended && (
+                            <span className="ml-2 inline-flex items-center rounded-md bg-destructive/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-destructive">
+                              suspended
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{u.role}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(u.createdAt)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {u.propertyCount}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {u.reservationCount}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {u.extractionCount30d}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(u.lastLoginAt)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {!isSuperadmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 rounded-lg px-2 text-xs"
+                              onClick={() => void toggleSuspend(u)}
+                              disabled={suspendingId === u.id}
+                            >
+                              {suspendingId === u.id
+                                ? "…"
+                                : isSuspended
+                                  ? "Unsuspend"
+                                  : "Suspend"}
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

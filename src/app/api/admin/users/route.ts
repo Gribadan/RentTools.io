@@ -17,6 +17,7 @@ export async function GET() {
         role: true,
         createdAt: true,
         lastLoginAt: true,
+        suspendedAt: true,
       },
       orderBy: { createdAt: "asc" },
     });
@@ -59,6 +60,7 @@ export async function GET() {
       role: u.role,
       createdAt: u.createdAt.toISOString(),
       lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
+      suspendedAt: u.suspendedAt?.toISOString() ?? null,
       propertyCount: propertyMap.get(u.id) ?? 0,
       reservationCount: reservationMap.get(u.id) ?? 0,
       extractionCount30d: extractionMap.get(u.id) ?? 0,

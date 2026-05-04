@@ -41,6 +41,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
+    if (user.suspendedAt) {
+      return NextResponse.json(
+        { error: "Account suspended. Contact support." },
+        { status: 403 }
+      );
+    }
+
     await createSession(user.id, user.username, user.role);
 
     await prisma.user.update({
