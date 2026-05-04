@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
 import { CleaningSummary } from "@/components/cleaning-summary";
 import { AnnouncementBanner } from "@/components/announcement-banner";
+import { SupportFooter } from "@/components/support-footer";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -172,6 +173,7 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
           )}
         </div>
       </main>
+      <SupportFooter />
     </div>
   );
 }
