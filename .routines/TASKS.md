@@ -581,7 +581,7 @@
   - File: `.github/ISSUE_TEMPLATE/bug.md` and `.github/ISSUE_TEMPLATE/feature.md` (new) — minimal templates
   - Acceptance criteria: a first-time contributor can clone, run locally, find an issue, and submit a useful PR
 
-- [ ] **RT-14.7** Showcase / testimonials section (placeholder)
+- [x] **RT-14.7** Showcase / testimonials section (placeholder)
   - File: `src/app/page.tsx` — landing page section "Used by …" with a placeholder for future logos / quotes; don't ship fake testimonials
   - For now: "Built by a real owner of 2 properties tired of juggling 4 calendar tabs"
   - Acceptance criteria: section is honest and removable when real users appear
@@ -742,3 +742,4 @@
 - 2026-05-04 — RT-14.4 — cd0bf2d — Metadata API: openGraph + twitter card + canonical + metadataBase https://renttools.io; dynamic 1200x630 OG image via next/og ImageResponse at app/opengraph-image.tsx (no static png needed); robots index/follow
 - 2026-05-04 — RT-14.5 — 0e9766f — robots.txt sitemap → renttools.io; app/sitemap.ts emits 5 entries; /terms (9 sections) + /privacy (GDPR data inventory, retention, controller/processor split for guest passport data); middleware whitelists /terms /privacy
 - 2026-05-04 — RT-14.6 — 44ed2f8 — CONTRIBUTING.md refreshed for public audience (filing-an-issue section, local setup link, post-/dashboard route layout, code-of-conduct lite no-real-guest-data clause); .github/ISSUE_TEMPLATE/bug.md + feature.md
+- 2026-05-04 — RT-14.7 — 5937cb9 — landing "Used by" placeholder: honest eyebrow + maintainer origin line + explicit no-fake-testimonials note; section easily removable when real users appear
