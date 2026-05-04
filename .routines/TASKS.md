@@ -235,6 +235,7 @@
   - Acceptance criteria: every nested API endpoint enforces ownership via the property chain
 
 - [ ] **RT-7.4** Public iCal feed token (rotatable per property)
+  Blocked: enforces 404 on tokenless feed URLs — breaks live Airbnb/Booking.com fetches; needs user-driven cutover plan.
   - File: `prisma/schema.prisma` — add `feedToken String @unique @default(cuid())` to Property (or generate via push-schema migration)
   - File: `src/app/api/calendar/feed/[propertyId]/[filename]/route.ts` — accept `?token=` query param, validate against `property.feedToken`; return 404 if missing/wrong
   - File: `src/components/sync-settings.tsx` — show feed URL with token; "Rotate token" button that POSTs to `/api/calendar/links/rotate-token`
