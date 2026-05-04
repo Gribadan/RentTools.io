@@ -13,19 +13,48 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
+const SITE_NAME = "Rent Tool";
+const SITE_TAGLINE =
+  "Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free.";
+
 export const metadata: Metadata = {
-  title: "Rent Tool",
-  description: "Property and reservation management",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — open-source property manager for short-term rentals`,
+    template: `%s · ${SITE_NAME}`,
+  },
+  description: SITE_TAGLINE,
+  applicationName: SITE_NAME,
   manifest: "/manifest.json",
-  applicationName: "Rent Tool",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — open-source property manager`,
+    description: SITE_TAGLINE,
+    url: SITE_URL,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — open-source property manager`,
+    description: SITE_TAGLINE,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Rent Tool",
+    title: SITE_NAME,
   },
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
