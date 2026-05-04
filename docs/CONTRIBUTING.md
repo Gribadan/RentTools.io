@@ -73,6 +73,12 @@ For deeper deployment guides see [docs/DEPLOYMENT.md](DEPLOYMENT.md) (legacy Ver
 - Pure helpers (parsing, math, sanitization) get unit tests. UI behavior is checked by hand for now.
 - A change to `src/lib/ical.ts` or `src/lib/sanitize.ts` should come with a test or extend one.
 
+## CI
+
+- Every PR runs [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on GitHub Actions: `npm ci`, `npx next build`, `npx vitest run`. No secrets are required — the build is hermetic.
+- **PRs need a green CI before review.** A red build means the change broke type-check, build, or tests; fix it locally with `npx next build && npx vitest run` before pushing the next commit.
+- The CI badge at the top of [README.md](../README.md) reflects the latest `master` build.
+
 ## Adding a new API route
 
 1. Create `src/app/api/<feature>/route.ts` and export `GET` / `POST` / etc. Each must call `getSession()`.
