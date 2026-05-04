@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const pageParam = searchParams.get("page");
     const limitParam = searchParams.get("limit");
@@ -14,10 +18,11 @@ export async function GET(request: NextRequest) {
       },
     };
     const orderBy = { createdAt: "desc" as const };
+    const where = { userId: session.userId };
 
     // Backward-compatible: when neither page nor limit is supplied, return the full array.
     if (pageParam === null && limitParam === null) {
-      const properties = await prisma.property.findMany({ orderBy, include });
+      const properties = await prisma.property.findMany({ where, orderBy, include });
       return NextResponse.json(properties);
     }
 
@@ -26,8 +31,8 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
-      prisma.property.findMany({ orderBy, include, skip, take: limit }),
-      prisma.property.count(),
+      prisma.property.findMany({ where, orderBy, include, skip, take: limit }),
+      prisma.property.count({ where }),
     ]);
 
     return NextResponse.json({ data, total, page, limit });
@@ -39,12 +44,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { name } = await request.json();
     if (!name?.trim()) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
-    // TODO(RT-7.2): replace hard-coded userId with session userId.
-    const property = await prisma.property.create({ data: { name: name.trim(), userId: 1 } });
+    const property = await prisma.property.create({
+      data: { name: name.trim(), userId: session.userId },
+    });
     return NextResponse.json(property);
   } catch (err) {
     console.error("Route error:", err);
