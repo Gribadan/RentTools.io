@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 async function loadOwnedLink(linkId: number, userId: number) {
   const link = await prisma.calendarLink.findUnique({
@@ -42,6 +43,10 @@ export async function PATCH(
         ...(body.bufferAfter !== undefined && { bufferAfter: body.bufferAfter }),
       },
     });
+    await logAudit(session.userId, "update", "calendarLink", numId, {
+      bufferBefore: body.bufferBefore,
+      bufferAfter: body.bufferAfter,
+    });
 
     return NextResponse.json(updated);
   } catch (err) {
@@ -72,6 +77,10 @@ export async function DELETE(
     });
 
     await prisma.calendarLink.delete({ where: { id: numId } });
+    await logAudit(session.userId, "delete", "calendarLink", numId, {
+      platform: owned.platform,
+      propertyId: owned.propertyId,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

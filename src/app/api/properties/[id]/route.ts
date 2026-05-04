@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function PATCH(
   request: NextRequest,
@@ -32,6 +33,7 @@ export async function PATCH(
       where: { id: numId },
       data,
     });
+    await logAudit(session.userId, "update", "property", numId, data);
     return NextResponse.json(property);
   } catch (err) {
     console.error("Route error:", err);
@@ -57,6 +59,7 @@ export async function DELETE(
     }
 
     await prisma.property.delete({ where: { id: numId } });
+    await logAudit(session.userId, "delete", "property", numId);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Route error:", err);

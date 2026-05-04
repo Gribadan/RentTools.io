@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { stripSpaces, sanitizeAlphanumeric } from "@/lib/sanitize";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 const ALLOWED_STRING_FIELDS = [
   "fullName",
@@ -72,6 +73,7 @@ export async function PATCH(
       where: { id: numId },
       data,
     });
+    await logAudit(session.userId, "update", "guest", numId, data);
     return NextResponse.json(guest);
   } catch (err) {
     console.error("Route error:", err);
@@ -95,6 +97,7 @@ export async function DELETE(
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.guest.delete({ where: { id: numId } });
+    await logAudit(session.userId, "delete", "guest", numId);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Route error:", err);

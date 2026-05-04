@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 // GET /api/calendar/links?propertyId=1
 export async function GET(request: NextRequest) {
@@ -74,6 +75,10 @@ export async function POST(request: NextRequest) {
           lastError: null,
         },
       });
+      await logAudit(session.userId, "update", "calendarLink", updated.id, {
+        platform,
+        propertyId: Number(propertyId),
+      });
       return NextResponse.json(updated);
     }
 
@@ -85,6 +90,10 @@ export async function POST(request: NextRequest) {
         bufferBefore: bufferBefore ?? 1,
         bufferAfter: bufferAfter ?? 1,
       },
+    });
+    await logAudit(session.userId, "create", "calendarLink", link.id, {
+      platform,
+      propertyId: Number(propertyId),
     });
 
     return NextResponse.json(link);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 async function ensureOwnsProperty(propertyId: number, userId: number) {
   const property = await prisma.property.findUnique({
@@ -78,6 +79,11 @@ export async function POST(request: NextRequest) {
     if (existing && existing.type === type) {
       // Toggle off — remove the override
       await prisma.dateOverride.delete({ where: { id: existing.id } });
+      await logAudit(session.userId, "delete", "override", existing.id, {
+        propertyId: numId,
+        date,
+        type,
+      });
       return NextResponse.json({ action: "removed", date, type });
     }
 
@@ -92,6 +98,13 @@ export async function POST(request: NextRequest) {
         note: note || "",
       },
     });
+    await logAudit(
+      session.userId,
+      existing ? "update" : "create",
+      "override",
+      override.id,
+      { propertyId: numId, date, type }
+    );
 
     return NextResponse.json({ action: "created", override });
   } catch (err) {
@@ -122,13 +135,17 @@ export async function DELETE(request: NextRequest) {
     }
 
     try {
-      await prisma.dateOverride.delete({
+      const removed = await prisma.dateOverride.delete({
         where: {
           propertyId_date: {
             propertyId: numId,
             date,
           },
         },
+      });
+      await logAudit(session.userId, "delete", "override", removed.id, {
+        propertyId: numId,
+        date,
       });
       return NextResponse.json({ action: "removed", date });
     } catch {

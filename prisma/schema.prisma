@@ -104,6 +104,18 @@ model DateOverride {
   @@unique([propertyId, date])
 }
 
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  action       String   // "create" | "update" | "delete"
+  resourceType String   // "property" | "reservation" | "guest" | "override" | "calendarLink"
+  resourceId   Int
+  payload      String?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
 model Guest {
   id               Int         @id @default(autoincrement())
   fullName         String

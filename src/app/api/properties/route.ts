@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     const property = await prisma.property.create({
       data: { name: name.trim(), userId: session.userId },
     });
+    await logAudit(session.userId, "create", "property", property.id, { name: property.name });
     return NextResponse.json(property);
   } catch (err) {
     console.error("Route error:", err);

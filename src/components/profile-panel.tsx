@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import { AuditPanel } from "@/components/audit-panel";
 
 interface ProfileUser {
   id: number;
@@ -23,6 +24,7 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -135,7 +137,16 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
             {t("profile.save")}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={() => setAuditOpen(true)}
+          className="mt-4 h-9 w-full rounded-md border border-[#333338] text-sm text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+        >
+          Recent activity
+        </button>
       </div>
+      <AuditPanel open={auditOpen} onClose={() => setAuditOpen(false)} />
     </div>
   );
 }

@@ -168,6 +168,35 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     }
   }
 
+  // AuditLog table for mutation tracking
+  const auditSchema = `
+CREATE TABLE IF NOT EXISTS "AuditLog" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "userId" INTEGER NOT NULL,
+    "action" TEXT NOT NULL,
+    "resourceType" TEXT NOT NULL,
+    "resourceId" INTEGER NOT NULL,
+    "payload" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "AuditLog_userId_createdAt_idx" ON "AuditLog"("userId", "createdAt");
+`;
+
+  const auditStatements = auditSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of auditStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // DateOverride table for manual open/close of calendar dates
   const dateOverrideSchema = `
 CREATE TABLE IF NOT EXISTS "DateOverride" (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 async function loadOwnedReservation(reservationId: number, userId: number) {
   const reservation = await prisma.reservation.findUnique({
@@ -38,6 +39,7 @@ export async function PATCH(
       where: { id: numId },
       data,
     });
+    await logAudit(session.userId, "update", "reservation", numId, data);
     return NextResponse.json(reservation);
   } catch (err) {
     console.error("Route error:", err);
@@ -61,6 +63,7 @@ export async function DELETE(
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.reservation.delete({ where: { id: numId } });
+    await logAudit(session.userId, "delete", "reservation", numId);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Route error:", err);
