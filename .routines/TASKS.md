@@ -555,7 +555,7 @@
   - Update `package.json`: `"license": "MIT"`
   - Acceptance criteria: GitHub recognizes the license in the repo banner
 
-- [ ] **RT-14.3** Public landing page at `/`
+- [x] **RT-14.3** Public landing page at `/`
   - File: `src/app/page.tsx` — currently redirects to login or shows dashboard. Refactor: create a separate `src/app/(app)/dashboard/page.tsx` that's the authenticated view, and make `/` a marketing landing page when the user is NOT logged in
   - Landing content: hero with tagline, 3 feature cards (calendar sync, cleaning automation, guest docs), screenshots, "Sign up free" CTA → `/signup`, "View source on GitHub" CTA, footer with links to repo, ToS, privacy
   - Logged-in users hitting `/` should redirect to the dashboard
@@ -738,3 +738,4 @@
 - 2026-05-04 — RT-13.7 — ee63b45 — scripts/migrate-turso-to-local.ts runs in dry-run + --write modes, copies all 17 tables in topological order preserving IDs; ran successfully on droplet: 2 users, 2 properties, 9 reservations, 23 guests, 24 calendar events, 502 sync logs all OK
 - 2026-05-04 — RT-14.1 — f4ff93c — README rewrite for public audience: tagline, badges, hosted-version CTA (renttools.io), 5-min self-host quickstart, feature checkboxes, project layout, MIT license reference
 - 2026-05-04 — RT-14.2 — 83142c5 — MIT LICENSE file (copyright 2026 Gribadan) + "license": "MIT" in package.json
+- 2026-05-04 — RT-14.3 — 3c4da59 — server-component landing at /, dashboard moved to /dashboard, getSession redirect for logged-in users, middleware exact-match for "/", default safeNext flipped from "/" to "/dashboard" across login/signup/invite
