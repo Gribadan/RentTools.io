@@ -26,10 +26,10 @@ spots so future-you (and any AI assistant) knows where to look.
 │   ├── DOMAIN.md                 <- domain registrar login, DNS records
 │   └── nginx.conf.bak            <- saved server config
 ├── secrets/
-│   ├── jwt-secret.txt            <- the JWT_SECRET value
-│   ├── cron-secret.txt           <- the CRON_SECRET value
-│   ├── gemini-api-key.txt        <- Google Gemini key
-│   ├── turso-token.txt           <- Turso auth token (kept until DO migration done)
+│   ├── env.production            <- live droplet env (full set)
+│   ├── sentry.txt                <- Sentry DSN + auth token
+│   ├── betterstack.txt           <- BetterStack uptime API token
+│   ├── cloudflare-token.txt      <- Cloudflare API token (zone-pinned)
 │   └── airbnb-ical-urls.txt      <- per-property iCal export URLs (sensitive!)
 └── notes/
     └── *.md                      <- anything else: passwords, runbook drafts

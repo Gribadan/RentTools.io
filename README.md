@@ -1,157 +1,92 @@
-# Rent Tool
+# RentTools.io
 
-> Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free at **[renttools.io](https://renttools.io)**.
+> **Free, open-source property manager for short-term rental hosts.**
+> Sync Airbnb + Booking.com calendars, automate cleaning schedules, extract guest passport data — all in one tool. Use it free at **[renttools.io](https://renttools.io)**.
 
-[![CI](https://github.com/Gribadan/rent-tool/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Gribadan/rent-tool/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/website?url=https%3A%2F%2Frenttools.io%2Fapi%2Fhealth&label=renttools.io)](https://renttools.io)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tests: vitest](https://img.shields.io/badge/tests-vitest-6E9F18?logo=vitest)](https://vitest.dev/)
-
-A multi-tenant property and reservation manager for short-term rental owners. Pulls Airbnb / Booking.com calendars over iCal, lets you add manual bookings, runs a cleaning schedule, extracts passport data from photos with Gemini, and exposes a public iCal feed back to platforms.
-
-Owners log in (or sign up), see only their own properties, and can add cleaners as restricted-role users.
-
-<!-- Screenshots: drop PNGs into docs/screenshots/ to populate -->
-| Calendar | Cleaning schedule | Guest cards |
-| :---: | :---: | :---: |
-| ![Calendar view](docs/screenshots/calendar.png) | ![Cleaning schedule](docs/screenshots/cleaning.png) | ![Guest cards](docs/screenshots/guests.png) |
 
 ---
 
 ## What it does
 
-- Sync Airbnb + Booking.com via the iCal export URLs they already give you. Manual bookings live alongside synced ones with conflicts highlighted.
-- Generate the cleaning schedule from check-out → check-in dates with per-property buffer days. Mark each cleaning done / skipped, print today's list.
-- Extract passport fields (name, DOB, document number, country) from a photo via Google Gemini Vision. Output is sanitized for emehmon.uz / hotel registration forms.
-- Render per-property message templates (`{{guestName}}`, `{{checkIn}}`, `{{checkOut}}`, `{{wifiPassword}}`) and copy to clipboard for Airbnb / WhatsApp.
-- Expose a public iCal feed per property so the same platforms can read your manual bookings back.
-- Cleaner role: a separate user role that sees only the cleaning schedule for assigned properties.
+If you rent a place on Airbnb and Booking.com, you have at least four browser tabs open at any given moment. RentTools collapses them into one dashboard:
 
-## Free hosted version
+- **Calendar sync** — pulls Airbnb and Booking.com bookings via the iCal export URLs they already give you. Manual bookings live alongside synced ones with double-booking warnings.
+- **Cleaning automation** — turns every check-out → check-in window into a cleaning task. Mark each cleaning done, skipped, add notes, print today's list. Add cleaners as restricted-role users so they only see what's relevant.
+- **Guest passports** — drop a passport photo, get the fields back (name, DOB, document number, country) extracted by Google Gemini. Output is sanitized for hotel registration forms (Cyrillic supported).
+- **Message templates** — per-property templates with variables (`{{guestName}}`, `{{checkIn}}`, `{{wifiPassword}}`, …) — copy to clipboard, paste into Airbnb / WhatsApp.
+- **Public iCal feed** — every property exposes its own combined feed URL so other platforms can read your manual bookings back.
+- **Cmd-K guest search** across every property you own.
 
-Don't want to run servers? Sign up at **[renttools.io](https://renttools.io)** — the same code, hosted by the maintainer, free for personal use. Rate-limited per account so the free tier stays free.
+Why open source: you trust us with your booking data and guest documents. The full source is here so you can see exactly what we do (and don't do) with it.
 
-## Self-host (5-minute quickstart)
+---
 
-You need Node.js 20+ and either a Turso DB (cloud) or a local SQLite file.
+## Use it free
 
-```bash
-git clone https://github.com/Gribadan/rent-tool.git
-cd rent-tool
-npm install
+Sign up at **[renttools.io](https://renttools.io)** — no credit card, rate-limited per account so the free tier stays free.
 
-# Local SQLite — easiest for self-hosting
-mkdir -p data
-cat > .env.local <<EOF
-DATABASE_URL=file:./data/prod.db
-GEMINI_API_KEY=...                  # https://aistudio.google.com
-JWT_SECRET=$(openssl rand -hex 32)
-EOF
+You can also self-host the same code on any cheap Linux box. The maintainer's instance runs on a $4 DigitalOcean droplet — see [docs/DROPLET-SETUP.md](docs/DROPLET-SETUP.md) for the runbook.
 
-npm run db:push      # apply prisma/schema.prisma
-npm run db:seed      # creates a superadmin (see prisma/seed.ts)
-npm run dev          # http://localhost:3000
-```
+---
 
-For production on a $6 DigitalOcean droplet (systemd + nginx + Let's Encrypt + cron + daily backups), see [docs/DROPLET-SETUP.md](docs/DROPLET-SETUP.md).
+## FAQ
 
-## Features
+**Is it really free?**
+Yes. No paid tier, no upsell. The maintainer pays for hosting and the Gemini API; per-account rate limits keep usage sane.
 
-- [x] Multi-tenant: signup, per-user property scoping, ownership cascade across nested resources
-- [x] Calendar with synced Airbnb / Booking events, manual bookings, conflict highlighting, per-property buffer days, printable export
-- [x] Cleaning schedule with done / skipped tracking and a printable today / tomorrow / week summary
-- [x] Cleaner role with a stripped-down view of only assigned properties
-- [x] Passport extraction via Gemini Vision with field sanitization (Cyrillic, diacritics)
-- [x] Per-property message templates with variable substitution and copy-to-clipboard
-- [x] Cmd-K guest search across every property you own
-- [x] Activity feed, audit log, occupancy charts (recharts), CSV import / export of reservations
-- [x] Onboarding: welcome modal, sample property generator, empty-state cards, inline tooltips
-- [x] Profile panel with self-serve password change
-- [x] Health endpoint, structured request logging, sync-failure alert banner
-- [x] Mobile responsive (375px+), dark theme, PWA manifest
-- [ ] Photo upload for completed cleanings *(needs blob storage)*
-- [ ] Property documents tab + `{{document:rules}}` template variable *(needs blob storage)*
-- [ ] Public landing page, OG meta, ToS / privacy *(in progress — Week 14)*
-- [ ] Admin panel: signup toggle, per-user rate limit, kill switch, account deletion *(in progress — Week 15)*
+**How do I connect Airbnb / Booking.com?**
+You paste the iCal export URLs they give you. Airbnb: *Calendar → Availability settings → Sync calendars → Export*. Booking.com: *Property → Calendar → Sync calendars → Export*. RentTools polls them every 10 minutes.
 
-## Roadmap
+**Can guests see my data?**
+No. Each property is scoped to its owner. The only public surface is the per-property iCal feed (read-only, blocks-only — no guest names exposed). Anyone with the feed URL sees blocked dates, not who booked.
 
-The full backlog with status and acceptance criteria lives in [.routines/TASKS.md](.routines/TASKS.md). Completed work is logged at the bottom of that file.
+**Where is data stored?**
+SQLite on the maintainer's droplet (EU region). Daily backups, 14-day / 8-week / 6-month retention. See [docs/PRIVACY](https://renttools.io/privacy) for the full list of what's collected and how to delete your account.
+
+**Can I export my data?**
+Yes — *Profile → Export my data* gives you a JSON dump of everything tied to your account. Account deletion (GDPR) is one click in the same panel.
+
+**What happens to passport photos after extraction?**
+The image is sent to Google Gemini once for OCR, then discarded. Only the structured fields (name, DOB, etc.) are stored, attached to the reservation.
+
+**Why no mobile app?**
+The web app is mobile-responsive (375 px+) and installable as a PWA — *Add to Home Screen* on iOS / Android gets you 90 % of an app's experience without app stores.
+
+**I'd rather self-host. How hard is it?**
+About 30 minutes from a fresh Ubuntu droplet. The runbook in [docs/DROPLET-SETUP.md](docs/DROPLET-SETUP.md) walks through systemd, nginx, Let's Encrypt, cron, and SQLite backups. MIT licensed — do whatever you want with it.
+
+**How do I report a bug or request a feature?**
+[Open an issue](https://github.com/Gribadan/rent-tool/issues/new) on this repo.
+
+**Is there an API?**
+The internal REST endpoints are documented in [docs/API.md](docs/API.md) but they're scoped to the logged-in session — there's no public API key system yet. If you need scripted access against your own account, ping me via an issue.
+
+---
 
 ## Tech stack
 
-| Layer       | Choice                                       |
-| ----------- | -------------------------------------------- |
-| Framework   | Next.js 16 (App Router, Turbopack)           |
-| Language    | TypeScript (strict)                          |
-| UI          | Tailwind CSS 4, custom dark theme            |
-| Charts      | recharts                                     |
-| Auth        | jose JWT in HTTP-only cookie + bcryptjs      |
-| ORM         | Prisma 7 client + LibSQL adapter             |
-| Database    | SQLite (self-hosted) — adapter also supports Turso/LibSQL cloud |
-| AI          | Google Gemini (`@google/generative-ai`)      |
-| Tests       | Vitest                                       |
-| Deployment  | systemd + nginx on DigitalOcean              |
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript (strict) |
+| UI | Tailwind CSS 4, dark theme |
+| Auth | jose JWT in HTTP-only cookie + bcryptjs |
+| Database | SQLite via Prisma 7 + libSQL adapter |
+| AI | Google Gemini |
+| Errors | Sentry |
+| Uptime | BetterStack |
+| Hosting | DigitalOcean droplet, Cloudflare-proxied, Let's Encrypt TLS |
 
-## Project layout
-
-```
-src/
-  app/
-    api/                # all REST endpoints
-    page.tsx            # main app shell, URL-driven view state
-    layout.tsx
-    login/, signup/
-  components/           # UI components, one per feature
-    calendar/           # extracted calendar primitives
-  lib/                  # framework-agnostic helpers
-    ical.ts             # iCal parse/generate + buffer logic
-    calendar-sync.ts    # cron-driven sync routine
-    sanitize.ts         # text sanitization for OCR'd fields
-    auth.ts, prisma.ts, gemini.ts, audit.ts, logger.ts
-prisma/
-  schema.prisma         # data model
-  push-schema.ts        # SQLite/LibSQL migration runner (auto-detects)
-  seed.ts
-deploy/
-  systemd/, nginx/      # production unit files
-  cron/                 # 10-minute calendar sync cron
-scripts/
-  backup-db.sh          # daily SQLite backup with tiered retention
-  check-resources.sh    # hourly RAM/disk alert
-  deploy.sh             # zero-downtime droplet deploy
-  migrate-turso-to-local.ts
-docs/
-  API.md                # endpoint reference
-  DROPLET-SETUP.md      # production droplet runbook
-  CONTRIBUTING.md       # code style, branching, commit format
-.routines/
-  TASKS.md              # roadmap; the Done log records completed work
-  ROUTINE.md            # routine-agent prompt (code tasks)
-  OPS-ROUTINE.md        # routine-agent prompt (weekly droplet ops)
-```
-
-## Common tasks
-
-```bash
-npm run dev             # local dev (Turbopack)
-npm run build           # production build
-npm test                # run vitest once
-npm run db:push         # push prisma/schema.prisma to the configured DB
-npm run db:seed         # seed an admin user
-```
-
-To trigger a calendar sync manually (instead of waiting for cron):
-
-```bash
-curl -fsS "http://localhost:3000/api/calendar/cron?secret=$CRON_SECRET"
-```
-
-## Contributing
-
-Issues and PRs welcome. See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for code style, branch naming, commit message format, and how to add a new route.
+---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Translation: do anything you want, just don't blame me if it breaks.
+
+## Contributing
+
+Issues and PRs welcome. See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for code style, branch naming, and how to add a new route.

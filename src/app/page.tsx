@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSetting } from "@/lib/site-settings";
 
-const REPO_URL = "https://github.com/Gribadan/rent-tool";
+const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
 export default async function HomePage() {
   const session = await getSession();
@@ -20,7 +20,7 @@ export default async function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
               </svg>
             </div>
-            <span className="text-base font-semibold">Rent Tool</span>
+            <span className="text-base font-semibold">RentTools</span>
           </div>
           <nav className="flex items-center gap-2 sm:gap-4">
             <a
@@ -54,10 +54,10 @@ export default async function HomePage() {
               Open source · Free hosted version
             </p>
             <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
-              Rent Tool
+              RentTools
             </h1>
             <p className="mt-4 text-xl text-[#a0a0a8] sm:text-2xl">
-              Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free here.
+              Free, open-source property manager for short-term rental hosts. Sync Airbnb + Booking.com calendars, automate cleaning schedules, extract guest passports — all in one tool.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
@@ -164,7 +164,7 @@ export default async function HomePage() {
 
       <footer className="border-t border-[#1e2329]">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
-          <p>© 2026 Rent Tool · MIT License</p>
+          <p>© 2026 RentTools · MIT License</p>
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#e8e8ec]">
               GitHub
