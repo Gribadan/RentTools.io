@@ -1,16 +1,23 @@
 /**
- * Google OAuth 2.0 helpers (RT-16.5).
+ * Google OAuth 2.0 helpers (RT-16.5) + Google One Tap helpers (RT-16.6).
  *
- * Pure REST against Google's token + userinfo endpoints. We deliberately
- * avoid pulling `google-auth-library` for the redirect flow because we only
- * need two HTTP calls and the dependency adds ~1.5 MB to the server bundle.
- * The One Tap flow (RT-16.6) verifies a JWT against Google's JWKS, which
- * `jose` (already a dep) handles natively.
+ * Pure REST against Google's token + userinfo endpoints for the redirect
+ * flow. We deliberately avoid pulling `google-auth-library` because we only
+ * need a few HTTP calls and the dependency adds ~1.5 MB to the server bundle.
+ * The One Tap flow verifies a JWT against Google's JWKS, which `jose`
+ * (already a dep) handles natively.
  */
+
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
+import { prisma } from "@/lib/prisma";
+import { hashPassword } from "@/lib/auth";
 
 const GOOGLE_AUTHZ_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo";
+const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
+// Google may issue tokens with either issuer; both are valid per the spec.
+const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 
 export interface GoogleOAuthConfig {
   clientId: string;
@@ -113,4 +120,130 @@ export async function fetchGoogleProfile(accessToken: string): Promise<GooglePro
 export function deriveRedirectUri(request: Request): string {
   const url = new URL(request.url);
   return `${url.origin}/api/auth/google/callback`;
+}
+
+/**
+ * Lazy singleton JWKS — the resolver caches keys + handles rotation, so we
+ * keep it module-scoped instead of recreating per request.
+ */
+let jwksCache: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getGoogleJWKS() {
+  if (!jwksCache) {
+    jwksCache = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL));
+  }
+  return jwksCache;
+}
+
+/**
+ * Verify a Google One Tap credential (an OIDC ID token JWT) against Google's
+ * JWKS. Returns a profile shaped like fetchGoogleProfile() so downstream
+ * find-or-create logic doesn't have to special-case which path it came from.
+ *
+ * Throws on any verification failure: bad signature, wrong audience, wrong
+ * issuer, expired token, missing required claim. Callers should treat any
+ * throw as an authentication failure (401-equivalent).
+ */
+export async function verifyOneTapIdToken(
+  credential: string,
+  expectedClientId: string
+): Promise<GoogleProfile> {
+  const { payload } = await jwtVerify(credential, getGoogleJWKS(), {
+    issuer: GOOGLE_ISSUERS,
+    audience: expectedClientId,
+  });
+
+  const claims = payload as JWTPayload & {
+    sub?: string;
+    email?: string;
+    email_verified?: boolean;
+    name?: string;
+    given_name?: string;
+    family_name?: string;
+    picture?: string;
+  };
+
+  if (!claims.sub || !claims.email) {
+    throw new Error("Google One Tap token missing sub or email");
+  }
+
+  return {
+    id: claims.sub,
+    email: claims.email,
+    verified_email: claims.email_verified,
+    name: claims.name,
+    given_name: claims.given_name,
+    family_name: claims.family_name,
+    picture: claims.picture,
+  };
+}
+
+/**
+ * Find an existing user by Google subject or matching email, otherwise
+ * create a brand-new user with a sanitised username derived from the email
+ * local part. Shared by the redirect callback and the One Tap endpoint so
+ * both code paths produce identical user records.
+ */
+export async function findOrCreateUserForGoogle(profile: GoogleProfile) {
+  // 1. Match by stable Google subject.
+  const byGoogle = await prisma.user.findUnique({ where: { googleId: profile.id } });
+  if (byGoogle) return byGoogle;
+
+  // 2. Match by email — links a username/password account that already
+  // had this email set (e.g. via a future profile field). Existing
+  // username-only accounts have no email so they won't collide.
+  const email = profile.email.toLowerCase();
+  const byEmail = await prisma.user.findFirst({ where: { email } });
+  if (byEmail) {
+    return prisma.user.update({
+      where: { id: byEmail.id },
+      data: { googleId: profile.id, email },
+    });
+  }
+
+  // 3. New user. Generate a unique username from the email's local part
+  // (or a random fallback) and try suffixes until we find one free.
+  const username = await generateUniqueUsername(profile);
+
+  return prisma.user.create({
+    data: {
+      username,
+      // Random unguessable placeholder — Google sign-in users can later
+      // set a password via the existing change-password flow if they
+      // want a non-Google sign-in path too.
+      password: await randomPasswordPlaceholder(),
+      role: "user",
+      email,
+      googleId: profile.id,
+    },
+  });
+}
+
+async function generateUniqueUsername(profile: GoogleProfile): Promise<string> {
+  const base = sanitizeUsernameBase(
+    profile.email.split("@")[0] || profile.given_name || profile.name || "user"
+  );
+
+  // Try the bare base first, then base2, base3, … up to 50 attempts.
+  // 50 collisions is implausible for a sub-100k user base; if it ever
+  // happens we fall through to a random suffix.
+  for (let i = 0; i < 50; i++) {
+    const candidate = i === 0 ? base : `${base}${i + 1}`;
+    const taken = await prisma.user.findUnique({ where: { username: candidate } });
+    if (!taken) return candidate;
+  }
+  const { randomBytes } = await import("node:crypto");
+  return `${base}-${randomBytes(3).toString("hex")}`;
+}
+
+function sanitizeUsernameBase(raw: string): string {
+  const cleaned = raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+  // Username has a min length of 3 in the signup route; make sure
+  // Google-derived usernames clear the same bar.
+  if (cleaned.length >= 3) return cleaned.slice(0, 24);
+  return `user${cleaned}`.padEnd(4, "0").slice(0, 24);
+}
+
+async function randomPasswordPlaceholder(): Promise<string> {
+  const { randomBytes } = await import("node:crypto");
+  return hashPassword(randomBytes(32).toString("base64url"));
 }

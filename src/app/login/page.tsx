@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
+import { GoogleOneTap } from "@/components/google-one-tap";
 
 // Only allow same-origin redirects (must start with "/" but not "//")
 function safeNext(raw: string | null): string {
@@ -72,6 +73,7 @@ function LoginPageInner() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#111113] p-4">
+      <GoogleOneTap next={next !== "/dashboard" ? next : undefined} />
       <div className="w-full max-w-[340px]">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e1e22]">
