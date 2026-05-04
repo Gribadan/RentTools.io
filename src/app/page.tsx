@@ -344,6 +344,9 @@ function AppContent({
         onSelectProperty={handleSelectProperty}
         onChangeView={setActiveView}
         onAddProperty={handleAddProperty}
+        onOpenReservation={(propId, resId) =>
+          navigate({ property: propId, reservation: resId, view: "guests" })
+        }
         username={user.username}
         onLogout={handleLogout}
       />

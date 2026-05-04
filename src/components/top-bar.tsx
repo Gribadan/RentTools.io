@@ -7,6 +7,19 @@ import type { Property } from "@/lib/types";
 
 export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks";
 
+interface GuestSearchResult {
+  guestId: number;
+  fullName: string;
+  country: string;
+  passportNumber: string;
+  reservationId: number;
+  reservationName: string;
+  checkIn: string;
+  checkOut: string;
+  propertyId: number;
+  propertyName: string;
+}
+
 interface TopBarProps {
   properties: Property[];
   selectedPropertyId: number | null;
@@ -14,6 +27,7 @@ interface TopBarProps {
   onSelectProperty: (id: number | null) => void;
   onChangeView: (view: AppView) => void;
   onAddProperty: (name: string) => void;
+  onOpenReservation?: (propertyId: number, reservationId: number) => void;
   username: string;
   onLogout: () => void;
 }
@@ -25,6 +39,7 @@ export function TopBar({
   onSelectProperty,
   onChangeView,
   onAddProperty,
+  onOpenReservation,
   username,
   onLogout,
 }: TopBarProps) {
@@ -35,19 +50,85 @@ export function TopBar({
   const [mobileMenu, setMobileMenu] = useState(false);
   const [addingProp, setAddingProp] = useState(false);
   const [newPropName, setNewPropName] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<GuestSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const propRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
   const mobileRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (propRef.current && !propRef.current.contains(e.target as Node)) setPropDropdown(false);
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserDropdown(false);
       if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) setMobileMenu(false);
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        setTimeout(() => searchInputRef.current?.focus(), 30);
+      } else if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/guests/search?q=${encodeURIComponent(q)}`, {
+          signal: ctrl.signal,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults((data.results || []) as GuestSearchResult[]);
+        }
+      } catch {
+        // aborted or network — ignore
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 200);
+    return () => {
+      ctrl.abort();
+      clearTimeout(t);
+    };
+  }, [searchQuery]);
+
+  const formatRange = (a: string, b: string) => {
+    const f = (s: string) =>
+      new Date(s).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+    return `${f(a)} — ${f(b)}`;
+  };
+
+  const handleResultClick = (r: GuestSearchResult) => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    if (onOpenReservation) {
+      onOpenReservation(r.propertyId, r.reservationId);
+    }
+  };
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
 
@@ -180,6 +261,89 @@ export function TopBar({
 
         {/* Right: actions */}
         <div className="flex items-center gap-2">
+          {/* Guest search */}
+          {onOpenReservation && (
+            <div className="relative" ref={searchRef}>
+              <button
+                onClick={() => {
+                  setSearchOpen(true);
+                  setTimeout(() => searchInputRef.current?.focus(), 30);
+                }}
+                className="flex items-center gap-1.5 rounded-md border border-[#333338] bg-[#111113] px-2 py-1.5 text-xs text-[#a0a0a8] hover:border-[#e8e8ec]/50 hover:text-[#d4d4d8] transition-colors"
+                title={locale === "ru" ? "Поиск гостей (⌘K)" : "Search guests (⌘K)"}
+                aria-label={locale === "ru" ? "Поиск гостей" : "Search guests"}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <kbd className="hidden md:inline rounded bg-[#27272b] px-1 py-0.5 text-[10px] text-[#71717a]">⌘K</kbd>
+              </button>
+
+              {searchOpen && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-[20rem] rounded-lg border border-[#333338] bg-[#18181b] shadow-xl shadow-black/40 sm:w-[26rem]">
+                  <div className="border-b border-[#27272b] p-2">
+                    <input
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={
+                        locale === "ru"
+                          ? "Имя, паспорт, страна..."
+                          : "Name, passport, country..."
+                      }
+                      className="h-8 w-full rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec]"
+                    />
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {searchQuery.trim().length < 2 ? (
+                      <p className="px-3 py-4 text-center text-[11px] text-[#71717a]">
+                        {locale === "ru"
+                          ? "Введите минимум 2 символа"
+                          : "Type at least 2 characters"}
+                      </p>
+                    ) : searchLoading ? (
+                      <p className="px-3 py-4 text-center text-[11px] text-[#71717a]">
+                        {locale === "ru" ? "Поиск..." : "Searching..."}
+                      </p>
+                    ) : searchResults.length === 0 ? (
+                      <p className="px-3 py-4 text-center text-[11px] text-[#71717a]">
+                        {locale === "ru" ? "Ничего не найдено" : "No matches"}
+                      </p>
+                    ) : (
+                      <ul className="py-1">
+                        {searchResults.map((r) => (
+                          <li key={r.guestId}>
+                            <button
+                              onClick={() => handleResultClick(r)}
+                              className="flex w-full flex-col gap-0.5 px-3 py-2 text-left text-xs text-[#d4d4d8] hover:bg-[#1e1e22]"
+                            >
+                              <span className="flex items-center justify-between gap-2">
+                                <span className="truncate font-medium text-[#e8e8ec]">
+                                  {r.fullName}
+                                </span>
+                                <span className="shrink-0 text-[10px] text-[#71717a]">
+                                  {r.country}
+                                </span>
+                              </span>
+                              <span className="flex items-center justify-between gap-2 text-[11px] text-[#71717a]">
+                                <span className="truncate">
+                                  {r.propertyName} · {r.reservationName}
+                                </span>
+                                <span className="shrink-0">
+                                  {formatRange(r.checkIn, r.checkOut)}
+                                </span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tasks/sync — desktop only */}
           <button
             onClick={() => onChangeView("tasks")}
