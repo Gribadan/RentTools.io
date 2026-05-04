@@ -256,6 +256,17 @@ export const translations = {
   "sync.bookingWindowDesc": { en: "How many days forward from today to accept bookings. Events beyond this window are ignored — platforms often block far-future dates that aren't real bookings.", ru: "На сколько дней вперёд от сегодня принимать бронирования. События за пределами окна игнорируются — платформы часто блокируют далёкие даты, которые не являются реальными бронированиями." },
   "sync.bookingWindowDays": { en: "days forward", ru: "дней вперёд" },
 
+  // Managers
+  "managers.title": { en: "Managers", ru: "Менеджеры" },
+  "managers.desc": { en: "Grant another user full management access to this property. Managers can edit reservations, sync calendars, and manage cleaning — but cannot delete the property or add other managers.", ru: "Предоставьте другому пользователю полный доступ к управлению этим объектом. Менеджеры могут редактировать брони, синхронизировать календари и управлять уборкой — но не могут удалить объект или добавить других менеджеров." },
+  "managers.addPlaceholder": { en: "Username to invite", ru: "Логин для приглашения" },
+  "managers.add": { en: "Add manager", ru: "Добавить менеджера" },
+  "managers.empty": { en: "No managers yet. Only you can manage this property.", ru: "Пока нет менеджеров. Только вы управляете этим объектом." },
+  "managers.you": { en: "you", ru: "вы" },
+  "managers.owner": { en: "owner", ru: "владелец" },
+  "managers.confirmRemove": { en: "Remove this manager? They will lose access to the property.", ru: "Удалить менеджера? Он потеряет доступ к объекту." },
+  "managers.ownerOnly": { en: "Only the property owner can manage managers.", ru: "Только владелец объекта может управлять менеджерами." },
+
   // Date slider
   "dateslider.in": { en: "In", ru: "Заезд" },
   "dateslider.out": { en: "Out", ru: "Выезд" },

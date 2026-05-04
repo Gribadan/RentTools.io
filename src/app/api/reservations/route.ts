@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,9 +10,10 @@ export async function GET(request: NextRequest) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const propertyId = request.nextUrl.searchParams.get("propertyId");
+    const accessibleIds = await listAccessiblePropertyIds(session.userId, session.role);
     const where = propertyId
-      ? { propertyId: parseInt(propertyId), property: { userId: session.userId } }
-      : { property: { userId: session.userId } };
+      ? { propertyId: parseInt(propertyId), property: { id: { in: accessibleIds } } }
+      : { property: { id: { in: accessibleIds } } };
     const reservations = await prisma.reservation.findMany({
       where,
       orderBy: { checkIn: "asc" },
@@ -34,11 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 });
     }
 
-    const owner = await prisma.property.findUnique({
-      where: { id: propertyId },
-      select: { userId: true },
-    });
-    if (!owner || owner.userId !== session.userId) {
+    if (!(await canManageProperty(propertyId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { canManageProperty } from "@/lib/ownership";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,9 +20,9 @@ export async function GET(request: NextRequest) {
 
     const reservation = await prisma.reservation.findUnique({
       where: { id: numId },
-      select: { property: { select: { userId: true } } },
+      select: { propertyId: true },
     });
-    if (!reservation || reservation.property.userId !== session.userId) {
+    if (!reservation || !(await canManageProperty(reservation.propertyId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

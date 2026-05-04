@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { listAccessiblePropertyIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -58,12 +59,14 @@ export async function GET(request: NextRequest) {
       to = d;
     }
 
+    const accessibleIds = await listAccessiblePropertyIds(session.userId, session.role);
+
     const where: {
-      property: { userId: number };
+      property: { id: { in: number[] } };
       propertyId?: number;
       checkIn?: { lte?: Date };
       checkOut?: { gte?: Date };
-    } = { property: { userId: session.userId } };
+    } = { property: { id: { in: accessibleIds } } };
 
     if (propertyIdParam) {
       const pid = parseInt(propertyIdParam);

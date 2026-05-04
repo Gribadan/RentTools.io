@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty } from "@/lib/ownership";
 
-async function loadOwnedLink(linkId: number, userId: number) {
+async function loadManageableLink(linkId: number, userId: number, role: string) {
   const link = await prisma.calendarLink.findUnique({
     where: { id: linkId },
     select: {
       id: true,
       propertyId: true,
       platform: true,
-      property: { select: { userId: true } },
     },
   });
-  if (!link || link.property.userId !== userId) return null;
+  if (!link) return null;
+  if (!(await canManageProperty(link.propertyId, userId, role))) return null;
   return link;
 }
 
@@ -30,7 +31,7 @@ export async function PATCH(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedLink(numId, session.userId);
+    const owned = await loadManageableLink(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await request.json();
@@ -68,7 +69,7 @@ export async function DELETE(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedLink(numId, session.userId);
+    const owned = await loadManageableLink(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // Remove events from this platform for this property

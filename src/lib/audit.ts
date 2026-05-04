@@ -7,7 +7,8 @@ export type AuditResource =
   | "reservation"
   | "guest"
   | "override"
-  | "calendarLink";
+  | "calendarLink"
+  | "manager";
 
 export async function logAudit(
   userId: number,
