@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-change-me"
@@ -49,7 +50,29 @@ export async function getSession(): Promise<{
 
   try {
     const { payload } = await jwtVerify(token, SECRET);
-    return payload as { userId: number; username: string; role: string };
+    const session = payload as { userId: number; username: string; role: string };
+
+    // Suspended users (RT-15.11) are kicked on the next request: clear the
+    // cookie and return null so the client is redirected to /login.
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { suspendedAt: true },
+      });
+      if (!user || user.suspendedAt) {
+        // Cookie deletion only works in mutable contexts (route handlers /
+        // server actions); swallow the error if we're in a server component.
+        try {
+          cookieStore.delete(COOKIE_NAME);
+        } catch {}
+        return null;
+      }
+    } catch {
+      // If the DB check fails, fail closed and treat as no session.
+      return null;
+    }
+
+    return session;
   } catch {
     return null;
   }
