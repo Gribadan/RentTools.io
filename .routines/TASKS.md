@@ -334,7 +334,7 @@
   - File: `src/app/page.tsx` — when `user.role === "cleaner"`, render a stripped-down view: only the cleaning schedule across assigned properties, no settings/sync/guests
   - Acceptance criteria: a cleaner-role user sees only cleaning data; cannot navigate to settings or guest details
 
-- [ ] **RT-10.2** Cleaner-property assignment
+- [x] **RT-10.2** Cleaner-property assignment
   - File: `prisma/schema.prisma` — add `CleanerAssignment { id, cleanerId User, propertyId Property, createdAt }`
   - File: `src/app/api/cleaner-assignments/route.ts` (new) — owner can assign their own cleaners to their own properties
   - File: `src/components/sync-settings.tsx` — new section "Cleaners" with multi-select of users with role=cleaner
@@ -483,3 +483,4 @@
 - 2026-05-04 — RT-9.4 — 821c53c — CalendarLink.failureCount + alertsDismissedAt watermark; [ALERT] SyncLog rows surfaced via SyncAlertsBanner
 - 2026-05-04 — RT-9.5 — 1bd61f2 — AuditLog table + logAudit helper + /api/audit + AuditPanel reachable from Profile
 - 2026-05-04 — RT-10.1 — 1bc29e1 — cleaner role short-circuits to CleanerApp with cleaning-only dashboard view
+- 2026-05-04 — RT-10.2 — 9f6f5ea — CleanerAssignment table + REST endpoints + SyncSettings panel; cleaner /api/properties scoped via assignments
