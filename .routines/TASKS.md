@@ -409,7 +409,7 @@
   - File: `src/components/reports-panel.tsx` — "Export reservations CSV" button with date range picker
   - Acceptance criteria: clicking download fetches a CSV opening cleanly in Excel with Cyrillic intact
 
-- [ ] **RT-12.3** Activity feed on dashboard
+- [x] **RT-12.3** Activity feed on dashboard
   - File: `src/components/dashboard.tsx` — section "Recent activity" showing last 10 events: new bookings synced, conflicts detected, manual changes (from AuditLog), sync errors
   - Each item: relative time ("2 hours ago"), icon, summary, click → relevant page
   - Acceptance criteria: dashboard always shows at least the last sync attempt and most recent booking change
@@ -494,3 +494,4 @@
 - 2026-05-04 — RT-11.5 — 3654eaf — /api/guests/search + top-bar guest search with Cmd-K shortcut and debounced dropdown
 - 2026-05-04 — RT-12.1 — 542fb6b — Reports view with recharts BarChart of last-12-month occupancy per property
 - 2026-05-04 — RT-12.2 — 950a10f — /api/reservations/export CSV (BOM) + Reports panel date-range picker
+- 2026-05-04 — RT-12.3 — a1d390d — Recent Activity feed (audit+sync merged, /api/activity) on dashboard
