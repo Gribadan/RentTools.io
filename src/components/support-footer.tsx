@@ -1,11 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-// Minimal "Need help?" footer that surfaces the support_email
-// SiteSetting set in the admin panel. Renders nothing if the email is
-// not configured so admins who don't want to be reached aren't forced
-// into a chrome change.
+// Footer for the logged-in app shell — Privacy, Terms, GitHub source, and
+// optionally a "Need help?" support email when the admin has set one.
 export function SupportFooter() {
   const [email, setEmail] = useState("");
 
@@ -18,21 +17,33 @@ export function SupportFooter() {
         setEmail((data?.support_email ?? "").trim());
       })
       .catch(() => {
-        // Silent — footer just won't render.
+        // Silent — only the support email line will be missing.
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (!email) return null;
-
   return (
-    <div className="border-t border-[#1e2329] bg-[#0d1117] px-4 py-2 text-center text-xs text-[#71717a]">
-      Need help?{" "}
-      <a href={`mailto:${email}`} className="text-[#a0a0a8] hover:text-[#e8e8ec]">
-        {email}
-      </a>
+    <div className="border-t border-[#1e2329] bg-[#0d1117] px-4 py-3 text-center text-xs text-[#71717a]">
+      <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+        <span>© 2026 RentTools</span>
+        <Link href="/privacy" className="hover:text-[#a0a0a8]">Privacy</Link>
+        <Link href="/terms" className="hover:text-[#a0a0a8]">Terms</Link>
+        <a
+          href="https://github.com/Gribadan/RentTools.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hover:text-[#a0a0a8]"
+        >
+          Source
+        </a>
+        {email && (
+          <a href={`mailto:${email}`} className="hover:text-[#a0a0a8]">
+            Need help? {email}
+          </a>
+        )}
+      </nav>
     </div>
   );
 }

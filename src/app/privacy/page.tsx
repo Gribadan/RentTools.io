@@ -3,9 +3,14 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "What data RentTools collects, where it lives, and how to delete it.",
+  description:
+    "How RentTools collects, uses, stores, and protects your data — and how to access, export, or delete it.",
   alternates: { canonical: "/privacy" },
 };
+
+const LAST_UPDATED = "2026-05-05";
+const OPERATOR_NAME = "Ilya Asminkin";
+const OPERATOR_EMAIL = "ilya.asminkin@gmail.com";
 
 export default function PrivacyPage() {
   return (
@@ -24,138 +29,331 @@ export default function PrivacyPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-[#71717a]">Last updated: 2026-05-04</p>
+        <p className="mt-2 text-sm text-[#71717a]">Last updated: {LAST_UPDATED}</p>
 
         <div className="mt-8 space-y-8 text-sm leading-relaxed text-[#d4d4d8] sm:text-base">
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Scope</h2>
             <p>
-              This policy covers the free hosted instance at{" "}
-              <span className="font-mono text-[#e8e8ec]">renttools.io</span>. If you
-              self-host the open-source code, you control your own data — this policy does
-              not apply.
+              This Privacy Policy describes how RentTools (&quot;the Service&quot;,
+              &quot;we&quot;, &quot;our&quot;), operated by {OPERATOR_NAME} as an
+              independent maintainer, collects, uses, stores, and protects information when
+              you use the hosted instance at{" "}
+              <span className="font-mono text-[#e8e8ec]">https://renttools.io</span>.
+              By using the Service you agree to the practices described below. If you
+              self-host the open-source code on your own infrastructure, you act as the
+              data controller for that instance and this policy does not apply to you.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">What data we collect</h2>
-            <ul className="list-disc space-y-2 pl-5">
-              <li>
-                <span className="font-medium text-[#e8e8ec]">Account:</span> the username and
-                hashed password you provide at signup. We do not require an email at signup.
-                Passwords are hashed with bcrypt and never stored in cleartext.
-              </li>
-              <li>
-                <span className="font-medium text-[#e8e8ec]">Properties &amp; reservations:</span>{" "}
-                everything you create or import — names, dates, platforms, notes. iCal feeds
-                you connect (Airbnb, Booking.com) are pulled every 10 minutes.
-              </li>
-              <li>
-                <span className="font-medium text-[#e8e8ec]">Guest records:</span> if you
-                upload a passport photo for extraction, the photo is sent to Google Gemini
-                Vision for OCR and the extracted fields are stored in your account.
-                Photos themselves are not retained after extraction completes.
-              </li>
-              <li>
-                <span className="font-medium text-[#e8e8ec]">Operational logs:</span> request
-                logs (path, status, duration, IP, user ID) are kept for up to 30 days to
-                debug issues. Sync logs are retained per property to power the alerts banner.
-              </li>
-              <li>
-                <span className="font-medium text-[#e8e8ec]">Audit log:</span> a record of
-                mutations on your own resources (create / update / delete) is retained so
-                you can review your own activity from the Profile panel.
-              </li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Where data lives</h2>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">1. Who we are</h2>
             <p>
-              Production data is stored in a SQLite database on a DigitalOcean droplet
-              operated by the maintainer. Daily backups are kept on the same machine for 14
-              days, weekly for 8 weeks, monthly for 6 months.
+              The Service is operated by {OPERATOR_NAME} as a free, non-commercial side
+              project. There is no parent company. The contact address for any privacy
+              question, data request, or complaint is:
             </p>
+            <p className="mt-2 font-mono text-[#e8e8ec]">{OPERATOR_EMAIL}</p>
             <p className="mt-2">
-              Passport photos are sent to Google Gemini for OCR. Google&apos;s data handling
-              for the Gemini API is governed by{" "}
-              <a
-                href="https://ai.google.dev/gemini-api/terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[#58a6ff] hover:underline"
-              >
-                Google&apos;s API terms
-              </a>.
+              Under the EU General Data Protection Regulation (GDPR) and the UK GDPR,{" "}
+              {OPERATOR_NAME} is the data controller for the personal data described in
+              section 2(a)–(c) below. For guest passport data you upload (section 2(d)),
+              you are the controller and we act as your processor.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Cookies</h2>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">2. What data we collect</h2>
+            <p>We collect only the minimum necessary to operate the Service.</p>
+            <p className="mt-3 font-medium text-[#e8e8ec]">(a) Account data</p>
             <p>
-              We set one HTTP-only session cookie (<span className="font-mono">rent-tool-session</span>),
-              a 7-day JWT, used solely for authentication. We do not use third-party
-              analytics, advertising, or tracking cookies on the hosted instance.
+              Username and password (stored as a bcrypt hash; the plain-text password is
+              never written to disk or logs). Account creation timestamp, last login
+              timestamp, role (owner / cleaner / admin), and — if you choose to provide
+              one — an optional support email address. We do not require an email at
+              signup.
             </p>
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Sharing</h2>
+            <p className="mt-3 font-medium text-[#e8e8ec]">(b) Service data you create</p>
             <p>
-              We do not sell or rent your data. We share data only with the infrastructure
-              providers that host the service (the droplet provider and Google Gemini, as
-              listed above), and only to the extent necessary to operate the service.
+              Properties, reservations, calendar links, message templates, cleaning
+              records, and any notes or tags you add. iCal feed URLs you connect to
+              external platforms (Airbnb, Booking.com) and the events those feeds return.
+            </p>
+            <p className="mt-3 font-medium text-[#e8e8ec]">(c) Operational data</p>
+            <p>
+              Server-side request logs containing path, HTTP status, response time, IP
+              address, and authenticated user ID. Application error reports captured by
+              Sentry (see section 4). Calendar sync logs per property. Audit logs of
+              create/update/delete actions on your own resources. Operational data is
+              retained for up to 30 days to debug incidents and detect abuse.
+            </p>
+            <p className="mt-3 font-medium text-[#e8e8ec]">(d) Guest passport data (you upload)</p>
+            <p>
+              When you upload a passport photo for OCR, the image is transmitted to Google
+              Gemini for one-time field extraction (full name, date of birth, document
+              number, country, document type, expiry date). The extracted fields are
+              attached to the relevant reservation in your account. The original photo is
+              not retained on our servers after extraction completes.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Your rights (GDPR)</h2>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">3. How we use your data and the legal basis</h2>
             <ul className="list-disc space-y-2 pl-5">
               <li>
-                <span className="font-medium text-[#e8e8ec]">Access &amp; export:</span> the
-                Reports panel exports your reservations as CSV. The Profile &gt; Audit Log
-                section shows your activity history. A full account export is available from
-                the Profile panel.
+                <span className="font-medium text-[#e8e8ec]">Performance of contract</span>{" "}
+                (Art. 6(1)(b) GDPR): authenticating you, storing your properties and
+                bookings, syncing calendars, generating cleaning schedules, rendering
+                message templates, exporting your data on request.
               </li>
               <li>
-                <span className="font-medium text-[#e8e8ec]">Deletion:</span> Profile &gt;
-                Danger zone &gt; <em>Delete my account</em> permanently removes your account
-                immediately, along with every property, reservation, guest, calendar link,
-                message template, cleaning record, audit entry and extraction log we hold
-                for you. The action requires re-typing your username and current password
-                and cannot be undone. Backups containing the deleted data age out within
-                6 months.
+                <span className="font-medium text-[#e8e8ec]">Legitimate interests</span>{" "}
+                (Art. 6(1)(f) GDPR): keeping the Service secure, debugging errors,
+                protecting against abuse and rate-limit violations, and operating
+                infrastructure (logs, backups, monitoring). Where we rely on legitimate
+                interests we balance them against your rights and ask only what we need.
               </li>
               <li>
-                <span className="font-medium text-[#e8e8ec]">Rectification:</span> all
-                fields are user-editable through the app.
+                <span className="font-medium text-[#e8e8ec]">Legal obligation</span>{" "}
+                (Art. 6(1)(c) GDPR): retaining data as required to respond to lawful
+                requests from authorities.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">For guest passports you upload</span>:
+                we are your processor and act on your documented instructions only. You
+                are responsible for having an appropriate lawful basis (your local
+                hospitality registration law, consent, etc.).
+              </li>
+            </ul>
+            <p className="mt-3">
+              We do not use your data for advertising, profiling, automated decisions
+              with legal effect, or training third-party machine-learning models.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">4. Sub-processors and third parties</h2>
+            <p>We use a small set of infrastructure providers to run the Service:</p>
+            <ul className="list-disc space-y-2 pl-5 mt-2">
+              <li>
+                <span className="font-medium text-[#e8e8ec]">DigitalOcean, LLC</span> —
+                hosts the application server and the SQLite database (EU region). Acts
+                as a hosting sub-processor.{" "}
+                <a href="https://www.digitalocean.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">
+                  Privacy policy
+                </a>.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Cloudflare, Inc.</span> —
+                DNS, CDN, and TLS proxy. Sees IP addresses and request metadata but
+                does not see decrypted application content beyond what is needed to
+                forward traffic.{" "}
+                <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">
+                  Privacy policy
+                </a>.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Google LLC (Gemini API)</span> —
+                processes uploaded passport images for one-time OCR. Subject to{" "}
+                <a href="https://ai.google.dev/gemini-api/terms" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">
+                  Google&apos;s Gemini API terms
+                </a>{" "}
+                and Google&apos;s privacy policy.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Functional Software, Inc. (Sentry)</span> —
+                receives application error reports including stack traces, the requesting
+                IP, and the authenticated user ID for debugging. Personally identifiable
+                request bodies are scrubbed.{" "}
+                <a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">
+                  Privacy policy
+                </a>.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Better Stack s.r.o. (BetterStack)</span> —
+                external uptime monitoring; pings the public health endpoint only. Does
+                not see user data.{" "}
+                <a href="https://betterstack.com/privacy" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">
+                  Privacy policy
+                </a>.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Airbnb &amp; Booking.com</span>{" "}
+                — third parties whose iCal export URLs you choose to provide. We only pull
+                data from the URLs you give us; we do not push anything back to them.
+              </li>
+            </ul>
+            <p className="mt-3">
+              We do not sell, rent, or transfer personal data to any other party. We
+              disclose data to authorities only when compelled by valid legal process.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">5. International data transfers</h2>
+            <p>
+              The application server is in the European Union. Sentry, Google Gemini,
+              Cloudflare, and DigitalOcean&apos;s control plane involve data transfers to
+              the United States. Where personal data is transferred outside the EEA / UK,
+              we rely on the European Commission&apos;s Standard Contractual Clauses
+              and the Data Privacy Framework adequacy decisions (where applicable) as the
+              transfer mechanism, and on the providers&apos; contractual commitments to
+              equivalent protection.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">6. Where data lives and how long we keep it</h2>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>
+                Account, service, and audit data: kept for as long as your account is
+                active, then deleted within 7 days of account-deletion request.
+              </li>
+              <li>
+                Encrypted SQLite backups: 14 daily, 8 weekly, 6 monthly snapshots, then
+                purged. Backups containing data of a deleted account age out of all
+                tiers within ~6 months of deletion.
+              </li>
+              <li>
+                Operational logs (request, sync, error): up to 30 days.
+              </li>
+              <li>
+                Sentry error events: 90 days (Sentry&apos;s default for free tier).
+              </li>
+              <li>
+                Uploaded passport images: not retained — discarded immediately after
+                Gemini extraction.
               </li>
             </ul>
           </section>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Guest passport data — your responsibility</h2>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">7. Cookies</h2>
             <p>
-              When you store a guest&apos;s passport details, you are the data controller
-              under GDPR for that information. Make sure you have a lawful basis to collect
-              and retain it, and respect your guests&apos; rights to access, rectify, and
-              delete. RentTools is the data processor and will act on instructions from
-              you (the controller) — including erasure.
+              We set exactly one cookie: a {`HTTP-only, Secure, SameSite=Lax`} session
+              cookie holding a 7-day JWT, used solely for authentication. We do not use
+              third-party analytics, advertising, social-media, or tracking cookies. We
+              do not need a cookie banner because we do not place non-essential cookies.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Children</h2>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">8. Your rights</h2>
             <p>
-              The service is intended for property owners and is not directed at children.
-              Don&apos;t create accounts on behalf of minors.
+              Under GDPR (and similar laws in the UK, California, Brazil, etc.) you have
+              the right to:
+            </p>
+            <ul className="list-disc space-y-2 pl-5 mt-2">
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Access</span> the personal
+                data we hold about you. Use Profile → Export my data for a JSON dump of
+                your full account.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Rectify</span> inaccurate
+                data — every field is editable in-app.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Erase</span> your data
+                (&quot;right to be forgotten&quot;) — Profile → Danger zone → Delete my
+                account. Removes everything tied to your account immediately, with
+                backup ageing as described above.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Port</span> your data to
+                another service — the Reports panel exports reservations as CSV, and the
+                full export above is JSON.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Restrict</span> or
+                <span className="font-medium text-[#e8e8ec]"> object</span> to processing
+                we base on legitimate interests. Email{" "}
+                <a href={`mailto:${OPERATOR_EMAIL}`} className="text-[#58a6ff] hover:underline">{OPERATOR_EMAIL}</a>{" "}
+                with the subject &quot;GDPR request&quot; and we will respond within 30
+                days.
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Withdraw consent</span>{" "}
+                where consent is the legal basis (e.g. when you have asked us to email
+                you about service changes — currently we don&apos;t).
+              </li>
+              <li>
+                <span className="font-medium text-[#e8e8ec]">Lodge a complaint</span>{" "}
+                with your national data-protection authority. EU users can find their
+                local authority at{" "}
+                <a href="https://edpb.europa.eu/about-edpb/about-edpb/members_en" target="_blank" rel="noopener noreferrer" className="text-[#58a6ff] hover:underline">
+                  edpb.europa.eu
+                </a>.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">9. Security</h2>
+            <p>
+              We protect your data with TLS 1.2+ in transit (Let&apos;s Encrypt
+              certificates, Cloudflare Full-Strict mode end-to-end), bcrypt password
+              hashing at rest, JWT-based session authentication with HTTP-only cookies,
+              IP-based rate limiting on auth endpoints, automated daily backups,
+              firewalled host access (ufw), brute-force protection (fail2ban), and
+              automatic security updates (unattended-upgrades). No system is 100% secure;
+              we will notify affected users without undue delay if we discover a breach
+              that puts your data at risk.
             </p>
           </section>
 
           <section>
-            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">Contact</h2>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">10. Guest passport data — your responsibility</h2>
             <p>
-              Questions or data-rights requests:{" "}
+              When you upload guest passports to RentTools you remain the data controller
+              under GDPR for that information. You must have your own lawful basis to
+              collect and retain it (typically a hospitality registration obligation
+              under your local law, sometimes consent), inform your guests, and respect
+              their rights to access, rectify, and erase the data you hold about them. We
+              act on your instructions only and will assist you in fulfilling guest data
+              requests.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">11. Children</h2>
+            <p>
+              The Service is intended for property owners and is not directed at
+              children. We do not knowingly collect personal data from anyone under 16.
+              Don&apos;t create an account on behalf of a minor. If you believe we have
+              data about a minor, contact us at{" "}
+              <a href={`mailto:${OPERATOR_EMAIL}`} className="text-[#58a6ff] hover:underline">{OPERATOR_EMAIL}</a>{" "}
+              and we will delete it.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">12. Automated decision-making</h2>
+            <p>
+              We do not make decisions about you with legal or similarly significant
+              effect using automated processing. Rate limits and the optional account-
+              suspension kill switch are operated manually by the maintainer.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">13. Changes to this policy</h2>
+            <p>
+              We may update this Policy when the Service changes or when laws change.
+              Material updates will be flagged inside the app and dated at the top of
+              this page. Continued use after changes go live means you accept the
+              updated Policy. Past versions are available in the public Git history of
+              the open-source repository.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">14. Contact</h2>
+            <p>
+              For any privacy question, data request, or complaint:
+            </p>
+            <p className="mt-2 font-mono text-[#e8e8ec]">{OPERATOR_EMAIL}</p>
+            <p className="mt-2">
+              You can also file a public issue at{" "}
               <a
                 href="https://github.com/Gribadan/RentTools.io/issues"
                 target="_blank"
@@ -163,7 +361,8 @@ export default function PrivacyPage() {
                 className="text-[#58a6ff] hover:underline"
               >
                 github.com/Gribadan/RentTools.io/issues
-              </a>.
+              </a>
+              {" "}— but please use email for anything that contains personal data.
             </p>
           </section>
         </div>
