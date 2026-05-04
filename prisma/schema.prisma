@@ -12,6 +12,8 @@ model User {
   username           String               @unique
   password           String
   role               String               @default("user") // "superadmin" | "user" | "cleaner"
+  email              String?              // optional; populated by Google sign-in (RT-16.5) or future profile edits
+  googleId           String?              @unique // Google subject (sub) ID — set when user signs in with Google
   createdAt          DateTime             @default(now())
   lastLoginAt        DateTime?
   suspendedAt        DateTime?

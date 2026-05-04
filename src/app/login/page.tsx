@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
+import { GoogleSignInButton } from "@/components/google-sign-in-button";
 
 // Only allow same-origin redirects (must start with "/" but not "//")
 function safeNext(raw: string | null): string {
@@ -29,6 +30,18 @@ function LoginPageInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Surface ?error=... from a failed Google callback redirect.
+  useEffect(() => {
+    const errParam = searchParams.get("error");
+    if (!errParam) return;
+    if (errParam === "access_denied") return; // user cancelled, not a failure
+    if (errParam === "account_suspended") {
+      setError(t("login.failed"));
+      return;
+    }
+    setError(t("login.googleError"));
+  }, [searchParams, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +84,14 @@ function LoginPageInner() {
         </div>
 
         <div className="rounded-lg border border-[#333338] bg-[#18181b] p-6">
+          <div className="mb-4 space-y-3">
+            <GoogleSignInButton next={next !== "/dashboard" ? next : undefined} label={t("login.continueWithGoogle")} />
+            <div className="flex items-center gap-3 text-xs text-[#71717a]">
+              <span className="h-px flex-1 bg-[#333338]" />
+              <span>{t("login.or")}</span>
+              <span className="h-px flex-1 bg-[#333338]" />
+            </div>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-sm text-[#d4d4d8]" htmlFor="username">{t("login.username")}</label>
