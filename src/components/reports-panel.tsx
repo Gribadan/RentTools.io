@@ -1,12 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
 
 interface ReportsPanelProps {
   properties: Property[];
+  onImported?: () => void;
+}
+
+interface ImportRowResult {
+  rowNumber: number;
+  status: "created" | "skipped" | "error";
+  reason?: string;
+  reservationId?: number;
+}
+
+interface ImportResponse {
+  summary: { created: number; skipped: number; error: number; dryRun: boolean };
+  results: ImportRowResult[];
 }
 
 interface MonthBucket {
@@ -74,7 +87,7 @@ function computeOccupancy(property: Property): MonthBucket[] {
   return buckets;
 }
 
-export function ReportsPanel({ properties }: ReportsPanelProps) {
+export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
   const { locale } = useI18n();
   const [propertyId, setPropertyId] = useState<number | null>(
     properties.length > 0 ? properties[0].id : null
@@ -82,6 +95,11 @@ export function ReportsPanel({ properties }: ReportsPanelProps) {
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
   const [exportScope, setExportScope] = useState<"all" | "selected">("all");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importBusy, setImportBusy] = useState<"dry" | "commit" | null>(null);
+  const [importResponse, setImportResponse] = useState<ImportResponse | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const selected = properties.find((p) => p.id === propertyId) || null;
 
@@ -103,6 +121,33 @@ export function ReportsPanel({ properties }: ReportsPanelProps) {
     if (exportScope === "selected" && propertyId) params.set("propertyId", String(propertyId));
     const qs = params.toString();
     window.location.href = `/api/reservations/export${qs ? `?${qs}` : ""}`;
+  };
+
+  const runImport = async (mode: "dry" | "commit") => {
+    if (!importFile) return;
+    setImportBusy(mode);
+    setImportError(null);
+    setImportResponse(null);
+    try {
+      const text = await importFile.text();
+      const url = `/api/reservations/import${mode === "dry" ? "?dryRun=true" : ""}`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/csv" },
+        body: text,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportError(data?.error || `HTTP ${res.status}`);
+      } else {
+        setImportResponse(data as ImportResponse);
+        if (mode === "commit" && onImported) onImported();
+      }
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Network error");
+    } finally {
+      setImportBusy(null);
+    }
   };
 
   return (
@@ -253,6 +298,110 @@ export function ReportsPanel({ properties }: ReportsPanelProps) {
             ? "Пустые поля = выгрузить все. Файл с UTF-8 BOM, открывается в Excel с кириллицей."
             : "Leave dates blank to export everything. UTF-8 BOM ensures Excel opens Cyrillic correctly."}
         </p>
+      </div>
+
+      {/* Reservations CSV import */}
+      <div className="rounded-xl border border-[#27272b] bg-[#18181b] p-4">
+        <h2 className="mb-3 text-sm font-semibold text-[#e8e8ec]">
+          {locale === "ru" ? "Импорт броней (CSV)" : "Import reservations (CSV)"}
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null;
+              setImportFile(f);
+              setImportResponse(null);
+              setImportError(null);
+            }}
+            className="hidden"
+          />
+          <button
+            onClick={() => importInputRef.current?.click()}
+            className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-xs text-[#e8e8ec] hover:border-[#e8e8ec]/50"
+          >
+            {locale === "ru" ? "Выбрать файл" : "Choose file"}
+          </button>
+          <span className="truncate text-xs text-[#a0a0a8]">
+            {importFile ? importFile.name : (locale === "ru" ? "Файл не выбран" : "No file chosen")}
+          </span>
+          <div className="ml-auto flex gap-2">
+            <button
+              onClick={() => runImport("dry")}
+              disabled={!importFile || importBusy !== null}
+              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-xs text-[#e8e8ec] hover:border-[#e8e8ec]/50 disabled:opacity-50"
+            >
+              {importBusy === "dry"
+                ? (locale === "ru" ? "Анализ..." : "Analyzing...")
+                : (locale === "ru" ? "Превью" : "Dry run")}
+            </button>
+            <button
+              onClick={() => runImport("commit")}
+              disabled={!importFile || importBusy !== null}
+              className="h-8 rounded-md bg-[#ff385c] px-3 text-xs font-medium text-white hover:bg-[#e0294d] disabled:opacity-50"
+            >
+              {importBusy === "commit"
+                ? (locale === "ru" ? "Импорт..." : "Importing...")
+                : (locale === "ru" ? "Импортировать" : "Import")}
+            </button>
+          </div>
+        </div>
+        <p className="mt-2 text-[11px] text-[#71717a]">
+          {locale === "ru"
+            ? "Колонки: propertyId, name, platform, checkIn, checkOut. Пересекающиеся брони пропускаются."
+            : "Required columns: propertyId, name, platform, checkIn, checkOut. Overlapping rows are skipped."}
+        </p>
+        {importError && (
+          <p className="mt-2 text-xs text-[#ef4444]">{importError}</p>
+        )}
+        {importResponse && (
+          <div className="mt-3 space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded bg-[#34d399]/15 px-2 py-0.5 text-[#34d399]">
+                {locale === "ru" ? "Создано" : "Created"}: {importResponse.summary.created}
+              </span>
+              <span className="rounded bg-[#fbbf24]/15 px-2 py-0.5 text-[#fbbf24]">
+                {locale === "ru" ? "Пропущено" : "Skipped"}: {importResponse.summary.skipped}
+              </span>
+              <span className="rounded bg-[#ef4444]/15 px-2 py-0.5 text-[#ef4444]">
+                {locale === "ru" ? "Ошибок" : "Errors"}: {importResponse.summary.error}
+              </span>
+              {importResponse.summary.dryRun && (
+                <span className="rounded bg-[#27272b] px-2 py-0.5 text-[#a0a0a8]">
+                  {locale === "ru" ? "Превью (без записи)" : "Dry run (no writes)"}
+                </span>
+              )}
+            </div>
+            <ul className="max-h-64 divide-y divide-[#27272b] overflow-y-auto rounded-md border border-[#27272b] bg-[#111113]">
+              {importResponse.results.map((r) => (
+                <li
+                  key={`${r.rowNumber}-${r.status}`}
+                  className="flex items-start justify-between gap-3 px-3 py-1.5 text-[11px]"
+                >
+                  <span className="shrink-0 font-mono text-[#71717a]">
+                    {locale === "ru" ? "Строка" : "Row"} {r.rowNumber}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded px-1.5 py-0.5 ${
+                      r.status === "created"
+                        ? "bg-[#34d399]/15 text-[#34d399]"
+                        : r.status === "skipped"
+                        ? "bg-[#fbbf24]/15 text-[#fbbf24]"
+                        : "bg-[#ef4444]/15 text-[#ef4444]"
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                  <span className="flex-1 truncate text-right text-[#a0a0a8]">
+                    {r.reason || (r.reservationId ? `#${r.reservationId}` : "")}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
