@@ -100,7 +100,17 @@ export function generateICal(
     "METHOD:PUBLISH",
   ];
 
-  for (const event of events) {
+  // Some platforms (older Booking.com importers in particular) reject a
+  // VCALENDAR with zero VEVENTs. Emit a single far-past placeholder so the
+  // feed always validates while the property has no real bookings to share.
+  const eventsToEmit: ICalEvent[] = events.length > 0 ? events : [{
+    uid: "renttools-placeholder",
+    summary: "RentTools placeholder",
+    startDate: "1970-01-01",
+    endDate: "1970-01-02",
+  }];
+
+  for (const event of eventsToEmit) {
     const dtstart = event.startDate.replace(/-/g, "");
     const dtend = event.endDate.replace(/-/g, "");
     // Sanitize UID and summary for iCal compatibility (ASCII only, no special chars)

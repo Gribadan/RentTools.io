@@ -113,6 +113,18 @@ describe("generateICal", () => {
     expect(parsed[0].startDate).toBe("2026-07-01");
     expect(parsed[0].endDate).toBe("2026-07-05");
   });
+
+  it("emits a far-past placeholder VEVENT when given an empty events list", () => {
+    const out = generateICal([]);
+    expect(out).toContain("BEGIN:VCALENDAR");
+    expect(out).toContain("END:VCALENDAR");
+    const parsed = parseICal(out);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].uid).toBe("renttools-placeholder");
+    expect(parsed[0].startDate).toBe("1970-01-01");
+    // Past placeholder must not collide with any real future booking date
+    expect(parsed[0].startDate < "2026-01-01").toBe(true);
+  });
 });
 
 describe("generateBufferedEvents", () => {
