@@ -254,7 +254,7 @@ function AppContent({
     }
 
     if (activeView === "reports") {
-      return <ReportsPanel properties={properties} />;
+      return <ReportsPanel properties={properties} onImported={fetchProperties} />;
     }
 
     // Property views
