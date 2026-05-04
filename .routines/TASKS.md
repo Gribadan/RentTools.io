@@ -387,7 +387,7 @@
   - At render time, replace with public download URL (signed if Vercel Blob, plain URL if dev)
   - Acceptance criteria: rendered template includes working links to property documents
 
-- [ ] **RT-11.5** Quick guest search across all properties
+- [x] **RT-11.5** Quick guest search across all properties
   - File: `src/app/api/guests/search/route.ts` (new) — GET `?q=` searches by fullName, passportNumber, country across all guests of properties owned by current user
   - File: `src/components/top-bar.tsx` — add a search input (cmd-K trigger) that opens a results dropdown
   - Acceptance criteria: typing a guest name shows matches across all properties; clicking opens the reservation
@@ -491,3 +491,4 @@
 - 2026-05-04 — RT-10.5 — 3ac6a0d — printable Today/Tomorrow/Week cleaning summary modal wired into PropertyCleaningView + CleanerApp
 - 2026-05-04 — RT-11.1 — 06347b0 — MessageTemplate table + /api/message-templates + MessageTemplatesPanel with variable preview in SyncSettings
 - 2026-05-04 — RT-11.2 — a45e75c — generate-message dropdown on reservation view with rendered preview + copy-to-clipboard
+- 2026-05-04 — RT-11.5 — 3654eaf — /api/guests/search + top-bar guest search with Cmd-K shortcut and debounced dropdown
