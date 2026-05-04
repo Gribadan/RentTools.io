@@ -409,6 +409,52 @@ CREATE UNIQUE INDEX IF NOT EXISTS "DateOverride_propertyId_date_key" ON "DateOve
     }
   }
 
+  // SiteSetting — global key/value config for admin panel
+  const siteSettingSchema = `
+CREATE TABLE IF NOT EXISTS "SiteSetting" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "updatedAt" DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "SiteSetting_key_key" ON "SiteSetting"("key");
+`;
+
+  const siteSettingStatements = siteSettingSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of siteSettingStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
+  // Seed default SiteSetting keys (idempotent — only inserts if missing)
+  const siteSettingDefaults: Array<{ key: string; value: string }> = [
+    { key: "signup_enabled", value: "true" },
+    { key: "extraction_per_user_daily_limit", value: "20" },
+    { key: "landing_announcement", value: "" },
+    { key: "support_email", value: "" },
+  ];
+  for (const { key, value } of siteSettingDefaults) {
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "SiteSetting" ("key", "value") VALUES (?, ?) ON CONFLICT("key") DO NOTHING`,
+        key,
+        value,
+      );
+      console.log("OK: seed SiteSetting", key);
+    } catch (err) {
+      console.error("Seed failed for", key, err);
+    }
+  }
+
   console.log("\nSchema pushed to Turso successfully!");
 }
 
