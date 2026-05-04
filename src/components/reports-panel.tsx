@@ -79,6 +79,9 @@ export function ReportsPanel({ properties }: ReportsPanelProps) {
   const [propertyId, setPropertyId] = useState<number | null>(
     properties.length > 0 ? properties[0].id : null
   );
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
+  const [exportScope, setExportScope] = useState<"all" | "selected">("all");
 
   const selected = properties.find((p) => p.id === propertyId) || null;
 
@@ -92,6 +95,15 @@ export function ReportsPanel({ properties }: ReportsPanelProps) {
     const sum = data.reduce((acc, b) => acc + b.occupancyPct, 0);
     return Math.round(sum / data.length);
   }, [data]);
+
+  const downloadCsv = () => {
+    const params = new URLSearchParams();
+    if (exportFrom) params.set("from", exportFrom);
+    if (exportTo) params.set("to", exportTo);
+    if (exportScope === "selected" && propertyId) params.set("propertyId", String(propertyId));
+    const qs = params.toString();
+    window.location.href = `/api/reservations/export${qs ? `?${qs}` : ""}`;
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
@@ -185,6 +197,63 @@ export function ReportsPanel({ properties }: ReportsPanelProps) {
           {locale === "ru" ? "Добавьте объект, чтобы видеть отчёты." : "Add a property to see reports."}
         </div>
       )}
+
+      {/* Reservations CSV export */}
+      <div className="rounded-xl border border-[#27272b] bg-[#18181b] p-4">
+        <h2 className="mb-3 text-sm font-semibold text-[#e8e8ec]">
+          {locale === "ru" ? "Экспорт броней (CSV)" : "Export reservations (CSV)"}
+        </h2>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-wider text-[#71717a]">
+              {locale === "ru" ? "С" : "From"}
+            </label>
+            <input
+              type="date"
+              value={exportFrom}
+              onChange={(e) => setExportFrom(e.target.value)}
+              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-wider text-[#71717a]">
+              {locale === "ru" ? "По" : "To"}
+            </label>
+            <input
+              type="date"
+              value={exportTo}
+              onChange={(e) => setExportTo(e.target.value)}
+              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] uppercase tracking-wider text-[#71717a]">
+              {locale === "ru" ? "Объекты" : "Scope"}
+            </label>
+            <select
+              value={exportScope}
+              onChange={(e) => setExportScope(e.target.value as "all" | "selected")}
+              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+            >
+              <option value="all">{locale === "ru" ? "Все объекты" : "All properties"}</option>
+              <option value="selected" disabled={!selected}>
+                {selected ? selected.name : locale === "ru" ? "Только выбранный" : "Selected only"}
+              </option>
+            </select>
+          </div>
+          <button
+            onClick={downloadCsv}
+            className="ml-auto h-8 rounded-md bg-[#ff385c] px-3 text-xs font-medium text-white hover:bg-[#e0294d]"
+          >
+            {locale === "ru" ? "Скачать CSV" : "Export reservations CSV"}
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] text-[#71717a]">
+          {locale === "ru"
+            ? "Пустые поля = выгрузить все. Файл с UTF-8 BOM, открывается в Excel с кириллицей."
+            : "Leave dates blank to export everything. UTF-8 BOM ensures Excel opens Cyrillic correctly."}
+        </p>
+      </div>
     </div>
   );
 }
