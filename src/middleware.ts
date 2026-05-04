@@ -1,11 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { log } from "@/lib/logger";
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET || "fallback-secret-change-me";
 const SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
 const IS_DEFAULT_SECRET = JWT_SECRET_RAW === "fallback-secret-change-me";
 
 const PUBLIC_PATHS = ["/login", "/signup", "/api/auth/login", "/api/auth/signup", "/api/calendar/feed", "/api/calendar/cron"];
+
+function clientIpFromRequest(request: NextRequest): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return request.headers.get("x-real-ip") || "unknown";
+}
+
+function logRequest(
+  request: NextRequest,
+  response: NextResponse,
+  startedAt: number,
+  userId?: number
+) {
+  log({
+    msg: "http",
+    method: request.method,
+    path: request.nextUrl.pathname,
+    status: response.status,
+    durationMs: Date.now() - startedAt,
+    userId: userId ?? null,
+    ip: clientIpFromRequest(request),
+  });
+}
 
 // Security headers applied to every response
 function withSecurityHeaders(response: NextResponse): NextResponse {
@@ -23,18 +47,23 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const startedAt = Date.now();
 
   // Refuse to authenticate against the default secret in production
   if (IS_DEFAULT_SECRET && process.env.NODE_ENV === "production" && !PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
-    return new NextResponse("JWT_SECRET not configured. Set the JWT_SECRET env var to a strong random string.", { status: 500 });
+    const r = new NextResponse("JWT_SECRET not configured. Set the JWT_SECRET env var to a strong random string.", { status: 500 });
+    logRequest(request, r as NextResponse, startedAt);
+    return r;
   }
 
   // Allow public paths
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    return withSecurityHeaders(NextResponse.next());
+    const r = withSecurityHeaders(NextResponse.next());
+    logRequest(request, r, startedAt);
+    return r;
   }
 
-  // Allow static assets and Next.js internals
+  // Allow static assets and Next.js internals (skip logging — too noisy)
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
@@ -46,21 +75,27 @@ export async function middleware(request: NextRequest) {
   // Check session cookie
   const token = request.cookies.get("rent-tool-session")?.value;
   if (!token) {
-    // API routes return 401, pages redirect to login
-    if (pathname.startsWith("/api/")) {
-      return withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
+    const r = pathname.startsWith("/api/")
+      ? withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }))
+      : NextResponse.redirect(new URL("/login", request.url));
+    logRequest(request, r, startedAt);
+    return r;
   }
 
   try {
-    await jwtVerify(token, SECRET);
-    return withSecurityHeaders(NextResponse.next());
+    const { payload } = await jwtVerify(token, SECRET);
+    const userId = typeof (payload as { userId?: unknown }).userId === "number"
+      ? (payload as { userId: number }).userId
+      : undefined;
+    const r = withSecurityHeaders(NextResponse.next());
+    logRequest(request, r, startedAt, userId);
+    return r;
   } catch {
-    if (pathname.startsWith("/api/")) {
-      return withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
-    }
-    return NextResponse.redirect(new URL("/login", request.url));
+    const r = pathname.startsWith("/api/")
+      ? withSecurityHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }))
+      : NextResponse.redirect(new URL("/login", request.url));
+    logRequest(request, r, startedAt);
+    return r;
   }
 }
 
