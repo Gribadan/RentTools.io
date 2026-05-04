@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,26 @@ interface LogEntry {
   type: "info" | "success" | "error" | "processing";
 }
 
+interface MessageTemplate {
+  id: number;
+  propertyId: number;
+  name: string;
+  language: string;
+  subject: string;
+  body: string;
+  sendOffsetDays: number;
+}
+
+function renderTemplate(input: string, vars: Record<string, string>): string {
+  return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) =>
+    Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : `{{${k}}}`
+  );
+}
+
 interface ReservationViewProps {
   reservation: Reservation;
   guests: Guest[];
+  propertyName?: string;
   onGuestsUpdated: () => void;
   onDeleteGuest: (id: number) => void;
   onUpdateReservation: (
@@ -30,6 +47,7 @@ interface ReservationViewProps {
 export function ReservationView({
   reservation,
   guests,
+  propertyName,
   onGuestsUpdated,
   onDeleteGuest,
   onUpdateReservation,
@@ -56,7 +74,75 @@ export function ReservationView({
   const [editPlatform, setEditPlatform] = useState(
     reservation.platform || "airbnb"
   );
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [activeTemplate, setActiveTemplate] = useState<MessageTemplate | null>(null);
+  const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   const logRef = useRef<HTMLDivElement>(null);
+  const templateMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/message-templates?propertyId=${reservation.propertyId}`)
+      .then((r) => (r.ok ? r.json() : { templates: [] }))
+      .then((d) => {
+        if (!cancelled) setTemplates((d.templates || []) as MessageTemplate[]);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [reservation.propertyId]);
+
+  useEffect(() => {
+    if (!templatePickerOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+        setTemplatePickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [templatePickerOpen]);
+
+  const formatIsoDate = (s: string) => new Date(s).toISOString().split("T")[0];
+
+  const templateVars = (): Record<string, string> => ({
+    guestName: reservation.name,
+    checkIn: formatIsoDate(reservation.checkIn),
+    checkOut: formatIsoDate(reservation.checkOut),
+    propertyName: propertyName || "",
+    wifiPassword: "",
+  });
+
+  const renderedSubject = activeTemplate
+    ? renderTemplate(activeTemplate.subject, templateVars())
+    : "";
+  const renderedBody = activeTemplate
+    ? renderTemplate(activeTemplate.body, templateVars())
+    : "";
+
+  const pickTemplate = (t: MessageTemplate) => {
+    setActiveTemplate(t);
+    setTemplatePickerOpen(false);
+    setCopyState("idle");
+  };
+
+  const copyMessage = async () => {
+    if (!activeTemplate) return;
+    const text = renderedSubject
+      ? `${renderedSubject}\n\n${renderedBody}`
+      : renderedBody;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      // clipboard blocked — fall back to selecting the textarea
+      const ta = document.getElementById("rendered-message-body") as HTMLTextAreaElement | null;
+      ta?.select();
+    }
+  };
 
   const addLog = (message: string, type: LogEntry["type"] = "info") => {
     const time = new Date().toLocaleTimeString("en-GB", {
@@ -472,19 +558,111 @@ export function ReservationView({
         </div>
       )}
 
-      {/* Guests */}
-      {guests.length > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={exportGuestsCsv}
-            className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[#a0a0a8] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[#e8e8ec]"
-            title="Export all guest data to CSV"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            Export CSV
-          </button>
+      {/* Guests action row */}
+      {(guests.length > 0 || templates.length > 0) && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {templates.length > 0 && (
+            <div className="relative" ref={templateMenuRef}>
+              <button
+                onClick={() => setTemplatePickerOpen((v) => !v)}
+                className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[#a0a0a8] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[#e8e8ec]"
+                title="Generate a message from a saved template"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 12c0 4.97-4.03 9-9 9-1.41 0-2.74-.32-3.92-.9L3 21l.9-5.08A8.96 8.96 0 013 12c0-4.97 4.03-9 9-9s9 4.03 9 9z" />
+                </svg>
+                Generate message
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+              {templatePickerOpen && (
+                <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-md border border-[#27272b] bg-[#111113] shadow-lg">
+                  <ul className="max-h-72 overflow-y-auto py-1">
+                    {templates.map((t) => (
+                      <li key={t.id}>
+                        <button
+                          onClick={() => pickTemplate(t)}
+                          className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs text-[#e8e8ec] hover:bg-[#1a1a1d]"
+                        >
+                          <span className="mt-0.5 rounded bg-[#27272b] px-1.5 py-0.5 text-[10px] uppercase text-[#a0a0a8]">
+                            {t.language}
+                          </span>
+                          <span className="flex-1">
+                            <span className="font-medium">{t.name}</span>
+                            {t.subject && (
+                              <span className="block truncate text-[11px] text-[#71717a]">
+                                {t.subject}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {guests.length > 0 && (
+            <button
+              onClick={exportGuestsCsv}
+              className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[#a0a0a8] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[#e8e8ec]"
+              title="Export all guest data to CSV"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Export CSV
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Rendered template preview */}
+      {activeTemplate && (
+        <div className="rounded-xl border border-[#27272b] bg-[#111113]">
+          <div className="flex items-center justify-between border-b border-border/30 px-4 py-2.5">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium text-[#e8e8ec]">{activeTemplate.name}</span>
+              <span className="rounded bg-[#27272b] px-1.5 py-0.5 text-[10px] uppercase text-[#a0a0a8]">
+                {activeTemplate.language}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={copyMessage}
+                className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                  copyState === "copied"
+                    ? "bg-[#34d399]/15 text-[#34d399]"
+                    : "bg-[#ff385c] text-white hover:bg-[#e0294d]"
+                }`}
+              >
+                {copyState === "copied" ? "Copied!" : "Copy"}
+              </button>
+              <button
+                onClick={() => setActiveTemplate(null)}
+                className="rounded-md p-1 text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground"
+                aria-label="Close template preview"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="space-y-2 p-4 text-xs">
+            {renderedSubject && (
+              <div className="font-semibold text-[#e8e8ec]">{renderedSubject}</div>
+            )}
+            <textarea
+              id="rendered-message-body"
+              readOnly
+              value={renderedBody}
+              rows={Math.min(Math.max(renderedBody.split("\n").length + 1, 4), 16)}
+              className="w-full resize-y rounded-md border border-[#27272b] bg-[#0d1117] px-3 py-2 font-sans text-[#d4d4d8] outline-none focus:border-[#333338]"
+            />
+          </div>
         </div>
       )}
       <GuestCards
