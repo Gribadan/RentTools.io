@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import { useI18n } from "@/lib/i18n/context";
 import type { CalendarLink, SyncLogEntry } from "@/lib/types";
 
@@ -207,9 +208,17 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
               {/* Step 1: Export URL from platform */}
               <div className="space-y-2">
-                <label className="text-xs text-[#a0a0a8]">
-                  {t("sync.icalLabel")} {label}
-                </label>
+                {platform === "airbnb" && !isConnected ? (
+                  <OnboardingTooltip id={`ical-url:${propertyId}`} text={t("tooltip.icalUrl")}>
+                    <label className="text-xs text-[#a0a0a8]">
+                      {t("sync.icalLabel")} {label}
+                    </label>
+                  </OnboardingTooltip>
+                ) : (
+                  <label className="text-xs text-[#a0a0a8]">
+                    {t("sync.icalLabel")} {label}
+                  </label>
+                )}
                 <div className="flex gap-1.5">
                   <input
                     value={url}

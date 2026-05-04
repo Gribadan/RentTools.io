@@ -61,6 +61,10 @@ export const translations = {
   "empty.sync.title": { en: "Not connected", ru: "Не подключено" },
   "empty.sync.desc": { en: "Connect Airbnb or Booking.com to start syncing reservations.", ru: "Подключите Airbnb или Booking.com, чтобы начать синхронизацию." },
 
+  // Onboarding tooltips
+  "tooltip.editDates": { en: "Click any date to override its status.", ru: "Нажмите на дату, чтобы изменить её статус." },
+  "tooltip.icalUrl": { en: "Paste your Airbnb iCal export URL here.", ru: "Вставьте сюда iCal-ссылку из Airbnb." },
+
   // Sidebar
   "sidebar.title": { en: "Rent Tool", ru: "Rent Tool" },
   "sidebar.subtitle": { en: "Properties & guests", ru: "Объекты и гости" },
