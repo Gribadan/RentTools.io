@@ -329,7 +329,7 @@
 
 > Real properties have real cleaners. Make the cleaning schedule actionable beyond "here's a list of dates."
 
-- [ ] **RT-10.1** Cleaner role + simplified login view
+- [x] **RT-10.1** Cleaner role + simplified login view
   - File: `prisma/schema.prisma` — User role can be "user" | "cleaner" | "superadmin"
   - File: `src/app/page.tsx` — when `user.role === "cleaner"`, render a stripped-down view: only the cleaning schedule across assigned properties, no settings/sync/guests
   - Acceptance criteria: a cleaner-role user sees only cleaning data; cannot navigate to settings or guest details
@@ -482,3 +482,4 @@
 - 2026-05-04 — RT-9.2 — a3c88dc — public /api/health endpoint with DB ping + 2h sync-staleness check; returns 503 on failure
 - 2026-05-04 — RT-9.4 — 821c53c — CalendarLink.failureCount + alertsDismissedAt watermark; [ALERT] SyncLog rows surfaced via SyncAlertsBanner
 - 2026-05-04 — RT-9.5 — 1bd61f2 — AuditLog table + logAudit helper + /api/audit + AuditPanel reachable from Profile
+- 2026-05-04 — RT-10.1 — 1bc29e1 — cleaner role short-circuits to CleanerApp with cleaning-only dashboard view
