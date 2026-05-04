@@ -155,6 +155,26 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
           Recent activity
         </button>
 
+        <button
+          type="button"
+          onClick={async () => {
+            const res = await fetch("/api/auth/export-data");
+            if (!res.ok) return;
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `rent-tool-data-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+          }}
+          className="mt-2 h-9 w-full rounded-md border border-[#333338] text-sm text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+        >
+          Download my data
+        </button>
+
         <div className="mt-6 border-t border-[#27272b] pt-4">
           <h3 className="text-sm font-semibold text-[#e8e8ec]">Danger zone</h3>
           <p className="mt-1 text-xs text-[#a0a0a8]">
