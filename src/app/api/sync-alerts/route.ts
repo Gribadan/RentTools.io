@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { listAccessiblePropertyIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,7 @@ export async function GET() {
       select: { alertsDismissedAt: true },
     });
 
-    const ownedProperties = await prisma.property.findMany({
-      where: { userId: session.userId },
-      select: { id: true },
-    });
-    const propertyIds = ownedProperties.map((p) => p.id);
+    const propertyIds = await listAccessiblePropertyIds(session.userId, session.role);
 
     if (propertyIds.length === 0) {
       return NextResponse.json({ alerts: [] });

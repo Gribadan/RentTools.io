@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { listAccessiblePropertyIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +15,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
+    const accessibleIds = await listAccessiblePropertyIds(session.userId, session.role);
+    if (accessibleIds.length === 0) {
+      return NextResponse.json({ results: [] });
+    }
+
     const guests = await prisma.guest.findMany({
       where: {
-        reservation: { property: { userId: session.userId } },
+        reservation: { property: { id: { in: accessibleIds } } },
         OR: [
           { fullName: { contains: q } },
           { passportNumber: { contains: q } },

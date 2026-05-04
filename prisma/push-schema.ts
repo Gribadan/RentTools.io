@@ -227,6 +227,38 @@ CREATE INDEX IF NOT EXISTS "CleanerAssignment_propertyId_idx" ON "CleanerAssignm
     }
   }
 
+  // PropertyManager table — owner grants management rights to other users
+  const managerSchema = `
+CREATE TABLE IF NOT EXISTS "PropertyManager" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "managerId" INTEGER NOT NULL,
+    "grantedById" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PropertyManager_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PropertyManager_managerId_fkey" FOREIGN KEY ("managerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "PropertyManager_grantedById_fkey" FOREIGN KEY ("grantedById") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PropertyManager_managerId_propertyId_key" ON "PropertyManager"("managerId", "propertyId");
+CREATE INDEX IF NOT EXISTS "PropertyManager_propertyId_idx" ON "PropertyManager"("propertyId");
+CREATE INDEX IF NOT EXISTS "PropertyManager_managerId_idx" ON "PropertyManager"("managerId");
+`;
+
+  const managerStatements = managerSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of managerStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // MessageTemplate table — guest pre/post-arrival templates per property
   const messageTemplateSchema = `
 CREATE TABLE IF NOT EXISTS "MessageTemplate" (

@@ -16,6 +16,8 @@ model User {
   alertsDismissedAt  DateTime?
   properties         Property[]
   cleanerAssignments CleanerAssignment[]  @relation("CleanerAssignments")
+  managedProperties  PropertyManager[]    @relation("ManagerAssignments")
+  grantedManagers    PropertyManager[]    @relation("ManagerGrants")
 }
 
 model AppSettings {
@@ -42,8 +44,24 @@ model Property {
   cleanerAssignments CleanerAssignment[]
   cleaningRecords    CleaningRecord[]
   messageTemplates   MessageTemplate[]
+  managers           PropertyManager[]
 
   @@index([userId])
+}
+
+model PropertyManager {
+  id          Int      @id @default(autoincrement())
+  propertyId  Int
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  managerId   Int
+  manager     User     @relation("ManagerAssignments", fields: [managerId], references: [id], onDelete: Cascade)
+  grantedById Int
+  grantedBy   User     @relation("ManagerGrants", fields: [grantedById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([managerId, propertyId])
+  @@index([propertyId])
+  @@index([managerId])
 }
 
 model MessageTemplate {

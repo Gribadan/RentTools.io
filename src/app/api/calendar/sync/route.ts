@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { syncAllCalendars } from "@/lib/calendar-sync";
 import { getSession } from "@/lib/auth";
+import { canReadProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 
 // POST /api/calendar/sync — trigger a manual sync
 // NOTE: this still triggers a sync across all calendar links in the system; downstream
@@ -42,26 +43,14 @@ export async function GET(request: NextRequest) {
     const propertyId = request.nextUrl.searchParams.get("propertyId");
     const limit = Number(request.nextUrl.searchParams.get("limit") || "50");
 
-    // Resolve which propertyIds the current user can access — owners via Property.userId,
-    // cleaners via CleanerAssignment. Logs/events are scoped to that set
-    // (logs without propertyId are global — keep them visible to everyone authenticated).
-    const ownedIds = session.role === "cleaner"
-      ? (
-          await prisma.cleanerAssignment.findMany({
-            where: { cleanerId: session.userId },
-            select: { propertyId: true },
-          })
-        ).map((a) => a.propertyId)
-      : (
-          await prisma.property.findMany({
-            where: { userId: session.userId },
-            select: { id: true },
-          })
-        ).map((p) => p.id);
+    // Resolve which propertyIds the current user can access (owner / manager /
+    // cleaner). Logs/events are scoped to that set (logs without propertyId are
+    // global — keep them visible to everyone authenticated).
+    const ownedIds = await listAccessiblePropertyIds(session.userId, session.role);
 
     if (propertyId) {
       const numId = Number(propertyId);
-      if (!ownedIds.includes(numId)) {
+      if (!(await canReadProperty(numId, session.userId, session.role))) {
         return NextResponse.json({ logs: [], events: [] });
       }
     }

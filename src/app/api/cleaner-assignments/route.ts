@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { isPropertyOwner } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid propertyId" }, { status: 400 });
     }
 
-    const property = await prisma.property.findUnique({
-      where: { id: propertyId },
-      select: { userId: true },
-    });
-    if (!property || property.userId !== session.userId) {
+    if (!(await isPropertyOwner(propertyId, session.userId))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -64,11 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const property = await prisma.property.findUnique({
-      where: { id: Number(propertyId) },
-      select: { userId: true },
-    });
-    if (!property || property.userId !== session.userId) {
+    if (!(await isPropertyOwner(Number(propertyId), session.userId))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

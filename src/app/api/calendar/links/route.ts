@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty } from "@/lib/ownership";
 
 // GET /api/calendar/links?propertyId=1
 export async function GET(request: NextRequest) {
@@ -11,9 +12,19 @@ export async function GET(request: NextRequest) {
 
     const propertyId = request.nextUrl.searchParams.get("propertyId");
 
-    const baseFilter = session.role === "cleaner"
-      ? { property: { cleanerAssignments: { some: { cleanerId: session.userId } } } }
-      : { property: { userId: session.userId } };
+    // Cleaners have no calendar-links access; only owners and managers do.
+    if (session.role === "cleaner") {
+      return NextResponse.json([]);
+    }
+
+    const baseFilter = {
+      property: {
+        OR: [
+          { userId: session.userId },
+          { managers: { some: { managerId: session.userId } } },
+        ],
+      },
+    };
 
     const where = propertyId
       ? { propertyId: Number(propertyId), ...baseFilter }
@@ -55,11 +66,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const owner = await prisma.property.findUnique({
-      where: { id: Number(propertyId) },
-      select: { userId: true },
-    });
-    if (!owner || owner.userId !== session.userId) {
+    if (!(await canManageProperty(Number(propertyId), session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

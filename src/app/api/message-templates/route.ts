@@ -1,16 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { canManageProperty } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
-
-async function ownsProperty(propertyId: number, userId: number) {
-  const p = await prisma.property.findUnique({
-    where: { id: propertyId },
-    select: { userId: true },
-  });
-  return !!p && p.userId === userId;
-}
 
 export async function GET(request: NextRequest) {
   try {

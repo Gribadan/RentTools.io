@@ -36,6 +36,7 @@ export interface Reservation {
 
 export interface Property {
   id: number;
+  userId: number; // owner
   name: string;
   minNights: number;
   checkInTime: string;  // "HH:MM" — guest arrival time, e.g. "14:00"

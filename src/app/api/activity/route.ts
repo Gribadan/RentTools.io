@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { listAccessiblePropertyIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -52,11 +53,14 @@ export async function GET() {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const ownedProperties = await prisma.property.findMany({
-      where: { userId: session.userId },
-      select: { id: true, name: true },
-    });
-    const propertyMap = new Map(ownedProperties.map((p) => [p.id, p.name]));
+    const accessibleIds = await listAccessiblePropertyIds(session.userId, session.role);
+    const accessibleProperties = accessibleIds.length
+      ? await prisma.property.findMany({
+          where: { id: { in: accessibleIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const propertyMap = new Map(accessibleProperties.map((p) => [p.id, p.name]));
     const propertyIds = Array.from(propertyMap.keys());
 
     const [audits, syncs] = await Promise.all([

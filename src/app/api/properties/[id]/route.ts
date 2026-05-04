@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty, isPropertyOwner } from "@/lib/ownership";
 
 export async function PATCH(
   request: NextRequest,
@@ -15,8 +16,7 @@ export async function PATCH(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const existing = await prisma.property.findUnique({ where: { id: numId }, select: { userId: true } });
-    if (!existing || existing.userId !== session.userId) {
+    if (!(await canManageProperty(numId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -53,8 +53,8 @@ export async function DELETE(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const existing = await prisma.property.findUnique({ where: { id: numId }, select: { userId: true } });
-    if (!existing || existing.userId !== session.userId) {
+    // Only the owner can delete a property — managers cannot.
+    if (!(await isPropertyOwner(numId, session.userId))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

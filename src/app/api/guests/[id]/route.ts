@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { stripSpaces, sanitizeAlphanumeric } from "@/lib/sanitize";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty } from "@/lib/ownership";
 
 const ALLOWED_STRING_FIELDS = [
   "fullName",
@@ -21,15 +22,16 @@ const ALLOWED_STRING_FIELDS = [
   "visaTo",
 ] as const;
 
-async function loadOwnedGuest(guestId: number, userId: number) {
+async function loadManageableGuest(guestId: number, userId: number, role: string) {
   const guest = await prisma.guest.findUnique({
     where: { id: guestId },
     select: {
       id: true,
-      reservation: { select: { property: { select: { userId: true } } } },
+      reservation: { select: { propertyId: true } },
     },
   });
-  if (!guest || guest.reservation.property.userId !== userId) return null;
+  if (!guest) return null;
+  if (!(await canManageProperty(guest.reservation.propertyId, userId, role))) return null;
   return guest;
 }
 
@@ -45,7 +47,7 @@ export async function PATCH(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedGuest(numId, session.userId);
+    const owned = await loadManageableGuest(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await request.json();
@@ -93,7 +95,7 @@ export async function DELETE(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedGuest(numId, session.userId);
+    const owned = await loadManageableGuest(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.guest.delete({ where: { id: numId } });

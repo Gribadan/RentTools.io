@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import { CleanerAssignmentSection } from "@/components/cleaner-assignment-section";
 import { MessageTemplatesPanel } from "@/components/message-templates-panel";
+import { PropertyManagersPanel } from "@/components/property-managers-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { CalendarLink, SyncLogEntry } from "@/lib/types";
 
@@ -24,10 +25,11 @@ interface SyncSettingsProps {
   checkInTime: string;
   checkOutTime: string;
   bookingWindow: number;
+  ownerUserId: number;
   onUpdateProperty: (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => void;
 }
 
-export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, bookingWindow, onUpdateProperty }: SyncSettingsProps) {
+export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, bookingWindow, ownerUserId, onUpdateProperty }: SyncSettingsProps) {
   const { t, locale } = useI18n();
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
@@ -425,6 +427,9 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
           </div>
         </div>
       </div>
+
+      {/* Property Managers */}
+      <PropertyManagersPanel propertyId={propertyId} ownerUserId={ownerUserId} />
 
       {/* Sync Log */}
       {logs.length > 0 && (

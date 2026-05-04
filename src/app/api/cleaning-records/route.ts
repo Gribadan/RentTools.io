@@ -1,27 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { canReadProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
-
-async function userCanReadProperty(
-  propertyId: number,
-  userId: number,
-  role: string
-): Promise<boolean> {
-  if (role === "cleaner") {
-    const a = await prisma.cleanerAssignment.findUnique({
-      where: { cleanerId_propertyId: { cleanerId: userId, propertyId } },
-      select: { id: true },
-    });
-    return !!a;
-  }
-  const p = await prisma.property.findUnique({
-    where: { id: propertyId },
-    select: { userId: true },
-  });
-  return !!p && p.userId === userId;
-}
 
 // GET /api/cleaning-records?propertyId=X[&propertyIds=1,2,3] — list records for accessible properties
 export async function GET(request: NextRequest) {
@@ -38,7 +20,7 @@ export async function GET(request: NextRequest) {
       if (isNaN(numId)) {
         return NextResponse.json({ error: "Invalid propertyId" }, { status: 400 });
       }
-      if (!(await userCanReadProperty(numId, session.userId, session.role))) {
+      if (!(await canReadProperty(numId, session.userId, session.role))) {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
       }
       scopedIds = [numId];
@@ -48,26 +30,12 @@ export async function GET(request: NextRequest) {
         .map((s) => parseInt(s.trim()))
         .filter((n) => !isNaN(n));
       const allowed = await Promise.all(
-        ids.map((id) => userCanReadProperty(id, session.userId, session.role))
+        ids.map((id) => canReadProperty(id, session.userId, session.role))
       );
       scopedIds = ids.filter((_, i) => allowed[i]);
     } else {
       // No filter: return everything the user can access
-      if (session.role === "cleaner") {
-        scopedIds = (
-          await prisma.cleanerAssignment.findMany({
-            where: { cleanerId: session.userId },
-            select: { propertyId: true },
-          })
-        ).map((a) => a.propertyId);
-      } else {
-        scopedIds = (
-          await prisma.property.findMany({
-            where: { userId: session.userId },
-            select: { id: true },
-          })
-        ).map((p) => p.id);
-      }
+      scopedIds = await listAccessiblePropertyIds(session.userId, session.role);
     }
 
     if (scopedIds.length === 0) {
@@ -107,7 +75,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const numId = Number(propertyId);
-    if (!(await userCanReadProperty(numId, session.userId, session.role))) {
+    if (!(await canReadProperty(numId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

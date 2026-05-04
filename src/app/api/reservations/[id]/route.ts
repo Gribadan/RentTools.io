@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty } from "@/lib/ownership";
 
-async function loadOwnedReservation(reservationId: number, userId: number) {
+async function loadManageableReservation(
+  reservationId: number,
+  userId: number,
+  role: string
+) {
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    select: { id: true, property: { select: { userId: true } } },
+    select: { id: true, propertyId: true },
   });
-  if (!reservation || reservation.property.userId !== userId) return null;
+  if (!reservation) return null;
+  if (!(await canManageProperty(reservation.propertyId, userId, role))) return null;
   return reservation;
 }
 
@@ -24,7 +30,7 @@ export async function PATCH(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedReservation(numId, session.userId);
+    const owned = await loadManageableReservation(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const body = await request.json();
@@ -59,7 +65,7 @@ export async function DELETE(
     const numId = parseInt(id);
     if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-    const owned = await loadOwnedReservation(numId, session.userId);
+    const owned = await loadManageableReservation(numId, session.userId, session.role);
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.reservation.delete({ where: { id: numId } });

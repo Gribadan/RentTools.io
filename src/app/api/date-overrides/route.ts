@@ -2,29 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-
-async function ensureOwnsProperty(propertyId: number, userId: number) {
-  const property = await prisma.property.findUnique({
-    where: { id: propertyId },
-    select: { userId: true },
-  });
-  return !!property && property.userId === userId;
-}
-
-async function userCanReadProperty(
-  propertyId: number,
-  userId: number,
-  role: string
-): Promise<boolean> {
-  if (role === "cleaner") {
-    const a = await prisma.cleanerAssignment.findUnique({
-      where: { cleanerId_propertyId: { cleanerId: userId, propertyId } },
-      select: { id: true },
-    });
-    return !!a;
-  }
-  return ensureOwnsProperty(propertyId, userId);
-}
+import { canManageProperty, canReadProperty } from "@/lib/ownership";
 
 // GET /api/date-overrides?propertyId=1
 export async function GET(request: NextRequest) {
@@ -42,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const numId = Number(propertyId);
-    if (!(await userCanReadProperty(numId, session.userId, session.role))) {
+    if (!(await canReadProperty(numId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -82,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const numId = Number(propertyId);
-    if (!(await ensureOwnsProperty(numId, session.userId))) {
+    if (!(await canManageProperty(numId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
@@ -145,7 +123,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const numId = Number(propertyId);
-    if (!(await ensureOwnsProperty(numId, session.userId))) {
+    if (!(await canManageProperty(numId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

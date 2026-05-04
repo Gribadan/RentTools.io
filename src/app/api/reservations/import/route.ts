@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { canManageProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
@@ -110,11 +111,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const ownedProperties = await prisma.property.findMany({
-      where: { userId: session.userId },
-      select: { id: true },
-    });
-    const ownedIds = new Set(ownedProperties.map((p) => p.id));
+    const accessibleIds = new Set(
+      await listAccessiblePropertyIds(session.userId, session.role)
+    );
 
     const results: ImportResult[] = [];
     const validRows: ParsedRow[] = [];
@@ -135,8 +134,12 @@ export async function POST(request: NextRequest) {
         continue;
       }
       const propertyId = parseInt(propertyIdRaw);
-      if (isNaN(propertyId) || !ownedIds.has(propertyId)) {
-        results.push({ rowNumber, status: "error", reason: "Property not owned by user" });
+      if (isNaN(propertyId) || !accessibleIds.has(propertyId)) {
+        results.push({ rowNumber, status: "error", reason: "Property not accessible to user" });
+        continue;
+      }
+      if (!(await canManageProperty(propertyId, session.userId, session.role))) {
+        results.push({ rowNumber, status: "error", reason: "Cannot manage this property" });
         continue;
       }
       const checkIn = new Date(checkInRaw);

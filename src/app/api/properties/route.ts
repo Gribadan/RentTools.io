@@ -19,10 +19,17 @@ export async function GET(request: NextRequest) {
       },
     };
     const orderBy = { createdAt: "desc" as const };
+    // Properties accessible to a regular/superadmin user: ones they own OR manage.
+    // Cleaners only see assigned properties.
     const where =
       session.role === "cleaner"
         ? { cleanerAssignments: { some: { cleanerId: session.userId } } }
-        : { userId: session.userId };
+        : {
+            OR: [
+              { userId: session.userId },
+              { managers: { some: { managerId: session.userId } } },
+            ],
+          };
 
     // Backward-compatible: when neither page nor limit is supplied, return the full array.
     if (pageParam === null && limitParam === null) {
