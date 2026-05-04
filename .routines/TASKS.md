@@ -229,7 +229,7 @@
   - File: `src/app/api/properties/[id]/route.ts` (PATCH/DELETE) — refuse if property's userId != session userId (return 404, not 403, to avoid leaking existence)
   - Acceptance criteria: user A cannot see/modify user B's properties via direct URL or API call
 
-- [ ] **RT-7.3** Cascade ownership check to nested resources
+- [x] **RT-7.3** Cascade ownership check to nested resources
   - Files: `src/app/api/reservations/route.ts`, `src/app/api/reservations/[id]/route.ts`, `src/app/api/guests/route.ts`, `src/app/api/guests/[id]/route.ts`, `src/app/api/calendar/links/route.ts`, `src/app/api/calendar/links/[id]/route.ts`, `src/app/api/calendar/sync/route.ts`, `src/app/api/date-overrides/route.ts`
   - Pattern: load the parent Property; verify `property.userId === session.userId`; reject otherwise
   - Acceptance criteria: every nested API endpoint enforces ownership via the property chain
@@ -469,3 +469,4 @@
 - 2026-05-04 — RT-6.5 — 14bcb92 — manifest.json + icon.svg + appleWebApp metadata; viewport themeColor
 - 2026-05-04 — RT-7.1 — 7edeedb — Property.userId FK with index; backfilled both rows to userId=1
 - 2026-05-04 — RT-7.2 — 8fca1af — properties API filtered/scoped to session.userId; foreign properties return 404
+- 2026-05-04 — RT-7.3 — 4a5b200 — ownership cascade across reservations/guests/calendar links/sync/overrides; nested 404s on foreign access
