@@ -348,6 +348,7 @@
   - Acceptance criteria: clicking "Done" on a cleaning persists status; refresh shows it as done
 
 - [ ] **RT-10.4** Photo upload for completed cleanings (optional proof)
+  Blocked: needs Vercel Blob token provisioned; Vercel filesystem is read-only so dev-only fallback won't survive prod.
   - File: `src/app/api/cleaning-records/[id]/photos/route.ts` (new) — POST accepts files, stores via Vercel Blob (free tier) or local public/uploads in dev
   - File: `src/components/cleaning-schedule.tsx` — when marking done, show optional file picker; thumbnails appear in the row
   - Acceptance criteria: cleaner can attach photos; owner sees thumbnails on the cleaning record
