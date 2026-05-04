@@ -489,7 +489,7 @@
   - Verify post-migration: row counts match per table; pick 3 properties, deep-compare their reservations + guests + overrides
   - Acceptance criteria: dry run shows N rows per table; real run produces a local DB with identical content; smoke test on the droplet against the migrated DB passes
 
-- [ ] **RT-13.8** Native cron for calendar sync
+- [x] **RT-13.8** Native cron for calendar sync  *(files delivered; on-droplet `crontab -u app` install is part of RT-13.11 cutover)*
   - File: `deploy/cron/rent-tool.cron` (new) — `*/10 * * * * curl -fsS -m 30 "http://127.0.0.1:3000/api/calendar/cron?secret=$CRON_SECRET" >> /var/log/rent-tool-cron.log 2>&1` (read CRON_SECRET from a sourced file, not inline)
   - Document install: `crontab -u app -e`, paste, save; tail the log to verify the first run
   - Acceptance criteria: every 10 minutes a sync runs; `SyncLog` table accumulates rows; failed runs leave a clear message in the cron log
@@ -724,6 +724,7 @@
 - 2026-05-04 — RT-13.2 — pending — docs/DROPLET-SETUP.md complete provisioning runbook + troubleshooting
 - 2026-05-04 — RT-13.3 — pending — scripts/server-bootstrap.sh idempotent root install (swap, ufw, fail2ban, Node 22, nginx, certbot, app user); ran successfully on 64.226.83.37; server-deploy.sh deferred to RT-13.13
 - 2026-05-04 — RT-13.1 — cc07fc0 — secret-pattern grep across full git history returns 3 false positives only (env example, doc placeholder, lockfile integrity hash); no real credentials in history; safe to flip repo public
+- 2026-05-04 — RT-13.8 — 845a122 — deploy/cron/rent-tool.cron + scripts/cron-sync.sh wrapper (sources CRON_SECRET from .env.production) + DROPLET-SETUP.md §6 with chmod/install/logrotate steps; on-droplet `crontab -u app` install bundled with RT-13.11 cutover
 - 2026-05-04 — RT-13.4 — ee63b45 — deploy/systemd/rent-tool.service unit (Type=simple, User=app, MemoryMax=900M, hardening flags, EnvironmentFile=.env.production); deployed to droplet, active
 - 2026-05-04 — RT-13.5 — ee63b45 — deploy/nginx/rent-tool.conf with TLS, CF-Connecting-IP real-IP, HTTP→HTTPS redirect; Let's Encrypt cert issued via DNS-01 with certbot-dns-cloudflare plugin (covers renttools.io / www / staging, expires 2026-08-02, auto-renews); CF proxied + Full (strict) SSL mode + always_use_https=on
 - 2026-05-04 — RT-13.6 — a730ecc — src/lib/prisma.ts and prisma/push-schema.ts both auto-detect DATABASE_URL=file:... (local SQLite) vs TURSO_DATABASE_URL (cloud); same @prisma/adapter-libsql path for both
