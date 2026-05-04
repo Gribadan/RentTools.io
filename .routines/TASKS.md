@@ -303,6 +303,7 @@
   - Acceptance criteria: hitting `/api/health` returns `{ status: "ok", db: "ok", lastSyncMin: 12, version: "<git SHA>" }` or 503 with details
 
 - [ ] **RT-9.3** Sentry error tracking (free tier)
+  Blocked: needs interactive @sentry/wizard login + Sentry account + DSN env var; not automatable.
   - Run `npx @sentry/wizard@latest -i nextjs`, accept defaults
   - Add `SENTRY_DSN` to `.env.local` and Vercel env vars
   - Wrap `app/error.tsx` with `Sentry.captureException(error)` call
