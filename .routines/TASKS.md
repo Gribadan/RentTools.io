@@ -464,27 +464,27 @@
   - Document in DROPLET-SETUP.md the commands to run each script
   - Acceptance criteria: running both scripts leaves you with a working `npm start` that serves the app on `localhost:3000`
 
-- [ ] **RT-13.4** systemd service for the Next.js app
+- [x] **RT-13.4** systemd service for the Next.js app
   - File: `deploy/systemd/rent-tool.service` (new) — Type=simple, User=app, WorkingDirectory=/home/app/rent-tool, ExecStart=/usr/bin/node ./node_modules/.bin/next start -p 3000, Restart=always, EnvironmentFile=/home/app/rent-tool/.env.production
   - Document: copy to `/etc/systemd/system/`, `systemctl daemon-reload`, `enable --now`, `status` to verify
   - Acceptance criteria: rebooting the droplet brings the app back up automatically; `journalctl -u rent-tool -f` streams app logs
 
-- [ ] **RT-13.5** nginx reverse proxy config + TLS
-  - File: `deploy/nginx/rent-tool.conf` (new) — server_name your-domain, proxy_pass http://127.0.0.1:3000, X-Forwarded-* headers, gzip on, client_max_body_size 20M (passport uploads), proxy_read_timeout 60s
-  - Run: `certbot --nginx -d your-domain.com -d www.your-domain.com` to provision Let's Encrypt; certbot edits the conf to add 443 + redirect 80→443
-  - Verify: HTTPS works, HTTP redirects, `curl -I` shows valid cert
+- [x] **RT-13.5** nginx reverse proxy config + TLS  *(file delivered; cert issued via DNS-01 + Cloudflare; on-droplet install is part of RT-13.11 cutover)*
+  - File: `deploy/nginx/rent-tool.conf` (new) — server_name renttools.io / www / staging, TLS termination at origin, X-Forwarded-* headers, CF-Connecting-IP for real client IP behind CF proxy, client_max_body_size 20M
+  - TLS: Let's Encrypt cert issued via certbot DNS-01 challenge using `certbot-dns-cloudflare` plugin (works through CF proxy without disabling it). Cert covers `renttools.io`, `www.renttools.io`, `staging.renttools.io`, expires 2026-08-02, auto-renews via systemd timer.
+  - Cloudflare: SSL/TLS mode = "Full (strict)", always_use_https = on, all 3 A records proxied
   - Acceptance criteria: visiting the bare domain serves the app over HTTPS with an auto-renewing Let's Encrypt cert
 
-- [ ] **RT-13.6** Database file path + Prisma config for self-hosted SQLite
+- [x] **RT-13.6** Database file path + Prisma config for self-hosted SQLite
   - Files: `prisma/schema.prisma`, `prisma/prisma.config.ts`
   - Add support for a `DATABASE_URL=file:./data/prod.db` mode that uses local libSQL (still via @prisma/adapter-libsql so Prisma client unchanged) — falls back to Turso if `TURSO_DATABASE_URL` is set
   - File: `src/lib/prisma.ts` — pick adapter based on which env var is set
   - File: `prisma/push-schema.ts` — works against either; document calling pattern for both
   - Acceptance criteria: setting `DATABASE_URL=file:./data/prod.db` and unsetting Turso vars makes the app run against a local file; setting Turso vars uses Turso; both pass a smoke test
 
-- [ ] **RT-13.7** Data migration script (Turso → local SQLite)
-  - File: `scripts/migrate-turso-to-local.ts` (new) — connects to both, copies all tables in dependency order: User, Property, CalendarLink, CalendarEvent, Reservation, Guest, DateOverride, MessageTemplate, CleanerAssignment, CleaningRecord, PropertyManager, PropertyManagerInvite, AuditLog, AppSettings, SyncLog
-  - For each: full table dump from Turso → insert into local with original IDs preserved (use `prisma.$executeRaw` to bypass autoincrement)
+- [x] **RT-13.7** Data migration script (Turso → local SQLite)  *(script delivered; running it on the droplet is part of cutover)*
+  - File: `scripts/migrate-turso-to-local.ts` (new) — connects to both, copies all tables in dependency order: User, Property, CalendarLink, CalendarEvent, Reservation, Guest, DateOverride, MessageTemplate, CleanerAssignment, CleaningRecord, PropertyManager, PropertyManagerInvite, AuditLog, ExtractionLog, SiteSetting, AppSettings, SyncLog
+  - For each: full table dump from Turso → insert into local with original IDs preserved (uses `prisma.$executeRaw` so autoincrement is bypassed)
   - Run twice: a dry run reports counts; the real run with `--write` flag actually writes
   - Verify post-migration: row counts match per table; pick 3 properties, deep-compare their reservations + guests + overrides
   - Acceptance criteria: dry run shows N rows per table; real run produces a local DB with identical content; smoke test on the droplet against the migrated DB passes

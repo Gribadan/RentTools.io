@@ -123,12 +123,15 @@ For EACH task you take on:
 
 - **Stack**: Next.js 16 (App Router), TypeScript, Tailwind, Prisma 7
 - **Database**:
-  - Currently: **Turso (LibSQL)** — cloud-hosted SQLite via the libsql adapter
-  - Migrating: **self-hosted SQLite file** on a DigitalOcean droplet (Week 13)
-  - The Prisma client uses an adapter that supports both via env vars
+  - **Source of truth (still)**: Turso (LibSQL) — production data lives here until cutover
+  - **Migration target**: self-hosted SQLite at `file:./data/prod.db` on the DO droplet
+  - `src/lib/prisma.ts` resolves to whichever is set via env vars (DATABASE_URL preferred, falls back to TURSO_*)
 - **Deploy**:
-  - Currently: Vercel, auto-deploy from `master` branch
-  - Migrating: DigitalOcean droplet with systemd + nginx + GitHub Actions auto-deploy (Week 13)
+  - **Production today**: Vercel auto-deploy from `master` (active, real users)
+  - **Migration target**: DigitalOcean droplet at `64.226.83.37` (renttools.io)
+  - Droplet bootstrap is DONE (Node 22, nginx, certbot, systemd, ufw, fail2ban, swap, app user, deploy key)
+  - TLS cert issued for renttools.io via Let's Encrypt DNS-01 (auto-renewing)
+  - Cutover happens at RT-13.11 — DO NOT touch Vercel until cutover succeeds
 - **Hosting model**: free public SaaS at the owner's domain. Anyone can sign up and use it. The owner pays for hosting + Gemini API. Users get rate-limited per account to protect the free tier.
 - **DB push**: `npx tsx prisma/push-schema.ts` (NOT `prisma db push` — works for both Turso and local SQLite via the same adapter script)
 - **Build check**: `npx next build`
