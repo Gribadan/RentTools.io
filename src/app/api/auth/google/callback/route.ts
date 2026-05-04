@@ -5,6 +5,7 @@ import {
   deriveRedirectUri,
   exchangeCodeForTokens,
   fetchGoogleProfile,
+  findOrCreateUserForGoogle,
   getGoogleConfig,
   type GoogleProfile,
 } from "@/lib/google-oauth";
@@ -79,70 +80,4 @@ export async function GET(request: NextRequest) {
   res.cookies.delete(STATE_COOKIE);
   res.cookies.delete(NEXT_COOKIE);
   return res;
-}
-
-async function findOrCreateUserForGoogle(profile: GoogleProfile) {
-  // 1. Match by stable Google subject.
-  const byGoogle = await prisma.user.findUnique({ where: { googleId: profile.id } });
-  if (byGoogle) return byGoogle;
-
-  // 2. Match by email — links a username/password account that already
-  // had this email set (e.g. via a future profile field). Existing
-  // username-only accounts have no email so they won't collide.
-  const email = profile.email.toLowerCase();
-  const byEmail = await prisma.user.findFirst({ where: { email } });
-  if (byEmail) {
-    return prisma.user.update({
-      where: { id: byEmail.id },
-      data: { googleId: profile.id, email },
-    });
-  }
-
-  // 3. New user. Generate a unique username from the email's local part
-  // (or a random fallback) and try suffixes until we find one free.
-  const username = await generateUniqueUsername(profile);
-
-  return prisma.user.create({
-    data: {
-      username,
-      // Random unguessable placeholder — Google sign-in users can later
-      // set a password via the existing change-password flow if they
-      // want a non-Google sign-in path too.
-      password: await randomPasswordPlaceholder(),
-      role: "user",
-      email,
-      googleId: profile.id,
-    },
-  });
-}
-
-async function generateUniqueUsername(profile: GoogleProfile): Promise<string> {
-  const base = sanitizeUsernameBase(
-    profile.email.split("@")[0] || profile.given_name || profile.name || "user"
-  );
-
-  // Try the bare base first, then base2, base3, … up to 50 attempts.
-  // 50 collisions is implausible for a sub-100k user base; if it ever
-  // happens we fall through to a random suffix.
-  for (let i = 0; i < 50; i++) {
-    const candidate = i === 0 ? base : `${base}${i + 1}`;
-    const taken = await prisma.user.findUnique({ where: { username: candidate } });
-    if (!taken) return candidate;
-  }
-  const { randomBytes } = await import("node:crypto");
-  return `${base}-${randomBytes(3).toString("hex")}`;
-}
-
-function sanitizeUsernameBase(raw: string): string {
-  const cleaned = raw.toLowerCase().replace(/[^a-z0-9]/g, "");
-  // Username has a min length of 3 in the signup route; make sure
-  // Google-derived usernames clear the same bar.
-  if (cleaned.length >= 3) return cleaned.slice(0, 24);
-  return `user${cleaned}`.padEnd(4, "0").slice(0, 24);
-}
-
-async function randomPasswordPlaceholder(): Promise<string> {
-  const { randomBytes } = await import("node:crypto");
-  const { hashPassword } = await import("@/lib/auth");
-  return hashPassword(randomBytes(32).toString("base64url"));
 }

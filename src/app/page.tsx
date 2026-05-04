@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSetting } from "@/lib/site-settings";
+import { GoogleOneTap } from "@/components/google-one-tap";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
@@ -12,6 +13,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
+      <GoogleOneTap />
       <header className="border-b border-[#1e2329]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2">
