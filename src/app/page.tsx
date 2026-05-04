@@ -3,8 +3,38 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSetting } from "@/lib/site-settings";
 import { GoogleOneTap } from "@/components/google-one-tap";
+import { JsonLd } from "@/components/json-ld";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
+
+const FAQS: Array<{ q: string; a: string }> = [
+  {
+    q: "Is it really free?",
+    a: "Yes. The hosted instance is free for personal use, rate-limited per account so the bills stay sane. The source is MIT — clone it, run it on a $4 droplet, you owe nothing.",
+  },
+  {
+    q: "What does it actually do?",
+    a: "Pulls any iCal-compatible calendar — Airbnb, Booking.com, Vrbo, or anything else that exposes an export URL — so you stop juggling tabs. Adds buffer days for cleaning that the platforms can't do natively. Generates a daily cleaning list. Extracts passport fields from a photo so you spend less time typing.",
+  },
+  {
+    q: "Do I have to host my own?",
+    a: "No. Sign up here and use the hosted version. If one day you outgrow the free tier or want full data ownership, export and self-host — your data, your call.",
+  },
+  {
+    q: "Where does my guest data live?",
+    a: "On a single SQLite file inside the hosted server. No third-party processors except Google Gemini for passport OCR (and only for that one request). Delete your account and the data is gone.",
+  },
+];
+
+const FAQ_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
 
 export default async function HomePage() {
   const session = await getSession();
@@ -13,6 +43,7 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
+      <JsonLd data={FAQ_LD} />
       <GoogleOneTap />
       <header className="border-b border-[#1e2329]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
@@ -94,28 +125,11 @@ export default async function HomePage() {
               Quick answers
             </h2>
             <div className="mt-8 space-y-3">
-              <Faq q="Is it really free?">
-                Yes. The hosted instance is free for personal use, rate-limited per
-                account so the bills stay sane. The source is MIT — clone it, run it
-                on a $4 droplet, you owe nothing.
-              </Faq>
-              <Faq q="What does it actually do?">
-                Pulls any iCal-compatible calendar — Airbnb, Booking.com, Vrbo, or
-                anything else that exposes an export URL — so you stop juggling
-                tabs. Adds buffer days for cleaning that the platforms can&apos;t do
-                natively. Generates a daily cleaning list. Extracts passport fields
-                from a photo so you spend less time typing.
-              </Faq>
-              <Faq q="Do I have to host my own?">
-                No. Sign up here and use the hosted version. If one day you outgrow
-                the free tier or want full data ownership, export and self-host —
-                your data, your call.
-              </Faq>
-              <Faq q="Where does my guest data live?">
-                On a single SQLite file inside the hosted server. No third-party
-                processors except Google Gemini for passport OCR (and only for that
-                one request). Delete your account and the data is gone.
-              </Faq>
+              {FAQS.map((f) => (
+                <Faq key={f.q} q={f.q}>
+                  {f.a}
+                </Faq>
+              ))}
             </div>
           </div>
         </section>

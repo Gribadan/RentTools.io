@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { JsonLd } from "@/components/json-ld";
 import "./globals.css";
 
 const inter = Inter({
@@ -64,6 +65,24 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const ORGANIZATION_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon.svg`,
+  sameAs: ["https://github.com/Gribadan/RentTools.io"],
+};
+
+const WEBSITE_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_NAME,
+  url: SITE_URL,
+  description: SITE_TAGLINE,
+  inLanguage: "en",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -75,6 +94,8 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col font-[family-name:var(--font-sans)]">
+        <JsonLd data={ORGANIZATION_LD} />
+        <JsonLd data={WEBSITE_LD} />
         <Providers>{children}</Providers>
       </body>
     </html>
