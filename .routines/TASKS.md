@@ -420,7 +420,7 @@
   - File: shortcut overlay shows all bindings
   - Acceptance criteria: shortcuts work on calendar page; `?` shows the help overlay
 
-- [ ] **RT-12.5** Bulk import reservations from CSV
+- [x] **RT-12.5** Bulk import reservations from CSV
   - File: `src/app/api/reservations/import/route.ts` (new) — POST CSV (same shape as export); parse, validate each row, return per-row results (created/skipped/error)
   - File: `src/components/reports-panel.tsx` — "Import reservations" button with file picker + dry-run preview
   - Acceptance criteria: importing the CSV from RT-12.2 round-trips cleanly with zero errors
@@ -496,3 +496,4 @@
 - 2026-05-04 — RT-12.2 — 950a10f — /api/reservations/export CSV (BOM) + Reports panel date-range picker
 - 2026-05-04 — RT-12.3 — a1d390d — Recent Activity feed (audit+sync merged, /api/activity) on dashboard
 - 2026-05-04 — RT-12.4 — 28694c6 — Global ? overlay + calendar arrow/T/E shortcuts (Cmd+K already wired in top-bar)
+- 2026-05-04 — RT-12.5 — 3735179 — /api/reservations/import (dry-run + commit) + Reports panel CSV import UI
