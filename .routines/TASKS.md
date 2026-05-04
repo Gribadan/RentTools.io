@@ -296,7 +296,7 @@
   - File: `src/middleware.ts` — log every request: timestamp, method, path, status, duration ms, userId (if session), ip
   - Acceptance criteria: Vercel logs show one structured line per request; can grep by userId or path
 
-- [ ] **RT-9.2** Health endpoint with deeper checks
+- [x] **RT-9.2** Health endpoint with deeper checks
   - File: `src/app/api/health/route.ts` (new) — returns 200 if: DB ping succeeds, last sync ran in last 2 hours (or returns 503 with details otherwise)
   - Public (no auth) so external uptime monitors can hit it
   - File: `src/middleware.ts` — add `/api/health` to `PUBLIC_PATHS`
@@ -478,3 +478,4 @@
 - 2026-05-04 — RT-8.4 — a60ba89 — OnboardingTooltip on Edit Dates + Airbnb iCal label; localStorage one-shot per id
 - 2026-05-04 — RT-8.5 — 15fcbf0 — change-password endpoint + /api/auth/me + ProfilePanel modal accessed from top-bar user dropdown
 - 2026-05-04 — RT-9.1 — cb58d62 — JSON request logger emitted from middleware; method/path/status/durationMs/userId/ip per request
+- 2026-05-04 — RT-9.2 — a3c88dc — public /api/health endpoint with DB ping + 2h sync-staleness check; returns 503 on failure
