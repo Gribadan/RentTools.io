@@ -100,7 +100,8 @@ export default async function HomePage() {
                 on a $4 droplet, you owe nothing.
               </Faq>
               <Faq q="What does it actually do?">
-                Pulls Airbnb and Booking.com calendars via iCal so you stop juggling
+                Pulls any iCal-compatible calendar — Airbnb, Booking.com, Vrbo, or
+                anything else that exposes an export URL — so you stop juggling
                 tabs. Adds buffer days for cleaning that the platforms can&apos;t do
                 natively. Generates a daily cleaning list. Extracts passport fields
                 from a photo so you spend less time typing.
