@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
@@ -28,6 +28,26 @@ function SignupPageInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // null = still loading config, true = signup is enabled, false = disabled
+  const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
+  const [supportEmail, setSupportEmail] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/site-config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { signup_enabled?: boolean; support_email?: string } | null) => {
+        if (cancelled) return;
+        setSignupEnabled(data?.signup_enabled !== false);
+        setSupportEmail(data?.support_email ?? "");
+      })
+      .catch(() => {
+        if (!cancelled) setSignupEnabled(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +89,25 @@ function SignupPageInner() {
           <p className="mt-1 text-sm text-[#a0a0a8]">{t("signup.subtitle")}</p>
         </div>
 
+        {signupEnabled === false ? (
+          <div className="rounded-lg border border-[#333338] bg-[#18181b] p-6 text-sm text-[#d4d4d8]">
+            <p className="font-medium text-[#e8e8ec]">Signups are temporarily disabled</p>
+            <p className="mt-2 text-[#a0a0a8]">
+              We&apos;re not accepting new accounts right now. Please check back later
+              {supportEmail ? (
+                <>
+                  {" "}or contact{" "}
+                  <a className="text-[#e8e8ec] underline" href={`mailto:${supportEmail}`}>
+                    {supportEmail}
+                  </a>
+                  .
+                </>
+              ) : (
+                "."
+              )}
+            </p>
+          </div>
+        ) : (
         <div className="rounded-lg border border-[#333338] bg-[#18181b] p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
@@ -114,6 +153,7 @@ function SignupPageInner() {
             </button>
           </form>
         </div>
+        )}
 
         <p className="mt-4 text-center text-xs text-[#a0a0a8]">
           {t("signup.haveAccount")}{" "}

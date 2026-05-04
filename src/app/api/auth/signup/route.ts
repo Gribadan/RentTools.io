@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, createSession } from "@/lib/auth";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
+import { getSetting } from "@/lib/site-settings";
 
 export async function POST(request: NextRequest) {
   try {
+    const signupEnabled = await getSetting("signup_enabled", "true");
+    if (signupEnabled !== "true") {
+      return NextResponse.json(
+        { error: "Signups are temporarily disabled" },
+        { status: 403 }
+      );
+    }
+
     // Rate limit signup separately from login: 5 attempts per IP per minute
     const ip = clientIp(request);
     const rl = checkRateLimit(`signup:${ip}`, 5, 60);
