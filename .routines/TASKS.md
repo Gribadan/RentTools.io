@@ -404,7 +404,7 @@
   - Use a small chart lib (`recharts`) — no heavy DataViz framework
   - Acceptance criteria: chart renders for any property with bookings; tooltip shows exact %
 
-- [ ] **RT-12.2** Reservations export to CSV
+- [x] **RT-12.2** Reservations export to CSV
   - File: `src/app/api/reservations/export/route.ts` (new) — GET returns CSV (RFC 4180 + BOM, like guest export) of all reservations for owner's properties; filterable by date range
   - File: `src/components/reports-panel.tsx` — "Export reservations CSV" button with date range picker
   - Acceptance criteria: clicking download fetches a CSV opening cleanly in Excel with Cyrillic intact
@@ -493,3 +493,4 @@
 - 2026-05-04 — RT-11.2 — a45e75c — generate-message dropdown on reservation view with rendered preview + copy-to-clipboard
 - 2026-05-04 — RT-11.5 — 3654eaf — /api/guests/search + top-bar guest search with Cmd-K shortcut and debounced dropdown
 - 2026-05-04 — RT-12.1 — 542fb6b — Reports view with recharts BarChart of last-12-month occupancy per property
+- 2026-05-04 — RT-12.2 — 950a10f — /api/reservations/export CSV (BOM) + Reports panel date-range picker
