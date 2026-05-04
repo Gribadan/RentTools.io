@@ -1,0 +1,51 @@
+name: Deploy to droplet
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SSH deploy
+    runs-on: ubuntu-latest
+
+    # Inert until the user sets the DROPLET_HOST repo variable.
+    # Until then, every push is a no-op instead of a red X.
+    if: ${{ vars.DROPLET_HOST != '' }}
+
+    steps:
+      - name: Trigger droplet-side deploy
+        env:
+          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
+          DROPLET_USER: ${{ vars.DROPLET_USER }}
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ vars.DROPLET_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${DEPLOY_KEY:-}" ]; then
+            echo "::error::Missing DEPLOY_KEY secret. See docs/DROPLET-SETUP.md §10."
+            exit 1
+          fi
+          if [ -z "${KNOWN_HOSTS:-}" ]; then
+            echo "::error::Missing DROPLET_KNOWN_HOSTS variable. Run \`ssh-keyscan <ip>\` and paste output."
+            exit 1
+          fi
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s' "$DEPLOY_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/id_deploy \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${DROPLET_USER}@${DROPLET_HOST}" \
+              'bash -lc "/home/app/rent-tool/scripts/deploy.sh"'

@@ -254,6 +254,53 @@ Covered by RT-13.10. Public health endpoint at `/api/health`.
 Covered by RT-13.7. The migration script at `scripts/migrate-turso-to-local.ts`
 copies all tables from your Turso instance to the local SQLite file.
 
+## 10. Auto-deploy from GitHub (RT-13.13)
+
+`.github/workflows/deploy.yml` SSHes into the droplet on every push to
+`master` and runs `scripts/deploy.sh`. The workflow is **inert by default**
+— it only runs once you set the `DROPLET_HOST` repo variable, so the
+public repo doesn't fail on every push for forks.
+
+One-time setup:
+
+```bash
+# 1. On your laptop — generate a deploy keypair (no passphrase).
+ssh-keygen -t ed25519 -f droplet_deploy -N ""
+
+# 2. Append the .pub to the app user's authorized_keys on the droplet.
+cat droplet_deploy.pub | ssh root@<DROPLET_IP> 'cat >> /home/app/.ssh/authorized_keys'
+ssh root@<DROPLET_IP> 'chown app:app /home/app/.ssh/authorized_keys && chmod 600 /home/app/.ssh/authorized_keys'
+
+# 3. Get the droplet's host key fingerprint for known_hosts pinning.
+ssh-keyscan <DROPLET_IP>
+# Copy the ed25519 line(s) — you'll paste them into DROPLET_KNOWN_HOSTS below.
+
+# 4. Allow the `app` user passwordless sudo for ONLY the systemctl restart
+#    that deploy.sh needs. As root on the droplet:
+echo 'app ALL=(root) NOPASSWD: /bin/systemctl restart rent-tool' \
+  > /etc/sudoers.d/rent-tool-deploy
+chmod 440 /etc/sudoers.d/rent-tool-deploy
+visudo -c   # syntax check
+```
+
+In the GitHub repo Settings → Secrets and variables → Actions:
+
+| Kind | Name | Value |
+|------|------|-------|
+| Secret | `DEPLOY_KEY` | contents of `droplet_deploy` (the private key, the whole `-----BEGIN…END-----` block) |
+| Variable | `DROPLET_HOST` | the droplet's IP or hostname |
+| Variable | `DROPLET_USER` | `app` |
+| Variable | `DROPLET_KNOWN_HOSTS` | the `ssh-keyscan` output from step 3 |
+
+After the variables exist, the next push to `master` triggers a deploy.
+You can also run it manually from the Actions tab via `workflow_dispatch`.
+
+The deploy script is conservative: it aborts on any uncommitted changes
+in the droplet's working copy, runs `npm ci` + Prisma generate + `npm run
+build` BEFORE restarting the service, applies migrations via
+`prisma/push-schema.ts`, and smoke-tests `/api/health` after restart.
+A broken build never kills the running service.
+
 ---
 
 ## Troubleshooting
