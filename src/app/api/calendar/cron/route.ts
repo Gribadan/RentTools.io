@@ -4,26 +4,24 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/calendar/cron?secret=xxx
- * Called periodically by external cron (cron-job.org, Vercel cron, etc.)
+ * Called by the system cron on the droplet (scripts/cron-sync.sh) every 10 min.
+ * Also accepts Authorization: Bearer <CRON_SECRET> for any external scheduler.
  */
 export async function GET(request: NextRequest) {
   const source = request.headers.get("user-agent") || "unknown";
-  const isVercel = request.headers.get("authorization")?.startsWith("Bearer ");
 
-  // Auth
   const secret = request.nextUrl.searchParams.get("secret");
   const expected = process.env.CRON_SECRET || process.env.JWT_SECRET;
-  const vercelCron = request.headers.get("authorization") === `Bearer ${expected}`;
+  const bearerOk = request.headers.get("authorization") === `Bearer ${expected}`;
 
-  if (!vercelCron && (!secret || secret !== expected)) {
+  if (!bearerOk && (!secret || secret !== expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Log the cron hit
   await prisma.syncLog.create({
     data: {
       level: "info",
-      message: `Cron triggered by ${isVercel ? "Vercel" : "external"} (${source.substring(0, 80)})`,
+      message: `Cron triggered by ${source.substring(0, 80)}`,
     },
   });
 

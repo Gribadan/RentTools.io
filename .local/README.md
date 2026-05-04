@@ -43,14 +43,14 @@ These are read from the environment, not from `.local/`. Use `.local/` to store
 them as plain files so you have a backup, then copy into `.env.local` (dev) or
 the droplet's `.env.production` (prod).
 
-| Variable               | Required | What it is                                                                  |
-|------------------------|----------|-----------------------------------------------------------------------------|
-| `JWT_SECRET`           | yes      | Random 32+ byte string. Sign session tokens. Generate: `openssl rand -hex 32` |
-| `CRON_SECRET`          | yes      | Random secret for `/api/calendar/cron` access. Same generator as above.      |
-| `GOOGLE_GEMINI_API_KEY`| yes      | Gemini Vision key for passport extraction. https://aistudio.google.com      |
-| `TURSO_DATABASE_URL`   | until DO | libSQL/Turso URL while still on Vercel+Turso. After DO migration: file path. |
-| `TURSO_AUTH_TOKEN`     | until DO | Turso auth token. Drop after DO migration.                                  |
-| `DATABASE_URL`         | on DO    | After DO migration: `file:./data/prod.db` (local SQLite path).              |
+| Variable                  | Required | What it is                                                                       |
+|---------------------------|----------|----------------------------------------------------------------------------------|
+| `JWT_SECRET`              | yes      | Random 32+ byte string. Sign session tokens. Generate: `openssl rand -hex 32`    |
+| `CRON_SECRET`             | yes      | Random secret for `/api/calendar/cron` access. Same generator as above.          |
+| `GOOGLE_GEMINI_API_KEY`   | yes      | Gemini Vision key for passport extraction. https://aistudio.google.com           |
+| `DATABASE_URL`            | yes      | `file:./data/prod.db` for the droplet's local SQLite. Self-hosters: any path.    |
+| `NEXT_PUBLIC_SENTRY_DSN`  | optional | Sentry DSN. Leave blank to disable error tracking entirely.                      |
+| `SENTRY_AUTH_TOKEN`       | optional | Used at build time to upload source maps for readable stack traces.              |
 
 ---
 

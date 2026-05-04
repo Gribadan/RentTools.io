@@ -61,10 +61,19 @@ if [ "$DOM" = "01" ]; then
 fi
 
 # Rotation — keep newest N in each tier, delete the rest.
+# `ls -1t prod-*.db` exits non-zero on an empty dir (no match), which kills
+# the pipeline under pipefail; use a glob + nullglob fallback so empty dirs
+# are a no-op.
 prune_tier() {
   local dir="$1"
   local keep="$2"
-  ( cd "$dir" && ls -1t prod-*.db 2>/dev/null | tail -n +"$((keep + 1))" | xargs -r rm -f )
+  (
+    shopt -s nullglob
+    cd "$dir" || return 0
+    local files=( prod-*.db )
+    [ ${#files[@]} -le "$keep" ] && return 0
+    ls -1t prod-*.db | tail -n +"$((keep + 1))" | xargs -r rm -f
+  )
 }
 
 prune_tier "$DEST/daily" 14

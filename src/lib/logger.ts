@@ -13,7 +13,8 @@ export function log(fields: LogFields): void {
   const entry = { ts: new Date().toISOString(), level, msg, ...rest };
 
   if (isProd) {
-    // Vercel collects stdout — emit one JSON line per record so it's grep-friendly.
+    // systemd journal collects stdout — one JSON line per record is grep-friendly
+    // (journalctl -u rent-tool -o cat | jq).
     console.log(JSON.stringify(entry));
     return;
   }

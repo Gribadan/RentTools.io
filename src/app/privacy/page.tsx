@@ -74,9 +74,7 @@ export default function PrivacyPage() {
             <p>
               Production data is stored in a SQLite database on a DigitalOcean droplet
               operated by the maintainer. Daily backups are kept on the same machine for 14
-              days, weekly for 8 weeks, monthly for 6 months. During the migration off the
-              previous Vercel + Turso stack, some logs may briefly co-exist on both
-              providers; this transitional state ends once the cutover is complete.
+              days, weekly for 8 weeks, monthly for 6 months.
             </p>
             <p className="mt-2">
               Passport photos are sent to Google Gemini for OCR. Google&apos;s data handling
