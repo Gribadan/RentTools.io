@@ -1,6 +1,7 @@
 User-agent: *
 Disallow: /api/
-Disallow: /login
+Disallow: /dashboard
+Disallow: /invite/
 Allow: /
 
-Sitemap: https://rent-tool-theta.vercel.app/sitemap.xml
+Sitemap: https://renttools.io/sitemap.xml
