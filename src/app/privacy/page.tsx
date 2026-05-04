@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "What data Rent Tool collects, where it lives, and how to delete it.",
+  description: "What data RentTools collects, where it lives, and how to delete it.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
       <header className="border-b border-[#1e2329]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
-            ← Rent Tool
+            ← RentTools
           </Link>
           <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
             <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>
@@ -139,7 +139,7 @@ export default function PrivacyPage() {
               When you store a guest&apos;s passport details, you are the data controller
               under GDPR for that information. Make sure you have a lawful basis to collect
               and retain it, and respect your guests&apos; rights to access, rectify, and
-              delete. Rent Tool is the data processor and will act on instructions from
+              delete. RentTools is the data processor and will act on instructions from
               you (the controller) — including erasure.
             </p>
           </section>
@@ -157,12 +157,12 @@ export default function PrivacyPage() {
             <p>
               Questions or data-rights requests:{" "}
               <a
-                href="https://github.com/Gribadan/rent-tool/issues"
+                href="https://github.com/Gribadan/RentTools.io/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#58a6ff] hover:underline"
               >
-                github.com/Gribadan/rent-tool/issues
+                github.com/Gribadan/RentTools.io/issues
               </a>.
             </p>
           </section>
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
 
       <footer className="border-t border-[#1e2329]">
         <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
-          <p>© 2026 Rent Tool · MIT License</p>
+          <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
             <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>

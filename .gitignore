@@ -61,3 +61,15 @@ next-env.d.ts
 # Sentry build plugin auth token
 .env.sentry-build-plugin
 .sentryclirc
+
+# Local SQLite dev DB — never commit, contains personal data
+/dev.db
+/data/
+
+# MCP test artifacts
+/.playwright-mcp/
+
+# IDE / editor
+/.claude/
+/.vscode/
+/.idea/

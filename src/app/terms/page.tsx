@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms of service for the free hosted instance of Rent Tool at renttools.io.",
+  description: "Terms of service for the free hosted instance of RentTools at renttools.io.",
   alternates: { canonical: "/terms" },
 };
 
@@ -13,7 +13,7 @@ export default function TermsPage() {
       <header className="border-b border-[#1e2329]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
-            ← Rent Tool
+            ← RentTools
           </Link>
           <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
             <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>
@@ -30,7 +30,7 @@ export default function TermsPage() {
           <section>
             <h2 className="mb-2 text-lg font-semibold text-[#e8e8ec]">1. About this service</h2>
             <p>
-              Rent Tool is an open-source property and reservation manager. You can self-host the
+              RentTools is an open-source property and reservation manager. You can self-host the
               source code under the MIT license, or use the free hosted instance operated by the
               maintainer at <span className="font-mono text-[#e8e8ec]">renttools.io</span>.
               These terms apply only to the hosted instance.
@@ -113,12 +113,12 @@ export default function TermsPage() {
             <p>
               File an issue at{" "}
               <a
-                href="https://github.com/Gribadan/rent-tool/issues"
+                href="https://github.com/Gribadan/RentTools.io/issues"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#58a6ff] hover:underline"
               >
-                github.com/Gribadan/rent-tool/issues
+                github.com/Gribadan/RentTools.io/issues
               </a>{" "}
               or open the Profile panel to use the contact link.
             </p>
@@ -128,7 +128,7 @@ export default function TermsPage() {
 
       <footer className="border-t border-[#1e2329]">
         <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
-          <p>© 2026 Rent Tool · MIT License</p>
+          <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
             <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>

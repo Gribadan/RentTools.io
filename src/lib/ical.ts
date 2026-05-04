@@ -90,7 +90,7 @@ export function addDays(dateStr: string, days: number): string {
  */
 export function generateICal(
   events: ICalEvent[],
-  calendarName: string = "Rent Tool Sync"
+  calendarName: string = "RentTools Sync"
 ): string {
   const lines: string[] = [
     "BEGIN:VCALENDAR",

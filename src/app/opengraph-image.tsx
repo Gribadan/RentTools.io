@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
-export const alt = "Rent Tool — open-source property manager for short-term rentals";
+export const alt = "RentTools — open-source property manager for short-term rentals";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -40,7 +40,7 @@ export default async function Image() {
             RT
           </div>
           <div style={{ fontSize: "32px", fontWeight: 600, letterSpacing: "-0.02em" }}>
-            Rent Tool
+            RentTools
           </div>
         </div>
 
@@ -79,7 +79,7 @@ export default async function Image() {
           }}
         >
           <div>renttools.io</div>
-          <div>github.com/Gribadan/rent-tool</div>
+          <div>github.com/Gribadan/RentTools.io</div>
         </div>
       </div>
     ),

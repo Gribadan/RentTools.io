@@ -1,8 +1,16 @@
 {
-  "name": "rent-tool",
+  "name": "renttools",
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "homepage": "https://renttools.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gribadan/RentTools.io.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Gribadan/RentTools.io/issues"
+  },
   "scripts": {
     "dev": "next dev",
     "postinstall": "prisma generate",

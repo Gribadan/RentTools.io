@@ -22,7 +22,7 @@ export const translations = {
   "common.calendar": { en: "Calendar", ru: "Календарь" },
 
   // Login
-  "login.title": { en: "Rent Tool", ru: "Rent Tool" },
+  "login.title": { en: "RentTools", ru: "RentTools" },
   "login.subtitle": { en: "Sign in to continue", ru: "Войдите для продолжения" },
   "login.username": { en: "Username", ru: "Логин" },
   "login.usernamePlaceholder": { en: "Enter username", ru: "Введите логин" },
@@ -45,7 +45,7 @@ export const translations = {
   "signup.signInLink": { en: "Sign in", ru: "Войти" },
 
   // Welcome modal (first-time)
-  "welcome.title": { en: "Welcome to Rent Tool", ru: "Добро пожаловать в Rent Tool" },
+  "welcome.title": { en: "Welcome to RentTools", ru: "Добро пожаловать в RentTools" },
   "welcome.subtitle": { en: "Let's get started — pick one to set up your workspace.", ru: "Давайте начнём — выберите способ настройки." },
   "welcome.addFirst": { en: "Add my first property", ru: "Добавить первый объект" },
   "welcome.namePlaceholder": { en: "Property name", ru: "Название объекта" },
@@ -78,7 +78,7 @@ export const translations = {
   "profile.close": { en: "Close", ru: "Закрыть" },
 
   // Sidebar
-  "sidebar.title": { en: "Rent Tool", ru: "Rent Tool" },
+  "sidebar.title": { en: "RentTools", ru: "RentTools" },
   "sidebar.subtitle": { en: "Properties & guests", ru: "Объекты и гости" },
   "sidebar.dashboard": { en: "Dashboard", ru: "Обзор" },
   "sidebar.tasks": { en: "Tasks", ru: "Задачи" },

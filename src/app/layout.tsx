@@ -14,9 +14,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
-const SITE_NAME = "Rent Tool";
+const SITE_NAME = "RentTools";
 const SITE_TAGLINE =
-  "Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents — or use it free.";
+  "Free open-source property manager for short-term rental hosts. Sync Airbnb + Booking.com calendars, automate cleaning, extract guest passports.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

@@ -47,8 +47,14 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+          # ServerAliveInterval keeps the connection open during long silent
+          # build phases (TypeScript checking + Sentry source-map upload can
+          # run for 5+ minutes without writing to stdout, which otherwise
+          # tripped the runner's idle timeout).
           ssh -i ~/.ssh/id_deploy \
               -o StrictHostKeyChecking=yes \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
               "${DROPLET_USER}@${DROPLET_HOST}" \
               'bash -lc "bash /home/app/rent-tool/scripts/deploy.sh"'
