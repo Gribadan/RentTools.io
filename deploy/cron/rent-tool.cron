@@ -19,3 +19,6 @@ MAILTO=""
 # Sync all calendars every 10 minutes (the app's own cron handler also
 # enforces a configurable per-account frequency, so over-firing is safe).
 */10 * * * * /home/app/rent-tool/scripts/cron-sync.sh >> /home/app/logs/rent-tool-cron.log 2>&1
+
+# Daily SQLite backup at 03:15 with tiered retention (14 daily / 8 weekly / 6 monthly).
+15 3 * * * /home/app/rent-tool/scripts/backup-db.sh >> /home/app/logs/rent-tool-backup.log 2>&1

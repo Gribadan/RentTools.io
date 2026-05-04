@@ -178,12 +178,78 @@ sudo tee /etc/logrotate.d/rent-tool-cron >/dev/null <<'EOF'
 EOF
 ```
 
-## 7. Backups + monitoring
+## 7. Backups (RT-13.9)
 
-Covered by RT-13.9 / RT-13.10. Backup script at `scripts/backup-db.sh`,
-public health endpoint at `/api/health` (already wired in the app).
+`scripts/backup-db.sh` runs nightly at 03:15 (added to the same crontab
+that drives sync — see §6). It uses `sqlite3 .backup` (online, safe to
+run while the app is serving requests) and writes into a tiered layout:
 
-## 8. Migrate data from Turso (if applicable)
+```
+/home/app/backups/
+  daily/    — newest 14 snapshots
+  weekly/   — newest 8 Sunday snapshots
+  monthly/  — newest 6 first-of-month snapshots
+  latest    — symlink → most recent daily
+```
+
+Sunday and 1st-of-month backups are **hardlinked** into the higher tiers,
+so the same data isn't stored twice. Worst case you keep ~28 distinct
+on-disk snapshots.
+
+Initial setup:
+
+```bash
+sudo chmod +x /home/app/rent-tool/scripts/backup-db.sh
+
+# Run once manually to confirm it produces a valid backup before
+# trusting the cron entry.
+sudo -u app /home/app/rent-tool/scripts/backup-db.sh
+ls -la /home/app/backups/daily/
+```
+
+After installing the crontab from §6, the next 03:15 will trigger the
+nightly backup automatically. Tail the log to confirm:
+
+```bash
+tail -f /home/app/logs/rent-tool-backup.log
+# expect a line like:
+# [2026-05-05T03:15:01+00:00] OK /home/app/backups/daily/prod-20260505-0315.db (243712 bytes)
+```
+
+### Restore procedure
+
+> **Tested and documented.** Always test on a copy of the droplet (or in
+> a tmp dir) before touching live data.
+
+```bash
+# 1. Pick the backup you want.
+ls -la /home/app/backups/daily/
+
+# 2. Stop the app so nothing writes during the swap.
+sudo systemctl stop rent-tool
+
+# 3. Move the live DB out of the way (don't delete — keep as a fallback).
+mv /home/app/rent-tool/data/prod.db /home/app/rent-tool/data/prod.db.preroll
+
+# 4. Copy the backup into place.
+cp /home/app/backups/daily/prod-YYYYMMDD-HHMM.db /home/app/rent-tool/data/prod.db
+chown app:app /home/app/rent-tool/data/prod.db
+
+# 5. Start the app and smoke-test (login, list properties).
+sudo systemctl start rent-tool
+sudo journalctl -u rent-tool -n 50 --no-pager
+curl -fsS http://127.0.0.1:3000/api/health
+```
+
+If anything goes wrong, swap `prod.db.preroll` back. After a successful
+restore, delete the `.preroll` file once you've verified a few hours of
+clean operation.
+
+## 8. Health endpoint + uptime monitoring
+
+Covered by RT-13.10. Public health endpoint at `/api/health`.
+
+## 9. Migrate data from Turso (if applicable)
 
 Covered by RT-13.7. The migration script at `scripts/migrate-turso-to-local.ts`
 copies all tables from your Turso instance to the local SQLite file.
