@@ -1,18 +1,31 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Default Gemini model for passport extraction.
+ * - "gemini-2.0-flash" was the original model — DEPRECATED, shut down 2026-06-01.
+ * - "gemini-2.5-flash" is the recommended replacement: same Flash tier (fast,
+ *   cheap, generous free tier), better accuracy for structured extraction.
+ *
+ * Override per environment via GEMINI_MODEL env var, or per-deployment via the
+ * AppSettings "gemini_model" key (so the admin panel can change it without
+ * a redeploy).
+ */
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+
 export async function getGeminiModel() {
   let apiKey = process.env.GOOGLE_GEMINI_API_KEY;
+  let modelName = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
 
   try {
-    const setting = await prisma.appSettings.findUnique({
-      where: { key: "gemini_api_key" },
-    });
-    if (setting?.value) {
-      apiKey = setting.value;
-    }
+    const [keySetting, modelSetting] = await Promise.all([
+      prisma.appSettings.findUnique({ where: { key: "gemini_api_key" } }),
+      prisma.appSettings.findUnique({ where: { key: "gemini_model" } }),
+    ]);
+    if (keySetting?.value) apiKey = keySetting.value;
+    if (modelSetting?.value) modelName = modelSetting.value;
   } catch {
-    // DB not available, use env
+    // DB not available, use env / defaults
   }
 
   if (!apiKey) {
@@ -20,7 +33,7 @@ export async function getGeminiModel() {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  return genAI.getGenerativeModel({ model: modelName });
 }
 
 /**
