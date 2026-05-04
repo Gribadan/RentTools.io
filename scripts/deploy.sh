@@ -52,8 +52,13 @@ npx prisma generate
 npm run build
 
 # 6. Apply any new schema migrations against the local SQLite file.
-#    push-schema.ts is idempotent + additive-only.
+#    push-schema.ts is idempotent + additive-only. The script reads
+#    DATABASE_URL from env, so source .env.production first — the systemd
+#    service has its own EnvironmentFile, but `npx tsx` here doesn't.
 if [ -f prisma/push-schema.ts ]; then
+  set -a
+  . .env.production
+  set +a
   npx tsx prisma/push-schema.ts
 fi
 
