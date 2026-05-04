@@ -5,7 +5,7 @@ import { ProfilePanel } from "@/components/profile-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
 
-export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks";
+export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks" | "reports";
 
 interface GuestSearchResult {
   guestId: number;
@@ -357,6 +357,19 @@ export function TopBar({
             </svg>
           </button>
 
+          {/* Reports — desktop only */}
+          <button
+            onClick={() => onChangeView("reports")}
+            className={`hidden sm:block rounded-md p-2 transition-colors ${
+              activeView === "reports" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:bg-[#1e1e22] hover:text-[#d4d4d8]"
+            }`}
+            title={locale === "ru" ? "Отчёты" : "Reports"}
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+            </svg>
+          </button>
+
           {/* Settings — desktop only */}
           <button
             onClick={() => onChangeView("settings")}
@@ -406,6 +419,17 @@ export function TopBar({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   {locale === "ru" ? "Задачи" : "Tasks"}
+                </button>
+                <button
+                  onClick={() => { onChangeView("reports"); setMobileMenu(false); }}
+                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                    activeView === "reports" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#d4d4d8] hover:bg-[#1e1e22]"
+                  }`}
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                  {locale === "ru" ? "Отчёты" : "Reports"}
                 </button>
                 <button
                   onClick={() => { onChangeView("settings"); setMobileMenu(false); }}
