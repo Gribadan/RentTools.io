@@ -238,3 +238,17 @@ model Guest {
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 }
+
+// One row per /api/extract POST. Powers the daily per-user rate limit
+// (RT-15.5) and gives admins an audit trail of who pushed what through
+// the Gemini pipeline. No FK to User on purpose so deleting a user
+// doesn't lose audit history.
+model ExtractionLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  fileCount Int      @default(0)
+  success   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
