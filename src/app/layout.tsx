@@ -16,7 +16,7 @@ const jetbrainsMono = JetBrains_Mono({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 const SITE_NAME = "RentTools";
 const SITE_TAGLINE =
-  "Free open-source property manager for short-term rental hosts. Sync Airbnb + Booking.com calendars, automate cleaning, extract guest passports.";
+  "Free open-source property manager for short-term rental hosts. Sync any iCal-compatible calendar (Airbnb, Booking.com, Vrbo, and more), automate cleaning, extract guest passports.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

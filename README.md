@@ -1,7 +1,7 @@
 # RentTools.io
 
 > **Free, open-source property manager for short-term rental hosts.**
-> Sync Airbnb + Booking.com calendars, automate cleaning schedules, extract guest passport data — all in one tool. Use it free at **[renttools.io](https://renttools.io)**.
+> Sync any iCal-compatible calendar (Airbnb, Booking.com, Vrbo, and more), automate cleaning schedules, extract guest passport data — all in one tool. Use it free at **[renttools.io](https://renttools.io)**.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/website?url=https%3A%2F%2Frenttools.io%2Fapi%2Fhealth&label=renttools.io)](https://renttools.io)
@@ -12,9 +12,9 @@
 
 ## What it does
 
-If you rent a place on Airbnb and Booking.com, you have at least four browser tabs open at any given moment. RentTools collapses them into one dashboard:
+If you list a place on Airbnb, Booking.com, Vrbo, or any other platform that exposes an iCal export, you have at least four browser tabs open at any given moment. RentTools collapses them into one dashboard:
 
-- **Calendar sync** — pulls Airbnb and Booking.com bookings via the iCal export URLs they already give you. Manual bookings live alongside synced ones with double-booking warnings.
+- **Calendar sync** — pulls bookings from any iCal-compatible platform (Airbnb, Booking.com, Vrbo, and more) via the export URLs they already give you. Manual bookings live alongside synced ones with double-booking warnings.
 - **Cleaning automation** — turns every check-out → check-in window into a cleaning task. Mark each cleaning done, skipped, add notes, print today's list. Add cleaners as restricted-role users so they only see what's relevant.
 - **Guest passports** — drop a passport photo, get the fields back (name, DOB, document number, country) extracted by Google Gemini. Output is sanitized for hotel registration forms (Cyrillic supported).
 - **Message templates** — per-property templates with variables (`{{guestName}}`, `{{checkIn}}`, `{{wifiPassword}}`, …) — copy to clipboard, paste into Airbnb / WhatsApp.
@@ -38,8 +38,8 @@ You can also self-host the same code on any cheap Linux box. The maintainer's in
 **Is it really free?**
 Yes. No paid tier, no upsell. The maintainer pays for hosting and the Gemini API; per-account rate limits keep usage sane.
 
-**How do I connect Airbnb / Booking.com?**
-You paste the iCal export URLs they give you. Airbnb: *Calendar → Availability settings → Sync calendars → Export*. Booking.com: *Property → Calendar → Sync calendars → Export*. RentTools polls them every 10 minutes.
+**How do I connect Airbnb, Booking.com, or another platform?**
+You paste the iCal export URL the platform gives you. Airbnb: *Calendar → Availability settings → Sync calendars → Export*. Booking.com: *Property → Calendar → Sync calendars → Export*. Vrbo and most other OTAs offer a similar export. RentTools polls them every 10 minutes.
 
 **Can guests see my data?**
 No. Each property is scoped to its owner. The only public surface is the per-property iCal feed (read-only, blocks-only — no guest names exposed). Anyone with the feed URL sees blocked dates, not who booked.

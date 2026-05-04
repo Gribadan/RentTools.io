@@ -65,7 +65,7 @@ export default async function Image() {
               maxWidth: "1000px",
             }}
           >
-            Self-host your Airbnb + Booking.com calendar, cleaning schedule, and guest documents.
+            Self-host your short-term rental calendar, cleaning schedule, and guest documents.
           </div>
         </div>
 
