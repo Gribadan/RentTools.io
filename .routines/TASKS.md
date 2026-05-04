@@ -438,6 +438,105 @@
 
 ---
 
+## Week 13 — DigitalOcean droplet migration
+
+> Goal: leave Vercel + Turso behind. Run on a single cheap DO droplet
+> (Basic $4–6/mo, 1 vCPU, 1 GB RAM) with a self-hosted SQLite database
+> on the same machine. Native cron instead of cron-job.org.
+>
+> Plan: stand up the droplet alongside the live Vercel deployment,
+> migrate data with both running, test on a subdomain, then DNS-cutover.
+> No data loss, instant rollback by flipping DNS back.
+
+- [ ] **RT-13.1** Public-repo secret audit — final pass
+  - Run `git log -p --all | rg -i "(eyJ[A-Za-z0-9]{20}|libsql://[a-z0-9.-]+\.turso\.io|AIza[A-Za-z0-9_-]{30,}|admin\.booking\.com/.*\?|airbnb\.[^/]+/calendar/ical/[0-9]+\.ics)"` — **must return zero hits** before flipping the repo to public
+  - If any historical commit contains a secret: rotate that secret BEFORE making the repo public; rewriting history with `git filter-repo` is optional but rotation is mandatory
+  - Acceptance criteria: clean grep; rotated any leaked credentials; the repo settings page can be flipped to public without leaking active secrets
+
+- [ ] **RT-13.2** Documented runbook for the droplet
+  - File: `docs/DROPLET-SETUP.md` (new) — step-by-step provisioning runbook covering: choose droplet ($6 Basic, Ubuntu 24.04 LTS, NYC3 or closest), set hostname, harden (root pw → key auth, disable password auth, ufw allow 22/80/443, install fail2ban, create non-root `app` user with sudo)
+  - Add: enable 2 GB swap (RAM is tight on 1 GB; build needs headroom): `fallocate -l 2G /swapfile; chmod 600 /swapfile; mkswap /swapfile; swapon /swapfile; echo '/swapfile none swap sw 0 0' >> /etc/fstab`
+  - Acceptance criteria: a fresh Ubuntu droplet can be brought to "ready for app deploy" by following the runbook top-to-bottom in under 30 minutes
+
+- [ ] **RT-13.3** App user + Node + nginx install script
+  - File: `scripts/server-bootstrap.sh` (new, runs as root on droplet) — installs Node 22 LTS via NodeSource, installs nginx, certbot (snap or apt), git; creates `app` user with home `/home/app` and adds `~/.ssh/authorized_keys` from a template
+  - File: `scripts/server-deploy.sh` (new, runs as `app`) — clones the repo to `/home/app/rent-tool`, runs `npm ci --omit=dev`, `npx prisma generate`, `npm run build`
+  - Document in DROPLET-SETUP.md the commands to run each script
+  - Acceptance criteria: running both scripts leaves you with a working `npm start` that serves the app on `localhost:3000`
+
+- [ ] **RT-13.4** systemd service for the Next.js app
+  - File: `deploy/systemd/rent-tool.service` (new) — Type=simple, User=app, WorkingDirectory=/home/app/rent-tool, ExecStart=/usr/bin/node ./node_modules/.bin/next start -p 3000, Restart=always, EnvironmentFile=/home/app/rent-tool/.env.production
+  - Document: copy to `/etc/systemd/system/`, `systemctl daemon-reload`, `enable --now`, `status` to verify
+  - Acceptance criteria: rebooting the droplet brings the app back up automatically; `journalctl -u rent-tool -f` streams app logs
+
+- [ ] **RT-13.5** nginx reverse proxy config + TLS
+  - File: `deploy/nginx/rent-tool.conf` (new) — server_name your-domain, proxy_pass http://127.0.0.1:3000, X-Forwarded-* headers, gzip on, client_max_body_size 20M (passport uploads), proxy_read_timeout 60s
+  - Run: `certbot --nginx -d your-domain.com -d www.your-domain.com` to provision Let's Encrypt; certbot edits the conf to add 443 + redirect 80→443
+  - Verify: HTTPS works, HTTP redirects, `curl -I` shows valid cert
+  - Acceptance criteria: visiting the bare domain serves the app over HTTPS with an auto-renewing Let's Encrypt cert
+
+- [ ] **RT-13.6** Database file path + Prisma config for self-hosted SQLite
+  - Files: `prisma/schema.prisma`, `prisma/prisma.config.ts`
+  - Add support for a `DATABASE_URL=file:./data/prod.db` mode that uses local libSQL (still via @prisma/adapter-libsql so Prisma client unchanged) — falls back to Turso if `TURSO_DATABASE_URL` is set
+  - File: `src/lib/prisma.ts` — pick adapter based on which env var is set
+  - File: `prisma/push-schema.ts` — works against either; document calling pattern for both
+  - Acceptance criteria: setting `DATABASE_URL=file:./data/prod.db` and unsetting Turso vars makes the app run against a local file; setting Turso vars uses Turso; both pass a smoke test
+
+- [ ] **RT-13.7** Data migration script (Turso → local SQLite)
+  - File: `scripts/migrate-turso-to-local.ts` (new) — connects to both, copies all tables in dependency order: User, Property, CalendarLink, CalendarEvent, Reservation, Guest, DateOverride, MessageTemplate, CleanerAssignment, CleaningRecord, PropertyManager, PropertyManagerInvite, AuditLog, AppSettings, SyncLog
+  - For each: full table dump from Turso → insert into local with original IDs preserved (use `prisma.$executeRaw` to bypass autoincrement)
+  - Run twice: a dry run reports counts; the real run with `--write` flag actually writes
+  - Verify post-migration: row counts match per table; pick 3 properties, deep-compare their reservations + guests + overrides
+  - Acceptance criteria: dry run shows N rows per table; real run produces a local DB with identical content; smoke test on the droplet against the migrated DB passes
+
+- [ ] **RT-13.8** Native cron for calendar sync
+  - File: `deploy/cron/rent-tool.cron` (new) — `*/10 * * * * curl -fsS -m 30 "http://127.0.0.1:3000/api/calendar/cron?secret=$CRON_SECRET" >> /var/log/rent-tool-cron.log 2>&1` (read CRON_SECRET from a sourced file, not inline)
+  - Document install: `crontab -u app -e`, paste, save; tail the log to verify the first run
+  - Acceptance criteria: every 10 minutes a sync runs; `SyncLog` table accumulates rows; failed runs leave a clear message in the cron log
+
+- [ ] **RT-13.9** Daily backup script
+  - File: `scripts/backup-db.sh` (new) — `sqlite3 /home/app/rent-tool/data/prod.db ".backup /home/app/backups/prod-$(date +%Y%m%d-%H%M).db"`; rotate: keep last 14 daily, last 8 weekly, last 6 monthly via a small bash retention block
+  - Cron: `15 3 * * * /home/app/rent-tool/scripts/backup-db.sh`
+  - Test restore: copy a backup over the live DB on a staging copy of the droplet, confirm app comes up cleanly against it
+  - Acceptance criteria: backups appear under `/home/app/backups/`; old ones are pruned; a documented restore procedure has been tested at least once
+
+- [ ] **RT-13.10** Public-facing health endpoint behind nginx
+  - File: `deploy/nginx/rent-tool.conf` — add `location = /api/health` block with a 5s timeout so monitoring can hit it without going through the proxy timeout
+  - Free uptime monitor: register the URL on uptime.com or BetterStack free tier; alert if 3 consecutive checks fail
+  - Acceptance criteria: hitting `https://your-domain.com/api/health` returns 200 ok; an artificially-killed service triggers the monitor within 5 minutes
+
+- [ ] **RT-13.11** Stage on subdomain + cutover
+  - DNS: point `staging.your-domain.com` at the droplet IP (still keep the apex pointing at Vercel)
+  - Smoke test on `staging.`: log in, verify all properties + bookings + cleanings + guests appear, generate a manager invite, accept it from another browser, edit a reservation, run a manual sync, hit the calendar feed URL
+  - Once green, swap DNS: apex `@` and `www` → droplet IP; lower TTL to 60s a day before to reduce cutover delay
+  - Acceptance criteria: staging passes a 30-item checklist; production DNS swap is completed during a low-traffic window; old Vercel URL still serves (rollback ready) for 7 days before being decommissioned
+
+- [ ] **RT-13.12** Decommission Vercel + Turso
+  - Remove the GitHub → Vercel integration so future pushes don't trigger Vercel builds
+  - Export Turso data one final time as a safety backup (`turso db shell <db> .dump > final-backup.sql`), store in `.local/`
+  - After 7 days of clean operation on the droplet: delete the Vercel project and the Turso database
+  - Update README with the new architecture; remove now-obsolete `vercel.json` and any Vercel-specific code paths
+  - Acceptance criteria: no traffic hits Vercel for 24 hours straight; Turso DB is exported then deleted; nothing in the repo references the old hosting
+
+- [ ] **RT-13.13** Auto-deploy on push (replaces Vercel auto-deploy)
+  - File: `scripts/deploy.sh` (new, runs on droplet as `app`) — `git pull`, `npm ci --omit=dev`, `npx prisma generate`, `npm run build`, `sudo systemctl restart rent-tool`
+  - File: `.github/workflows/deploy.yml` (new) — on push to master: SSH to droplet, run `~/rent-tool/scripts/deploy.sh`; uses a deploy SSH key stored in `secrets.DEPLOY_KEY` (GitHub repo secret), host fingerprint pinned
+  - Document the GitHub secret setup: generate keypair (`ssh-keygen -t ed25519 -f droplet_deploy`), add `.pub` to droplet's `~/.ssh/authorized_keys`, add private key as `DEPLOY_KEY` repo secret, add `DROPLET_HOST` and `DROPLET_USER` repo variables
+  - Acceptance criteria: pushing to master triggers a successful deploy in under 3 minutes; failing builds don't kill the running service (deploy.sh aborts on failure before the systemctl restart)
+
+- [ ] **RT-13.14** Resource sanity check + alerting
+  - On the droplet: install `htop`, `iotop`, `vnstat`; confirm steady-state RAM is under 600 MB and CPU under 20%
+  - Add a small `scripts/check-resources.sh` that posts a warning to an email-via-Mailgun-free / Telegram bot if RAM > 90% or disk > 80%
+  - Run hourly via cron
+  - Acceptance criteria: alert fires when you intentionally fill /tmp; resource baseline is documented in `docs/DROPLET-SETUP.md`
+
+- [ ] **RT-13.15** Update routine prompt for new ops
+  - File: `.routines/ROUTINE.md` — keep as-is for code tasks
+  - Add a separate `.routines/OPS-ROUTINE.md` for ops checks: every-week loop that checks backup integrity, looks for failing crons, checks disk usage trend
+  - Acceptance criteria: the ops routine can run end-to-end and produce a one-paragraph status report
+
+---
+
 ## Done log
 
 <!-- Append completed tasks here: -->
