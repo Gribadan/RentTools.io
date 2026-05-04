@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { DateSlider } from "@/components/date-slider";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
+import { WelcomeModal } from "@/components/welcome-modal";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -26,6 +27,7 @@ interface DashboardProps {
     platform: string;
     propertyId: number;
   }) => void;
+  onAddProperty?: (name: string) => Promise<void> | void;
 }
 
 export function Dashboard({
@@ -34,6 +36,7 @@ export function Dashboard({
   onSelectProperty,
   onSelectReservation,
   onAddReservation,
+  onAddProperty,
 }: DashboardProps) {
   const { t, locale } = useI18n();
   const [showForm, setShowForm] = useState(false);
@@ -90,6 +93,17 @@ export function Dashboard({
       setFormPropertyId(selectedProperty.id);
     }
   }, [selectedProperty]);
+
+  const [showWelcome, setShowWelcome] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!selectedProperty && properties.length === 0 && onAddProperty) {
+      const dismissed = localStorage.getItem("welcome-modal-dismissed") === "1";
+      setShowWelcome(!dismissed);
+    } else {
+      setShowWelcome(false);
+    }
+  }, [selectedProperty, properties.length, onAddProperty]);
 
   const allReservations = selectedProperty
     ? selectedProperty.reservations
@@ -148,6 +162,13 @@ export function Dashboard({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {onAddProperty && (
+        <WelcomeModal
+          open={showWelcome}
+          onClose={() => setShowWelcome(false)}
+          onAddProperty={onAddProperty}
+        />
+      )}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

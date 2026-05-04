@@ -44,6 +44,15 @@ export const translations = {
   "signup.haveAccount": { en: "Already have an account?", ru: "Уже есть аккаунт?" },
   "signup.signInLink": { en: "Sign in", ru: "Войти" },
 
+  // Welcome modal (first-time)
+  "welcome.title": { en: "Welcome to Rent Tool", ru: "Добро пожаловать в Rent Tool" },
+  "welcome.subtitle": { en: "Let's get started — pick one to set up your workspace.", ru: "Давайте начнём — выберите способ настройки." },
+  "welcome.addFirst": { en: "Add my first property", ru: "Добавить первый объект" },
+  "welcome.namePlaceholder": { en: "Property name", ru: "Название объекта" },
+  "welcome.create": { en: "Create", ru: "Создать" },
+  "welcome.useSample": { en: "Use a sample property", ru: "Создать пример" },
+  "welcome.dismiss": { en: "Skip for now", ru: "Пропустить" },
+
   // Sidebar
   "sidebar.title": { en: "Rent Tool", ru: "Rent Tool" },
   "sidebar.subtitle": { en: "Properties & guests", ru: "Объекты и гости" },

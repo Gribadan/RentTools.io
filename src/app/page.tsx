@@ -314,6 +314,7 @@ function AppContent({
         onSelectProperty={handleSelectProperty}
         onSelectReservation={handleSelectReservation}
         onAddReservation={handleAddReservation}
+        onAddProperty={handleAddProperty}
       />
     );
   };
