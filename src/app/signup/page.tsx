@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
   const [username, setUsername] = useState("");
@@ -19,7 +19,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -27,7 +27,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || t("login.failed"));
+        setError(data.error || t("signup.failed"));
         return;
       }
 
@@ -49,8 +49,8 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold text-[#e8e8ec]">{t("login.title")}</h1>
-          <p className="mt-1 text-sm text-[#a0a0a8]">{t("login.subtitle")}</p>
+          <h1 className="text-xl font-semibold text-[#e8e8ec]">{t("signup.title")}</h1>
+          <p className="mt-1 text-sm text-[#a0a0a8]">{t("signup.subtitle")}</p>
         </div>
 
         <div className="rounded-lg border border-[#333338] bg-[#18181b] p-6">
@@ -65,6 +65,7 @@ export default function LoginPage() {
                 className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]"
                 autoFocus
                 required
+                minLength={3}
               />
             </div>
 
@@ -78,6 +79,7 @@ export default function LoginPage() {
                 placeholder={t("login.passwordPlaceholder")}
                 className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]"
                 required
+                minLength={8}
               />
             </div>
 
@@ -92,19 +94,18 @@ export default function LoginPage() {
               className="h-9 w-full rounded-md bg-[#ff385c] text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
               disabled={loading}
             >
-              {loading ? t("login.signingIn") : t("login.signIn")}
+              {loading ? t("signup.creating") : t("signup.signUp")}
             </button>
           </form>
         </div>
 
         <p className="mt-4 text-center text-xs text-[#a0a0a8]">
-          {t("login.noAccount")}{" "}
-          <Link href="/signup" className="text-[#e8e8ec] hover:underline">
-            {t("login.signUpLink")}
+          {t("signup.haveAccount")}{" "}
+          <Link href="/login" className="text-[#e8e8ec] hover:underline">
+            {t("signup.signInLink")}
           </Link>
         </p>
 
-        {/* Language selector */}
         <div className="mt-4 flex justify-center gap-2">
           <button
             onClick={() => setLocale("ru")}

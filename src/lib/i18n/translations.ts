@@ -32,6 +32,17 @@ export const translations = {
   "login.signIn": { en: "Sign in", ru: "Войти" },
   "login.failed": { en: "Login failed", ru: "Ошибка входа" },
   "login.connectionError": { en: "Connection error", ru: "Ошибка соединения" },
+  "login.noAccount": { en: "Don't have an account?", ru: "Нет аккаунта?" },
+  "login.signUpLink": { en: "Sign up", ru: "Зарегистрироваться" },
+
+  // Signup
+  "signup.title": { en: "Create account", ru: "Создать аккаунт" },
+  "signup.subtitle": { en: "Sign up to get started", ru: "Зарегистрируйтесь, чтобы начать" },
+  "signup.creating": { en: "Creating account...", ru: "Создаём аккаунт..." },
+  "signup.signUp": { en: "Sign up", ru: "Зарегистрироваться" },
+  "signup.failed": { en: "Sign up failed", ru: "Ошибка регистрации" },
+  "signup.haveAccount": { en: "Already have an account?", ru: "Уже есть аккаунт?" },
+  "signup.signInLink": { en: "Sign in", ru: "Войти" },
 
   // Sidebar
   "sidebar.title": { en: "Rent Tool", ru: "Rent Tool" },
