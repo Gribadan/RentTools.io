@@ -28,6 +28,16 @@ model AppSettings {
   value String
 }
 
+// Global site-wide configuration. Distinct from AppSettings (which is bound
+// to the legacy Gemini key/model lookup) so the admin UI can manage these
+// keys without touching the existing extraction pipeline.
+model SiteSetting {
+  id        Int       @id @default(autoincrement())
+  key       String    @unique
+  value     String
+  updatedAt DateTime?
+}
+
 model Property {
   id             Int              @id @default(autoincrement())
   userId         Int
