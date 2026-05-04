@@ -291,6 +291,7 @@ function AppContent({
                 key={selectedReservation.id}
                 reservation={selectedReservation}
                 guests={guests}
+                propertyName={selectedProperty.name}
                 onGuestsUpdated={handleGuestsUpdated}
                 onDeleteGuest={handleDeleteGuest}
                 onUpdateReservation={handleUpdateReservation}
