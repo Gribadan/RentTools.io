@@ -1,11 +1,30 @@
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "../src/generated/prisma/client";
 import "dotenv/config";
+import path from "node:path";
+import fs from "node:fs";
 
-const adapter = new PrismaLibSql({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+function resolveDbConfig(): { url: string; authToken?: string; label: string } {
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl?.startsWith("file:")) {
+    const rel = dbUrl.slice("file:".length);
+    const abs = path.isAbsolute(rel) ? rel : path.resolve(process.cwd(), rel);
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    return { url: `file:${abs}`, label: `local SQLite at ${abs}` };
+  }
+  if (process.env.TURSO_DATABASE_URL) {
+    return {
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+      label: `Turso (${process.env.TURSO_DATABASE_URL})`,
+    };
+  }
+  throw new Error("No database configured. Set DATABASE_URL=file:... or TURSO_DATABASE_URL.");
+}
+
+const config = resolveDbConfig();
+console.log(`Pushing schema to: ${config.label}`);
+const adapter = new PrismaLibSql({ url: config.url, authToken: config.authToken });
 const prisma = new PrismaClient({ adapter });
 
 const schema = `
