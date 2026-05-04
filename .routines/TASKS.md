@@ -315,7 +315,7 @@
   - Banner has dismiss button that marks alerts as read
   - Acceptance criteria: simulating a failing iCal URL surfaces a banner after 3 cron ticks
 
-- [ ] **RT-9.5** Audit log of mutations
+- [x] **RT-9.5** Audit log of mutations
   - File: `prisma/schema.prisma` — add `AuditLog { id, userId, action, resourceType, resourceId, payload (JSON string), createdAt }`
   - File: `src/lib/audit.ts` (new) — `logAudit(userId, action, type, id, payload)` helper
   - Call from: create/update/delete property, reservation, guest, override, calendar link
@@ -481,3 +481,4 @@
 - 2026-05-04 — RT-9.1 — cb58d62 — JSON request logger emitted from middleware; method/path/status/durationMs/userId/ip per request
 - 2026-05-04 — RT-9.2 — a3c88dc — public /api/health endpoint with DB ping + 2h sync-staleness check; returns 503 on failure
 - 2026-05-04 — RT-9.4 — 821c53c — CalendarLink.failureCount + alertsDismissedAt watermark; [ALERT] SyncLog rows surfaced via SyncAlertsBanner
+- 2026-05-04 — RT-9.5 — 1bd61f2 — AuditLog table + logAudit helper + /api/audit + AuditPanel reachable from Profile
