@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback-secret-change-me"
@@ -57,4 +58,27 @@ export async function getSession(): Promise<{
 export async function clearSession() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+}
+
+type Session = { userId: number; username: string; role: string };
+
+export type RequireSuperadminResult =
+  | { session: Session; response: null }
+  | { session: null; response: NextResponse };
+
+export async function requireSuperadmin(): Promise<RequireSuperadminResult> {
+  const session = await getSession();
+  if (!session) {
+    return {
+      session: null,
+      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    };
+  }
+  if (session.role !== "superadmin") {
+    return {
+      session: null,
+      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+  return { session, response: null };
 }
