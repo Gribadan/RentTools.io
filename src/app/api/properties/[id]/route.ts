@@ -28,6 +28,7 @@ export async function PATCH(
     if (body.checkInTime !== undefined) data.checkInTime = body.checkInTime;
     if (body.checkOutTime !== undefined) data.checkOutTime = body.checkOutTime;
     if (body.bookingWindow !== undefined) data.bookingWindow = body.bookingWindow;
+    if (body.cleaningEnabled !== undefined) data.cleaningEnabled = !!body.cleaningEnabled;
 
     const property = await prisma.property.update({
       where: { id: numId },

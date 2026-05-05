@@ -297,6 +297,7 @@ function AppContent({
             <PropertyCleaningView
               key={`clean-${selectedProperty.id}`}
               property={selectedProperty}
+              onCleaningEnabledChanged={fetchProperties}
             />
           );
         case "sync":

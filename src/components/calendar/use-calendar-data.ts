@@ -188,6 +188,27 @@ export function useCalendarData(
       }
     }
 
+    // RT-25.3 — when the per-property cleaning master toggle is off,
+    // skip all cleaning-derived computations (buffer, potential,
+    // sameDayCleaning, unbookable). Conflict detection above and the
+    // bars step below still run. linkedBoundaryDates / closedOverrides
+    // / openOverrides only feed cleaning math, so we early-return
+    // before any of that runs.
+    if (property.cleaningEnabled === false) {
+      return {
+        airbnbDates: airbnb,
+        bookingDates: booking,
+        bufferDates: buffer,
+        potentialDates: potential,
+        unbookableDates: unbookable,
+        sameDayCleaningDates: sameDayCleaning,
+        conflictDates: conflictSet,
+        dateToEvent: evMap,
+        dateToReservation: resMap,
+        conflicts: conflictList,
+      };
+    }
+
     allBookings.sort((a, b) => a.start.localeCompare(b.start));
     const dedupedBookings: typeof allBookings = [];
     for (const b of allBookings) {
@@ -385,7 +406,7 @@ export function useCalendarData(
       dateToReservation: resMap,
       conflicts: conflictList,
     };
-  }, [syncedEvents, property.reservations, links, property.minNights, property.bookingWindow, openOverrides, closedOverrides]);
+  }, [syncedEvents, property.reservations, links, property.minNights, property.bookingWindow, property.cleaningEnabled, openOverrides, closedOverrides]);
 
   const bars = useMemo(() => {
     const result: CalendarBar[] = [];
@@ -487,6 +508,13 @@ export function useCalendarData(
     return deduped;
   }, [computed.dateToEvent, property.reservations]);
 
+  // RT-25.3 — when the toggle is off, suppress manual cleaning chips
+  // too so the calendar reads as "bookings only". Data is preserved
+  // (cleaningOverrides survive in the date-overrides table); the chips
+  // come back when the toggle is flipped on.
+  const visibleCleaningOverrides =
+    property.cleaningEnabled === false ? new Set<string>() : cleaningOverrides;
+
   return {
     airbnbDates: computed.airbnbDates,
     bookingDates: computed.bookingDates,
@@ -494,7 +522,7 @@ export function useCalendarData(
     potentialDates: computed.potentialDates,
     unbookableDates: computed.unbookableDates,
     sameDayCleaningDates: computed.sameDayCleaningDates,
-    cleaningOverrides,
+    cleaningOverrides: visibleCleaningOverrides,
     conflictDates: computed.conflictDates,
     conflicts: computed.conflicts,
     bars,

@@ -192,6 +192,11 @@ export const translations = {
   "cleaning.turnover": { en: "Turnover {from} → {to}", ru: "Смена гостей: {from} → {to}" },
   "cleaning.gapPotential": { en: "If gap booked → before {name}", ru: "Если промежуток занят → перед {name}" },
   "cleaning.manualCleaning": { en: "Added manually", ru: "Добавлено вручную" },
+  // RT-25.3 — per-property cleaning master toggle
+  "cleaning.toggleLabel": { en: "Show cleaning logic for this property", ru: "Показывать логику уборок для этого объекта" },
+  "cleaning.toggleHint": { en: "When off, buffer days, turnovers, and potential cleanings are hidden. Conflicts and bookings still appear.", ru: "Когда выключено, буферные дни, смены и возможные уборки скрыты. Конфликты и бронирования по-прежнему отображаются." },
+  "cleaning.offTitle": { en: "Cleaning is off for this property", ru: "Уборки отключены для этого объекта" },
+  "cleaning.offDesc": { en: "Turn the toggle on to bring cleaning chips and the schedule back. No data is lost while it is off.", ru: "Включите переключатель, чтобы вернуть отметки уборок и расписание. Данные при выключении не теряются." },
   "cleaning.fullDay": { en: "Full day", ru: "Полный день" },
   "cleaning.quickTurnover": { en: "Quick", ru: "Быстрая" },
   "cleaning.hoursShort": { en: "{h}h", ru: "{h}ч" },

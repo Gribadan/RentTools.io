@@ -197,6 +197,11 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // the post has no sibling.
     `ALTER TABLE "BlogPost" ADD COLUMN "translationGroupId" INTEGER`,
     `CREATE INDEX IF NOT EXISTS "BlogPost_translationGroupId_idx" ON "BlogPost"("translationGroupId")`,
+    // RT-25.3 — per-property master toggle for cleaning logic. When 0,
+    // useCalendarData skips buffer/sameDayCleaning/potentialCleaning/
+    // unbookable computation and the cleaning schedule hides the
+    // property; conflict detection still runs.
+    `ALTER TABLE "Property" ADD COLUMN "cleaningEnabled" INTEGER NOT NULL DEFAULT 1`,
   ];
   for (const sql of migrations) {
     try {

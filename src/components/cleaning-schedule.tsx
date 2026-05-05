@@ -417,6 +417,10 @@ export function CleaningSchedule({
 
     const allDays: CleaningDay[] = [];
     for (const prop of targetProperties) {
+      // RT-25.3 — properties with the cleaning toggle off contribute
+      // no rows. Conflict detection lives elsewhere; skipping here is
+      // purely about hiding cleaning surfaces.
+      if (prop.cleaningEnabled === false) continue;
       const propEvents = syncedEvents[prop.id] || [];
       const propLinks = links[prop.id] || [];
       const propOverrides = overrides?.[prop.id] || [];
