@@ -277,7 +277,10 @@ function AppContent({
     }
 
     if (activeView === "reports") {
-      return <ReportsPanel properties={properties} onImported={fetchProperties} />;
+      // RT-25.5 — Reports is per-property and follows the dashboard's
+      // header property selector. When no property is selected the
+      // panel renders a "pick one" prompt rather than a global view.
+      return <ReportsPanel property={selectedProperty ?? null} />;
     }
 
     // Property views
