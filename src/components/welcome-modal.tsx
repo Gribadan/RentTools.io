@@ -58,9 +58,9 @@ export function WelcomeModal({ open, onClose, onAddProperty }: WelcomeModalProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[#27272b] bg-[#18181b] p-6 shadow-2xl">
-        <h2 className="text-lg font-semibold text-[#e8e8ec]">{t("welcome.title")}</h2>
-        <p className="mt-1 text-sm text-[#a0a0a8]">{t("welcome.subtitle")}</p>
+      <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-2xl">
+        <h2 className="text-lg font-semibold text-[var(--ink)]">{t("welcome.title")}</h2>
+        <p className="mt-1 text-sm text-[var(--ink-3)]">{t("welcome.subtitle")}</p>
 
         <div className="mt-5 space-y-3">
           {showInput ? (
@@ -70,12 +70,12 @@ export function WelcomeModal({ open, onClose, onAddProperty }: WelcomeModalProps
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t("welcome.namePlaceholder")}
-                className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]"
+                className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]"
               />
               <button
                 onClick={handleCreate}
                 disabled={busy || !name.trim()}
-                className="h-9 w-full rounded-md bg-[#ff385c] text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
+                className="h-9 w-full rounded-md bg-[var(--m-accent)] text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
               >
                 {t("welcome.create")}
               </button>
@@ -84,7 +84,7 @@ export function WelcomeModal({ open, onClose, onAddProperty }: WelcomeModalProps
             <button
               onClick={() => setShowInput(true)}
               disabled={busy}
-              className="h-10 w-full rounded-md bg-[#ff385c] text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
+              className="h-10 w-full rounded-md bg-[var(--m-accent)] text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
               {t("welcome.addFirst")}
             </button>
@@ -93,7 +93,7 @@ export function WelcomeModal({ open, onClose, onAddProperty }: WelcomeModalProps
           <button
             onClick={handleSample}
             disabled={busy}
-            className="h-10 w-full rounded-md border border-[#333338] bg-[#111113] text-sm font-medium text-[#e8e8ec] transition-colors hover:bg-[#1e1e22] disabled:opacity-50"
+            className="h-10 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] text-sm font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-3)] disabled:opacity-50"
           >
             {t("welcome.useSample")}
           </button>
@@ -102,7 +102,7 @@ export function WelcomeModal({ open, onClose, onAddProperty }: WelcomeModalProps
         <button
           onClick={dismiss}
           disabled={busy}
-          className="mt-4 w-full text-center text-xs text-[#71717a] hover:text-[#a0a0a8] disabled:opacity-50"
+          className="mt-4 w-full text-center text-xs text-[var(--ink-4)] hover:text-[var(--ink-3)] disabled:opacity-50"
         >
           {t("welcome.dismiss")}
         </button>

@@ -153,24 +153,24 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div>
-        <h1 className="text-xl font-bold tracking-tight text-[#e8e8ec]">
+        <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
           {locale === "ru" ? "Отчёты" : "Reports"}
         </h1>
-        <p className="mt-1 text-xs text-[#71717a]">
+        <p className="mt-1 text-xs text-[var(--ink-4)]">
           {locale === "ru"
             ? "Загрузка по месяцам за последний год"
             : "Monthly occupancy for the last 12 months"}
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#27272b] bg-[#18181b] p-3">
-        <label className="text-xs text-[#a0a0a8]">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-3">
+        <label className="text-xs text-[var(--ink-3)]">
           {locale === "ru" ? "Объект" : "Property"}
         </label>
         <select
           value={propertyId ?? ""}
           onChange={(e) => setPropertyId(Number(e.target.value) || null)}
-          className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+          className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
         >
           {properties.length === 0 ? (
             <option value="">
@@ -185,14 +185,14 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
           )}
         </select>
         {selected && (
-          <span className="ml-auto rounded-md bg-[#27272b] px-2 py-1 text-[11px] text-[#d4d4d8]">
-            {locale === "ru" ? "Среднее" : "Avg"}: <span className="font-semibold text-[#e8e8ec]">{avgPct}%</span>
+          <span className="ml-auto rounded-md bg-[var(--line-2)] px-2 py-1 text-[11px] text-[var(--ink-2)]">
+            {locale === "ru" ? "Среднее" : "Avg"}: <span className="font-semibold text-[var(--ink)]">{avgPct}%</span>
           </span>
         )}
       </div>
 
       {selected ? (
-        <div className="rounded-xl border border-[#27272b] bg-[#18181b] p-4">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4">
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
@@ -238,47 +238,47 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-[#27272b] bg-[#18181b] p-6 text-center text-xs text-[#71717a]">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 text-center text-xs text-[var(--ink-4)]">
           {locale === "ru" ? "Добавьте объект, чтобы видеть отчёты." : "Add a property to see reports."}
         </div>
       )}
 
       {/* Reservations CSV export */}
-      <div className="rounded-xl border border-[#27272b] bg-[#18181b] p-4">
-        <h2 className="mb-3 text-sm font-semibold text-[#e8e8ec]">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--ink)]">
           {locale === "ru" ? "Экспорт броней (CSV)" : "Export reservations (CSV)"}
         </h2>
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider text-[#71717a]">
+            <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
               {locale === "ru" ? "С" : "From"}
             </label>
             <input
               type="date"
               value={exportFrom}
               onChange={(e) => setExportFrom(e.target.value)}
-              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider text-[#71717a]">
+            <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
               {locale === "ru" ? "По" : "To"}
             </label>
             <input
               type="date"
               value={exportTo}
               onChange={(e) => setExportTo(e.target.value)}
-              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider text-[#71717a]">
+            <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
               {locale === "ru" ? "Объекты" : "Scope"}
             </label>
             <select
               value={exportScope}
               onChange={(e) => setExportScope(e.target.value as "all" | "selected")}
-              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             >
               <option value="all">{locale === "ru" ? "Все объекты" : "All properties"}</option>
               <option value="selected" disabled={!selected}>
@@ -288,12 +288,12 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
           </div>
           <button
             onClick={downloadCsv}
-            className="ml-auto h-8 rounded-md bg-[#ff385c] px-3 text-xs font-medium text-white hover:bg-[#e0294d]"
+            className="ml-auto h-8 rounded-md bg-[var(--m-accent)] px-3 text-xs font-medium text-white hover:bg-[var(--m-accent-2)]"
           >
             {locale === "ru" ? "Скачать CSV" : "Export reservations CSV"}
           </button>
         </div>
-        <p className="mt-2 text-[11px] text-[#71717a]">
+        <p className="mt-2 text-[11px] text-[var(--ink-4)]">
           {locale === "ru"
             ? "Пустые поля = выгрузить все. Файл с UTF-8 BOM, открывается в Excel с кириллицей."
             : "Leave dates blank to export everything. UTF-8 BOM ensures Excel opens Cyrillic correctly."}
@@ -301,8 +301,8 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
       </div>
 
       {/* Reservations CSV import */}
-      <div className="rounded-xl border border-[#27272b] bg-[#18181b] p-4">
-        <h2 className="mb-3 text-sm font-semibold text-[#e8e8ec]">
+      <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4">
+        <h2 className="mb-3 text-sm font-semibold text-[var(--ink)]">
           {locale === "ru" ? "Импорт броней (CSV)" : "Import reservations (CSV)"}
         </h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -320,18 +320,18 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
           />
           <button
             onClick={() => importInputRef.current?.click()}
-            className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-xs text-[#e8e8ec] hover:border-[#e8e8ec]/50"
+            className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-xs text-[var(--ink)] hover:border-[var(--ink)]/40"
           >
             {locale === "ru" ? "Выбрать файл" : "Choose file"}
           </button>
-          <span className="truncate text-xs text-[#a0a0a8]">
+          <span className="truncate text-xs text-[var(--ink-3)]">
             {importFile ? importFile.name : (locale === "ru" ? "Файл не выбран" : "No file chosen")}
           </span>
           <div className="ml-auto flex gap-2">
             <button
               onClick={() => runImport("dry")}
               disabled={!importFile || importBusy !== null}
-              className="h-8 rounded-md border border-[#333338] bg-[#111113] px-3 text-xs text-[#e8e8ec] hover:border-[#e8e8ec]/50 disabled:opacity-50"
+              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-xs text-[var(--ink)] hover:border-[var(--ink)]/40 disabled:opacity-50"
             >
               {importBusy === "dry"
                 ? (locale === "ru" ? "Анализ..." : "Analyzing...")
@@ -340,7 +340,7 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
             <button
               onClick={() => runImport("commit")}
               disabled={!importFile || importBusy !== null}
-              className="h-8 rounded-md bg-[#ff385c] px-3 text-xs font-medium text-white hover:bg-[#e0294d] disabled:opacity-50"
+              className="h-8 rounded-md bg-[var(--m-accent)] px-3 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
               {importBusy === "commit"
                 ? (locale === "ru" ? "Импорт..." : "Importing...")
@@ -348,53 +348,53 @@ export function ReportsPanel({ properties, onImported }: ReportsPanelProps) {
             </button>
           </div>
         </div>
-        <p className="mt-2 text-[11px] text-[#71717a]">
+        <p className="mt-2 text-[11px] text-[var(--ink-4)]">
           {locale === "ru"
             ? "Колонки: propertyId, name, platform, checkIn, checkOut. Пересекающиеся брони пропускаются."
             : "Required columns: propertyId, name, platform, checkIn, checkOut. Overlapping rows are skipped."}
         </p>
         {importError && (
-          <p className="mt-2 text-xs text-[#ef4444]">{importError}</p>
+          <p className="mt-2 text-xs text-rose-500">{importError}</p>
         )}
         {importResponse && (
           <div className="mt-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="rounded bg-[#34d399]/15 px-2 py-0.5 text-[#34d399]">
+              <span className="rounded bg-emerald-500/15 px-2 py-0.5 text-emerald-500">
                 {locale === "ru" ? "Создано" : "Created"}: {importResponse.summary.created}
               </span>
-              <span className="rounded bg-[#fbbf24]/15 px-2 py-0.5 text-[#fbbf24]">
+              <span className="rounded bg-amber-400/15 px-2 py-0.5 text-amber-400">
                 {locale === "ru" ? "Пропущено" : "Skipped"}: {importResponse.summary.skipped}
               </span>
-              <span className="rounded bg-[#ef4444]/15 px-2 py-0.5 text-[#ef4444]">
+              <span className="rounded bg-rose-500/15 px-2 py-0.5 text-rose-500">
                 {locale === "ru" ? "Ошибок" : "Errors"}: {importResponse.summary.error}
               </span>
               {importResponse.summary.dryRun && (
-                <span className="rounded bg-[#27272b] px-2 py-0.5 text-[#a0a0a8]">
+                <span className="rounded bg-[var(--line-2)] px-2 py-0.5 text-[var(--ink-3)]">
                   {locale === "ru" ? "Превью (без записи)" : "Dry run (no writes)"}
                 </span>
               )}
             </div>
-            <ul className="max-h-64 divide-y divide-[#27272b] overflow-y-auto rounded-md border border-[#27272b] bg-[#111113]">
+            <ul className="max-h-64 divide-y divide-[#27272b] overflow-y-auto rounded-md border border-[var(--line)] bg-[var(--bg)]">
               {importResponse.results.map((r) => (
                 <li
                   key={`${r.rowNumber}-${r.status}`}
                   className="flex items-start justify-between gap-3 px-3 py-1.5 text-[11px]"
                 >
-                  <span className="shrink-0 font-mono text-[#71717a]">
+                  <span className="shrink-0 font-mono text-[var(--ink-4)]">
                     {locale === "ru" ? "Строка" : "Row"} {r.rowNumber}
                   </span>
                   <span
                     className={`shrink-0 rounded px-1.5 py-0.5 ${
                       r.status === "created"
-                        ? "bg-[#34d399]/15 text-[#34d399]"
+                        ? "bg-emerald-500/15 text-emerald-500"
                         : r.status === "skipped"
-                        ? "bg-[#fbbf24]/15 text-[#fbbf24]"
-                        : "bg-[#ef4444]/15 text-[#ef4444]"
+                        ? "bg-amber-400/15 text-amber-400"
+                        : "bg-rose-500/15 text-rose-500"
                     }`}
                   >
                     {r.status}
                   </span>
-                  <span className="flex-1 truncate text-right text-[#a0a0a8]">
+                  <span className="flex-1 truncate text-right text-[var(--ink-3)]">
                     {r.reason || (r.reservationId ? `#${r.reservationId}` : "")}
                   </span>
                 </li>

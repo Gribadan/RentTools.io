@@ -84,15 +84,15 @@ function CopyField({
       onClick={handleCopy}
       className={`group/field flex cursor-pointer items-center justify-between rounded-md px-2 py-1 transition-all ${
         highlighted
-          ? "bg-[#e8e8ec]/10 ring-1 ring-[#e8e8ec]/20"
+          ? "bg-[var(--ink)]/10 ring-1 ring-[var(--ink)]/20"
           : "hover:bg-white/5"
       }`}
     >
-      <span className={`text-xs ${highlighted ? "text-[#e8e8ec]/80" : "text-muted-foreground/60"}`}>{label}</span>
+      <span className={`text-xs ${highlighted ? "text-[var(--ink)]/80" : "text-muted-foreground/60"}`}>{label}</span>
       <div className="flex items-center gap-1.5">
-        <span className={`text-sm font-medium ${highlighted ? "text-[#e8e8ec]" : ""}`}>{value || "—"}</span>
+        <span className={`text-sm font-medium ${highlighted ? "text-[var(--ink)]" : ""}`}>{value || "—"}</span>
         <span className={`text-[11px] transition-all ${
-          justCopied ? "text-[#34d399]" : highlighted ? "text-[#e8e8ec]/40" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"
+          justCopied ? "text-emerald-500" : highlighted ? "text-[var(--ink)]/40" : "text-muted-foreground/0 group-hover/field:text-muted-foreground/30"
         }`}>
           {justCopied ? "copied" : "copy"}
         </span>
@@ -119,7 +119,7 @@ function EditField({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-2/3 rounded border border-border/40 bg-background/50 px-2 py-0.5 text-sm font-medium text-[#e8e8ec] focus:border-primary/60 focus:outline-none"
+        className="w-2/3 rounded border border-border/40 bg-background/50 px-2 py-0.5 text-sm font-medium text-[var(--ink)] focus:border-primary/60 focus:outline-none"
       />
     </div>
   );
@@ -142,7 +142,7 @@ function EditSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-2/3 rounded border border-border/40 bg-background/50 px-2 py-0.5 text-sm font-medium text-[#e8e8ec] focus:border-primary/60 focus:outline-none"
+        className="w-2/3 rounded border border-border/40 bg-background/50 px-2 py-0.5 text-sm font-medium text-[var(--ink)] focus:border-primary/60 focus:outline-none"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -253,8 +253,8 @@ function GuestCard({
       {/* Card header */}
       <div className="flex items-center justify-between border-b border-border/20 px-3 py-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-sm font-semibold text-[#e8e8ec]">{guest.fullName}</span>
-          <span className="shrink-0 text-xs text-[#a0a0a8]">{effectiveAge(guest)}y</span>
+          <span className="truncate text-sm font-semibold text-[var(--ink)]">{guest.fullName}</span>
+          <span className="shrink-0 text-xs text-[var(--ink-3)]">{effectiveAge(guest)}y</span>
         </div>
         <div className="flex items-center gap-1">
           {editing ? (
@@ -262,14 +262,14 @@ function GuestCard({
               <button
                 onClick={saveEdit}
                 disabled={saving}
-                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-[#34d399] transition-all hover:bg-[#34d399]/15 disabled:opacity-40"
+                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-emerald-500 transition-all hover:bg-emerald-500/15 disabled:opacity-40"
               >
                 {saving ? "saving…" : "save"}
               </button>
               <button
                 onClick={cancelEdit}
                 disabled={saving}
-                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-muted-foreground/60 transition-all hover:bg-white/5 hover:text-[#e8e8ec] disabled:opacity-40"
+                className="rounded-md px-2 py-0.5 text-[11px] font-medium text-muted-foreground/60 transition-all hover:bg-white/5 hover:text-[var(--ink)] disabled:opacity-40"
               >
                 cancel
               </button>
@@ -278,7 +278,7 @@ function GuestCard({
             <>
               <button
                 onClick={startEdit}
-                className="rounded-md p-1 text-muted-foreground/30 transition-all hover:bg-white/5 hover:text-[#e8e8ec]"
+                className="rounded-md p-1 text-muted-foreground/30 transition-all hover:bg-white/5 hover:text-[var(--ink)]"
                 title="Edit guest"
               >
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -338,7 +338,7 @@ function GuestCard({
               <EditField label="Expiry date" value={draft.expiryDate} onChange={(v) => setField("expiryDate", v)} />
             </div>
             <div className="p-1.5">
-              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#34d399]/70">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-emerald-500/70">
                 Visa
               </div>
               <EditSelect
@@ -381,7 +381,7 @@ function GuestCard({
 
             {/* Block 3: Visit info + Visa (if uploaded) */}
             <div className="p-1.5">
-              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#34d399]/70">
+              <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-emerald-500/70">
                 {guest.hasVisa ? "Visa & Visit" : "Visit"}
               </div>
               {guest.hasVisa && (
@@ -398,7 +398,7 @@ function GuestCard({
             {/* Block 4: Children (only if any attached) */}
             {children.length > 0 && (
               <div className="p-1.5">
-                <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-[#fbbf24]/70">
+                <div className="mb-0.5 px-2 pt-1 text-[11px] font-semibold uppercase tracking-widest text-amber-400/70">
                   Children ({children.length})
                 </div>
                 {children.map((child) => (

@@ -223,21 +223,21 @@ export function CleaningSummary({
     return (
       <li
         key={`${e.propertyId}-${e.date}-${e.reason}`}
-        className="flex items-center justify-between gap-3 border-b border-[#27272b] py-1.5 print:border-gray-300 last:border-b-0"
+        className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-1.5 print:border-gray-300 last:border-b-0"
       >
         <div className="flex items-center gap-3 text-sm">
-          <span className="w-24 font-medium text-[#e8e8ec] print:text-black">{formatDate(e.date)}</span>
-          <span className="text-[#e8e8ec] print:text-black">{e.property}</span>
-          <span className="text-xs text-[#a0a0a8] print:text-gray-700">{e.reason}</span>
+          <span className="w-24 font-medium text-[var(--ink)] print:text-black">{formatDate(e.date)}</span>
+          <span className="text-[var(--ink)] print:text-black">{e.property}</span>
+          <span className="text-xs text-[var(--ink-3)] print:text-gray-700">{e.reason}</span>
         </div>
         <span
           className={
             "text-xs font-semibold uppercase tracking-wider " +
             (status === "done"
-              ? "text-[#34d399]"
+              ? "text-emerald-500"
               : status === "skipped"
-              ? "text-[#71717a]"
-              : "text-[#fbbf24]")
+              ? "text-[var(--ink-4)]"
+              : "text-amber-400")
           }
         >
           {status === "done"
@@ -252,12 +252,12 @@ export function CleaningSummary({
 
   const Section = ({ title, items }: { title: string; items: CleaningEntry[] }) => (
     <section className="mb-5">
-      <h3 className="mb-2 border-b border-[#27272b] pb-1 text-sm font-semibold uppercase tracking-wider text-[#a0a0a8] print:border-gray-400 print:text-black">
+      <h3 className="mb-2 border-b border-[var(--line)] pb-1 text-sm font-semibold uppercase tracking-wider text-[var(--ink-3)] print:border-gray-400 print:text-black">
         {title}{" "}
-        <span className="ml-1 text-xs font-normal text-[#71717a]">({items.length})</span>
+        <span className="ml-1 text-xs font-normal text-[var(--ink-4)]">({items.length})</span>
       </h3>
       {items.length === 0 ? (
-        <p className="text-xs text-[#71717a] print:text-gray-600">
+        <p className="text-xs text-[var(--ink-4)] print:text-gray-600">
           {locale === "ru" ? "Уборок нет" : "Nothing scheduled"}
         </p>
       ) : (
@@ -268,21 +268,21 @@ export function CleaningSummary({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 print:relative print:inset-auto print:bg-white print:p-0">
-      <div className="w-full max-w-2xl rounded-2xl border border-[#27272b] bg-[#18181b] p-6 shadow-2xl print:max-w-full print:border-0 print:bg-white print:shadow-none">
+      <div className="w-full max-w-2xl rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-2xl print:max-w-full print:border-0 print:bg-white print:shadow-none">
         <div className="mb-4 flex items-center justify-between print:hidden">
-          <h2 className="text-lg font-semibold text-[#e8e8ec]">
+          <h2 className="text-lg font-semibold text-[var(--ink)]">
             {locale === "ru" ? "Краткий план уборок" : "Cleaning summary"}
           </h2>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.print()}
-              className="rounded-md border border-[#333338] px-3 py-1.5 text-xs text-[#e8e8ec] hover:bg-[#27272b]"
+              className="rounded-md border border-[var(--line-2)] px-3 py-1.5 text-xs text-[var(--ink)] hover:bg-[var(--line-2)]"
             >
               {locale === "ru" ? "Печать" : "Print"}
             </button>
             <button
               onClick={onClose}
-              className="rounded-md p-1 text-[#a0a0a8] hover:bg-[#27272b] hover:text-[#e8e8ec]"
+              className="rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
               aria-label="Close"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -81,11 +81,11 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
   }, [fetchData]);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0d1117]">
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--bg)]">
       <AnnouncementBanner />
-      <header className="flex items-center justify-between border-b border-[#27272b] bg-[#18181b] px-4 h-14">
-        <div className="flex items-center gap-2 text-[#e8e8ec]">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#111113]">
+      <header className="flex items-center justify-between border-b border-[var(--line)] bg-[var(--bg-2)] px-4 h-14">
+        <div className="flex items-center gap-2 text-[var(--ink)]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg)]">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path
                 strokeLinecap="round"
@@ -100,29 +100,29 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-md border border-[#333338] overflow-hidden">
+          <div className="flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
             <button
               onClick={() => setLocale("ru")}
-              className={`px-2 py-1 text-xs ${locale === "ru" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a]"}`}
+              className={`px-2 py-1 text-xs ${locale === "ru" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
             >
               RU
             </button>
             <button
               onClick={() => setLocale("en")}
-              className={`px-2 py-1 text-xs ${locale === "en" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a]"}`}
+              className={`px-2 py-1 text-xs ${locale === "en" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
             >
               EN
             </button>
           </div>
-          <span className="hidden sm:block text-xs text-[#a0a0a8]">
+          <span className="hidden sm:block text-xs text-[var(--ink-3)]">
             {user.username}{" "}
-            <span className="rounded bg-[#27272b] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[#a0a0a8]">
+            <span className="rounded bg-[var(--line-2)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--ink-3)]">
               {locale === "ru" ? "уборщик" : "cleaner"}
             </span>
           </span>
           <button
             onClick={onLogout}
-            className="rounded-md px-2.5 py-1.5 text-xs text-[#ef4444] hover:bg-[#ef4444]/10 transition-colors"
+            className="rounded-md px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-500/10 transition-colors"
           >
             {t("sidebar.logout")}
           </button>
@@ -133,11 +133,11 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
         <div className="mx-auto max-w-5xl">
           {loading ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#30363d] border-t-[#58a6ff]" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-2)] border-t-[#58a6ff]" />
             </div>
           ) : properties.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-[#27272b] py-16 text-center">
-              <p className="text-sm text-[#71717a]">
+            <div className="rounded-lg border border-dashed border-[var(--line)] py-16 text-center">
+              <p className="text-sm text-[var(--ink-4)]">
                 {locale === "ru"
                   ? "Вам пока не назначили объекты для уборки."
                   : "No properties have been assigned to you for cleaning yet."}
@@ -148,7 +148,7 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
               <div className="mb-3 flex justify-end">
                 <button
                   onClick={() => setSummaryOpen(true)}
-                  className="rounded-md border border-[#333338] bg-[#18181b] px-3 py-1.5 text-xs text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+                  className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-1.5 text-xs text-[var(--ink)] transition-colors hover:bg-[var(--line-2)]"
                 >
                   {locale === "ru" ? "Краткий план / печать" : "Summary / print"}
                 </button>

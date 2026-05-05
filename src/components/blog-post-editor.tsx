@@ -264,7 +264,7 @@ export function BlogPostEditor({ post, candidates }: Props) {
                   <div className="truncate text-[13px] text-muted-foreground">
                     renttools.io{previewUrl} <span className="text-muted-foreground/50">›</span>
                   </div>
-                  <div className="mt-1 line-clamp-1 text-[18px] leading-snug text-[#1a0dab] dark:text-[#8ab4f8]">
+                  <div className="mt-1 line-clamp-1 text-[18px] leading-snug text-blue-700 dark:text-blue-300">
                     {title || "Untitled post"}
                   </div>
                   <div className="mt-1 line-clamp-2 text-[13px] text-foreground/70">

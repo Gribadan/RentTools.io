@@ -90,16 +90,16 @@ export function KeyboardShortcuts() {
       onClick={() => setOpen(false)}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-[#27272b] bg-[#18181b] shadow-2xl"
+        className="w-full max-w-md rounded-xl border border-[var(--line)] bg-[var(--bg-2)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#27272b] px-4 py-3">
-          <h2 className="text-sm font-semibold text-[#e8e8ec]">
+        <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+          <h2 className="text-sm font-semibold text-[var(--ink)]">
             {locale === "ru" ? "Горячие клавиши" : "Keyboard shortcuts"}
           </h2>
           <button
             onClick={() => setOpen(false)}
-            className="rounded-md p-1 text-[#71717a] hover:bg-[#27272b] hover:text-[#e8e8ec]"
+            className="rounded-md p-1 text-[var(--ink-4)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
             aria-label="Close"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -110,12 +110,12 @@ export function KeyboardShortcuts() {
         <ul className="divide-y divide-[#27272b]">
           {SHORTCUTS.map((s, i) => (
             <li key={i} className="flex items-center justify-between px-4 py-2.5 text-xs">
-              <span className="text-[#d4d4d8]">{s.description[locale === "ru" ? "ru" : "en"]}</span>
+              <span className="text-[var(--ink-2)]">{s.description[locale === "ru" ? "ru" : "en"]}</span>
               <span className="flex items-center gap-1">
                 {s.keys.map((k) => (
                   <kbd
                     key={k}
-                    className="rounded-md border border-[#333338] bg-[#111113] px-2 py-0.5 font-mono text-[11px] text-[#e8e8ec]"
+                    className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 py-0.5 font-mono text-[11px] text-[var(--ink)]"
                   >
                     {k}
                   </kbd>

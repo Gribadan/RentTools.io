@@ -123,13 +123,13 @@ export function TasksPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#e8e8ec]">{t("tasks.title")}</h1>
-          <p className="mt-0.5 text-sm text-[#a0a0a8]">{t("tasks.subtitle")}</p>
+          <h1 className="text-xl font-semibold text-[var(--ink)]">{t("tasks.title")}</h1>
+          <p className="mt-0.5 text-sm text-[var(--ink-3)]">{t("tasks.subtitle")}</p>
         </div>
         <button
           onClick={handleManualSync}
           disabled={syncing}
-          className="flex items-center gap-1.5 rounded-md bg-[#ff385c] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-md bg-[var(--m-accent)] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
         >
           <svg className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -139,14 +139,14 @@ export function TasksPanel() {
       </div>
 
       {/* Status Card */}
-      <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-5 space-y-4">
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("tasks.autoSync")}</h2>
+          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("tasks.autoSync")}</h2>
           {/* Toggle */}
           <button
             onClick={handleToggleAuto}
             className={`relative h-6 w-11 rounded-full transition-colors ${
-              schedule.autoEnabled ? "bg-[#ff385c]" : "bg-[#27272b]"
+              schedule.autoEnabled ? "bg-[var(--m-accent)]" : "bg-[var(--line-2)]"
             }`}
           >
             <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
@@ -158,12 +158,12 @@ export function TasksPanel() {
         {schedule.autoEnabled && (
           <>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-[#a0a0a8]">{t("tasks.syncEvery")}</span>
+              <span className="text-sm text-[var(--ink-3)]">{t("tasks.syncEvery")}</span>
               <div className="relative">
                 <select
                   value={schedule.frequencyMinutes}
                   onChange={(e) => handleFrequencyChange(Number(e.target.value))}
-                  className="h-8 appearance-none rounded-md border border-[#333338] bg-[#111113] pl-3 pr-8 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+                  className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                 >
                   <option value={5}>5 minutes</option>
                   <option value={10}>10 minutes</option>
@@ -175,62 +175,62 @@ export function TasksPanel() {
                   <option value={720}>12 hours</option>
                   <option value={1440}>24 hours</option>
                 </select>
-                <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+                <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
               </div>
             </div>
 
-            <div className="rounded-md border border-[#333338] bg-[#111113] p-3 space-y-2">
-              <p className="text-xs font-medium text-[#a0a0a8]">Self-hosters: trigger this URL from cron</p>
+            <div className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-3 space-y-2">
+              <p className="text-xs font-medium text-[var(--ink-3)]">Self-hosters: trigger this URL from cron</p>
               {cronUrl ? (
-                <code className="block text-xs text-[#d4d4d8] break-all select-all cursor-pointer rounded bg-[#18181b] p-2 border border-[#27272b]">{cronUrl}</code>
+                <code className="block text-xs text-[var(--ink-2)] break-all select-all cursor-pointer rounded bg-[var(--bg-2)] p-2 border border-[var(--line)]">{cronUrl}</code>
               ) : (
-                <p className="text-xs text-[#71717a] italic">
+                <p className="text-xs text-[var(--ink-4)] italic">
                   {cronUrlConfigured ? "Loading…" : "Set CRON_SECRET in your environment to enable this URL."}
                 </p>
               )}
-              <p className="text-xs text-[#71717a]">
-                On the hosted instance this runs from the system cron every 10 minutes. Self-hosters can wire it into <code className="text-[#a0a0a8]">crontab</code> or any external scheduler (e.g. <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[#e8e8ec] hover:underline">cron-job.org</a>).
+              <p className="text-xs text-[var(--ink-4)]">
+                On the hosted instance this runs from the system cron every 10 minutes. Self-hosters can wire it into <code className="text-[var(--ink-3)]">crontab</code> or any external scheduler (e.g. <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] hover:underline">cron-job.org</a>).
               </p>
             </div>
           </>
         )}
 
         {/* Last run info */}
-        <div className="border-t border-[#27272b] pt-3 space-y-1.5">
+        <div className="border-t border-[var(--line)] pt-3 space-y-1.5">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-[#a0a0a8]">{t("tasks.lastSync")}</span>
+            <span className="text-sm text-[var(--ink-3)]">{t("tasks.lastSync")}</span>
             {schedule.lastRun ? (
-              <span className="text-sm text-[#e8e8ec]">{timeSince(schedule.lastRun)}</span>
+              <span className="text-sm text-[var(--ink)]">{timeSince(schedule.lastRun)}</span>
             ) : (
-              <span className="text-sm text-[#71717a]">{t("tasks.never")}</span>
+              <span className="text-sm text-[var(--ink-4)]">{t("tasks.never")}</span>
             )}
           </div>
           {parsedResult && !parsedResult.error && (
             <div className="flex flex-wrap gap-3 text-xs">
-              <span className="text-[#a0a0a8]">
+              <span className="text-[var(--ink-3)]">
                 {parsedResult.propertiesSynced || 0} propert{(parsedResult.propertiesSynced || 0) !== 1 ? "ies" : "y"}
               </span>
-              <span className="text-[#34d399]">+{parsedResult.newEvents || 0} new</span>
-              <span className="text-[#ef4444]">-{parsedResult.removedEvents || 0} removed</span>
+              <span className="text-emerald-500">+{parsedResult.newEvents || 0} new</span>
+              <span className="text-rose-500">-{parsedResult.removedEvents || 0} removed</span>
               {(parsedResult.errors || 0) > 0 && (
-                <span className="text-[#ef4444]">{parsedResult.errors} errors</span>
+                <span className="text-rose-500">{parsedResult.errors} errors</span>
               )}
             </div>
           )}
           {parsedResult?.error && (
-            <p className="text-xs text-[#ef4444]">Error: {parsedResult.error}</p>
+            <p className="text-xs text-rose-500">Error: {parsedResult.error}</p>
           )}
 
           {eventCounts.length > 0 && (
-            <div className="border-t border-[#27272b]/60 pt-3 mt-2 space-y-1">
-              <p className="text-xs font-medium text-[#71717a]">Per-platform events</p>
+            <div className="border-t border-[var(--line)]/60 pt-3 mt-2 space-y-1">
+              <p className="text-xs font-medium text-[var(--ink-4)]">Per-platform events</p>
               {eventCounts.map((p) => (
                 <div key={p.id} className="flex items-center justify-between text-xs">
-                  <span className="truncate text-[#d4d4d8]">{p.name}</span>
-                  <span className="shrink-0 text-[#a0a0a8]">
-                    Airbnb: <span className="text-[#ff385c]">{p.airbnb}</span>
+                  <span className="truncate text-[var(--ink-2)]">{p.name}</span>
+                  <span className="shrink-0 text-[var(--ink-3)]">
+                    Airbnb: <span className="text-[var(--m-accent)]">{p.airbnb}</span>
                     {" · "}
-                    Booking: <span className="text-[#93c5fd]">{p.booking}</span>
+                    Booking: <span className="text-sky-300">{p.booking}</span>
                   </span>
                 </div>
               ))}
@@ -240,14 +240,14 @@ export function TasksPanel() {
       </div>
 
       {/* Full Sync Log */}
-      <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
-        <div className="flex items-center justify-between border-b border-[#27272b] px-4 py-3">
-          <h2 className="text-sm font-medium text-[#a0a0a8]">{t("tasks.syncLog")} ({logs.length})</h2>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+        <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+          <h2 className="text-sm font-medium text-[var(--ink-3)]">{t("tasks.syncLog")} ({logs.length})</h2>
           <div className="flex items-center gap-2">
             <select
               value={logLimit}
               onChange={(e) => setLogLimit(Number(e.target.value))}
-              className="h-7 appearance-none rounded-md border border-[#333338] bg-[#111113] pl-2 pr-6 text-xs text-[#e8e8ec] outline-none"
+              className="h-7 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-2 pr-6 text-xs text-[var(--ink)] outline-none"
             >
               <option value={50}>Last 50</option>
               <option value={100}>Last 100</option>
@@ -255,7 +255,7 @@ export function TasksPanel() {
             </select>
             <button
               onClick={fetchData}
-              className="rounded-md px-2 py-1 text-xs text-[#a0a0a8] hover:bg-[#1e1e22] hover:text-[#e8e8ec]"
+              className="rounded-md px-2 py-1 text-xs text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)]"
             >
               {t("common.refresh")}
             </button>
@@ -264,22 +264,22 @@ export function TasksPanel() {
 
         <div className="max-h-[500px] overflow-y-auto">
           {logs.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-[#71717a]">
+            <p className="px-4 py-8 text-center text-sm text-[var(--ink-4)]">
               {t("tasks.noLogs")}
             </p>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#27272b] text-left">
-                  <th className="px-4 py-2 text-xs font-medium text-[#71717a] w-[140px]">{t("tasks.time")}</th>
-                  <th className="px-4 py-2 text-xs font-medium text-[#71717a] w-[70px]">{t("tasks.level")}</th>
-                  <th className="px-4 py-2 text-xs font-medium text-[#71717a]">{t("tasks.message")}</th>
+                <tr className="border-b border-[var(--line)] text-left">
+                  <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)] w-[140px]">{t("tasks.time")}</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)] w-[70px]">{t("tasks.level")}</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)]">{t("tasks.message")}</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-b border-[#27272b]/50 hover:bg-[#1e1e22]">
-                    <td className="px-4 py-2 text-xs text-[#71717a] whitespace-nowrap">
+                  <tr key={log.id} className="border-b border-[var(--line)]/50 hover:bg-[var(--bg-3)]">
+                    <td className="px-4 py-2 text-xs text-[var(--ink-4)] whitespace-nowrap">
                       {new Date(log.createdAt).toLocaleString("en-GB", {
                         day: "2-digit", month: "short",
                         hour: "2-digit", minute: "2-digit", second: "2-digit",
@@ -287,15 +287,15 @@ export function TasksPanel() {
                     </td>
                     <td className="px-4 py-2">
                       <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
-                        log.level === "error" ? "bg-[#ef4444]/10 text-[#ef4444]"
-                        : log.level === "success" ? "bg-[#34d399]/10 text-[#34d399]"
-                        : log.level === "warn" ? "bg-[#fbbf24]/10 text-[#fbbf24]"
-                        : "bg-[#27272b] text-[#a0a0a8]"
+                        log.level === "error" ? "bg-rose-500/10 text-rose-500"
+                        : log.level === "success" ? "bg-emerald-500/10 text-emerald-500"
+                        : log.level === "warn" ? "bg-amber-400/10 text-amber-400"
+                        : "bg-[var(--line-2)] text-[var(--ink-3)]"
                       }`}>
                         {log.level}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-sm text-[#d4d4d8]">{log.message}</td>
+                    <td className="px-4 py-2 text-sm text-[var(--ink-2)]">{log.message}</td>
                   </tr>
                 ))}
               </tbody>

@@ -82,12 +82,12 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[#27272b] bg-[#18181b] p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#e8e8ec]">{t("profile.title")}</h2>
+          <h2 className="text-lg font-semibold text-[var(--ink)]">{t("profile.title")}</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-[#a0a0a8] hover:bg-[#27272b] hover:text-[#e8e8ec]"
+            className="rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
             aria-label={t("profile.close")}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -97,51 +97,51 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
         </div>
 
         <dl className="grid grid-cols-2 gap-y-2 text-sm">
-          <dt className="text-[#71717a]">{t("profile.username")}</dt>
-          <dd className="text-[#e8e8ec]">{user?.username ?? "…"}</dd>
-          <dt className="text-[#71717a]">{t("profile.role")}</dt>
-          <dd className="text-[#e8e8ec]">{user?.role ?? "—"}</dd>
-          <dt className="text-[#71717a]">{t("profile.createdAt")}</dt>
-          <dd className="text-[#e8e8ec]">{formatDate(user?.createdAt)}</dd>
+          <dt className="text-[var(--ink-4)]">{t("profile.username")}</dt>
+          <dd className="text-[var(--ink)]">{user?.username ?? "…"}</dd>
+          <dt className="text-[var(--ink-4)]">{t("profile.role")}</dt>
+          <dd className="text-[var(--ink)]">{user?.role ?? "—"}</dd>
+          <dt className="text-[var(--ink-4)]">{t("profile.createdAt")}</dt>
+          <dd className="text-[var(--ink)]">{formatDate(user?.createdAt)}</dd>
         </dl>
 
-        <form onSubmit={submit} className="mt-6 space-y-3 border-t border-[#27272b] pt-4">
-          <h3 className="text-sm font-semibold text-[#e8e8ec]">{t("profile.changePassword")}</h3>
+        <form onSubmit={submit} className="mt-6 space-y-3 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-semibold text-[var(--ink)]">{t("profile.changePassword")}</h3>
           <div className="space-y-1.5">
-            <label className="text-xs text-[#a0a0a8]" htmlFor="curpw">{t("profile.currentPassword")}</label>
+            <label className="text-xs text-[var(--ink-3)]" htmlFor="curpw">{t("profile.currentPassword")}</label>
             <input
               id="curpw"
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
               required
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-[#a0a0a8]" htmlFor="newpw">{t("profile.newPassword")}</label>
+            <label className="text-xs text-[var(--ink-3)]" htmlFor="newpw">{t("profile.newPassword")}</label>
             <input
               id="newpw"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
               minLength={8}
               required
             />
           </div>
 
           {error && (
-            <div className="rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 px-3 py-2 text-xs text-[#ef4444]">{error}</div>
+            <div className="rounded-md bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-xs text-rose-500">{error}</div>
           )}
           {success && (
-            <div className="rounded-md bg-[#34d399]/10 border border-[#34d399]/20 px-3 py-2 text-xs text-[#34d399]">{t("profile.saved")}</div>
+            <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs text-emerald-500">{t("profile.saved")}</div>
           )}
 
           <button
             type="submit"
             disabled={busy}
-            className="h-9 w-full rounded-md bg-[#ff385c] text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
+            className="h-9 w-full rounded-md bg-[var(--m-accent)] text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
           >
             {t("profile.save")}
           </button>
@@ -150,7 +150,7 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
         <button
           type="button"
           onClick={() => setAuditOpen(true)}
-          className="mt-4 h-9 w-full rounded-md border border-[#333338] text-sm text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+          className="mt-4 h-9 w-full rounded-md border border-[var(--line-2)] text-sm text-[var(--ink)] transition-colors hover:bg-[var(--line-2)]"
         >
           Recent activity
         </button>
@@ -170,21 +170,21 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
             a.remove();
             URL.revokeObjectURL(url);
           }}
-          className="mt-2 h-9 w-full rounded-md border border-[#333338] text-sm text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+          className="mt-2 h-9 w-full rounded-md border border-[var(--line-2)] text-sm text-[var(--ink)] transition-colors hover:bg-[var(--line-2)]"
         >
           Download my data
         </button>
 
-        <div className="mt-6 border-t border-[#27272b] pt-4">
-          <h3 className="text-sm font-semibold text-[#e8e8ec]">Danger zone</h3>
-          <p className="mt-1 text-xs text-[#a0a0a8]">
+        <div className="mt-6 border-t border-[var(--line)] pt-4">
+          <h3 className="text-sm font-semibold text-[var(--ink)]">Danger zone</h3>
+          <p className="mt-1 text-xs text-[var(--ink-3)]">
             Permanently delete your account and every property, reservation, guest,
             and log we hold. This cannot be undone.
           </p>
           <button
             type="button"
             onClick={() => setDeleteOpen(true)}
-            className="mt-3 h-9 w-full rounded-md border border-[#ef4444]/40 text-sm text-[#ef4444] transition-colors hover:bg-[#ef4444]/10"
+            className="mt-3 h-9 w-full rounded-md border border-rose-500/40 text-sm text-rose-500 transition-colors hover:bg-rose-500/10"
           >
             Delete my account
           </button>
@@ -193,10 +193,10 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
 
       {deleteOpen && user && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[#27272b] bg-[#18181b] p-6 shadow-2xl">
-            <h3 className="text-base font-semibold text-[#e8e8ec]">Delete account</h3>
-            <p className="mt-2 text-sm text-[#a0a0a8]">
-              Type your username <span className="font-mono text-[#e8e8ec]">{user.username}</span>{" "}
+          <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-2xl">
+            <h3 className="text-base font-semibold text-[var(--ink)]">Delete account</h3>
+            <p className="mt-2 text-sm text-[var(--ink-3)]">
+              Type your username <span className="font-mono text-[var(--ink)]">{user.username}</span>{" "}
               and your current password to confirm. We will immediately remove all your
               properties, reservations, guests, calendar links, message templates, cleaning
               records, and audit history. You will be logged out.
@@ -204,19 +204,19 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
 
             <div className="mt-4 space-y-3">
               <div className="space-y-1.5">
-                <label className="text-xs text-[#a0a0a8]" htmlFor="del-confirm">
+                <label className="text-xs text-[var(--ink-3)]" htmlFor="del-confirm">
                   Confirm username
                 </label>
                 <input
                   id="del-confirm"
                   value={deleteConfirm}
                   onChange={(e) => setDeleteConfirm(e.target.value)}
-                  className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#ef4444]"
+                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-rose-500"
                   autoComplete="off"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs text-[#a0a0a8]" htmlFor="del-pw">
+                <label className="text-xs text-[var(--ink-3)]" htmlFor="del-pw">
                   Current password
                 </label>
                 <input
@@ -224,14 +224,14 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
                   type="password"
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
-                  className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] outline-none focus:border-[#ef4444]"
+                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-rose-500"
                   autoComplete="current-password"
                 />
               </div>
             </div>
 
             {deleteError && (
-              <div className="mt-3 rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 px-3 py-2 text-xs text-[#ef4444]">
+              <div className="mt-3 rounded-md bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-xs text-rose-500">
                 {deleteError}
               </div>
             )}
@@ -241,7 +241,7 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
                 type="button"
                 onClick={() => setDeleteOpen(false)}
                 disabled={deleteBusy}
-                className="h-9 flex-1 rounded-md border border-[#333338] text-sm text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+                className="h-9 flex-1 rounded-md border border-[var(--line-2)] text-sm text-[var(--ink)] transition-colors hover:bg-[var(--line-2)]"
               >
                 Cancel
               </button>
@@ -274,7 +274,7 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
                     setDeleteBusy(false);
                   }
                 }}
-                className="h-9 flex-1 rounded-md bg-[#ef4444] text-sm font-medium text-white transition-colors hover:bg-[#dc2626] disabled:opacity-50"
+                className="h-9 flex-1 rounded-md bg-rose-500 text-sm font-medium text-white transition-colors hover:bg-rose-600 disabled:opacity-50"
               >
                 {deleteBusy ? "Deleting…" : "Permanently delete"}
               </button>

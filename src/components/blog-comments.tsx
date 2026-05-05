@@ -100,9 +100,9 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
   const remaining = MAX_BODY_LEN - body.length;
 
   return (
-    <section className="mt-12 border-t border-[#1e2329] pt-8">
-      <h2 className="text-lg font-semibold text-[#e8e8ec]">
-        Comments {visible.length > 0 && <span className="text-sm font-normal text-[#71717a]">({visible.length})</span>}
+    <section className="mt-12 border-t border-[var(--line)] pt-8">
+      <h2 className="text-lg font-semibold text-[var(--ink)]">
+        Comments {visible.length > 0 && <span className="text-sm font-normal text-[var(--ink-4)]">({visible.length})</span>}
       </h2>
 
       {isSignedIn ? (
@@ -113,26 +113,26 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
             placeholder="Share your thoughts…"
             rows={4}
             maxLength={MAX_BODY_LEN}
-            className="w-full rounded-md border border-[#1e2329] bg-[#0d1117] px-3 py-2 text-sm text-[#e8e8ec] placeholder:text-[#52525b] focus:border-[#ff385c] focus:outline-none"
+            className="w-full rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-4)] focus:border-[var(--m-accent)] focus:outline-none"
             disabled={submitting}
           />
           <div className="mt-2 flex items-center justify-between gap-3">
-            <span className={`text-xs ${remaining < 100 ? "text-[#ff385c]" : "text-[#71717a]"}`}>
+            <span className={`text-xs ${remaining < 100 ? "text-[var(--m-accent)]" : "text-[var(--ink-4)]"}`}>
               {remaining} characters left
             </span>
             <button
               type="submit"
               disabled={submitting || !body.trim()}
-              className="rounded-md bg-[#ff385c] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#e0314f] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md bg-[var(--m-accent)] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[var(--m-accent-2)] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {submitting ? "Posting…" : "Post comment"}
             </button>
           </div>
-          {error && <p className="mt-2 text-xs text-[#ff385c]">{error}</p>}
+          {error && <p className="mt-2 text-xs text-[var(--m-accent)]">{error}</p>}
         </form>
       ) : (
-        <p className="mt-4 text-sm text-[#a0a0a8]">
-          <Link href={loginHref} className="font-semibold text-[#ff385c] hover:underline">
+        <p className="mt-4 text-sm text-[var(--ink-3)]">
+          <Link href={loginHref} className="font-semibold text-[var(--m-accent)] hover:underline">
             Sign in
           </Link>{" "}
           to comment.
@@ -141,26 +141,26 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
 
       <ul className="mt-8 space-y-5">
         {visible.length === 0 && (
-          <li className="text-sm text-[#71717a]">No comments yet.</li>
+          <li className="text-sm text-[var(--ink-4)]">No comments yet.</li>
         )}
         {visible.map((c) => {
           const dimmed = c.status !== "visible";
           return (
             <li
               key={c.id}
-              className={`rounded-md border border-[#1e2329] bg-[#11161d] p-4 ${dimmed ? "opacity-60" : ""}`}
+              className={`rounded-md border border-[var(--line)] bg-[var(--bg-2)] p-4 ${dimmed ? "opacity-60" : ""}`}
             >
-              <div className="flex items-center justify-between gap-3 text-xs text-[#71717a]">
+              <div className="flex items-center justify-between gap-3 text-xs text-[var(--ink-4)]">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-[#a0a0a8]">{c.username}</span>
+                  <span className="font-semibold text-[var(--ink-3)]">{c.username}</span>
                   <time dateTime={c.createdAt}>{formatTimestamp(c.createdAt)}</time>
                   {c.status === "hidden" && (
-                    <span className="rounded bg-[#332b1a] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#f0a35a]">
+                    <span className="rounded bg-amber-950/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-400">
                       hidden
                     </span>
                   )}
                   {c.status === "deleted" && (
-                    <span className="rounded bg-[#3a1a1a] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#ff385c]">
+                    <span className="rounded bg-rose-950/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--m-accent)]">
                       deleted
                     </span>
                   )}
@@ -172,7 +172,7 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
                         type="button"
                         onClick={() => moderate(c.id, "hide")}
                         disabled={busyId === c.id}
-                        className="rounded border border-[#1e2329] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec] disabled:opacity-50"
+                        className="rounded border border-[var(--line)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)] disabled:opacity-50"
                       >
                         Hide
                       </button>
@@ -182,7 +182,7 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
                         type="button"
                         onClick={() => moderate(c.id, "show")}
                         disabled={busyId === c.id}
-                        className="rounded border border-[#1e2329] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec] disabled:opacity-50"
+                        className="rounded border border-[var(--line)] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)] disabled:opacity-50"
                       >
                         Restore
                       </button>
@@ -195,7 +195,7 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
                         }}
                         disabled={busyId === c.id}
                         aria-label="Delete comment"
-                        className="rounded border border-[#3a1a1a] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[#ff385c] hover:bg-[#1f0d12] disabled:opacity-50"
+                        className="rounded border border-rose-950/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-[var(--m-accent)] hover:bg-rose-950/60 disabled:opacity-50"
                       >
                         ✕
                       </button>
@@ -203,7 +203,7 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
                   </div>
                 )}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[#d4d4d8]">
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-2)]">
                 {c.body}
               </p>
             </li>

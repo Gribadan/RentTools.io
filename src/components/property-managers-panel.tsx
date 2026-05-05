@@ -168,61 +168,61 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
   // Non-owners see informational notice (managers can't manage other managers)
   if (forbidden || (!isOwner && session)) {
     return (
-      <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-2">
-        <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("managers.title")}</h2>
-        <p className="text-xs text-[#a0a0a8]">{t("managers.ownerOnly")}</p>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-2">
+        <h2 className="text-sm font-semibold text-[var(--ink)]">{t("managers.title")}</h2>
+        <p className="text-xs text-[var(--ink-3)]">{t("managers.ownerOnly")}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4 space-y-4">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-4">
       <div className="space-y-1">
-        <h2 className="text-sm font-semibold text-[#e8e8ec]">{t("managers.title")}</h2>
-        <p className="text-xs text-[#a0a0a8]">{t("managers.desc")}</p>
+        <h2 className="text-sm font-semibold text-[var(--ink)]">{t("managers.title")}</h2>
+        <p className="text-xs text-[var(--ink-3)]">{t("managers.desc")}</p>
       </div>
 
       {/* Owner row + manager list */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between rounded-md border border-[#27272b] bg-[#111113] px-3 py-2">
+        <div className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 shrink-0 rounded-full bg-[#ff385c]/20 flex items-center justify-center text-[11px] font-bold text-[#ff385c] uppercase">
+            <div className="h-7 w-7 shrink-0 rounded-full bg-[var(--m-accent)]/20 flex items-center justify-center text-[11px] font-bold text-[var(--m-accent)] uppercase">
               {(ownerUsername?.[0] || "O")}
             </div>
             <div>
-              <div className="text-sm text-[#e8e8ec]">
+              <div className="text-sm text-[var(--ink)]">
                 {ownerUsername || `user ${ownerUserId}`}
-                {isOwner && <span className="ml-1.5 text-[10px] text-[#71717a]">({t("managers.you")})</span>}
+                {isOwner && <span className="ml-1.5 text-[10px] text-[var(--ink-4)]">({t("managers.you")})</span>}
               </div>
-              <div className="text-[11px] uppercase tracking-wide text-[#71717a]">{t("managers.owner")}</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--ink-4)]">{t("managers.owner")}</div>
             </div>
           </div>
         </div>
 
         {loading ? (
-          <div className="px-3 py-2 text-xs text-[#71717a]">…</div>
+          <div className="px-3 py-2 text-xs text-[var(--ink-4)]">…</div>
         ) : managers.length === 0 ? (
-          <p className="px-3 py-2 text-xs text-[#71717a]">{t("managers.empty")}</p>
+          <p className="px-3 py-2 text-xs text-[var(--ink-4)]">{t("managers.empty")}</p>
         ) : (
           managers.map((m) => (
             <div
               key={m.id}
-              className="flex items-center justify-between rounded-md border border-[#27272b] bg-[#111113] px-3 py-2"
+              className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <div className="h-7 w-7 shrink-0 rounded-full bg-[#27272b] flex items-center justify-center text-[11px] font-bold text-[#d4d4d8] uppercase">
+                <div className="h-7 w-7 shrink-0 rounded-full bg-[var(--line-2)] flex items-center justify-center text-[11px] font-bold text-[var(--ink-2)] uppercase">
                   {m.username[0]}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm text-[#e8e8ec] truncate">{m.username}</div>
-                  <div className="text-[11px] text-[#71717a]">
+                  <div className="text-sm text-[var(--ink)] truncate">{m.username}</div>
+                  <div className="text-[11px] text-[var(--ink-4)]">
                     {new Date(m.createdAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB")}
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => handleRemove(m.managerId)}
-                className="rounded-md p-1.5 text-[#71717a] hover:bg-[#ef4444]/10 hover:text-[#ef4444] transition-colors"
+                className="rounded-md p-1.5 text-[var(--ink-4)] hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
                 title={t("common.remove")}
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -237,27 +237,27 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
       {/* Pending invites */}
       {invites.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[11px] uppercase tracking-wide text-[#71717a]">
+          <div className="text-[11px] uppercase tracking-wide text-[var(--ink-4)]">
             {t("managers.pendingInvites")} ({invites.length})
           </div>
           {invites.map((inv) => (
             <div
               key={inv.id}
-              className="rounded-md border border-[#27272b] bg-[#111113] px-3 py-2 space-y-1.5"
+              className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2 space-y-1.5"
             >
               <div className="flex items-center gap-1.5">
-                <code className="flex-1 truncate rounded bg-[#0c0c0d] px-2 py-1 text-[11px] text-[#a0a0a8]">
+                <code className="flex-1 truncate rounded bg-[var(--bg)] px-2 py-1 text-[11px] text-[var(--ink-3)]">
                   {inviteUrl(inv.token)}
                 </code>
                 <button
                   onClick={() => handleCopy(inv.token)}
-                  className="shrink-0 rounded-md bg-[#27272b] px-2 py-1 text-[11px] text-[#d4d4d8] hover:bg-[#333338]"
+                  className="shrink-0 rounded-md bg-[var(--line-2)] px-2 py-1 text-[11px] text-[var(--ink-2)] hover:bg-[var(--line-2)]"
                 >
                   {copiedToken === inv.token ? t("managers.linkCopied") : t("managers.copyLink")}
                 </button>
                 <button
                   onClick={() => handleRevoke(inv.id)}
-                  className="shrink-0 rounded-md p-1.5 text-[#71717a] hover:bg-[#ef4444]/10 hover:text-[#ef4444]"
+                  className="shrink-0 rounded-md p-1.5 text-[var(--ink-4)] hover:bg-rose-500/10 hover:text-rose-500"
                   title={t("managers.revokeInvite")}
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -265,12 +265,12 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
                   </svg>
                 </button>
               </div>
-              <div className="text-[11px] text-[#71717a]">
+              <div className="text-[11px] text-[var(--ink-4)]">
                 {t("managers.expiresIn", { n: daysUntil(inv.expiresAt) })}
               </div>
             </div>
           ))}
-          <p className="px-1 text-[11px] text-[#71717a]">{t("managers.inviteCreated")}</p>
+          <p className="px-1 text-[11px] text-[var(--ink-4)]">{t("managers.inviteCreated")}</p>
         </div>
       )}
 
@@ -278,7 +278,7 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
       <button
         onClick={handleGenerate}
         disabled={submitting}
-        className="flex w-full items-center justify-center gap-2 rounded-md bg-[#ff385c] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-40"
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-[var(--m-accent)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-40"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
@@ -287,7 +287,7 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
       </button>
 
       {error && (
-        <div className="rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 px-3 py-2 text-xs text-[#ef4444]">
+        <div className="rounded-md bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-xs text-rose-500">
           {error}
         </div>
       )}

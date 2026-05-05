@@ -109,23 +109,23 @@ export function DateActionsPopover({
   return createPortal(
     <div
       ref={popRef}
-      className="fixed z-[100] w-[280px] rounded-xl border border-[#27272b] bg-[#18181b] shadow-2xl shadow-black/60"
+      className="fixed z-[100] w-[280px] rounded-xl border border-[var(--line)] bg-[var(--bg-2)] shadow-2xl shadow-black/60"
       style={{ top, left }}
     >
       {/* Header */}
-      <div className="border-b border-[#27272b] px-4 py-3">
-        <div className="text-xs uppercase tracking-wide text-[#71717a]">{t("dateActions.title")}</div>
-        <div className="mt-0.5 text-sm font-medium text-[#e8e8ec]">{formattedDate}</div>
+      <div className="border-b border-[var(--line)] px-4 py-3">
+        <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">{t("dateActions.title")}</div>
+        <div className="mt-0.5 text-sm font-medium text-[var(--ink)]">{formattedDate}</div>
         <div className="mt-2 flex items-center gap-2 text-xs">
-          <span className="text-[#71717a]">{t("dateActions.status")}:</span>
+          <span className="text-[var(--ink-4)]">{t("dateActions.status")}:</span>
           <span className={`rounded px-1.5 py-0.5 font-medium ${
-            status.hasBar ? "bg-[#ff385c]/10 text-[#ff385c]"
-            : status.isOpenOverride ? "bg-[#34d399]/10 text-[#34d399]"
-            : status.isClosedOverride ? "bg-[#ef4444]/10 text-[#ef4444]"
-            : (status.isBuffer || status.isSameDayCleaning) ? "bg-[#fbbf24]/10 text-[#fbbf24]"
-            : status.isPotential ? "bg-[#93c5fd]/10 text-[#93c5fd]"
-            : status.isUnbookable ? "bg-[#71717a]/10 text-[#a0a0a8]"
-            : "bg-[#34d399]/10 text-[#34d399]"
+            status.hasBar ? "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
+            : status.isOpenOverride ? "bg-emerald-500/10 text-emerald-500"
+            : status.isClosedOverride ? "bg-rose-500/10 text-rose-500"
+            : (status.isBuffer || status.isSameDayCleaning) ? "bg-amber-400/10 text-amber-400"
+            : status.isPotential ? "bg-sky-300/10 text-sky-300"
+            : status.isUnbookable ? "bg-[var(--ink-4)]/10 text-[var(--ink-3)]"
+            : "bg-emerald-500/10 text-emerald-500"
           }`}>
             {statusText}
           </span>
@@ -135,11 +135,11 @@ export function DateActionsPopover({
       {/* Actions */}
       <div className="p-1.5">
         {status.hasBar ? (
-          <div className="px-3 py-2 text-xs text-[#71717a]">{t("dateActions.cantModifyBooked")}</div>
+          <div className="px-3 py-2 text-xs text-[var(--ink-4)]">{t("dateActions.cantModifyBooked")}</div>
         ) : (
           <>
             {canClose && (
-              <button onClick={onCloseDate} className={`${actionBtn} text-[#e0e0e4] hover:bg-[#ef4444]/10 hover:text-[#ef4444]`}>
+              <button onClick={onCloseDate} className={`${actionBtn} text-[var(--ink)] hover:bg-rose-500/10 hover:text-rose-500`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
@@ -147,7 +147,7 @@ export function DateActionsPopover({
               </button>
             )}
             {canOpen && (
-              <button onClick={onOpenDate} className={`${actionBtn} text-[#e0e0e4] hover:bg-[#34d399]/10 hover:text-[#34d399]`}>
+              <button onClick={onOpenDate} className={`${actionBtn} text-[var(--ink)] hover:bg-emerald-500/10 hover:text-emerald-500`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
@@ -155,7 +155,7 @@ export function DateActionsPopover({
               </button>
             )}
             {canAddCleaning && (
-              <button onClick={onAddCleaning} className={`${actionBtn} text-[#e0e0e4] hover:bg-[#fbbf24]/10 hover:text-[#fbbf24]`}>
+              <button onClick={onAddCleaning} className={`${actionBtn} text-[var(--ink)] hover:bg-amber-400/10 hover:text-amber-400`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 2.25L12 6m0 0l-3.75-3.75M12 6v12m6 0H6" />
                 </svg>
@@ -163,7 +163,7 @@ export function DateActionsPopover({
               </button>
             )}
             {canRemoveCleaning && (
-              <button onClick={onRemoveCleaning} className={`${actionBtn} text-[#e0e0e4] hover:bg-[#ef4444]/10 hover:text-[#ef4444]`}>
+              <button onClick={onRemoveCleaning} className={`${actionBtn} text-[var(--ink)] hover:bg-rose-500/10 hover:text-rose-500`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
                 </svg>
@@ -171,7 +171,7 @@ export function DateActionsPopover({
               </button>
             )}
             {canRemoveOverride && (
-              <button onClick={onRemoveOverride} className={`${actionBtn} text-[#e0e0e4] hover:bg-[#1e1e22]`}>
+              <button onClick={onRemoveOverride} className={`${actionBtn} text-[var(--ink)] hover:bg-[var(--bg-3)]`}>
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
                 </svg>
@@ -183,15 +183,15 @@ export function DateActionsPopover({
 
         {/* Extend booking section */}
         {!status.hasBar && extendable.length > 0 && (
-          <div className="mt-1 border-t border-[#27272b] pt-1.5">
-            <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-[#71717a]">
+          <div className="mt-1 border-t border-[var(--line)] pt-1.5">
+            <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-[var(--ink-4)]">
               {t("dateActions.extendDesc")}
             </div>
             {extendable.map((b, i) => (
               <button
                 key={i}
                 onClick={() => onExtendBooking(b)}
-                className={`${actionBtn} text-[#e0e0e4] hover:bg-[#1e1e22] group`}
+                className={`${actionBtn} text-[var(--ink)] hover:bg-[var(--bg-3)] group`}
               >
                 <span
                   className="h-3 w-3 shrink-0 rounded"
@@ -201,7 +201,7 @@ export function DateActionsPopover({
                   }}
                 />
                 <span className="flex-1 truncate">{b.name}</span>
-                <span className="text-[10px] text-[#71717a]">
+                <span className="text-[10px] text-[var(--ink-4)]">
                   {b.side === "before" ? "→" : "←"}
                 </span>
               </button>

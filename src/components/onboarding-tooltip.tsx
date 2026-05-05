@@ -30,7 +30,7 @@ export function OnboardingTooltip({ id, text, children, position = "below" }: On
       {children}
       {show && (
         <div
-          className={`absolute left-0 z-30 w-64 rounded-md border border-[#ff385c]/40 bg-[#1e1e22] px-3 py-2 text-xs text-[#e8e8ec] shadow-lg ${
+          className={`absolute left-0 z-30 w-64 rounded-md border border-[var(--m-accent)]/40 bg-[var(--bg-3)] px-3 py-2 text-xs text-[var(--ink)] shadow-lg ${
             position === "above" ? "bottom-full mb-2" : "top-full mt-2"
           }`}
           role="tooltip"
@@ -39,7 +39,7 @@ export function OnboardingTooltip({ id, text, children, position = "below" }: On
           <button
             type="button"
             onClick={dismiss}
-            className="absolute right-1 top-1 rounded p-0.5 text-[#a0a0a8] hover:bg-[#27272b] hover:text-[#e8e8ec]"
+            className="absolute right-1 top-1 rounded p-0.5 text-[var(--ink-3)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
             aria-label="Dismiss"
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -47,7 +47,7 @@ export function OnboardingTooltip({ id, text, children, position = "below" }: On
             </svg>
           </button>
           <span
-            className={`absolute left-4 h-2 w-2 rotate-45 border-[#ff385c]/40 bg-[#1e1e22] ${
+            className={`absolute left-4 h-2 w-2 rotate-45 border-[var(--m-accent)]/40 bg-[var(--bg-3)] ${
               position === "above"
                 ? "-bottom-1 border-b border-r"
                 : "-top-1 border-l border-t"

@@ -138,15 +138,15 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
   };
 
   return (
-    <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-[#e8e8ec]">
+        <h3 className="text-sm font-semibold text-[var(--ink)]">
           {locale === "ru" ? "Шаблоны сообщений" : "Message templates"}
         </h3>
         {editingId === null && (
           <button
             onClick={startCreate}
-            className="rounded-md border border-[#333338] px-2 py-1 text-xs text-[#e8e8ec] hover:bg-[#27272b]"
+            className="rounded-md border border-[var(--line-2)] px-2 py-1 text-xs text-[var(--ink)] hover:bg-[var(--line-2)]"
           >
             {locale === "ru" ? "Новый шаблон" : "New template"}
           </button>
@@ -154,18 +154,18 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
       </div>
 
       {editingId !== null && (
-        <div className="mb-4 space-y-2 rounded-md border border-[#333338] bg-[#111113] p-3">
+        <div className="mb-4 space-y-2 rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-3">
           <div className="grid grid-cols-2 gap-2">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={locale === "ru" ? "Название" : "Template name"}
-              className="h-8 rounded-md border border-[#333338] bg-[#18181b] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="h-8 rounded-md border border-[#333338] bg-[#18181b] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             >
               <option value="en">English</option>
               <option value="ru">Русский</option>
@@ -175,71 +175,71 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             placeholder={locale === "ru" ? "Тема (опц.)" : "Subject (optional)"}
-            className="h-8 w-full rounded-md border border-[#333338] bg-[#18181b] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+            className="h-8 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
           />
           <textarea
             value={bodyText}
             onChange={(e) => setBodyText(e.target.value)}
             placeholder={locale === "ru" ? "Текст сообщения" : "Message body"}
             rows={5}
-            className="w-full rounded-md border border-[#333338] bg-[#18181b] px-2 py-1.5 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+            className="w-full rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 py-1.5 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
           />
           <div className="flex flex-wrap gap-1.5 text-[11px]">
-            <span className="text-[#71717a]">
+            <span className="text-[var(--ink-4)]">
               {locale === "ru" ? "Переменные:" : "Variables:"}
             </span>
             {VAR_HINTS.map((v) => (
               <button
                 key={v}
                 onClick={() => insertVar(v)}
-                className="rounded bg-[#27272b] px-1.5 py-0.5 font-mono text-[#a0a0a8] hover:bg-[#333338] hover:text-[#e8e8ec]"
+                className="rounded bg-[var(--line-2)] px-1.5 py-0.5 font-mono text-[var(--ink-3)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
               >
                 {v}
               </button>
             ))}
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-[#a0a0a8]">
+            <span className="text-[var(--ink-3)]">
               {locale === "ru" ? "Отправлять (дни до/после заезда)" : "Offset days from check-in"}
             </span>
             <input
               type="number"
               value={sendOffsetDays}
               onChange={(e) => setSendOffsetDays(Number(e.target.value) || 0)}
-              className="h-7 w-16 rounded-md border border-[#333338] bg-[#18181b] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+              className="h-7 w-16 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
           </div>
 
           {bodyText && (
-            <div className="rounded-md border border-[#27272b] bg-[#0d1117] p-2 text-xs">
-              <div className="mb-1 text-[10px] uppercase tracking-wider text-[#71717a]">
+            <div className="rounded-md border border-[var(--line)] bg-[var(--bg)] p-2 text-xs">
+              <div className="mb-1 text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
                 {locale === "ru" ? "Превью" : "Preview"}
               </div>
               {subject && (
-                <div className="mb-1 font-semibold text-[#e8e8ec]">
+                <div className="mb-1 font-semibold text-[var(--ink)]">
                   {renderTemplate(subject, SAMPLE_VARS)}
                 </div>
               )}
-              <pre className="whitespace-pre-wrap font-sans text-[#d4d4d8]">
+              <pre className="whitespace-pre-wrap font-sans text-[var(--ink-2)]">
                 {renderTemplate(bodyText, SAMPLE_VARS)}
               </pre>
             </div>
           )}
 
-          {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+          {error && <p className="text-xs text-rose-500">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
             <button
               onClick={cancel}
               disabled={busy}
-              className="rounded-md px-2 py-1 text-xs text-[#a0a0a8] hover:text-[#e8e8ec]"
+              className="rounded-md px-2 py-1 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]"
             >
               {locale === "ru" ? "Отмена" : "Cancel"}
             </button>
             <button
               onClick={save}
               disabled={busy}
-              className="rounded-md bg-[#ff385c] px-3 py-1 text-xs font-medium text-white hover:bg-[#e0294d] disabled:opacity-50"
+              className="rounded-md bg-[var(--m-accent)] px-3 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
               {locale === "ru" ? "Сохранить" : "Save"}
             </button>
@@ -248,7 +248,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
       )}
 
       {templates.length === 0 ? (
-        <p className="text-xs text-[#71717a]">
+        <p className="text-xs text-[var(--ink-4)]">
           {locale === "ru"
             ? "Шаблоны сообщений не созданы."
             : "No templates yet."}
@@ -258,27 +258,27 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
           {templates.map((t) => (
             <li
               key={t.id}
-              className="flex items-center justify-between gap-2 rounded-md border border-[#27272b] bg-[#111113] px-3 py-2 text-xs"
+              className="flex items-center justify-between gap-2 rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-xs"
             >
               <div className="min-w-0 flex-1">
-                <div className="font-medium text-[#e8e8ec]">
+                <div className="font-medium text-[var(--ink)]">
                   {t.name}
-                  <span className="ml-2 rounded bg-[#27272b] px-1.5 py-0.5 text-[10px] uppercase text-[#a0a0a8]">
+                  <span className="ml-2 rounded bg-[var(--line-2)] px-1.5 py-0.5 text-[10px] uppercase text-[var(--ink-3)]">
                     {t.language}
                   </span>
                 </div>
-                <div className="truncate text-[11px] text-[#71717a]">{t.subject || t.body.slice(0, 80)}</div>
+                <div className="truncate text-[11px] text-[var(--ink-4)]">{t.subject || t.body.slice(0, 80)}</div>
               </div>
               <div className="flex shrink-0 gap-1">
                 <button
                   onClick={() => startEdit(t)}
-                  className="rounded px-2 py-1 text-[#a0a0a8] hover:text-[#e8e8ec]"
+                  className="rounded px-2 py-1 text-[var(--ink-3)] hover:text-[var(--ink)]"
                 >
                   {locale === "ru" ? "Изменить" : "Edit"}
                 </button>
                 <button
                   onClick={() => remove(t.id)}
-                  className="rounded px-2 py-1 text-[#ef4444] hover:bg-[#ef4444]/10"
+                  className="rounded px-2 py-1 text-rose-500 hover:bg-rose-500/10"
                 >
                   {locale === "ru" ? "Удалить" : "Delete"}
                 </button>

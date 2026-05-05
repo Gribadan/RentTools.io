@@ -527,23 +527,23 @@ export function CleaningSchedule({
     <div className="space-y-4">
       {/* Overlap warnings */}
       {futureOverlaps.length > 0 && (
-        <div className="rounded-lg border border-[#fbbf24]/30 bg-[#fbbf24]/5 p-4 space-y-2">
+        <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-[#fbbf24]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
-            <span className="text-sm font-semibold text-[#fbbf24]">
+            <span className="text-sm font-semibold text-amber-400">
               {t("cleaning.overlapWarning")} ({futureOverlaps.length} {locale === "ru" ? (futureOverlaps.length === 1 ? "день" : "дней") : (futureOverlaps.length === 1 ? "day" : "days")})
             </span>
           </div>
-          <p className="text-xs text-[#fbbf24]/80">
+          <p className="text-xs text-amber-400/80">
             {t("cleaning.overlapDesc")}
           </p>
           {futureOverlaps.map(o => (
             <div key={o.date} className="flex items-center gap-3 text-xs">
-              <span className="font-medium text-[#e8e8ec]">{formatDate(o.date)}</span>
-              <span className="text-[#a0a0a8]">{o.properties.join(" + ")}</span>
-              <span className={o.canMove ? "text-[#34d399]" : "text-[#ef4444]"}>
+              <span className="font-medium text-[var(--ink)]">{formatDate(o.date)}</span>
+              <span className="text-[var(--ink-3)]">{o.properties.join(" + ")}</span>
+              <span className={o.canMove ? "text-emerald-500" : "text-rose-500"}>
                 {o.moveSuggestion}
               </span>
             </div>
@@ -552,16 +552,16 @@ export function CleaningSchedule({
       )}
 
       {/* Schedule table */}
-      <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
-        <div className="border-b border-[#27272b] px-4 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-[#a0a0a8]">
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+        <div className="border-b border-[var(--line)] px-4 py-3 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-[var(--ink-3)]">
             {t("cleaning.title")} ({futureDays.length} {t("cleaning.upcoming")})
           </h2>
           <div className="flex items-center gap-2">
             {onOverrideChanged && (
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="flex items-center gap-1.5 rounded-md border border-[#333338] bg-[#27272b] px-2.5 py-1.5 text-xs text-[#d4d4d8] transition-colors hover:bg-[#333338]"
+                className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -572,7 +572,7 @@ export function CleaningSchedule({
             {futureDays.length > 0 && (
               <button
                 onClick={handleCopySchedule}
-                className="flex items-center gap-1.5 rounded-md border border-[#333338] bg-[#27272b] px-2.5 py-1.5 text-xs text-[#d4d4d8] transition-colors hover:bg-[#333338]"
+                className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
@@ -585,13 +585,13 @@ export function CleaningSchedule({
 
         {/* Add manual cleaning form */}
         {showAddForm && (
-          <div className="border-b border-[#27272b] bg-[#111113] px-4 py-3 space-y-2">
+          <div className="border-b border-[var(--line)] bg-[var(--bg)] px-4 py-3 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               {mode === "dashboard" && (
                 <select
                   value={addPropertyId ?? ""}
                   onChange={(e) => { setAddPropertyId(Number(e.target.value)); setAddError(null); }}
-                  className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+                  className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                 >
                   {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -600,31 +600,31 @@ export function CleaningSchedule({
                 type="date"
                 value={addDate}
                 onChange={(e) => { setAddDate(e.target.value); setAddError(null); }}
-                className="h-8 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec]"
+                className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
               />
               <input
                 type="text"
                 value={addNote}
                 onChange={(e) => setAddNote(e.target.value)}
                 placeholder={t("cleaning.addManualNote")}
-                className="h-8 flex-1 min-w-[200px] rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec]"
+                className="h-8 flex-1 min-w-[200px] rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
               />
               <button
                 onClick={handleAddManual}
                 disabled={!addDate || !addPropertyId}
-                className="h-8 rounded-md bg-[#ff385c] px-3 text-xs font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-40"
+                className="h-8 rounded-md bg-[var(--m-accent)] px-3 text-xs font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-40"
               >
                 {t("common.add")}
               </button>
               <button
                 onClick={() => { setShowAddForm(false); setAddDate(""); setAddNote(""); setAddError(null); }}
-                className="h-8 rounded-md px-2 text-xs text-[#a0a0a8] hover:text-[#e8e8ec]"
+                className="h-8 rounded-md px-2 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]"
               >
                 {t("common.cancel")}
               </button>
             </div>
             {addError && (
-              <p className="text-xs text-[#ef4444]">{addError}</p>
+              <p className="text-xs text-rose-500">{addError}</p>
             )}
           </div>
         )}
@@ -644,15 +644,15 @@ export function CleaningSchedule({
           <div className="max-h-[400px] overflow-y-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#27272b] text-left">
-                  <th className="px-4 py-2 text-xs font-medium text-[#71717a] w-[140px]">{t("cleaning.date")}</th>
-                  <th className="px-4 py-2 text-xs font-medium text-[#71717a]">{t("cleaning.type")}</th>
+                <tr className="border-b border-[var(--line)] text-left">
+                  <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)] w-[140px]">{t("cleaning.date")}</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)]">{t("cleaning.type")}</th>
                   {mode === "dashboard" && (
-                    <th className="px-4 py-2 text-xs font-medium text-[#71717a]">{t("cleaning.property")}</th>
+                    <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)]">{t("cleaning.property")}</th>
                   )}
-                  <th className="px-4 py-2 text-xs font-medium text-[#71717a]">{t("cleaning.notes")}</th>
+                  <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)]">{t("cleaning.notes")}</th>
                   {onOverrideChanged && (
-                    <th className="px-4 py-2 text-xs font-medium text-[#71717a] w-[60px]"></th>
+                    <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)] w-[60px]"></th>
                   )}
                 </tr>
               </thead>
@@ -664,21 +664,21 @@ export function CleaningSchedule({
                   const showYearDivider = thisYear !== prevYear;
                   return (
                     <>{showYearDivider && (
-                      <tr key={`year-${thisYear}`} className="border-b border-[#27272b]">
-                        <td colSpan={10} className="px-4 py-2 text-xs font-semibold text-[#a0a0a8] bg-[#1e1e22]">{thisYear}</td>
+                      <tr key={`year-${thisYear}`} className="border-b border-[var(--line)]">
+                        <td colSpan={10} className="px-4 py-2 text-xs font-semibold text-[var(--ink-3)] bg-[var(--bg-3)]">{thisYear}</td>
                       </tr>
                     )}
-                    <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[#27272b]/50 ${isOverlap ? "bg-[#fbbf24]/5" : "hover:bg-[#1e1e22]"}`}>
-                      <td className="px-4 py-2 text-sm text-[#e8e8ec] whitespace-nowrap">
+                    <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[var(--line)]/50 ${isOverlap ? "bg-amber-400/5" : "hover:bg-[var(--bg-3)]"}`}>
+                      <td className="px-4 py-2 text-sm text-[var(--ink)] whitespace-nowrap">
                         {formatDate(day.date)}
-                        {isOverlap && <span className="ml-1.5 text-[10px] text-[#fbbf24] font-medium">{t("cleaning.overlap")}</span>}
+                        {isOverlap && <span className="ml-1.5 text-[10px] text-amber-400 font-medium">{t("cleaning.overlap")}</span>}
                       </td>
                       <td className="px-4 py-2">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
                             day.type === "cleaning"
-                              ? "bg-[#fbbf24]/10 text-[#fbbf24]"
-                              : "bg-[#e8e8ec]/10 text-[#e8e8ec]"
+                              ? "bg-amber-400/10 text-amber-400"
+                              : "bg-[var(--ink)]/10 text-[var(--ink)]"
                           }`}>
                             {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
                           </span>
@@ -686,14 +686,14 @@ export function CleaningSchedule({
                             const rec = records[`${day.propertyId}-${day.date}`];
                             if (rec?.status === "done") {
                               return (
-                                <span className="inline-block rounded bg-[#34d399]/15 px-1.5 py-0.5 text-xs font-medium text-[#34d399]">
+                                <span className="inline-block rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-500">
                                   {locale === "ru" ? "Сделано" : "Done"}
                                 </span>
                               );
                             }
                             if (rec?.status === "skipped") {
                               return (
-                                <span className="inline-block rounded bg-[#71717a]/20 px-1.5 py-0.5 text-xs font-medium text-[#a0a0a8]">
+                                <span className="inline-block rounded bg-[var(--ink-4)]/20 px-1.5 py-0.5 text-xs font-medium text-[var(--ink-3)]">
                                   {locale === "ru" ? "Пропущено" : "Skipped"}
                                 </span>
                               );
@@ -703,30 +703,30 @@ export function CleaningSchedule({
                         </div>
                       </td>
                       {mode === "dashboard" && (
-                        <td className="px-4 py-2 text-sm text-[#a0a0a8]">{day.property}</td>
+                        <td className="px-4 py-2 text-sm text-[var(--ink-3)]">{day.property}</td>
                       )}
-                      <td className="px-4 py-2 text-xs text-[#a0a0a8]">
+                      <td className="px-4 py-2 text-xs text-[var(--ink-3)]">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {day.isManual && (
-                            <span className="inline-block rounded bg-[#e8e8ec]/10 px-1.5 py-0.5 text-[#e8e8ec] font-medium">
+                            <span className="inline-block rounded bg-[var(--ink)]/10 px-1.5 py-0.5 text-[var(--ink)] font-medium">
                               {t("cleaning.manual")}
                             </span>
                           )}
                           {!day.isManual && (
                             <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
                               day.bufferMode === "quick"
-                                ? "bg-[#a78bfa]/10 text-[#a78bfa]"
-                                : "bg-[#fbbf24]/10 text-[#fbbf24]"
+                                ? "bg-violet-400/10 text-violet-400"
+                                : "bg-amber-400/10 text-amber-400"
                             }`}>
                               {day.bufferMode === "quick" ? t("cleaning.quickTurnover") : t("cleaning.fullDay")}
                             </span>
                           )}
                           {day.hoursAvailable !== undefined && (
-                            <span className="inline-block rounded bg-[#34d399]/10 px-1.5 py-0.5 text-[#34d399] font-medium">
+                            <span className="inline-block rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-500 font-medium">
                               {formatHours(day.hoursAvailable)}
                             </span>
                           )}
-                          <span className="text-[#d4d4d8]">{formatReason(day)}</span>
+                          <span className="text-[var(--ink-2)]">{formatReason(day)}</span>
                         </div>
                       </td>
                       {onOverrideChanged && (
@@ -748,8 +748,8 @@ export function CleaningSchedule({
                                   className={
                                     "rounded p-1 transition-colors " +
                                     (isDone
-                                      ? "bg-[#34d399]/15 text-[#34d399] hover:bg-[#34d399]/25"
-                                      : "text-[#71717a] hover:bg-[#34d399]/10 hover:text-[#34d399]")
+                                      ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25"
+                                      : "text-[var(--ink-4)] hover:bg-emerald-500/10 hover:text-emerald-500")
                                   }
                                 >
                                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -761,7 +761,7 @@ export function CleaningSchedule({
                             <button
                               onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
                               title={t("cleaning.skip")}
-                              className="rounded p-1 text-[#71717a] hover:bg-[#ef4444]/10 hover:text-[#ef4444] transition-colors"
+                              className="rounded p-1 text-[var(--ink-4)] hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
                             >
                               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

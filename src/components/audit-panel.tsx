@@ -57,12 +57,12 @@ export function AuditPanel({ open, onClose }: AuditPanelProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-[#27272b] bg-[#18181b] p-6 shadow-2xl">
+      <div className="w-full max-w-xl rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#e8e8ec]">Recent activity</h2>
+          <h2 className="text-lg font-semibold text-[var(--ink)]">Recent activity</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-[#a0a0a8] hover:bg-[#27272b] hover:text-[#e8e8ec]"
+            className="rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
             aria-label="Close"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -73,33 +73,33 @@ export function AuditPanel({ open, onClose }: AuditPanelProps) {
 
         <div className="max-h-[60vh] overflow-y-auto">
           {loading ? (
-            <div className="py-12 text-center text-sm text-[#71717a]">Loading…</div>
+            <div className="py-12 text-center text-sm text-[var(--ink-4)]">Loading…</div>
           ) : entries.length === 0 ? (
-            <div className="py-12 text-center text-sm text-[#71717a]">No activity yet.</div>
+            <div className="py-12 text-center text-sm text-[var(--ink-4)]">No activity yet.</div>
           ) : (
             <ul className="space-y-1.5">
               {entries.map((e) => (
                 <li
                   key={e.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-[#27272b] bg-[#111113] px-3 py-2 text-xs"
+                  className="flex items-center justify-between gap-3 rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2 text-xs"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <span
                       className={
                         "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase " +
                         (e.action === "create"
-                          ? "bg-[#34d399]/15 text-[#34d399]"
+                          ? "bg-emerald-500/15 text-emerald-500"
                           : e.action === "delete"
-                          ? "bg-[#ef4444]/15 text-[#ef4444]"
-                          : "bg-[#60a5fa]/15 text-[#60a5fa]")
+                          ? "bg-rose-500/15 text-rose-500"
+                          : "bg-sky-400/15 text-sky-400")
                       }
                     >
                       {e.action}
                     </span>
-                    <span className="shrink-0 text-[#a0a0a8]">{e.resourceType}</span>
-                    <span className="truncate text-[#e8e8ec]">{summarize(e)}</span>
+                    <span className="shrink-0 text-[var(--ink-3)]">{e.resourceType}</span>
+                    <span className="truncate text-[var(--ink)]">{summarize(e)}</span>
                   </div>
-                  <span className="shrink-0 text-[#71717a]">{formatDate(e.createdAt)}</span>
+                  <span className="shrink-0 text-[var(--ink-4)]">{formatDate(e.createdAt)}</span>
                 </li>
               ))}
             </ul>

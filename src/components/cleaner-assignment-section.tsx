@@ -87,13 +87,13 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
   };
 
   return (
-    <div className="rounded-lg border border-[#27272b] bg-[#18181b] p-4">
-      <h3 className="mb-3 text-sm font-semibold text-[#e8e8ec]">
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
+      <h3 className="mb-3 text-sm font-semibold text-[var(--ink)]">
         {locale === "ru" ? "Уборщики" : "Cleaners"}
       </h3>
 
       {loading ? (
-        <div className="text-xs text-[#71717a]">…</div>
+        <div className="text-xs text-[var(--ink-4)]">…</div>
       ) : (
         <>
           {assignments.length > 0 ? (
@@ -101,13 +101,13 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
               {assignments.map((a) => (
                 <li
                   key={a.id}
-                  className="flex items-center justify-between rounded-md border border-[#27272b] bg-[#111113] px-3 py-1.5 text-xs"
+                  className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-1.5 text-xs"
                 >
-                  <span className="text-[#e8e8ec]">{a.username}</span>
+                  <span className="text-[var(--ink)]">{a.username}</span>
                   <button
                     onClick={() => remove(a.id)}
                     disabled={busy}
-                    className="text-[#ef4444] hover:underline disabled:opacity-50"
+                    className="text-rose-500 hover:underline disabled:opacity-50"
                   >
                     {locale === "ru" ? "Убрать" : "Remove"}
                   </button>
@@ -115,7 +115,7 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
               ))}
             </ul>
           ) : (
-            <p className="mb-3 text-xs text-[#71717a]">
+            <p className="mb-3 text-xs text-[var(--ink-4)]">
               {locale === "ru"
                 ? "Уборщики ещё не назначены."
                 : "No cleaners assigned yet."}
@@ -127,7 +127,7 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
               disabled={available.length === 0 || busy}
-              className="h-8 flex-1 rounded-md border border-[#333338] bg-[#111113] px-2 text-xs text-[#e8e8ec] outline-none focus:border-[#e8e8ec] disabled:opacity-50"
+              className="h-8 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
             >
               <option value="">
                 {available.length === 0
@@ -147,13 +147,13 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
             <button
               onClick={add}
               disabled={!selected || busy}
-              className="rounded-md bg-[#ff385c] px-3 text-xs text-white hover:bg-[#e0294d] disabled:opacity-50"
+              className="rounded-md bg-[var(--m-accent)] px-3 text-xs text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
               {locale === "ru" ? "Добавить" : "Add"}
             </button>
           </div>
 
-          {error && <p className="mt-2 text-xs text-[#ef4444]">{error}</p>}
+          {error && <p className="mt-2 text-xs text-rose-500">{error}</p>}
         </>
       )}
     </div>
