@@ -90,8 +90,12 @@ export default async function HomePage() {
 
       {/* ─────────────── Hero ─────────────── */}
       <section className="relative overflow-hidden">
+        {/* Calendar-grid background with subtle "booking pill" hints. The grid
+            cells are wider than tall (80×64) so it reads like an Airbnb /
+            Booking month view instead of generic graph paper. */}
         <div className="grid-bg absolute inset-0 pointer-events-none opacity-60" aria-hidden="true" />
-        <div className="relative mx-auto max-w-[1180px] px-6 pt-16 pb-20 text-center sm:pt-24 sm:pb-28">
+        <div className="calendar-pills absolute inset-0 pointer-events-none" aria-hidden="true" />
+        <div className="relative mx-auto max-w-[1180px] px-6 pt-16 pb-16 text-center sm:pt-20 sm:pb-20">
           <p className="hero-in mono mb-5 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
             Open source · Forever free
           </p>
@@ -139,16 +143,6 @@ export default async function HomePage() {
           <p className="hero-in hero-in-4 mt-4 text-[12.5px] text-[var(--ink-3)]">
             No credit card. No paid tier. Try the wizard before signing up.
           </p>
-
-          {/* Stats row */}
-          <div className="hero-in hero-in-5 mt-16 mx-auto max-w-[860px]">
-            <div className="flex items-end justify-center gap-x-10 gap-y-6 flex-wrap">
-              <Stat k="$0" l="Forever free, no upsell" />
-              <Stat k="10 min" l="Calendar sync interval" />
-              <Stat k="2" l="Real properties run on this daily" />
-              <Stat k="MIT" l="Open-source license" />
-            </div>
-          </div>
         </div>
       </section>
 
@@ -325,19 +319,6 @@ export default async function HomePage() {
 }
 
 /* ─────────────── Sub-components ─────────────── */
-
-function Stat({ k, l }: { k: string; l: string }) {
-  return (
-    <div className="flex items-baseline gap-2.5">
-      <span className="display text-[28px] font-semibold tabular-nums text-[var(--ink)] leading-none whitespace-nowrap">
-        {k}
-      </span>
-      <span className="text-[12px] text-[var(--ink-3)] leading-tight max-w-[150px] inline-block">
-        {l}
-      </span>
-    </div>
-  );
-}
 
 function Step({ n, title, body }: { n: string; title: string; body: string }) {
   return (

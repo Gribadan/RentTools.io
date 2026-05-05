@@ -187,12 +187,91 @@
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-feature-settings: "ss01", "cv11";
 }
+/* Calendar-month grid: cells are wider than tall (80×64) so the pattern
+   feels like an Airbnb / Booking month view, not a generic graph paper.
+   The mask fades the edges so the headline reads cleanly over the centre. */
 .editorial .grid-bg {
   background-image: linear-gradient(to right, var(--line) 1px, transparent 1px),
                     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+  background-size: 80px 64px;
+  mask-image: radial-gradient(ellipse 70% 60% at center 45%, black 35%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at center 45%, black 35%, transparent 80%);
+}
+
+/* Faint coloured strips overlaid on the grid that suggest multi-day
+   bookings. Three pills, two coral (Airbnb-ish) one blue (Booking-ish),
+   placed at the cell-row positions of the .grid-bg above so they line up. */
+.editorial .calendar-pills {
+  background-image:
+    /* Row 2 — coral pill spanning ~3 cells, starts at col 2 */
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(2 * 80px),
+      var(--m-accent-soft) calc(2 * 80px),
+      var(--m-accent-soft) calc(2 * 80px + 4px),
+      var(--m-accent-soft) calc(5 * 80px - 4px),
+      var(--m-accent-soft) calc(5 * 80px),
+      transparent calc(5 * 80px)
+    ),
+    /* Row 3 — blue pill, slightly offset */
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(4 * 80px),
+      rgba(0, 113, 227, 0.10) calc(4 * 80px),
+      rgba(0, 113, 227, 0.10) calc(7 * 80px),
+      transparent calc(7 * 80px)
+    ),
+    /* Row 4 — coral pill on the left */
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(1 * 80px),
+      var(--m-accent-soft) calc(1 * 80px),
+      var(--m-accent-soft) calc(3 * 80px),
+      transparent calc(3 * 80px)
+    );
+  background-repeat: no-repeat;
+  /* Position pills at row 2, 3, 4 of the 64px-tall grid, vertically
+     centred with a slim height so they look like booking blocks. */
+  background-position:
+    0 calc(2 * 64px + 22px),
+    0 calc(3 * 64px + 22px),
+    0 calc(4 * 64px + 22px);
+  background-size:
+    100% 20px,
+    100% 20px,
+    100% 20px;
+  mask-image: radial-gradient(ellipse 60% 55% at center 45%, black 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at center 45%, black 30%, transparent 85%);
+}
+.dark .editorial .calendar-pills {
+  background-image:
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(2 * 80px),
+      rgba(255, 85, 119, 0.14) calc(2 * 80px),
+      rgba(255, 85, 119, 0.14) calc(5 * 80px),
+      transparent calc(5 * 80px)
+    ),
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(4 * 80px),
+      rgba(110, 168, 254, 0.12) calc(4 * 80px),
+      rgba(110, 168, 254, 0.12) calc(7 * 80px),
+      transparent calc(7 * 80px)
+    ),
+    linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(1 * 80px),
+      rgba(255, 85, 119, 0.12) calc(1 * 80px),
+      rgba(255, 85, 119, 0.12) calc(3 * 80px),
+      transparent calc(3 * 80px)
+    );
 }
 
 /* Hero entrance — subtle blur-in, plays once. Intentionally cheap so
