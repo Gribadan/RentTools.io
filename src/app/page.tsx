@@ -136,7 +136,12 @@ export default async function HomePage() {
       </main>
 
       <footer className="border-t border-[#1e2329]">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-[#71717a] sm:px-6">
+          <p className="mb-3 text-center text-[11px] text-[#5b5b66] sm:text-left">
+            Essential cookies only — no tracking, no analytics. See{" "}
+            <Link href="/privacy" className="underline hover:text-[#a0a0a8]">Privacy</Link>.
+          </p>
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#e8e8ec]">
@@ -157,6 +162,7 @@ export default async function HomePage() {
               Sign in
             </Link>
           </nav>
+          </div>
         </div>
       </footer>
     </div>

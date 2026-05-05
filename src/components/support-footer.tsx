@@ -26,6 +26,10 @@ export function SupportFooter() {
 
   return (
     <div className="border-t border-[#1e2329] bg-[#0d1117] px-4 py-3 text-center text-xs text-[#71717a]">
+      <p className="mb-1.5 text-[11px] text-[#5b5b66]">
+        Essential cookies only — no tracking, no analytics. See{" "}
+        <Link href="/privacy" className="underline hover:text-[#a0a0a8]">Privacy</Link>.
+      </p>
       <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
         <span>© 2026 RentTools</span>
         <Link href="/privacy" className="hover:text-[#a0a0a8]">Privacy</Link>
