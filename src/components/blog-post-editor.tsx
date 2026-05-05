@@ -188,6 +188,11 @@ export function BlogPostEditor({ post, candidates }: Props) {
   };
 
   const previewUrl = `/${locale === "en" ? "" : `${locale}/`}blog/${slug || post.slug}`;
+  const previewFullUrl = `https://renttools.io${previewUrl}`;
+  const previewExcerpt = excerpt.trim().length > 0
+    ? excerpt
+    : "Set an excerpt to control how this post appears in Google and on social cards.";
+  const previewOgImage = ogImageUrl.trim().length > 0 ? ogImageUrl.trim() : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -246,6 +251,68 @@ export function BlogPostEditor({ post, candidates }: Props) {
 
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-4">
+          <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              SEO preview
+            </p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Google search result
+                </p>
+                <div className="rounded-md border border-border/50 bg-background/40 p-3">
+                  <div className="truncate text-[13px] text-muted-foreground">
+                    renttools.io{previewUrl} <span className="text-muted-foreground/50">›</span>
+                  </div>
+                  <div className="mt-1 line-clamp-1 text-[18px] leading-snug text-[#1a0dab] dark:text-[#8ab4f8]">
+                    {title || "Untitled post"}
+                  </div>
+                  <div className="mt-1 line-clamp-2 text-[13px] text-foreground/70">
+                    {previewExcerpt}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Social card (Open Graph / Twitter)
+                </p>
+                <div className="overflow-hidden rounded-md border border-border/50 bg-background/40">
+                  <div className="aspect-[1.91/1] w-full overflow-hidden bg-muted/20">
+                    {previewOgImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={previewOgImage}
+                        alt=""
+                        className="size-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.opacity = "0.2";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex size-full items-center justify-center text-[10px] uppercase tracking-wide text-muted-foreground/50">
+                        Site OG image fallback
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1 p-3">
+                    <div className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                      renttools.io
+                    </div>
+                    <div className="line-clamp-2 text-sm font-medium leading-snug">
+                      {title || "Untitled post"}
+                    </div>
+                    <div className="line-clamp-2 text-[11px] text-muted-foreground">
+                      {previewExcerpt}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 break-all font-mono text-[10px] text-muted-foreground/60">
+              {previewFullUrl}
+            </p>
+          </div>
+
           <div className="rounded-xl border border-border/60 bg-card/50 p-5">
             <label className="mb-1 block text-xs text-muted-foreground" htmlFor="ed-title">
               Title
@@ -383,7 +450,7 @@ export function BlogPostEditor({ post, candidates }: Props) {
               className="h-9 rounded-lg bg-background/50 text-xs"
             />
             <p className="mt-1 text-[10px] text-muted-foreground/70">
-              Comma-separated, lowercased on save. Tag rename / merge ships in tick 3.
+              Comma-separated, lowercased on save. Manage rename / merge from Admin · Blog · Tags.
             </p>
           </div>
 

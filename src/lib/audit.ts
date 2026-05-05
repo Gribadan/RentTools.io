@@ -12,6 +12,7 @@ export type AuditResource =
   | "user" // RT-21.7: account creation, suspension, password change
   | "blogComment" // RT-20.4: super-admin moderation
   | "blogPost" // RT-20.3: super-admin blog CMS — create/update/delete/status
+  | "blogTag" // RT-20.3 tick 3: super-admin tag CRUD + merge
   | "platform" // RT-17.1: super-admin edits to CalendarPlatform registry
   | "seoOverride"; // RT-18.3: super-admin per-page SEO overrides
 
