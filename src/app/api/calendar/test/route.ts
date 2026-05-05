@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseICal } from "@/lib/ical";
+import { getSession } from "@/lib/auth";
 
 /**
  * POST /api/calendar/test
  * Test an iCal URL — fetch it, parse it, return results.
+ *
+ * Auth: any signed-in user. Anonymous access turned the endpoint into a
+ * server-side fetch proxy (RT-21.1 audit finding). This still allows an
+ * authenticated user to probe arbitrary URLs as the server; the URL
+ * allowlist / SSRF guard is tracked as a follow-up.
  */
 export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { url } = await request.json();
 
   if (!url) {

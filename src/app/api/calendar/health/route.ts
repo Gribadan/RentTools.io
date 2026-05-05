@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseICal } from "@/lib/ical";
+import { requireSuperadmin } from "@/lib/auth";
 
 interface FeedStatus {
   url: string;
@@ -61,7 +62,12 @@ async function checkFeed(url: string | undefined): Promise<FeedStatus> {
   }
 }
 
+// Superadmin-only — this endpoint surfaces every property's iCal URLs across
+// the platform. Airbnb iCal URLs embed a per-listing access token, so the
+// payload is sensitive even though no booking detail is included directly.
 export async function GET() {
+  const auth = await requireSuperadmin();
+  if (auth.response) return auth.response;
   try {
     const properties = await prisma.property.findMany({
       orderBy: { name: "asc" },
