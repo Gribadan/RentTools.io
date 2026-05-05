@@ -5,6 +5,7 @@ import { getSetting } from "@/lib/site-settings";
 import { GoogleOneTap } from "@/components/google-one-tap";
 import { JsonLd } from "@/components/json-ld";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
@@ -43,135 +44,333 @@ export default async function HomePage() {
   const supportEmail = (await getSetting("support_email", "")).trim();
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
+    <div className="editorial min-h-screen flex flex-col">
       <JsonLd data={FAQ_LD} />
       <GoogleOneTap />
-      <header className="border-b border-[#1e2329]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1e1e22]">
-              <svg className="h-4 w-4 text-[#e8e8ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
+
+      {/* ─────────────── Header ─────────────── */}
+      <header className="border-b border-[var(--line)]">
+        <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink)] text-[var(--bg)] transition-transform group-hover:rotate-6">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12l9-9 9 9" />
+                <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10" />
               </svg>
             </div>
-            <span className="text-base font-semibold">RentTools</span>
-          </div>
-          <nav className="flex items-center gap-4 sm:gap-5">
+            <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">RentTools</span>
+          </Link>
+          <nav className="flex items-center gap-1 sm:gap-2">
             <a
-              href={REPO_URL}
+              href={`${REPO_URL}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden text-sm text-[#a0a0a8] hover:text-[#e8e8ec] sm:inline"
+              className="hidden items-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--bg-2)] transition-colors sm:inline-flex"
             >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.5-1.4-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3" />
+              </svg>
               GitHub
             </a>
-            <Link
-              href="/login"
-              className="text-sm text-[#a0a0a8] hover:text-[#e8e8ec]"
-            >
+            <Link href="/login" className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] hover:text-[var(--ink)] hover:bg-[var(--bg-2)] transition-colors">
               Sign in
             </Link>
+            <Link
+              href="/onboard"
+              className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] hover:bg-[var(--ink-2)] transition-colors sm:inline-flex"
+            >
+              Start free
+            </Link>
+            <span className="mx-1 h-4 w-px bg-[var(--line)]" />
+            <ThemeToggle />
             <LocaleSwitcher />
           </nav>
         </div>
       </header>
 
-      <main>
-        <section className="px-4 py-12 sm:px-6 sm:py-20 lg:py-28">
-          <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-4xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
-              Forever free.
-            </h1>
-            <p className="mt-4 text-lg text-[#a0a0a8] sm:mt-5 sm:text-xl">
-              Free to use. Free to leave. Free to self-host.
-              <br className="hidden sm:inline" />
-              <span className="sm:hidden"> </span>
-              Calendar sync, cleaning automation, and guest documents for short-term rental hosts.
-            </p>
-            <div className="mt-7 flex justify-center sm:mt-9">
-              <Link
-                href="/onboard"
-                className="inline-flex h-12 min-w-[200px] items-center justify-center rounded-md bg-[#ff385c] px-8 text-base font-medium text-white transition-colors hover:bg-[#e0294d]"
+      {/* ─────────────── Hero ─────────────── */}
+      <section className="relative overflow-hidden">
+        <div className="grid-bg absolute inset-0 pointer-events-none opacity-60" aria-hidden="true" />
+        <div className="relative mx-auto max-w-[1180px] px-6 pt-16 pb-20 text-center sm:pt-24 sm:pb-28">
+          <p className="hero-in mono mb-5 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+            Open source · Forever free
+          </p>
+          <h1 className="hero-in hero-in-2 display mx-auto max-w-[920px] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-[var(--ink)] sm:text-[68px] lg:text-[80px]">
+            Stop juggling{" "}
+            <span className="relative whitespace-nowrap">
+              <span className="italic font-normal">four calendar tabs</span>
+              <svg
+                className="absolute left-0 right-0 -bottom-1 sm:-bottom-2"
+                width="100%"
+                height="10"
+                viewBox="0 0 220 10"
+                preserveAspectRatio="none"
+                aria-hidden="true"
               >
-                Start now
-              </Link>
-            </div>
-            <p className="mt-4 text-xs text-[#71717a]">
-              No credit card. Account in 30 seconds.
-            </p>
-          </div>
-        </section>
+                <path
+                  className="underline-draw"
+                  d="M2 6 Q 55 1, 110 5 T 218 5"
+                  fill="none"
+                  stroke="var(--m-accent)"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
+            .
+          </h1>
+          <p className="hero-in hero-in-3 mx-auto mt-7 max-w-[640px] text-[17px] leading-[1.55] text-[var(--ink-2)] sm:text-[19px]">
+            One dashboard for every short-term rental you run.{" "}
+            <span className="text-[var(--ink)] font-medium">Sync Airbnb, Booking.com, Vrbo</span>{" "}
+            and any iCal source. Auto-generate cleaning schedules. Extract guest passport data from a photo. Free forever — open-source so you can read every line.
+          </p>
 
-        <section className="border-t border-[#1e2329] px-4 py-12 sm:px-6 sm:py-16">
-          <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3 sm:gap-8">
-            <TrustSignal
+          <div className="hero-in hero-in-4 mt-9 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/onboard"
+              className="group inline-flex h-12 items-center gap-2 rounded-md bg-[var(--m-accent)] px-7 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)]"
+            >
+              Start now
+              <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+            <a
+              href="#how-it-works"
+              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-6 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-2)]"
+            >
+              See how it works
+            </a>
+          </div>
+          <p className="hero-in hero-in-4 mt-5 text-[12.5px] text-[var(--ink-3)]">
+            No credit card. Try the wizard before signing up.
+          </p>
+
+          {/* Stats row */}
+          <div className="hero-in hero-in-5 mt-16 mx-auto max-w-[860px]">
+            <div className="flex items-end justify-center gap-x-10 gap-y-6 flex-wrap">
+              <Stat k="$0" l="Forever free, no upsell" />
+              <Stat k="10 min" l="Calendar sync interval" />
+              <Stat k="2" l="Real properties run on this daily" />
+              <Stat k="MIT" l="Open-source license" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────── How it works ─────────────── */}
+      <section id="how-it-works" className="border-t border-[var(--line)] bg-[var(--bg-2)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-20 sm:py-24">
+          <div className="mx-auto max-w-[640px] text-center">
+            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">How it works</p>
+            <h2 className="display-tight mt-3 text-[32px] font-semibold tracking-tight text-[var(--ink)] sm:text-[42px]">
+              Three steps. Most hosts finish in seven minutes.
+            </h2>
+          </div>
+          <ol className="mt-14 grid gap-6 sm:grid-cols-3 sm:gap-8">
+            <Step
+              n="01"
+              title="Paste your platform iCal URLs"
+              body="Airbnb has one in Calendar → Sync calendars → Export. Booking.com has one in Calendar → Sync calendars. Vrbo too. Drop them in our wizard."
+            />
+            <Step
+              n="02"
+              title="We hand you back a unified feed"
+              body="One iCal URL per platform that includes everyone else's bookings plus your manual entries plus cleaning buffer days. No double bookings."
+            />
+            <Step
+              n="03"
+              title="Paste our URL back into each platform"
+              body="Airbnb and Booking.com pull our feed every few hours. Now their calendars know about each other and about your manual blocks."
+            />
+          </ol>
+          <div className="mt-12 text-center">
+            <Link
+              href="/onboard"
+              className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--m-accent)] hover:underline"
+            >
+              Try the wizard without signing up
+              <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────── Features ─────────────── */}
+      <section className="border-t border-[var(--line)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-20 sm:py-24">
+          <div className="mx-auto max-w-[640px] text-center">
+            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">Built for the parts that hurt</p>
+            <h2 className="display-tight mt-3 text-[32px] font-semibold tracking-tight text-[var(--ink)] sm:text-[42px]">
+              Everything a host needs.<br className="hidden sm:inline" /> Nothing you&apos;ll never use.
+            </h2>
+          </div>
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Feature
+              title="Calendar sync"
+              body="Pulls every iCal-compatible platform every 10 minutes. Manual bookings live alongside synced ones with double-booking warnings."
+            />
+            <Feature
+              title="Cleaning automation"
+              body="Buffer days the platforms can't do natively. Daily cleaning list. Cleaner role with restricted dashboard access."
+            />
+            <Feature
+              title="Passport extraction"
+              body="Drop a photo, get the fields back via Gemini Vision. Sanitized for hotel registration forms. Cyrillic supported."
+            />
+            <Feature
+              title="Message templates"
+              body="Per-property templates with variables (guest name, check-in, wifi). Copy to clipboard, paste into Airbnb / WhatsApp."
+            />
+            <Feature
+              title="Public iCal feed"
+              body="Every property has its own feed URL. Paste it back into Airbnb / Booking and let them pull your manual blocks."
+            />
+            <Feature
+              title="Cmd-K guest search"
+              body="Find any past guest across every property in one keystroke. With document export when you need to file paperwork."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────── Trust ─────────────── */}
+      <section className="border-t border-[var(--line)] bg-[var(--bg-2)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-16 sm:py-20">
+          <div className="grid gap-8 sm:grid-cols-3 sm:gap-12">
+            <Trust
               title="Open source"
-              body="MIT-licensed. Read the code, file an issue, or self-host on any $4 droplet."
+              body="MIT-licensed on GitHub. Read the code, file an issue, or self-host on any $4 droplet."
               link={{ href: REPO_URL, label: "View on GitHub", external: true }}
             />
-            <TrustSignal
-              title="GDPR-compliant"
-              body="One essential session cookie. No analytics, no ads, no third-party trackers."
+            <Trust
+              title="GDPR compliant"
+              body="One essential session cookie. No analytics, no ads, no third-party trackers. Delete your account, your data is gone."
               link={{ href: "/privacy", label: "Privacy policy" }}
             />
-            <TrustSignal
+            <Trust
               title="Run on real properties"
-              body="Two short-term rentals run on this code daily. The maintainer is the first user."
+              body="Two short-term rentals run on this code daily. The maintainer is the first user — and the loudest critic."
             />
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="border-t border-[#1e2329] px-4 py-12 sm:px-6 sm:py-16">
-          <div className="mx-auto max-w-2xl">
-            <h2 className="text-center text-2xl font-semibold sm:text-3xl">
-              Quick answers
+      {/* ─────────────── FAQ ─────────────── */}
+      <section className="border-t border-[var(--line)]">
+        <div className="mx-auto max-w-[760px] px-6 py-20 sm:py-24">
+          <div className="text-center">
+            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">Quick answers</p>
+            <h2 className="display-tight mt-3 text-[32px] font-semibold tracking-tight text-[var(--ink)] sm:text-[40px]">
+              The questions hosts ask first.
             </h2>
-            <div className="mt-8 space-y-3">
-              {FAQS.map((f) => (
-                <Faq key={f.q} q={f.q}>
-                  {f.a}
-                </Faq>
-              ))}
+          </div>
+          <div className="mt-12 space-y-3">
+            {FAQS.map((f) => (
+              <Faq key={f.q} q={f.q}>
+                {f.a}
+              </Faq>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────────── Final CTA ─────────────── */}
+      <section className="border-t border-[var(--line)] bg-[var(--bg-2)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-20 sm:py-28">
+          <div className="mx-auto max-w-[680px] text-center">
+            <h2 className="display text-[36px] font-semibold tracking-[-0.03em] text-[var(--ink)] sm:text-[52px]">
+              Built by a host. <span className="italic font-normal">For hosts.</span>
+            </h2>
+            <p className="mt-6 text-[17px] leading-relaxed text-[var(--ink-2)]">
+              No paid tier. No upsell. No tracking. The maintainer pays the hosting bill so you can focus on guests instead of calendar tabs.
+            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/onboard"
+                className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--m-accent)] px-7 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)]"
+              >
+                Start free in 30 seconds
+              </Link>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-6 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-3)]"
+              >
+                Read the source
+              </a>
             </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="border-t border-[#1e2329]">
-        <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-[#71717a] sm:px-6">
-          <p className="mb-3 text-center text-[11px] text-[#5b5b66] sm:text-left">
-            Essential cookies only — no tracking, no analytics. See{" "}
-            <Link href="/privacy" className="underline hover:text-[#a0a0a8]">Privacy</Link>.
-          </p>
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p>© 2026 RentTools · MIT License</p>
-          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[#e8e8ec]">
-              GitHub
-            </a>
-            <Link href="/terms" className="hover:text-[#e8e8ec]">
-              Terms
-            </Link>
-            <Link href="/privacy" className="hover:text-[#e8e8ec]">
-              Privacy
-            </Link>
-            {supportEmail && (
-              <a href={`mailto:${supportEmail}`} className="hover:text-[#e8e8ec]">
-                Need help? {supportEmail}
-              </a>
-            )}
-            <Link href="/login" className="hover:text-[#e8e8ec]">
-              Sign in
-            </Link>
-          </nav>
+      {/* ─────────────── Footer ─────────────── */}
+      <footer className="mt-auto border-t border-[var(--line)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-8">
+          <div className="flex flex-col items-center justify-between gap-4 text-[12.5px] text-[var(--ink-3)] sm:flex-row">
+            <p>© 2026 RentTools · MIT License</p>
+            <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+              <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ink)] transition-colors">GitHub</a>
+              <Link href="/blog" className="hover:text-[var(--ink)] transition-colors">Blog</Link>
+              <Link href="/terms" className="hover:text-[var(--ink)] transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">Privacy</Link>
+              {supportEmail && (
+                <a href={`mailto:${supportEmail}`} className="hover:text-[var(--ink)] transition-colors">
+                  {supportEmail}
+                </a>
+              )}
+              <Link href="/login" className="hover:text-[var(--ink)] transition-colors">Sign in</Link>
+            </nav>
           </div>
+          <p className="mt-3 text-center text-[11px] text-[var(--ink-4)] sm:text-left">
+            Essential cookies only — no tracking, no analytics. See <Link href="/privacy" className="underline underline-offset-2 hover:text-[var(--ink-3)]">Privacy</Link>.
+          </p>
         </div>
       </footer>
     </div>
   );
 }
 
-function TrustSignal({
+/* ─────────────── Sub-components ─────────────── */
+
+function Stat({ k, l }: { k: string; l: string }) {
+  return (
+    <div className="flex items-baseline gap-2.5">
+      <span className="display text-[28px] font-semibold tabular-nums text-[var(--ink)] leading-none whitespace-nowrap">
+        {k}
+      </span>
+      <span className="text-[12px] text-[var(--ink-3)] leading-tight max-w-[150px] inline-block">
+        {l}
+      </span>
+    </div>
+  );
+}
+
+function Step({ n, title, body }: { n: string; title: string; body: string }) {
+  return (
+    <li className="relative rounded-xl border border-[var(--line)] bg-[var(--bg)] p-6 transition-colors hover:border-[var(--line-2)]">
+      <span className="mono absolute -top-3 left-6 inline-block rounded-md bg-[var(--ink)] px-2 py-0.5 text-[11px] font-medium text-[var(--bg)]">
+        {n}
+      </span>
+      <h3 className="mt-2 text-[16px] font-semibold tracking-tight text-[var(--ink)]">{title}</h3>
+      <p className="mt-2 text-[14px] leading-relaxed text-[var(--ink-2)]">{body}</p>
+    </li>
+  );
+}
+
+function Feature({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)] p-6 transition-all hover:border-[var(--line-2)] hover:translate-y-[-2px]">
+      <h3 className="text-[15px] font-semibold tracking-tight text-[var(--ink)]">{title}</h3>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--ink-2)]">{body}</p>
+    </div>
+  );
+}
+
+function Trust({
   title,
   body,
   link,
@@ -181,25 +380,23 @@ function TrustSignal({
   link?: { href: string; label: string; external?: boolean };
 }) {
   return (
-    <div className="text-center sm:text-left">
-      <h3 className="text-sm font-semibold text-[#e8e8ec]">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-[#a0a0a8]">{body}</p>
+    <div>
+      <h3 className="text-[14px] font-semibold tracking-tight text-[var(--ink)]">{title}</h3>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--ink-2)]">{body}</p>
       {link && (
         link.external ? (
-          <a
-            href={link.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-block text-xs text-[#ff385c] hover:text-[#ffabb8]"
-          >
-            {link.label} →
+          <a href={link.href} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-[12.5px] text-[var(--m-accent)] hover:underline">
+            {link.label}
+            <svg className="h-3 w-3" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </a>
         ) : (
-          <Link
-            href={link.href}
-            className="mt-2 inline-block text-xs text-[#ff385c] hover:text-[#ffabb8]"
-          >
-            {link.label} →
+          <Link href={link.href} className="mt-3 inline-flex items-center gap-1 text-[12.5px] text-[var(--m-accent)] hover:underline">
+            {link.label}
+            <svg className="h-3 w-3" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </Link>
         )
       )}
@@ -209,14 +406,14 @@ function TrustSignal({
 
 function Faq({ q, children }: { q: string; children: React.ReactNode }) {
   return (
-    <details className="group rounded-lg border border-[#1e2329] bg-[#0f1419] open:border-[#2a313b]">
-      <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-[#e8e8ec] [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-lg border border-[var(--line)] bg-[var(--bg)] open:border-[var(--line-2)] transition-colors">
+      <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-[14px] font-medium text-[var(--ink)] [&::-webkit-details-marker]:hidden">
         {q}
-        <svg className="h-4 w-4 text-[#71717a] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="h-4 w-4 text-[var(--ink-3)] transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
         </svg>
       </summary>
-      <div className="border-t border-[#1e2329] px-4 py-3 text-sm leading-relaxed text-[#a0a0a8]">
+      <div className="border-t border-[var(--line)] px-5 py-4 text-[13.5px] leading-relaxed text-[var(--ink-2)]">
         {children}
       </div>
     </details>

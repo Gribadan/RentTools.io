@@ -136,6 +136,99 @@
   }
 }
 
+/* =========================================================
+   Editorial design tokens (used by /, /onboard, /privacy, /terms,
+   /blog). Light by default, theme-toggle flips the .dark class on
+   <html>. Other tokens above stay app-only (dashboard, etc.).
+========================================================= */
+.editorial {
+  --bg: #fafaf9;
+  --bg-2: #f4f4f2;
+  --bg-3: #ebebe7;
+  --ink: #0e0e10;
+  --ink-2: #3a3a40;
+  --ink-3: #6b6b73;
+  --ink-4: #9a9aa3;
+  --line: rgba(14, 14, 16, 0.08);
+  --line-2: rgba(14, 14, 16, 0.14);
+  --m-accent: #ff385c;
+  --m-accent-2: #ff6680;
+  --m-accent-soft: #fff0f3;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.011em;
+}
+.dark .editorial {
+  --bg: #0d1117;
+  --bg-2: #15191f;
+  --bg-3: #1c2129;
+  --ink: #f0f3f7;
+  --ink-2: #c2c6cd;
+  --ink-3: #8a8f97;
+  --ink-4: #5c616a;
+  --line: rgba(240, 243, 247, 0.08);
+  --line-2: rgba(240, 243, 247, 0.14);
+  --m-accent: #ff5577;
+  --m-accent-2: #ff7b96;
+  --m-accent-soft: rgba(255, 85, 119, 0.12);
+}
+
+.editorial .display {
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+.editorial .display-tight {
+  letter-spacing: -0.028em;
+  line-height: 1.05;
+}
+.editorial .mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-feature-settings: "ss01", "cv11";
+}
+.editorial .grid-bg {
+  background-image: linear-gradient(to right, var(--line) 1px, transparent 1px),
+                    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+}
+
+/* Hero entrance — subtle blur-in, plays once. Intentionally cheap so
+   the first paint stays fast. */
+@keyframes hero-in {
+  from { opacity: 0; transform: translateY(10px); filter: blur(6px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.editorial .hero-in { animation: hero-in 700ms cubic-bezier(.2,.7,.2,1) both; }
+.editorial .hero-in-2 { animation-delay: 80ms; }
+.editorial .hero-in-3 { animation-delay: 200ms; }
+.editorial .hero-in-4 { animation-delay: 360ms; }
+.editorial .hero-in-5 { animation-delay: 520ms; }
+
+/* Squiggle underline — draws itself once on load. */
+@keyframes underline-draw {
+  from { stroke-dashoffset: 280; }
+  to { stroke-dashoffset: 0; }
+}
+.editorial .underline-draw {
+  stroke-dasharray: 280;
+  stroke-dashoffset: 280;
+  animation: underline-draw 900ms 700ms cubic-bezier(.2,.7,.2,1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial .hero-in,
+  .editorial .underline-draw {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
 /* Native select dropdown styling */
 select {
   color-scheme: dark;
