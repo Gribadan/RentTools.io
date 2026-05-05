@@ -154,7 +154,7 @@ export function TopBar({
   ];
 
   return (
-    <header className="border-b border-[var(--line)] bg-[var(--bg-2)]">
+    <header className="relative z-40 border-b border-[var(--line)] bg-[var(--bg-2)]">
       {/* Inner wrapper caps content width on ultra-wide screens (Airbnb
           pattern). The border-b + bg above stays full-width so the
           chrome still touches both edges of the viewport, but the
