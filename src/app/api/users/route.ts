@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { checkPasswordStrength } from "@/lib/security/password-strength";
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,11 +40,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (typeof password !== "string" || password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
+    if (typeof password !== "string") {
+      return NextResponse.json({ error: "Password required" }, { status: 400 });
+    }
+    const strength = checkPasswordStrength(password, username.trim());
+    if (!strength.ok) {
+      return NextResponse.json({ error: strength.reason }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({

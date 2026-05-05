@@ -4,6 +4,7 @@ import { hashPassword, createSession } from "@/lib/auth";
 import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 import { getSetting } from "@/lib/site-settings";
 import { claimOnboardingDraft } from "@/lib/onboarding";
+import { checkPasswordStrength } from "@/lib/security/password-strength";
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,11 +49,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
+    const strength = checkPasswordStrength(password, trimmed);
+    if (!strength.ok) {
+      return NextResponse.json({ error: strength.reason }, { status: 400 });
     }
 
     const existing = await prisma.user.findUnique({ where: { username: trimmed } });

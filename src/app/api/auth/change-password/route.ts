@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, verifyPassword, hashPassword } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { checkPasswordStrength } from "@/lib/security/password-strength";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,15 +14,14 @@ export async function POST(request: NextRequest) {
     if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
       return NextResponse.json({ error: "Current and new password required" }, { status: 400 });
     }
-    if (newPassword.length < 8) {
-      return NextResponse.json(
-        { error: "Password must be at least 8 characters" },
-        { status: 400 }
-      );
-    }
 
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    const strength = checkPasswordStrength(newPassword, user.username);
+    if (!strength.ok) {
+      return NextResponse.json({ error: strength.reason }, { status: 400 });
+    }
 
     const ok = await verifyPassword(currentPassword, user.password);
     if (!ok) return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });

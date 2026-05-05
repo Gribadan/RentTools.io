@@ -144,7 +144,7 @@ function SignupPageInner() {
                 placeholder={t("login.passwordPlaceholder")}
                 className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]"
                 required
-                minLength={8}
+                minLength={12}
               />
             </div>
 
