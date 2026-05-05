@@ -56,7 +56,7 @@ export function CalendarGrid({
   onClaimBar,
   onCellClick,
 }: CalendarGridProps) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   let firstDayOffset = new Date(year, month, 1).getDay() - 1;
   if (firstDayOffset < 0) firstDayOffset = 6;
@@ -65,9 +65,9 @@ export function CalendarGrid({
   const checkInPct = timeToPercent(checkInTime);
   const checkOutPct = timeToPercent(checkOutTime);
 
-  const WEEKDAYS = locale === "ru"
-    ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  // Weekday header is rendered ONCE in the sticky page header now
+  // (Airbnb pattern), not per-month here. The grid only paints week
+  // rows.
 
   const weeks = useMemo(() => {
     const cells: (number | null)[] = [];
@@ -147,12 +147,6 @@ export function CalendarGrid({
        so we never need horizontal scroll on small screens. */
     <div className="overflow-visible">
       <div className="min-w-[640px]">
-      <div className="grid grid-cols-7 border-b border-[var(--line)]">
-        {WEEKDAYS.map(wd => (
-          <div key={wd} className="py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]">{wd}</div>
-        ))}
-      </div>
-
       <div key={monthKey} className="relative">
         {/* Skeleton bars while events are still being fetched. We park them
             at deterministic row offsets (top = row * 72 + 36 px so they sit

@@ -188,14 +188,25 @@ export function PropertyCalendar({
 
   const panelOpen = selectedDates.size > 0;
 
+  // Per-month stack header. Used inside each section as `sticky top-0`
+  // so the visible header swaps as the user scrolls between months.
+  // Combines the month label (left), the weekday row (centered) and
+  // the sync icon (right) so day-of-week labels stay in view while
+  // the calendar grid scrolls. Z-index 30 so it paints above booking
+  // bars (which use z-10 on hover-bleeds).
+  const WEEKDAYS = locale === "ru"
+    ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
   return (
     /* Wrapper centers calendar + sidebar TOGETHER inside the same
-       max-w-[1760px] container that the dashboard header uses, so the
-       horizontal layout is consistent across header and body and the
-       sidebar lives flush against the calendar (Airbnb host pattern)
-       instead of floating on the viewport's right edge. */
+       max-w-[1760px] container that the dashboard header uses. The
+       sidebar slot is ALWAYS rendered on lg+ (with placeholder copy
+       when no dates are selected) so the calendar's effective width
+       is stable across selection state — no horizontal jank when the
+       user clicks a cell. */
     <div className="mx-auto max-w-[1760px] flex flex-col lg:flex-row gap-6">
-      <div className={`min-w-0 space-y-6 ${panelOpen ? "hidden lg:block lg:flex-1" : "flex-1"}`}>
+      <div className={`min-w-0 space-y-6 lg:flex-1 ${panelOpen ? "hidden lg:block" : ""}`}>
         <ConflictBanner conflicts={data.conflicts} />
         {!loadingEvents &&
           property.reservations.length === 0 &&
@@ -223,33 +234,45 @@ export function PropertyCalendar({
         </div>
 
         {/* Vertical month stack with sticky per-month headers. The
-            header carries the month name on the left and the sync
-            button on the right — when the user scrolls into the next
-            month, the header swaps content (each section's sticky
-            header pushes the previous one out of the viewport). */}
+            sticky header now spans two rows: the month label + sync
+            icon on top, the weekday Mon-Sun row right under it. When
+            the user scrolls into the next month, the entire two-row
+            header swaps so the day labels stay correctly anchored. */}
         <div className="hidden sm:block">
           {months.map((m, i) => {
             const showYear = i === 0 || m.getMonth() === 0;
             return (
               <section key={`${m.getFullYear()}-${m.getMonth()}`} className="mb-8">
-                <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-[var(--bg)] py-3 mb-3">
-                  <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
-                    {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
-                      month: "long",
-                      year: showYear ? "numeric" : undefined,
-                    })}
-                  </h2>
-                  <button
-                    onClick={handleSyncNow}
-                    disabled={syncing}
-                    title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
-                    aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
-                    className="rounded-full p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
-                  >
-                    <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                    </svg>
-                  </button>
+                <header className="sticky top-0 z-30 bg-[var(--bg)] mb-2 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.08)]">
+                  <div className="flex items-center justify-between gap-3 py-3">
+                    <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
+                      {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+                        month: "long",
+                        year: showYear ? "numeric" : undefined,
+                      })}
+                    </h2>
+                    <button
+                      onClick={handleSyncNow}
+                      disabled={syncing}
+                      title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                      aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                      className="rounded-full p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
+                    >
+                      <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-7 border-y border-[var(--line)] bg-[var(--bg-2)]">
+                    {WEEKDAYS.map((wd) => (
+                      <div
+                        key={wd}
+                        className="py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]"
+                      >
+                        {wd}
+                      </div>
+                    ))}
+                  </div>
                 </header>
                 <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
                   <CalendarGrid
@@ -291,12 +314,17 @@ export function PropertyCalendar({
         </div>
       </div>
 
-      {/* Side panel — sticky-positioned flex sibling on lg+, full
-          width on mobile (hides the calendar). Sticks to top: 0 of
-          main's scroll context so it stays in view as the user
-          scrolls through the month stack. */}
-      {panelOpen && (
-        <aside className="w-full lg:w-[400px] lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-72px)] rounded-lg border border-[var(--line-2)] bg-[var(--bg)] [overflow:clip]">
+      {/* Side panel slot. ALWAYS rendered on lg+ so the calendar
+          width is stable; shows a placeholder hint when no dates are
+          selected, the date-actions panel when one or more are. On
+          mobile the slot collapses unless the panel is open (in which
+          case it takes full width and the calendar hides). */}
+      <aside
+        className={`w-full lg:w-[400px] lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-72px)] rounded-lg border border-[var(--line-2)] bg-[var(--bg)] [overflow:clip] ${
+          panelOpen ? "" : "hidden lg:block"
+        }`}
+      >
+        {panelOpen ? (
           <CalendarDatePopover
             selectedDates={selectedDates}
             bars={data.bars}
@@ -318,8 +346,25 @@ export function PropertyCalendar({
             onExtendBooking={extendBooking}
             onCreateReservation={createReservationFromSelection}
           />
-        </aside>
-      )}
+        ) : (
+          <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-[var(--ink-2)]">
+              {locale === "ru" ? "Выберите день" : "Pick a day"}
+            </p>
+            <p className="text-xs text-[var(--ink-4)] leading-snug max-w-[220px]">
+              {locale === "ru"
+                ? "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь."
+                : "Click any date in the calendar to open its actions or create a reservation."}
+            </p>
+          </div>
+        )}
+      </aside>
 
       {claimBar && claimAnchor && (
         <BarClaimPopover
