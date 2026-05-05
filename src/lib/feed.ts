@@ -4,6 +4,17 @@ import { generateICal, generateBufferedEvents, generateBufferOnlyEvents, addDays
 export { parseFeedFilename } from "@/lib/feed-utils";
 
 /**
+ * Empty-but-RFC-valid iCal — served at the onboarding-draft slug before
+ * the user signs up so anything they paste into Airbnb / Booking still
+ * returns a 200 with valid calendar content. generateICal already emits
+ * a single past-dated placeholder VEVENT when given an empty events array
+ * (some platforms reject 0-event feeds), so this is just a wrapper.
+ */
+export function generateEmptyFeed(calendarName: string = "RentTools placeholder"): string {
+  return generateICal([], calendarName);
+}
+
+/**
  * Generate an iCal feed for a property+platform.
  * Single source of truth — used by all feed routes.
  */

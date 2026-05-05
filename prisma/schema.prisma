@@ -54,6 +54,7 @@ model Property {
   checkOutTime   String           @default("12:00")
   bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored
   feedToken      String?          @unique // optional opt-in token gating the public iCal feed; null = public
+  feedSlug       String?          @unique // durable URL identifier for the iCal feed; minted at creation, never changes
   createdAt      DateTime         @default(now())
   updatedAt      DateTime?
   reservations       Reservation[]
@@ -255,7 +256,16 @@ model OnboardingDraft {
   id              Int       @id @default(autoincrement())
   sessionToken    String    @unique
   propertyName    String    @default("")
-  links           String    @default("[]") // JSON array of { platform, icalExportUrl }
+  // Durable URL slug for the property-to-be. Minted when the draft is
+  // first persisted so feed URLs handed to the user during onboarding
+  // (https://renttools.io/api/calendar/feed/<slug>/for-airbnb.ics)
+  // remain valid after signup — the materialised Property inherits this
+  // slug verbatim. Without it, post-signup feed URLs would change and
+  // silently break anywhere the user already pasted them.
+  feedSlug        String?   @unique
+  // JSON: { platform: string, customName?: string, color?: string,
+  //         icalExportUrl: string, lastTestStatus?: "valid"|"invalid" }[]
+  links           String    @default("[]")
   claimedByUserId Int?
   claimedAt       DateTime?
   createdAt       DateTime  @default(now())

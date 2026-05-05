@@ -16,7 +16,7 @@ const PUBLIC_PATHS = [
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/google", // covers /api/auth/google + /callback + /one-tap (startsWith match)
-  "/api/onboard",
+  "/api/onboard", // covers /api/onboard + /api/onboard/test-platform (startsWith)
   "/api/calendar/feed",
   "/api/calendar/cron",
   "/api/health",

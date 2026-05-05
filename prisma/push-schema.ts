@@ -184,6 +184,14 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "User" ADD COLUMN "email" TEXT`,
     `ALTER TABLE "User" ADD COLUMN "googleId" TEXT`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "User_googleId_key" ON "User"("googleId")`,
+    // Durable URL slug for the public iCal feed. Minted at property
+    // creation (or onboarding-draft creation) and never changes — Airbnb /
+    // Booking import URLs the user pasted somewhere stay valid even
+    // after rename or signup transition. See src/lib/slugify.ts.
+    `ALTER TABLE "Property" ADD COLUMN "feedSlug" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Property_feedSlug_key" ON "Property"("feedSlug")`,
+    `ALTER TABLE "OnboardingDraft" ADD COLUMN "feedSlug" TEXT`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "OnboardingDraft_feedSlug_key" ON "OnboardingDraft"("feedSlug")`,
   ];
   for (const sql of migrations) {
     try {

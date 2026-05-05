@@ -6,7 +6,10 @@ export const ONBOARD_COOKIE = "rt-onboard-token";
 
 interface DraftLink {
   platform: string;
+  customName?: string;
+  color?: string;
   icalExportUrl: string;
+  lastTestStatus?: "valid" | "invalid";
 }
 
 function isLinkArray(value: unknown): value is DraftLink[] {
@@ -53,8 +56,16 @@ export async function claimOnboardingDraft(userId: number): Promise<void> {
     const parsedLinks = parseLinks(draft.links);
     const propertyName = draft.propertyName.trim() || "My first property";
 
+    // Carry the draft's feedSlug onto the new Property so any feed URL
+    // the visitor already pasted into Airbnb / Booking continues to
+    // resolve to their account after signup. Without this the URL
+    // would 404 the moment we delete the draft.
     const property = await prisma.property.create({
-      data: { name: propertyName, userId },
+      data: {
+        name: propertyName,
+        userId,
+        feedSlug: draft.feedSlug ?? undefined,
+      },
     });
     await logAudit(userId, "create", "property", property.id, { name: property.name, fromOnboarding: true });
 
