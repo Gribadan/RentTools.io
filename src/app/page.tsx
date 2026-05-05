@@ -229,6 +229,32 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ─────────────── Compatible with strip ─────────────── */}
+      <section className="border-t border-[var(--line)]">
+        <div className="mx-auto max-w-[1180px] px-6 py-12 sm:py-16">
+          <p className="mono text-center text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+            Compatible with
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-4">
+            {[
+              { name: "Airbnb", color: "#ff385c" },
+              { name: "Booking.com", color: "#003580" },
+              { name: "Vrbo", color: "#245abc" },
+              { name: "Expedia", color: "#c69a14" },
+              { name: "Hostaway", color: "#2e5bff" },
+              { name: "Lodgify", color: "#00928a" },
+              { name: "Smoobu", color: "#5b1a98" },
+              { name: "Plum Guide", color: "#2e1065" },
+            ].map((p) => (
+              <PlatformChip key={p.name} name={p.name} color={p.color} />
+            ))}
+          </div>
+          <p className="mt-6 text-center text-[12.5px] text-[var(--ink-3)]">
+            …and any platform that exports an iCal feed.
+          </p>
+        </div>
+      </section>
+
       {/* ─────────────── Trust ─────────────── */}
       <section className="border-t border-[var(--line)] bg-[var(--bg-2)]">
         <div className="mx-auto max-w-[1180px] px-6 py-16 sm:py-20">
@@ -377,6 +403,24 @@ function Trust({
         )
       )}
     </div>
+  );
+}
+
+function PlatformChip({ name, color }: { name: string; color: string }) {
+  // Brand-tinted pill — colour at low opacity for the bg, full colour for
+  // text. No actual brand logos used so we sidestep brand-asset licensing;
+  // the wordmark + brand colour is enough recognition for a trust strip.
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-3.5 py-1.5 text-[13px] font-medium tracking-tight transition-colors"
+      style={{
+        color,
+        borderColor: `${color}33`, // 20% alpha border
+        backgroundColor: `${color}0d`, // ~5% alpha fill
+      }}
+    >
+      {name}
+    </span>
   );
 }
 
