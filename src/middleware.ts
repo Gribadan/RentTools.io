@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   "/terms",
   "/privacy",
   "/onboard",
+  "/blog", // public blog index, post pages, tag pages, rss.xml
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/google", // covers /api/auth/google + /callback + /one-tap (startsWith match)
