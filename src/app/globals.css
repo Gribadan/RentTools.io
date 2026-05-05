@@ -193,13 +193,27 @@
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   font-feature-settings: "ss01", "cv11";
 }
-/* Calendar-month grid: cells are wider than tall (80×64) so the pattern
-   feels like an Airbnb / Booking month view, not a generic graph paper.
-   The mask fades the edges so the headline reads cleanly over the centre. */
+/* Calendar-month grid: cells are wider than tall (80×64 desktop, 56×48
+   mobile) so the pattern feels like an Airbnb / Booking month view, not
+   generic graph paper. The mask fades the edges so the headline reads
+   cleanly over the centre. Cell dims live in --grid-cell-w/h so the
+   .calendar-pills positions stay aligned across breakpoints. */
+.editorial .grid-bg,
+.editorial .calendar-pills {
+  --grid-cell-w: 80px;
+  --grid-cell-h: 64px;
+}
+@media (max-width: 640px) {
+  .editorial .grid-bg,
+  .editorial .calendar-pills {
+    --grid-cell-w: 56px;
+    --grid-cell-h: 48px;
+  }
+}
 .editorial .grid-bg {
   background-image: linear-gradient(to right, var(--line) 1px, transparent 1px),
                     linear-gradient(to bottom, var(--line) 1px, transparent 1px);
-  background-size: 80px 64px;
+  background-size: var(--grid-cell-w) var(--grid-cell-h);
   mask-image: radial-gradient(ellipse 70% 60% at center 45%, black 35%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse 70% 60% at center 45%, black 35%, transparent 80%);
 }
@@ -207,47 +221,48 @@
 /* Faint coloured strips overlaid on the grid that suggest multi-day
    bookings. Four pills (two coral / two blue) placed at row 2, 3, 4, 5
    of the .grid-bg above. Use --pill-coral / --pill-blue tokens so each
-   theme's tuning lives in one place. */
+   theme's tuning lives in one place. Pill column offsets are mid-cell
+   (cell-w / 2); row offsets are 28% of cell-h to sit ~1/3 down each row. */
 .editorial .calendar-pills {
   background-image:
     /* Row 2 — coral pill, cells 2-5 (4-day stay) */
     linear-gradient(
       to right,
-      transparent calc(2 * 80px + 40px),
-      var(--pill-coral) calc(2 * 80px + 40px),
-      var(--pill-coral) calc(5 * 80px + 40px),
-      transparent calc(5 * 80px + 40px)
+      transparent calc(2 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-coral) calc(2 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-coral) calc(5 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      transparent calc(5 * var(--grid-cell-w) + var(--grid-cell-w) / 2)
     ),
     /* Row 3 — blue pill, cells 4-7 (3-day stay) */
     linear-gradient(
       to right,
-      transparent calc(4 * 80px + 40px),
-      var(--pill-blue) calc(4 * 80px + 40px),
-      var(--pill-blue) calc(7 * 80px + 40px),
-      transparent calc(7 * 80px + 40px)
+      transparent calc(4 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-blue) calc(4 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-blue) calc(7 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      transparent calc(7 * var(--grid-cell-w) + var(--grid-cell-w) / 2)
     ),
     /* Row 4 — coral pill, cells 1-3 */
     linear-gradient(
       to right,
-      transparent calc(1 * 80px + 40px),
-      var(--pill-coral) calc(1 * 80px + 40px),
-      var(--pill-coral) calc(3 * 80px + 40px),
-      transparent calc(3 * 80px + 40px)
+      transparent calc(1 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-coral) calc(1 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-coral) calc(3 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      transparent calc(3 * var(--grid-cell-w) + var(--grid-cell-w) / 2)
     ),
     /* Row 5 — blue pill, cells 5-8 */
     linear-gradient(
       to right,
-      transparent calc(5 * 80px + 40px),
-      var(--pill-blue) calc(5 * 80px + 40px),
-      var(--pill-blue) calc(8 * 80px + 40px),
-      transparent calc(8 * 80px + 40px)
+      transparent calc(5 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-blue) calc(5 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      var(--pill-blue) calc(8 * var(--grid-cell-w) + var(--grid-cell-w) / 2),
+      transparent calc(8 * var(--grid-cell-w) + var(--grid-cell-w) / 2)
     );
   background-repeat: no-repeat;
   background-position:
-    0 calc(2 * 64px + 18px),
-    0 calc(3 * 64px + 18px),
-    0 calc(4 * 64px + 18px),
-    0 calc(5 * 64px + 18px);
+    0 calc(2 * var(--grid-cell-h) + var(--grid-cell-h) * 0.28),
+    0 calc(3 * var(--grid-cell-h) + var(--grid-cell-h) * 0.28),
+    0 calc(4 * var(--grid-cell-h) + var(--grid-cell-h) * 0.28),
+    0 calc(5 * var(--grid-cell-h) + var(--grid-cell-h) * 0.28);
   /* Slimmer pills (16px) so they look like a stay-bar inside a 64px row,
      not a half-row colour band. */
   background-size:
