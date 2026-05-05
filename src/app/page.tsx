@@ -11,12 +11,16 @@ const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
 const FAQS: Array<{ q: string; a: string }> = [
   {
+    q: "Does this actually prevent double-bookings?",
+    a: "It cuts the risk dramatically — not to zero, but close. We pull each platform's iCal feed every 10 minutes and republish it for the others, so Airbnb learns about Booking.com bookings (and vice versa) within ~10 min on our side. The platforms refresh imported feeds every 2-12h on their side. Real-time API sync would be faster, but Airbnb / Booking.com don't sell their channel-manager APIs to individual hosts — only to certified PMS providers who charge $100-300/mo to forward the same feeds we sync for free. For 99% of small hosts, the iCal handshake is more than enough.",
+  },
+  {
     q: "Is it really free?",
     a: "Yes. The hosted instance is free for personal use, rate-limited per account so the bills stay sane. The source is MIT — clone it, run it on a $4 droplet, you owe nothing.",
   },
   {
     q: "What does it actually do?",
-    a: "Pulls any iCal-compatible calendar — Airbnb, Booking.com, Vrbo, or anything else that exposes an export URL — so you stop juggling tabs. Adds buffer days for cleaning that the platforms can't do natively. Generates a daily cleaning list. Extracts passport fields from a photo so you spend less time typing.",
+    a: "Pulls any iCal-compatible calendar — Airbnb, Booking.com, Vrbo, or anything else that exposes an export URL — so you stop juggling tabs. Adds buffer days for cleaning that the platforms can't do natively. Generates a daily cleaning list. Per-property message templates and Cmd-K guest search across every property you own.",
   },
   {
     q: "Do I have to host my own?",
@@ -123,10 +127,11 @@ export default async function HomePage() {
             </span>
             .
           </h1>
-          <p className="hero-in hero-in-3 mx-auto mt-6 max-w-[600px] text-[16px] leading-[1.55] text-[var(--ink-2)] sm:text-[18px]">
-            One dashboard for every short-term rental you run.{" "}
-            <span className="text-[var(--ink)] font-medium">Sync Airbnb, Booking.com, Vrbo</span>{" "}
-            and any iCal source. Auto-generate cleaning schedules. Forever free — open-source so you can read every line.
+          <p className="hero-in hero-in-3 mx-auto mt-6 max-w-[620px] text-[16px] leading-[1.55] text-[var(--ink-2)] sm:text-[18px]">
+            Cross-sync calendars across{" "}
+            <span className="text-[var(--ink)] font-medium">Airbnb, Booking.com, Vrbo</span>{" "}
+            and any iCal source so each platform sees the others&apos; bookings —{" "}
+            <span className="text-[var(--ink)] font-medium">drastically fewer double-booking surprises</span>, no $200/mo channel manager required. Forever free, open-source.
           </p>
 
           <div className="hero-in hero-in-4 mt-8 flex justify-center">
@@ -197,8 +202,8 @@ export default async function HomePage() {
           </div>
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <Feature
-              title="Calendar sync"
-              body="Pulls every iCal-compatible platform every 10 minutes. Manual bookings live alongside synced ones with double-booking warnings."
+              title="Cross-platform calendar sync"
+              body="Every 10 minutes we pull each platform's iCal feed and republish it for the others. Airbnb sees Booking's bookings and vice versa — the same protection paid channel managers sell for $100-300/mo, free."
             />
             <Feature
               title="Cleaning automation"
