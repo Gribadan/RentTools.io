@@ -18,6 +18,7 @@
     "build": "next build",
     "db:push": "tsx prisma/push-schema.ts",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-blog": "tsx prisma/seed-blog-posts.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run"
