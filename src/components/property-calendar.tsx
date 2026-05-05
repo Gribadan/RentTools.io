@@ -192,7 +192,7 @@ export function PropertyCalendar({
             />
           </div>
         )}
-      <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)] overflow-hidden">
+      <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
         <CalendarNavigation
           monthLabel={monthLabel}
           monthOffset={monthOffset}

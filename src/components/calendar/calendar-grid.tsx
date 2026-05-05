@@ -128,7 +128,11 @@ export function CalendarGrid({
   };
 
   return (
-    <div className="overflow-x-auto">
+    /* overflow-visible so wrap-around bars can bleed ~8px past their
+       last cell into the parent wrapper's overflow-clip-margin (Airbnb
+       continues-to-next-row pattern). The calendar is `hidden sm:block`
+       so we never need horizontal scroll on small screens. */
+    <div className="overflow-visible">
       <div className="min-w-[640px]">
       <div className="grid grid-cols-7 border-b border-[var(--line)]">
         {WEEKDAYS.map(wd => (
@@ -239,6 +243,26 @@ export function CalendarGrid({
                           : seg.continuesRight
                             ? "rounded-l-md rounded-r-none"
                             : "rounded-md";
+                    // Wrap-around bleed: when this segment continues
+                    // into the next/previous week, push it ~8 px past
+                    // the cell wall so the bar visibly bleeds out of
+                    // the row, the way Airbnb's host calendar shows a
+                    // multi-week stay. The parent calendar wrapper has
+                    // overflow-clip-margin: 12px so the bleed stays
+                    // contained inside the rounded card.
+                    const BLEED = 8;
+                    const leftBleed = seg.continuesLeft ? BLEED : 0;
+                    const rightBleed = seg.continuesRight ? BLEED : 0;
+                    // Existing 2 px gap between distinct stays only
+                    // applies when this segment really ends here.
+                    const endGap = seg.continuesRight ? 0 : 2;
+                    const widthAdjust = leftBleed + rightBleed - endGap;
+                    const widthStyle = widthAdjust >= 0
+                      ? `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% + ${widthAdjust}px)`
+                      : `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - ${Math.abs(widthAdjust)}px)`;
+                    const leftStyle = leftBleed > 0
+                      ? `calc(${seg.leftPct}% - ${leftBleed}px)`
+                      : `${seg.leftPct}%`;
                     return (
                       <div
                         key={`seg-${si}-${seg.startDate}`}
@@ -258,15 +282,8 @@ export function CalendarGrid({
                             : "bg-[var(--m-accent)]"
                         } ${(seg.reservationId || seg.eventUid) ? "hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
                         style={{
-                          left: `${seg.leftPct}%`,
-                          // When we don't reach the segment's right wall (i.e. the
-                          // bar continues into next week), let the bar run flush
-                          // to the cell edge with no 2px gap so the wrap looks
-                          // visually attached. The 2px gap is only useful between
-                          // distinct stays.
-                          width: seg.continuesRight
-                            ? `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}%)`
-                            : `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
+                          left: leftStyle,
+                          width: widthStyle,
                           zIndex: 10,
                           backgroundImage: seg.isExtension
                             ? "repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255,255,255,0.22) 6px 8px)"
