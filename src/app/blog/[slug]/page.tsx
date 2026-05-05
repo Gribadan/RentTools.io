@@ -207,7 +207,7 @@ export default async function BlogPostPage({
           </header>
 
           <div
-            className="prose-blog text-sm leading-relaxed text-[var(--ink-2)] sm:text-base"
+            className="prose-blog text-base leading-relaxed text-[var(--ink-2)]"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </article>

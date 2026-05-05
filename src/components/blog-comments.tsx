@@ -203,7 +203,7 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
                   </div>
                 )}
               </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-2)]">
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--ink-2)]">
                 {c.body}
               </p>
             </li>
