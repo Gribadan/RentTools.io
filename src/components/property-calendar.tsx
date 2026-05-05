@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
@@ -55,6 +55,46 @@ export function PropertyCalendar({
       new Date(today.getFullYear(), today.getMonth() + i, 1)
     );
   }, [today]);
+
+  // Single static sticky header at the top of the calendar column. The
+  // weekday row and sync button literally never move — only the month
+  // label inside <h2> swaps as the user scrolls. activeMonthIdx tracks
+  // which month section is currently visible just below the sticky.
+  const [activeMonthIdx, setActiveMonthIdx] = useState(0);
+  const sectionRefs = useRef<(HTMLElement | null)[]>([]);
+  const stickyHeaderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const stickyEl = stickyHeaderRef.current;
+    if (!stickyEl) return;
+    const main = stickyEl.closest("main");
+    if (!main) return;
+
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const headerBottom = stickyEl.getBoundingClientRect().bottom;
+        let idx = 0;
+        for (let i = 0; i < sectionRefs.current.length; i++) {
+          const el = sectionRefs.current[i];
+          if (!el) continue;
+          const top = el.getBoundingClientRect().top;
+          if (top <= headerBottom + 1) idx = i;
+          else break;
+        }
+        setActiveMonthIdx(idx);
+      });
+    };
+
+    main.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      main.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, [months.length]);
 
   const data = useCalendarData(property, syncedEvents, links, overrides);
 
@@ -191,15 +231,17 @@ export function PropertyCalendar({
 
   const panelOpen = selectedDates.size > 0;
 
-  // Per-month stack header. Used inside each section as `sticky top-0`
-  // so the visible header swaps as the user scrolls between months.
-  // Combines the month label (left), the weekday row (centered) and
-  // the sync icon (right) so day-of-week labels stay in view while
-  // the calendar grid scrolls. Z-index 30 so it paints above booking
-  // bars (which use z-10 on hover-bleeds).
+  // Static sticky header chrome — month label, sync button, and the
+  // Mon-Sun weekday row. Hoisted above the months.map so the chrome
+  // pins ONCE and never swaps; only the month label text reacts to
+  // scroll. Z-index 30 so it paints above booking bars (z-10 hover-
+  // bleeds).
   const WEEKDAYS = locale === "ru"
     ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  const activeMonth = months[activeMonthIdx] ?? months[0];
+  const activeMonthShowYear = activeMonthIdx === 0 || activeMonth.getMonth() === 0;
 
   return (
     /* Two layers of layout:
@@ -238,84 +280,89 @@ export function PropertyCalendar({
             </div>
           )}
 
-        {/* Vertical month stack with sticky per-month headers. The
-            sticky header now spans two rows: the month label + sync
-            icon on top, the weekday Mon-Sun row right under it. When
-            the user scrolls into the next month, the entire two-row
-            header swaps so the day labels stay correctly anchored. */}
+        {/* Vertical month stack with ONE static sticky header above
+            it. The header chrome (weekday row + sync button) is fully
+            frozen — only the <h2> month label updates as scroll moves
+            between sections. Each section just renders its grid; the
+            scroll listener above tracks which section is at the top. */}
         <div className="hidden sm:block">
-          {months.map((m, i) => {
-            const showYear = i === 0 || m.getMonth() === 0;
-            return (
-              <section key={`${m.getFullYear()}-${m.getMonth()}`} className="mb-8">
-                <header className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-2 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.08)]">
-                  <div className="flex items-center justify-between gap-3 py-3">
-                    <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
-                      {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
-                        month: "long",
-                        year: showYear ? "numeric" : undefined,
-                      })}
-                    </h2>
-                    <button
-                      onClick={handleSyncNow}
-                      disabled={syncing}
-                      title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
-                      aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
-                      className="rounded-full p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
-                    >
-                      <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-7 border-y border-[var(--line)] bg-[var(--bg-2)]">
-                    {WEEKDAYS.map((wd) => (
-                      <div
-                        key={wd}
-                        className="py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]"
-                      >
-                        {wd}
-                      </div>
-                    ))}
-                  </div>
-                </header>
-                <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
-                  <CalendarGrid
-                    year={m.getFullYear()}
-                    month={m.getMonth()}
-                    today={today}
-                    minNights={property.minNights || 3}
-                    checkInTime={property.checkInTime || "14:00"}
-                    checkOutTime={property.checkOutTime || "12:00"}
-                    bars={data.bars}
-                    bufferDates={data.bufferDates}
-                    potentialDates={data.potentialDates}
-                    unbookableDates={data.unbookableDates}
-                    sameDayCleaningDates={data.sameDayCleaningDates}
-                    conflictDates={data.conflictDates}
-                    openOverrides={data.openOverrides}
-                    closedOverrides={data.closedOverrides}
-                    cleaningOverrides={data.cleaningOverrides}
-                    selectedDates={selectedDates}
-                    loading={loadingEvents && i === 0}
-                    onSelectReservation={onSelectReservation}
-                    onClaimBar={(seg, rect) => {
-                      if (!seg.eventUid) return;
-                      setClaimBar({
-                        eventUid: seg.eventUid,
-                        startDate: seg.startDate,
-                        endDate: seg.endDate,
-                        platform: seg.platform,
-                        defaultName: seg.name,
-                      });
-                      setClaimAnchor(rect);
-                    }}
-                    onCellClick={(dateStr) => toggleDate(dateStr)}
-                  />
+          <header
+            ref={stickyHeaderRef}
+            className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-2 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.08)]"
+          >
+            <div className="flex items-center justify-between gap-3 py-3">
+              <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
+                {activeMonth.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+                  month: "long",
+                  year: activeMonthShowYear ? "numeric" : undefined,
+                })}
+              </h2>
+              <button
+                onClick={handleSyncNow}
+                disabled={syncing}
+                title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                className="rounded-full p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
+              >
+                <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+              </button>
+            </div>
+            <div className="grid grid-cols-7 border-y border-[var(--line)] bg-[var(--bg-2)]">
+              {WEEKDAYS.map((wd) => (
+                <div
+                  key={wd}
+                  className="py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]"
+                >
+                  {wd}
                 </div>
-              </section>
-            );
-          })}
+              ))}
+            </div>
+          </header>
+
+          {months.map((m, i) => (
+            <section
+              key={`${m.getFullYear()}-${m.getMonth()}`}
+              ref={(el) => { sectionRefs.current[i] = el; }}
+              className="mb-8"
+            >
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
+                <CalendarGrid
+                  year={m.getFullYear()}
+                  month={m.getMonth()}
+                  today={today}
+                  minNights={property.minNights || 3}
+                  checkInTime={property.checkInTime || "14:00"}
+                  checkOutTime={property.checkOutTime || "12:00"}
+                  bars={data.bars}
+                  bufferDates={data.bufferDates}
+                  potentialDates={data.potentialDates}
+                  unbookableDates={data.unbookableDates}
+                  sameDayCleaningDates={data.sameDayCleaningDates}
+                  conflictDates={data.conflictDates}
+                  openOverrides={data.openOverrides}
+                  closedOverrides={data.closedOverrides}
+                  cleaningOverrides={data.cleaningOverrides}
+                  selectedDates={selectedDates}
+                  loading={loadingEvents && i === 0}
+                  onSelectReservation={onSelectReservation}
+                  onClaimBar={(seg, rect) => {
+                    if (!seg.eventUid) return;
+                    setClaimBar({
+                      eventUid: seg.eventUid,
+                      startDate: seg.startDate,
+                      endDate: seg.endDate,
+                      platform: seg.platform,
+                      defaultName: seg.name,
+                    });
+                    setClaimAnchor(rect);
+                  }}
+                  onCellClick={(dateStr) => toggleDate(dateStr)}
+                />
+              </div>
+            </section>
+          ))}
         </div>
       </div>
 
@@ -323,9 +370,12 @@ export function PropertyCalendar({
           width is stable; shows a placeholder hint when no dates are
           selected, the date-actions panel when one or more are. On
           mobile the slot collapses unless the panel is open (in which
-          case it takes full width and the calendar hides). */}
+          case it takes full width and the calendar hides). Borderless
+          + bg-2 panel mirrors the calendar grid containers; lg:top-3
+          gives ~12px breathing room from the global header (matching
+          py-3 of the frozen calendar header). */}
       <aside
-        className={`w-full lg:w-[400px] lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-72px)] rounded-lg border border-[var(--line-2)] bg-[var(--bg)] [overflow:clip] ${
+        className={`w-full lg:w-[400px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip] ${
           panelOpen ? "" : "hidden lg:block"
         }`}
       >
@@ -352,17 +402,16 @@ export function PropertyCalendar({
             onCreateReservation={createReservationFromSelection}
           />
         ) : (
-          <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+          <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-4 px-8 py-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-[var(--ink-2)]">
+            <p className="text-base font-semibold tracking-tight text-[var(--ink)]">
               {locale === "ru" ? "Выберите день" : "Pick a day"}
             </p>
-            <p className="text-xs text-[var(--ink-4)] leading-snug max-w-[220px]">
+            <p className="text-sm text-[var(--ink-3)] leading-relaxed max-w-[260px]">
               {locale === "ru"
                 ? "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь."
                 : "Click any date in the calendar to open its actions or create a reservation."}
