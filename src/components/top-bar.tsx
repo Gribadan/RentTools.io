@@ -28,6 +28,11 @@ interface TopBarProps {
   onSelectProperty: (id: number | null) => void;
   onChangeView: (view: AppView) => void;
   onAddProperty: (name: string) => void;
+  // Atomic navigate that can change property + view together. Needed for
+  // tab clicks like "Calendar" / "Cleaning" / "Settings" that require a
+  // property — when none is selected we want to auto-pick the first one
+  // AND land on the requested tab in a single nav, not two.
+  onNavigate: (params: { property?: number | null; reservation?: number | null; view?: AppView }) => void;
   onOpenReservation?: (propertyId: number, reservationId: number) => void;
   username: string;
   onLogout: () => void;
@@ -40,6 +45,7 @@ export function TopBar({
   onSelectProperty,
   onChangeView,
   onAddProperty,
+  onNavigate,
   onOpenReservation,
   username,
   onLogout,
@@ -48,7 +54,6 @@ export function TopBar({
   const [propDropdown, setPropDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
   const [addingProp, setAddingProp] = useState(false);
   const [newPropName, setNewPropName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -57,7 +62,6 @@ export function TopBar({
   const [searchLoading, setSearchLoading] = useState(false);
   const propRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
-  const mobileRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,7 +69,6 @@ export function TopBar({
     const handler = (e: MouseEvent) => {
       if (propRef.current && !propRef.current.contains(e.target as Node)) setPropDropdown(false);
       if (userRef.current && !userRef.current.contains(e.target as Node)) setUserDropdown(false);
-      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) setMobileMenu(false);
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false);
     };
     document.addEventListener("mousedown", handler);
@@ -131,51 +134,65 @@ export function TopBar({
     }
   };
 
+  // Property-required views — Calendar / Cleaning / Settings only make
+  // sense in a property context. If user clicks one with no property
+  // selected, auto-pick the first one in the same nav.
+  const goToTab = (view: AppView) => {
+    const requiresProperty = view === "calendar" || view === "cleaning" || view === "sync";
+    if (requiresProperty && !selectedPropertyId && properties.length > 0) {
+      onNavigate({ property: properties[0].id, view });
+    } else {
+      onChangeView(view);
+    }
+  };
+
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
 
-  const tabs: { key: AppView; label: string; icon: string }[] = [
-    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", icon: "cal" },
-    { key: "cleaning", label: locale === "ru" ? "Уборки" : "Cleaning", icon: "clean" },
-    { key: "guests", label: locale === "ru" ? "Гости" : "Guests", icon: "guest" },
-    { key: "sync", label: locale === "ru" ? "Настройки" : "Settings", icon: "settings" },
+  const tabs: { key: AppView; label: string; show: boolean }[] = [
+    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: true },
+    { key: "cleaning", label: locale === "ru" ? "Уборки" : "Cleaning", show: true },
+    { key: "reports", label: locale === "ru" ? "Отчёты" : "Reports", show: true },
+    { key: "sync", label: locale === "ru" ? "Объект" : "Property", show: !!selectedPropertyId },
   ];
 
   return (
     <header className="border-b border-[var(--line)] bg-[var(--bg-2)]">
-      {/* Top row */}
-      <div className="flex items-center justify-between px-4 h-14">
-        {/* Left: logo + property selector */}
-        <div className="flex items-center gap-4">
-          {/* Logo */}
+      {/* Main bar */}
+      <div className="relative flex items-center justify-between gap-3 h-16 px-3 sm:px-5">
+        {/* LEFT: Logo + Property selector */}
+        <div className="flex items-center gap-3 min-w-0 z-10 max-w-[55%] sm:max-w-none">
           <button
             onClick={() => { onSelectProperty(null); onChangeView("dashboard"); }}
-            className="flex items-center gap-2 text-[var(--ink)] hover:text-[var(--ink)] transition-colors"
+            className="flex items-center gap-2 shrink-0 text-[var(--ink)] hover:opacity-80 transition-opacity"
+            aria-label="Dashboard home"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--bg)]">
-              <svg className="h-4 w-4 text-[var(--ink)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--m-accent)]">
+              <svg viewBox="0 0 32 32" className="h-4 w-4 text-white" aria-hidden="true">
+                <rect x="6" y="9" width="20" height="3" rx="1.5" fill="currentColor" />
+                <rect x="6" y="15" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.85" />
+                <rect x="6" y="21" width="9" height="3" rx="1.5" fill="currentColor" opacity="0.7" />
               </svg>
             </div>
-            <span className="text-sm font-semibold hidden sm:block">RentTools</span>
+            <span className="hidden sm:block text-sm font-semibold tracking-tight">RentTools</span>
           </button>
 
           {/* Property selector */}
-          <div className="relative" ref={propRef}>
+          <div className="relative min-w-0" ref={propRef}>
             <button
               onClick={() => setPropDropdown(!propDropdown)}
-              className="flex items-center gap-2 rounded-lg border border-[var(--line-2)] bg-[var(--bg)] px-3 py-1.5 text-sm text-[var(--ink)] hover:border-[var(--ink)]/40 transition-colors min-w-[120px] sm:min-w-[160px] max-w-[180px] sm:max-w-none"
+              className="flex items-center gap-2 rounded-full border border-[var(--line-2)] bg-[var(--bg)] px-3 py-1.5 text-sm text-[var(--ink)] hover:border-[var(--ink)]/40 transition-colors min-w-0 max-w-[180px] sm:max-w-[220px]"
             >
               <span className="flex-1 text-left truncate">
                 {selectedProperty ? selectedProperty.name : (locale === "ru" ? "Все объекты" : "All properties")}
               </span>
-              <svg className={`h-4 w-4 text-[var(--ink-4)] transition-transform ${propDropdown ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className={`h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform ${propDropdown ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
               </svg>
             </button>
 
             {propDropdown && (
-              <div className="absolute top-full left-0 mt-1 w-64 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/40 z-50">
-                <div className="p-1">
+              <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/20 z-50">
+                <div className="p-1.5">
                   <button
                     onClick={() => { onSelectProperty(null); onChangeView("dashboard"); setPropDropdown(false); }}
                     className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
@@ -260,9 +277,25 @@ export function TopBar({
           </div>
         </div>
 
-        {/* Right: actions */}
-        <div className="flex items-center gap-2">
-          {/* Guest search */}
+        {/* CENTER: Tabs (lg+ only). Absolute-centered like Airbnb so the
+            left & right groups can size naturally without throwing off
+            the centerline. pointer-events trick lets the wider invisible
+            wrapper not eat clicks on logo/avatar. */}
+        <nav className="absolute inset-x-0 top-0 bottom-0 mx-auto pointer-events-none hidden lg:flex items-center justify-center" aria-label="Primary">
+          <div className="pointer-events-auto flex items-center">
+            {tabs.filter(tab => tab.show).map(tab => (
+              <NavTab
+                key={tab.key}
+                label={tab.label}
+                active={activeView === tab.key}
+                onClick={() => goToTab(tab.key)}
+              />
+            ))}
+          </div>
+        </nav>
+
+        {/* RIGHT: Search + Avatar */}
+        <div className="flex items-center gap-1 z-10 shrink-0">
           {onOpenReservation && (
             <div className="relative" ref={searchRef}>
               <button
@@ -270,18 +303,17 @@ export function TopBar({
                   setSearchOpen(true);
                   setTimeout(() => searchInputRef.current?.focus(), 30);
                 }}
-                className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 py-1.5 text-xs text-[var(--ink-3)] hover:border-[var(--ink)]/40 hover:text-[var(--ink-2)] transition-colors"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-colors"
                 title={locale === "ru" ? "Поиск гостей (⌘K)" : "Search guests (⌘K)"}
                 aria-label={locale === "ru" ? "Поиск гостей" : "Search guests"}
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
-                <kbd className="hidden md:inline rounded bg-[var(--line-2)] px-1 py-0.5 text-[10px] text-[var(--ink-4)]">⌘K</kbd>
               </button>
 
               {searchOpen && (
-                <div className="absolute right-0 top-full z-50 mt-1 w-[20rem] rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/40 sm:w-[26rem]">
+                <div className="absolute right-0 top-full z-50 mt-2 w-[20rem] rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/20 sm:w-[26rem]">
                   <div className="border-b border-[var(--line)] p-2">
                     <input
                       ref={searchInputRef}
@@ -345,101 +377,75 @@ export function TopBar({
             </div>
           )}
 
-          {/* Tasks/sync — desktop only */}
-          <button
-            onClick={() => onChangeView("tasks")}
-            className={`hidden sm:block rounded-md p-2 transition-colors ${
-              activeView === "tasks" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)]"
-            }`}
-            title={locale === "ru" ? "Задачи синхронизации" : "Sync tasks"}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
-
-          {/* Reports — desktop only */}
-          <button
-            onClick={() => onChangeView("reports")}
-            className={`hidden sm:block rounded-md p-2 transition-colors ${
-              activeView === "reports" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)]"
-            }`}
-            title={locale === "ru" ? "Отчёты" : "Reports"}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-          </button>
-
-          {/* Settings — desktop only */}
-          <button
-            onClick={() => onChangeView("settings")}
-            className={`hidden sm:block rounded-md p-2 transition-colors ${
-              activeView === "settings" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)]"
-            }`}
-            title={t("sidebar.settings")}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-
-          {/* Theme toggle — desktop only */}
-          <div className="hidden sm:block">
-            <ThemeToggle />
-          </div>
-
-          {/* Language — desktop only */}
-          <div className="hidden sm:flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
+          {/* User menu — Airbnb-style pill containing menu lines + avatar.
+              All personal-cabinet items live here: theme, language, profile,
+              personal settings, sync tasks, logout. */}
+          <div className="relative" ref={userRef}>
             <button
-              onClick={() => setLocale("ru")}
-              className={`px-2 py-1 text-xs transition-colors ${locale === "ru" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
-            >RU</button>
-            <button
-              onClick={() => setLocale("en")}
-              className={`px-2 py-1 text-xs transition-colors ${locale === "en" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
-            >EN</button>
-          </div>
-
-          {/* Mobile hamburger menu */}
-          <div className="relative sm:hidden" ref={mobileRef}>
-            <button
-              onClick={() => setMobileMenu(!mobileMenu)}
-              className="rounded-md p-2 text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)] transition-colors"
-              aria-label="Menu"
+              onClick={() => setUserDropdown(!userDropdown)}
+              className="flex items-center gap-2 rounded-full border border-[var(--line-2)] bg-[var(--bg)] py-1 pl-2.5 pr-1 text-[var(--ink-3)] hover:shadow-md hover:border-[var(--line-2)] transition-all"
+              aria-label={locale === "ru" ? "Меню пользователя" : "User menu"}
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
+              <div className="h-7 w-7 rounded-full bg-[var(--ink-3)] flex items-center justify-center text-[11px] font-semibold text-white uppercase">
+                {username[0]}
+              </div>
             </button>
-            {mobileMenu && (
-              <div className="absolute top-full right-0 mt-1 w-56 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/40 z-50 p-1">
+
+            {userDropdown && (
+              <div className="absolute top-full right-0 mt-2 w-64 rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/20 z-50 p-1.5">
+                {/* Identity */}
+                <div className="px-3 pt-2 pb-2.5">
+                  <p className="text-sm font-semibold text-[var(--ink)] truncate">{username}</p>
+                  <p className="text-[11px] text-[var(--ink-4)]">
+                    {locale === "ru" ? "Личный кабинет" : "Personal account"}
+                  </p>
+                </div>
+
+                <div className="h-px bg-[var(--line)]" />
+
+                {/* Theme row */}
+                <div className="flex items-center justify-between px-3 py-2 text-sm text-[var(--ink-2)]">
+                  <span>{locale === "ru" ? "Тема" : "Theme"}</span>
+                  <ThemeToggle />
+                </div>
+
+                {/* Language row */}
+                <div className="flex items-center justify-between px-3 py-2 text-sm text-[var(--ink-2)]">
+                  <span>{locale === "ru" ? "Язык" : "Language"}</span>
+                  <div className="flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
+                    <button
+                      onClick={() => setLocale("ru")}
+                      className={`px-2 py-1 text-xs transition-colors ${locale === "ru" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
+                    >RU</button>
+                    <button
+                      onClick={() => setLocale("en")}
+                      className={`px-2 py-1 text-xs transition-colors ${locale === "en" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
+                    >EN</button>
+                  </div>
+                </div>
+
+                <div className="my-1 h-px bg-[var(--line)]" />
+
+                {/* Profile drawer */}
                 <button
-                  onClick={() => { onChangeView("tasks"); setMobileMenu(false); }}
-                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
-                    activeView === "tasks" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
-                  }`}
+                  onClick={() => { setProfileOpen(true); setUserDropdown(false); }}
+                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  {locale === "ru" ? "Задачи" : "Tasks"}
+                  {t("profile.title")}
                 </button>
+
+                {/* Personal settings (was a separate gear icon — now lives
+                    in the personal cabinet so it doesn't clash with the
+                    per-property "Property" tab). */}
                 <button
-                  onClick={() => { onChangeView("reports"); setMobileMenu(false); }}
-                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
-                    activeView === "reports" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
-                  }`}
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                  </svg>
-                  {locale === "ru" ? "Отчёты" : "Reports"}
-                </button>
-                <button
-                  onClick={() => { onChangeView("settings"); setMobileMenu(false); }}
-                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                  onClick={() => { onChangeView("settings"); setUserDropdown(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
                     activeView === "settings" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
                   }`}
                 >
@@ -447,56 +453,27 @@ export function TopBar({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  {t("sidebar.settings")}
+                  {locale === "ru" ? "Настройки аккаунта" : "Account settings"}
                 </button>
-                <div className="my-1 h-px bg-[var(--line-2)]" />
-                <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-xs text-[var(--ink-4)]">{locale === "ru" ? "Тема" : "Theme"}</span>
-                  <ThemeToggle />
-                </div>
-                <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-xs text-[var(--ink-4)]">{locale === "ru" ? "Язык" : "Language"}</span>
-                  <div className="flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
-                    <button
-                      onClick={() => setLocale("ru")}
-                      className={`px-2 py-1 text-xs ${locale === "ru" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
-                    >RU</button>
-                    <button
-                      onClick={() => setLocale("en")}
-                      className={`px-2 py-1 text-xs ${locale === "en" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
-                    >EN</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* User menu */}
-          <div className="relative" ref={userRef}>
-            <button
-              onClick={() => setUserDropdown(!userDropdown)}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)] transition-colors"
-            >
-              <div className="h-6 w-6 rounded-full bg-[var(--line-2)] flex items-center justify-center text-[10px] font-bold text-[var(--ink-2)] uppercase">
-                {username[0]}
-              </div>
-              <span className="hidden sm:block">{username}</span>
-            </button>
-
-            {userDropdown && (
-              <div className="absolute top-full right-0 mt-1 w-40 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/40 z-50 p-1">
+                {/* Sync tasks (admin/debug — kept here, not promoted to a tab) */}
                 <button
-                  onClick={() => { setProfileOpen(true); setUserDropdown(false); }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
+                  onClick={() => { onChangeView("tasks"); setUserDropdown(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                    activeView === "tasks" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
+                  }`}
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  {t("profile.title")}
+                  {locale === "ru" ? "Задачи синхронизации" : "Sync tasks"}
                 </button>
+
+                <div className="my-1 h-px bg-[var(--line)]" />
+
                 <button
                   onClick={() => { onLogout(); setUserDropdown(false); }}
-                  className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-rose-500 hover:bg-rose-500/10 transition-colors"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -510,27 +487,34 @@ export function TopBar({
         </div>
       </div>
 
-      {/* Tab bar (only when a property is selected) */}
-      {selectedPropertyId && (
-        <div className="flex items-center gap-1 px-4 -mb-px overflow-x-auto whitespace-nowrap">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => onChangeView(tab.key)}
-              className={`relative px-4 py-2.5 text-sm font-medium transition-colors ${
-                activeView === tab.key
-                  ? "text-[var(--ink)]"
-                  : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"
-              }`}
-            >
-              {tab.label}
-              {activeView === tab.key && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t bg-[var(--m-accent)]" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mobile / medium tabs row — visible whenever the centered
+          desktop nav above is hidden. Same labels, scrollable. */}
+      <nav className="lg:hidden flex items-center justify-center gap-1 px-3 sm:px-5 overflow-x-auto whitespace-nowrap" aria-label="Primary mobile">
+        {tabs.filter(tab => tab.show).map(tab => (
+          <NavTab
+            key={tab.key}
+            label={tab.label}
+            active={activeView === tab.key}
+            onClick={() => goToTab(tab.key)}
+          />
+        ))}
+      </nav>
     </header>
+  );
+}
+
+function NavTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative px-4 py-3 text-sm font-medium transition-colors ${
+        active ? "text-[var(--ink)]" : "text-[var(--ink-3)] hover:text-[var(--ink)]"
+      }`}
+    >
+      {label}
+      {active && (
+        <span className="pointer-events-none absolute left-3 right-3 bottom-0 h-[2px] rounded-full bg-[var(--ink)]" />
+      )}
+    </button>
   );
 }

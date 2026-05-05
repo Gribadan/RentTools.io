@@ -353,6 +353,7 @@ function AppContent({
         onSelectProperty={handleSelectProperty}
         onChangeView={setActiveView}
         onAddProperty={handleAddProperty}
+        onNavigate={navigate}
         onOpenReservation={(propId, resId) =>
           navigate({ property: propId, reservation: resId, view: "guests" })
         }
