@@ -336,8 +336,8 @@ export function ReservationView({
                       className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
                         editPlatform === p
                           ? p === "airbnb"
-                            ? "bg-[#ff385c]/15 text-[#ff385c] shadow-sm"
-                            : "bg-[#003580]/20 text-[#4B9CD3] shadow-sm"
+                            ? "bg-[var(--m-accent)]/15 text-[var(--m-accent)] shadow-sm"
+                            : "bg-[#003580]/20 text-sky-500 shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
@@ -379,8 +379,8 @@ export function ReservationView({
               <div className="mt-1.5 flex flex-wrap items-center gap-2">
                 <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${
                   reservation.platform === "booking"
-                    ? "bg-[#003580]/20 text-[#4B9CD3]"
-                    : "bg-[#ff385c]/10 text-[#ff385c]"
+                    ? "bg-[#003580]/20 text-sky-500"
+                    : "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
                 }`}>
                   {reservation.platform === "booking" ? "Booking.com" : "Airbnb"}
                 </span>
@@ -522,8 +522,8 @@ export function ReservationView({
         <div
           className={`rounded-xl border px-4 py-3 text-xs ${
             extractionResult.successful === extractionResult.total
-              ? "border-[#34d399]/30 bg-[#34d399]/5 text-[#34d399]"
-              : "border-[#fbbf24]/30 bg-[#fbbf24]/5 text-[#fbbf24]"
+              ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-500"
+              : "border-amber-400/30 bg-amber-400/5 text-amber-400"
           }`}
         >
           <div className="flex items-center justify-between">
@@ -534,7 +534,7 @@ export function ReservationView({
             </span>
             <button
               onClick={() => setExtractionResult(null)}
-              className="text-muted-foreground/40 hover:text-[#e8e8ec]"
+              className="text-muted-foreground/40 hover:text-[var(--ink)]"
               aria-label="Dismiss extraction summary"
             >
               <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -565,7 +565,7 @@ export function ReservationView({
             <div className="relative" ref={templateMenuRef}>
               <button
                 onClick={() => setTemplatePickerOpen((v) => !v)}
-                className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[#a0a0a8] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[#e8e8ec]"
+                className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[var(--ink-3)] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[var(--ink)]"
                 title="Generate a message from a saved template"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -577,21 +577,21 @@ export function ReservationView({
                 </svg>
               </button>
               {templatePickerOpen && (
-                <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-md border border-[#27272b] bg-[#111113] shadow-lg">
+                <div className="absolute right-0 z-20 mt-1 w-64 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg)] shadow-lg">
                   <ul className="max-h-72 overflow-y-auto py-1">
                     {templates.map((t) => (
                       <li key={t.id}>
                         <button
                           onClick={() => pickTemplate(t)}
-                          className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs text-[#e8e8ec] hover:bg-[#1a1a1d]"
+                          className="flex w-full items-start gap-2 px-3 py-2 text-left text-xs text-[var(--ink)] hover:bg-[var(--bg-2)]"
                         >
-                          <span className="mt-0.5 rounded bg-[#27272b] px-1.5 py-0.5 text-[10px] uppercase text-[#a0a0a8]">
+                          <span className="mt-0.5 rounded bg-[var(--line-2)] px-1.5 py-0.5 text-[10px] uppercase text-[var(--ink-3)]">
                             {t.language}
                           </span>
                           <span className="flex-1">
                             <span className="font-medium">{t.name}</span>
                             {t.subject && (
-                              <span className="block truncate text-[11px] text-[#71717a]">
+                              <span className="block truncate text-[11px] text-[var(--ink-4)]">
                                 {t.subject}
                               </span>
                             )}
@@ -607,7 +607,7 @@ export function ReservationView({
           {guests.length > 0 && (
             <button
               onClick={exportGuestsCsv}
-              className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[#a0a0a8] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[#e8e8ec]"
+              className="flex items-center gap-1.5 rounded-md border border-border/30 bg-card/30 px-3 py-1.5 text-xs font-medium text-[var(--ink-3)] transition-all hover:border-border/60 hover:bg-card/60 hover:text-[var(--ink)]"
               title="Export all guest data to CSV"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -621,11 +621,11 @@ export function ReservationView({
 
       {/* Rendered template preview */}
       {activeTemplate && (
-        <div className="rounded-xl border border-[#27272b] bg-[#111113]">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)]">
           <div className="flex items-center justify-between border-b border-border/30 px-4 py-2.5">
             <div className="flex items-center gap-2 text-xs">
-              <span className="font-medium text-[#e8e8ec]">{activeTemplate.name}</span>
-              <span className="rounded bg-[#27272b] px-1.5 py-0.5 text-[10px] uppercase text-[#a0a0a8]">
+              <span className="font-medium text-[var(--ink)]">{activeTemplate.name}</span>
+              <span className="rounded bg-[var(--line-2)] px-1.5 py-0.5 text-[10px] uppercase text-[var(--ink-3)]">
                 {activeTemplate.language}
               </span>
             </div>
@@ -634,8 +634,8 @@ export function ReservationView({
                 onClick={copyMessage}
                 className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
                   copyState === "copied"
-                    ? "bg-[#34d399]/15 text-[#34d399]"
-                    : "bg-[#ff385c] text-white hover:bg-[#e0294d]"
+                    ? "bg-emerald-500/15 text-emerald-500"
+                    : "bg-[var(--m-accent)] text-white hover:bg-[var(--m-accent-2)]"
                 }`}
               >
                 {copyState === "copied" ? "Copied!" : "Copy"}
@@ -653,14 +653,14 @@ export function ReservationView({
           </div>
           <div className="space-y-2 p-4 text-xs">
             {renderedSubject && (
-              <div className="font-semibold text-[#e8e8ec]">{renderedSubject}</div>
+              <div className="font-semibold text-[var(--ink)]">{renderedSubject}</div>
             )}
             <textarea
               id="rendered-message-body"
               readOnly
               value={renderedBody}
               rows={Math.min(Math.max(renderedBody.split("\n").length + 1, 4), 16)}
-              className="w-full resize-y rounded-md border border-[#27272b] bg-[#0d1117] px-3 py-2 font-sans text-[#d4d4d8] outline-none focus:border-[#333338]"
+              className="w-full resize-y rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2 font-sans text-[var(--ink-2)] outline-none focus:border-[var(--line-2)]"
             />
           </div>
         </div>
@@ -676,14 +676,14 @@ export function ReservationView({
 
       {/* Extraction Log — below guests */}
       {logs.length > 0 && (
-        <div className="rounded-xl border border-[#27272b] bg-[#111113]">
+        <div className="rounded-xl border border-[var(--line)] bg-[var(--bg)]">
           <div className="flex items-center justify-between border-b border-border/30 px-4 py-2.5">
-            <span className="text-xs font-medium text-[#a0a0a8]">
+            <span className="text-xs font-medium text-[var(--ink-3)]">
               Extraction Log
             </span>
             <button
               onClick={() => setLogs([])}
-              className="text-xs text-[#71717a] hover:text-[#e8e8ec]"
+              className="text-xs text-[var(--ink-4)] hover:text-[var(--ink)]"
             >
               Clear
             </button>
@@ -691,16 +691,16 @@ export function ReservationView({
           <div ref={logRef} className="overflow-y-auto p-4 font-[family-name:var(--font-mono)] text-xs leading-relaxed" style={{ maxHeight: 200 }}>
             {logs.map((log, i) => (
               <div key={i} className="flex gap-2.5">
-                <span className="shrink-0 text-[#71717a]">{log.time}</span>
+                <span className="shrink-0 text-[var(--ink-4)]">{log.time}</span>
                 <span
                   className={
                     log.type === "success"
-                      ? "text-[#34d399]"
+                      ? "text-emerald-500"
                       : log.type === "error"
-                      ? "text-[#ef4444]"
+                      ? "text-rose-500"
                       : log.type === "processing"
-                      ? "text-[#fbbf24]"
-                      : "text-[#a0a0a8]"
+                      ? "text-amber-400"
+                      : "text-[var(--ink-3)]"
                   }
                 >
                   {log.message}

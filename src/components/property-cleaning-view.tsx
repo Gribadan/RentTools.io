@@ -45,7 +45,7 @@ export function PropertyCleaningView({ property }: PropertyCleaningViewProps) {
       <div className="mb-3 flex justify-end">
         <button
           onClick={() => setSummaryOpen(true)}
-          className="rounded-md border border-[#333338] bg-[#18181b] px-3 py-1.5 text-xs text-[#e8e8ec] transition-colors hover:bg-[#27272b]"
+          className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-1.5 text-xs text-[var(--ink)] transition-colors hover:bg-[var(--line-2)]"
         >
           {locale === "ru" ? "Краткий план / печать" : "Summary / print"}
         </button>
