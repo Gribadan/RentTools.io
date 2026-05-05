@@ -6,6 +6,7 @@ import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import { CleanerAssignmentSection } from "@/components/cleaner-assignment-section";
 import { MessageTemplatesPanel } from "@/components/message-templates-panel";
 import { PropertyManagersPanel } from "@/components/property-managers-panel";
+import { GuestFormBuilder } from "@/components/guest-form-builder";
 import { useI18n } from "@/lib/i18n/context";
 import type { CalendarLink, SyncLogEntry } from "@/lib/types";
 
@@ -651,6 +652,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
       <CleanerAssignmentSection propertyId={propertyId} />
       <MessageTemplatesPanel propertyId={propertyId} />
+      <GuestFormBuilder propertyId={propertyId} />
 
       {/* Danger zone — delete this property. Only the owner can hit
           DELETE /api/properties/:id; the dashboard's handler also
