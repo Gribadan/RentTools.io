@@ -111,18 +111,15 @@ export async function fetchGoogleProfile(accessToken: string): Promise<GooglePro
 }
 
 /**
- * Derive the redirect URI from the incoming request URL. Must match a URI
- * registered in the GCP OAuth client exactly — we register
- *   https://renttools.io/api/auth/google/callback
- *   http://localhost:3000/api/auth/google/callback
- * so this returns whichever matches the current host.
+ * Public origin of the incoming request, honoring proxy headers.
  *
  * Behind a reverse proxy (nginx → Next on localhost) `new URL(request.url)`
- * gets the protocol wrong (http instead of https) because the proxy hop is
- * cleartext locally. Honor X-Forwarded-Proto / X-Forwarded-Host first, fall
- * back to the request URL only when no proxy headers are present.
+ * reflects the proxy hop's HTTP/localhost addressing, not the public-facing
+ * URL Cloudflare presents to users. Honor X-Forwarded-Proto / X-Forwarded-Host
+ * first, fall back to the request URL only when no proxy headers are present
+ * (e.g. local dev).
  */
-export function deriveRedirectUri(request: Request): string {
+export function getPublicOrigin(request: Request): string {
   const url = new URL(request.url);
   const fwdProto = request.headers.get("x-forwarded-proto");
   const fwdHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
@@ -130,7 +127,17 @@ export function deriveRedirectUri(request: Request): string {
   // (Cloudflare → nginx → next can stack headers in some setups).
   const proto = (fwdProto?.split(",")[0]?.trim()) || url.protocol.replace(/:$/, "");
   const host = (fwdHost?.split(",")[0]?.trim()) || url.host;
-  return `${proto}://${host}/api/auth/google/callback`;
+  return `${proto}://${host}`;
+}
+
+/**
+ * Derive the redirect URI for the Google OAuth flow. Must match a URI
+ * registered in the GCP OAuth client exactly — we register
+ *   https://renttools.io/api/auth/google/callback
+ *   http://localhost:3000/api/auth/google/callback
+ */
+export function deriveRedirectUri(request: Request): string {
+  return `${getPublicOrigin(request)}/api/auth/google/callback`;
 }
 
 /**

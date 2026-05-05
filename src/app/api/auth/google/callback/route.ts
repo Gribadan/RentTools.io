@@ -7,6 +7,7 @@ import {
   fetchGoogleProfile,
   findOrCreateUserForGoogle,
   getGoogleConfig,
+  getPublicOrigin,
   type GoogleProfile,
 } from "@/lib/google-oauth";
 import { claimOnboardingDraft } from "@/lib/onboarding";
@@ -15,7 +16,7 @@ const STATE_COOKIE = "rt-google-oauth-state";
 const NEXT_COOKIE = "rt-google-oauth-next";
 
 function loginErrorRedirect(request: NextRequest, code: string): NextResponse {
-  const url = new URL("/login", request.url);
+  const url = new URL("/login", getPublicOrigin(request));
   url.searchParams.set("error", code);
   const res = NextResponse.redirect(url);
   res.cookies.delete(STATE_COOKIE);
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
   const nextCookie = request.cookies.get(NEXT_COOKIE)?.value;
   const next = nextCookie && nextCookie.startsWith("/") && !nextCookie.startsWith("//") ? nextCookie : "/dashboard";
 
-  const res = NextResponse.redirect(new URL(next, request.url));
+  const res = NextResponse.redirect(new URL(next, getPublicOrigin(request)));
   res.cookies.delete(STATE_COOKIE);
   res.cookies.delete(NEXT_COOKIE);
   return res;
