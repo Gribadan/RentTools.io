@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, verifyPassword, hashPassword } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
 
     const hashed = await hashPassword(newPassword);
     await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    await logAudit(session.userId, "update", "user", user.id, { passwordChanged: true });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

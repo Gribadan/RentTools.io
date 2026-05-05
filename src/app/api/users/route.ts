@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,6 +64,10 @@ export async function POST(request: NextRequest) {
         role: "user",
       },
       select: { id: true, username: true, role: true, createdAt: true },
+    });
+    await logAudit(session.userId, "create", "user", user.id, {
+      username: user.username,
+      role: user.role,
     });
 
     return NextResponse.json(user);

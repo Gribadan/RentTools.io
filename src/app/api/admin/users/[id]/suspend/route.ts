@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSuperadmin } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 // POST /api/admin/users/:id/suspend → marks user.suspendedAt = now
 // DELETE /api/admin/users/:id/suspend → clears user.suspendedAt
@@ -44,6 +45,7 @@ export async function POST(
       where: { id: userId },
       data: { suspendedAt: new Date() },
     });
+    await logAudit(auth.session.userId, "update", "user", userId, { suspended: true });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Route error:", err);
@@ -69,6 +71,7 @@ export async function DELETE(
       where: { id: userId },
       data: { suspendedAt: null },
     });
+    await logAudit(auth.session.userId, "update", "user", userId, { suspended: false });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Route error:", err);
