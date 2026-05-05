@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
-import { CalendarToolbar } from "@/components/calendar/calendar-toolbar";
 import { CalendarLegend } from "@/components/calendar/calendar-legend";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarDatePopover } from "@/components/calendar/calendar-date-popover";
@@ -11,7 +10,6 @@ import { BarClaimPopover, type ClaimableBar } from "@/components/calendar/bar-cl
 import { ConflictBanner } from "@/components/calendar/conflict-banner";
 import { useCalendarFetch } from "@/components/calendar/use-calendar-fetch";
 import { useCalendarData } from "@/components/calendar/use-calendar-data";
-import { buildCalendarExportText } from "@/components/calendar/calendar-export";
 import { addDaysStr } from "@/components/calendar/utils";
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n/context";
@@ -32,26 +30,17 @@ interface PropertyCalendarProps {
 // through them airbnb-style instead of paging via prev/next arrows.
 const VISIBLE_MONTHS = 12;
 
-// Side panel width (px). When the panel is open we add right padding
-// to the calendar wrapper of the same value so the calendar reflows
-// rather than being covered by the panel.
-const PANEL_WIDTH_PX = 400;
-
 export function PropertyCalendar({
   property,
   onSelectReservation,
-  // onAddReservation kept for prop-shape compat with the dashboard,
-  // but we now POST /api/reservations directly when the side panel
-  // submits since we need the result to refresh local state.
+  // onAddReservation kept for prop-shape compat — the side panel
+  // POSTs /api/reservations directly.
   onAddReservation: _onAddReservation,
 }: PropertyCalendarProps) {
   const { locale, t } = useI18n();
-  // Multi-date selection — the side panel opens whenever this Set is
-  // non-empty. Each click on a calendar cell toggles membership.
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
   const [claimAnchor, setClaimAnchor] = useState<DOMRect | null>(null);
-  const [exportCopied, setExportCopied] = useState(false);
 
   const { syncedEvents, links, overrides, loadingEvents, syncing, refetchOverrides, handleSyncNow } =
     useCalendarFetch(property.id);
@@ -62,8 +51,6 @@ export function PropertyCalendar({
     return d;
   }, []);
 
-  // Build the list of months to render — starting from today's month
-  // and stepping forward N times.
   const months = useMemo(() => {
     return Array.from({ length: VISIBLE_MONTHS }, (_, i) =>
       new Date(today.getFullYear(), today.getMonth() + i, 1)
@@ -83,7 +70,6 @@ export function PropertyCalendar({
   };
   const clearSelection = () => setSelectedDates(new Set());
 
-  // Escape always clears the selection (and therefore closes the panel).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" && selectedDates.size > 0) {
@@ -94,8 +80,7 @@ export function PropertyCalendar({
     return () => document.removeEventListener("keydown", onKey);
   }, [selectedDates.size]);
 
-  // Bulk override write — applies the same override type to every
-  // currently-selected date, then clears the selection.
+  // Override + reservation handlers (same as before) -----------------
   const setBulkOverride = async (type: "open" | "closed" | "cleaning") => {
     const dates = Array.from(selectedDates);
     await Promise.all(
@@ -127,8 +112,6 @@ export function PropertyCalendar({
   const createReservationFromSelection = async (data: { name: string; platform: string }) => {
     const sortedDates = Array.from(selectedDates).sort();
     if (sortedDates.length === 0) return;
-    // checkIn = first selected day. checkOut = last selected day + 1
-    // (a 3-night stay across May 1, 2, 3 has check-out on May 4).
     const checkIn = sortedDates[0];
     const lastDay = sortedDates[sortedDates.length - 1];
     const checkOut = addDaysStr(lastDay, 1);
@@ -147,8 +130,6 @@ export function PropertyCalendar({
     window.location.reload();
   };
 
-  // Single-date helpers (used by the panel when only one date is
-  // selected — the existing per-date actions still apply).
   const setSingleOverride = async (dateStr: string, type: "open" | "closed" | "cleaning") => {
     await fetch(`/api/date-overrides`, {
       method: "POST",
@@ -182,9 +163,6 @@ export function PropertyCalendar({
     window.location.reload();
   };
 
-  // Bar claim popover (separate from the date selection panel — it
-  // opens when the user clicks an UNCLAIMED iCal-synced bar and asks
-  // to name it).
   const closeClaim = () => {
     setClaimBar(null);
     setClaimAnchor(null);
@@ -208,43 +186,16 @@ export function PropertyCalendar({
     window.location.reload();
   };
 
-  const handleExport = () => {
-    const text = buildCalendarExportText({
-      property,
-      monthLabel: months[0].toLocaleDateString(locale === "ru" ? "ru-RU" : "en", { month: "long", year: "numeric" }),
-      today,
-      syncedEvents,
-      links,
-      bars: data.bars,
-      bufferDates: data.bufferDates,
-      potentialDates: data.potentialDates,
-      unbookableDates: data.unbookableDates,
-      conflicts: data.conflicts,
-    });
-    navigator.clipboard.writeText(text);
-    setExportCopied(true);
-    setTimeout(() => setExportCopied(false), 2000);
-  };
-
   const panelOpen = selectedDates.size > 0;
 
   return (
-    <div className="mx-auto max-w-5xl">
-      {/* Calendar content reflows narrower on lg+ when the side panel
-          is open, so the calendar isn't covered by the panel. The
-          panel itself stays fixed to the viewport's right edge. */}
-      <div
-        className="space-y-6 transition-[padding] duration-200 ease-out"
-        style={{ paddingRight: panelOpen ? `${PANEL_WIDTH_PX}px` : undefined }}
-      >
-        <CalendarToolbar
-          property={property}
-          links={links}
-          syncing={syncing}
-          exportCopied={exportCopied}
-          onSyncNow={handleSyncNow}
-          onExport={handleExport}
-        />
+    /* Wrapper centers calendar + sidebar TOGETHER inside the same
+       max-w-[1760px] container that the dashboard header uses, so the
+       horizontal layout is consistent across header and body and the
+       sidebar lives flush against the calendar (Airbnb host pattern)
+       instead of floating on the viewport's right edge. */
+    <div className="mx-auto max-w-[1760px] flex flex-col lg:flex-row gap-6">
+      <div className={`min-w-0 space-y-6 ${panelOpen ? "hidden lg:block lg:flex-1" : "flex-1"}`}>
         <ConflictBanner conflicts={data.conflicts} />
         {!loadingEvents &&
           property.reservations.length === 0 &&
@@ -263,9 +214,7 @@ export function PropertyCalendar({
             </div>
           )}
 
-        {/* Legend rendered once at the top (was inside the wrapper
-            per-month before; now it shares context with the entire
-            scrollable stack). */}
+        {/* Legend rendered once at the top of the stack. */}
         <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
           <CalendarLegend
             minNights={property.minNights || 3}
@@ -273,79 +222,103 @@ export function PropertyCalendar({
           />
         </div>
 
-        {/* Vertical month stack — replaces the prev/next/today nav. */}
-        <div className="hidden sm:block space-y-8">
-          {months.map((m, i) => (
-            <section key={`${m.getFullYear()}-${m.getMonth()}`}>
-              <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--ink)]">
-                {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
-                  month: "long",
-                  year: i === 0 || m.getMonth() === 0 ? "numeric" : undefined,
-                })}
-              </h2>
-              <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
-                <CalendarGrid
-                  year={m.getFullYear()}
-                  month={m.getMonth()}
-                  today={today}
-                  minNights={property.minNights || 3}
-                  checkInTime={property.checkInTime || "14:00"}
-                  checkOutTime={property.checkOutTime || "12:00"}
-                  bars={data.bars}
-                  bufferDates={data.bufferDates}
-                  potentialDates={data.potentialDates}
-                  unbookableDates={data.unbookableDates}
-                  sameDayCleaningDates={data.sameDayCleaningDates}
-                  conflictDates={data.conflictDates}
-                  openOverrides={data.openOverrides}
-                  closedOverrides={data.closedOverrides}
-                  cleaningOverrides={data.cleaningOverrides}
-                  selectedDates={selectedDates}
-                  loading={loadingEvents && i === 0}
-                  onSelectReservation={onSelectReservation}
-                  onClaimBar={(seg, rect) => {
-                    if (!seg.eventUid) return;
-                    setClaimBar({
-                      eventUid: seg.eventUid,
-                      startDate: seg.startDate,
-                      endDate: seg.endDate,
-                      platform: seg.platform,
-                      defaultName: seg.name,
-                    });
-                    setClaimAnchor(rect);
-                  }}
-                  onCellClick={(dateStr) => toggleDate(dateStr)}
-                />
-              </div>
-            </section>
-          ))}
+        {/* Vertical month stack with sticky per-month headers. The
+            header carries the month name on the left and the sync
+            button on the right — when the user scrolls into the next
+            month, the header swaps content (each section's sticky
+            header pushes the previous one out of the viewport). */}
+        <div className="hidden sm:block">
+          {months.map((m, i) => {
+            const showYear = i === 0 || m.getMonth() === 0;
+            return (
+              <section key={`${m.getFullYear()}-${m.getMonth()}`} className="mb-8">
+                <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-[var(--bg)] py-3 mb-3">
+                  <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
+                    {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+                      month: "long",
+                      year: showYear ? "numeric" : undefined,
+                    })}
+                  </h2>
+                  <button
+                    onClick={handleSyncNow}
+                    disabled={syncing}
+                    title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                    aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                    className="rounded-full p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
+                  >
+                    <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  </button>
+                </header>
+                <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
+                  <CalendarGrid
+                    year={m.getFullYear()}
+                    month={m.getMonth()}
+                    today={today}
+                    minNights={property.minNights || 3}
+                    checkInTime={property.checkInTime || "14:00"}
+                    checkOutTime={property.checkOutTime || "12:00"}
+                    bars={data.bars}
+                    bufferDates={data.bufferDates}
+                    potentialDates={data.potentialDates}
+                    unbookableDates={data.unbookableDates}
+                    sameDayCleaningDates={data.sameDayCleaningDates}
+                    conflictDates={data.conflictDates}
+                    openOverrides={data.openOverrides}
+                    closedOverrides={data.closedOverrides}
+                    cleaningOverrides={data.cleaningOverrides}
+                    selectedDates={selectedDates}
+                    loading={loadingEvents && i === 0}
+                    onSelectReservation={onSelectReservation}
+                    onClaimBar={(seg, rect) => {
+                      if (!seg.eventUid) return;
+                      setClaimBar({
+                        eventUid: seg.eventUid,
+                        startDate: seg.startDate,
+                        endDate: seg.endDate,
+                        platform: seg.platform,
+                        defaultName: seg.name,
+                      });
+                      setClaimAnchor(rect);
+                    }}
+                    onCellClick={(dateStr) => toggleDate(dateStr)}
+                  />
+                </div>
+              </section>
+            );
+          })}
         </div>
       </div>
 
-      {/* Selection-driven side panel. Opens whenever 1+ dates are
-          selected; closes via panel × button or Escape. */}
+      {/* Side panel — sticky-positioned flex sibling on lg+, full
+          width on mobile (hides the calendar). Sticks to top: 0 of
+          main's scroll context so it stays in view as the user
+          scrolls through the month stack. */}
       {panelOpen && (
-        <CalendarDatePopover
-          selectedDates={selectedDates}
-          bars={data.bars}
-          bufferDates={data.bufferDates}
-          potentialDates={data.potentialDates}
-          sameDayCleaningDates={data.sameDayCleaningDates}
-          unbookableDates={data.unbookableDates}
-          openOverrides={data.openOverrides}
-          closedOverrides={data.closedOverrides}
-          cleaningOverrides={data.cleaningOverrides}
-          syncedEvents={syncedEvents}
-          reservations={property.reservations}
-          onClose={clearSelection}
-          onToggleDate={toggleDate}
-          onSetSingleOverride={setSingleOverride}
-          onRemoveSingleOverride={removeSingleOverride}
-          onSetBulkOverride={setBulkOverride}
-          onRemoveBulkOverride={removeBulkOverride}
-          onExtendBooking={extendBooking}
-          onCreateReservation={createReservationFromSelection}
-        />
+        <aside className="w-full lg:w-[400px] lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:max-h-[calc(100vh-72px)] rounded-lg border border-[var(--line-2)] bg-[var(--bg)] [overflow:clip]">
+          <CalendarDatePopover
+            selectedDates={selectedDates}
+            bars={data.bars}
+            bufferDates={data.bufferDates}
+            potentialDates={data.potentialDates}
+            sameDayCleaningDates={data.sameDayCleaningDates}
+            unbookableDates={data.unbookableDates}
+            openOverrides={data.openOverrides}
+            closedOverrides={data.closedOverrides}
+            cleaningOverrides={data.cleaningOverrides}
+            syncedEvents={syncedEvents}
+            reservations={property.reservations}
+            onClose={clearSelection}
+            onToggleDate={toggleDate}
+            onSetSingleOverride={setSingleOverride}
+            onRemoveSingleOverride={removeSingleOverride}
+            onSetBulkOverride={setBulkOverride}
+            onRemoveBulkOverride={removeBulkOverride}
+            onExtendBooking={extendBooking}
+            onCreateReservation={createReservationFromSelection}
+          />
+        </aside>
       )}
 
       {claimBar && claimAnchor && (

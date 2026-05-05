@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useI18n } from "@/lib/i18n/context";
 
 export interface DateStatus {
@@ -357,10 +356,14 @@ export function DateActionsPopover({
       ))
     );
 
-  return createPortal(
+  // Renders inline as a flex sibling of the calendar (no portal). The
+  // parent decides positioning — on desktop it's a sticky aside that
+  // shares the centered max-w-[1760px] container with the calendar;
+  // on mobile it stacks below or replaces the calendar.
+  return (
     <div
       ref={popRef}
-      className="editorial fixed top-0 right-0 bottom-0 z-[100] flex w-full sm:w-[400px] flex-col border-l border-[var(--line-2)] bg-[var(--bg)] shadow-2xl shadow-black/30 animate-slide-in-right"
+      className="flex h-full flex-col bg-[var(--bg)] animate-slide-in-right"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
@@ -594,7 +597,6 @@ export function DateActionsPopover({
           </button>
         </div>
       )}
-    </div>,
-    document.body
+    </div>
   );
 }
