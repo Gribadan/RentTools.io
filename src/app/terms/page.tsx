@@ -1,10 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+const TERMS_TITLE = "Terms of Service";
+const TERMS_DESCRIPTION = "Terms of service for the free hosted instance of RentTools at renttools.io.";
+
 export const metadata: Metadata = {
-  title: "Terms of Service",
-  description: "Terms of service for the free hosted instance of RentTools at renttools.io.",
+  title: TERMS_TITLE,
+  description: TERMS_DESCRIPTION,
   alternates: { canonical: "/terms" },
+  openGraph: {
+    type: "article",
+    title: `${TERMS_TITLE} · RentTools`,
+    description: TERMS_DESCRIPTION,
+    url: "/terms",
+    siteName: "RentTools",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${TERMS_TITLE} · RentTools`,
+    description: TERMS_DESCRIPTION,
+  },
 };
 
 const LAST_UPDATED = "2026-05-05";

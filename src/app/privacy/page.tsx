@@ -1,11 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+const PRIVACY_TITLE = "Privacy Policy";
+const PRIVACY_DESCRIPTION =
+  "How RentTools collects, uses, stores, and protects your data — and how to access, export, or delete it.";
+
 export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description:
-    "How RentTools collects, uses, stores, and protects your data — and how to access, export, or delete it.",
+  title: PRIVACY_TITLE,
+  description: PRIVACY_DESCRIPTION,
   alternates: { canonical: "/privacy" },
+  openGraph: {
+    type: "article",
+    title: `${PRIVACY_TITLE} · RentTools`,
+    description: PRIVACY_DESCRIPTION,
+    url: "/privacy",
+    siteName: "RentTools",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${PRIVACY_TITLE} · RentTools`,
+    description: PRIVACY_DESCRIPTION,
+  },
 };
 
 const LAST_UPDATED = "2026-05-05";
