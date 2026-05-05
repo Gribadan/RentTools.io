@@ -51,10 +51,24 @@ function withSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  // CSP: allow self + inline (Next.js needs unsafe-inline for hydration), no eval
+  // CSP — allow self + inline (Next.js needs unsafe-inline for hydration).
+  // accounts.google.com is allowed in script-src and frame-src so Google
+  // One Tap and the Continue-with-Google flow can load their script and
+  // render the consent iframe.
   response.headers.set(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' data: fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",
+      "style-src 'self' 'unsafe-inline' fonts.googleapis.com https://accounts.google.com",
+      "font-src 'self' data: fonts.gstatic.com",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self' https:",
+      "frame-src 'self' https://accounts.google.com",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self' https://accounts.google.com",
+    ].join("; ")
   );
   return response;
 }
