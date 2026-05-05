@@ -1,7 +1,7 @@
 "use client";
 
 import type { Property } from "@/lib/types";
-import { DateActionsPopover, type ExtendableBooking } from "@/components/date-actions-popover";
+import { DateActionsPopover, type DateBarInfo, type ExtendableBooking } from "@/components/date-actions-popover";
 import { getExtendableBookings } from "./extendable-bookings";
 import type { CalendarBar, CalendarEvent } from "./types";
 
@@ -24,6 +24,38 @@ interface CalendarDatePopoverProps {
   onExtendBooking: (b: ExtendableBooking) => void;
 }
 
+// Build the ordered bar list for a given date. A same-day turnover
+// produces two bars on the same date — one whose endDate matches (the
+// guest checking out) and one whose startDate matches (the guest
+// checking in) — so we sort them as checkout → checkin and let the
+// popover slot a "Cleaning required" hint between them.
+function buildDateBars(date: string, bars: CalendarBar[]): DateBarInfo[] {
+  const matching = bars.filter(b => date >= b.startDate && date <= b.endDate);
+  return matching
+    .map<DateBarInfo>(b => {
+      const isStart = date === b.startDate;
+      const isEnd = date === b.endDate;
+      const role: DateBarInfo["role"] =
+        isStart && isEnd ? "fullday"
+          : isEnd ? "checkout"
+            : isStart ? "checkin"
+              : "midstay";
+      return {
+        name: b.name,
+        platform: b.platform,
+        role,
+        reservationId: b.reservationId,
+        eventUid: b.eventUid,
+      };
+    })
+    .sort((a, b) => {
+      // checkout (someone leaving) first, then any midstay/fullday,
+      // then checkin (someone arriving) — chronological by hour.
+      const order: Record<DateBarInfo["role"], number> = { checkout: 0, fullday: 1, midstay: 1, checkin: 2 };
+      return order[a.role] - order[b.role];
+    });
+}
+
 export function CalendarDatePopover({
   date,
   anchorRect,
@@ -42,15 +74,14 @@ export function CalendarDatePopover({
   onRemoveOverride,
   onExtendBooking,
 }: CalendarDatePopoverProps) {
-  const matchingBar = bars.find(b => date >= b.startDate && date <= b.endDate);
+  const dateBars = buildDateBars(date, bars);
   return (
     <DateActionsPopover
       date={date}
       anchorRect={anchorRect}
+      dateBars={dateBars}
       status={{
-        hasBar: !!matchingBar,
-        barName: matchingBar?.name,
-        barPlatform: matchingBar?.platform,
+        hasBar: dateBars.length > 0,
         isBuffer: bufferDates.has(date),
         isPotential: potentialDates.has(date),
         isSameDayCleaning: sameDayCleaningDates.has(date),

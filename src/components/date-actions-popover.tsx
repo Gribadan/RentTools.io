@@ -6,8 +6,6 @@ import { useI18n } from "@/lib/i18n/context";
 
 export interface DateStatus {
   hasBar: boolean;
-  barName?: string;
-  barPlatform?: string;
   isBuffer: boolean;
   isPotential: boolean;
   isSameDayCleaning: boolean;
@@ -15,6 +13,18 @@ export interface DateStatus {
   isOpenOverride: boolean;
   isClosedOverride: boolean;
   isManualCleaning: boolean;
+}
+
+export interface DateBarInfo {
+  name: string;
+  platform: string;
+  /** "checkout" — guest checking out (this date is the bar's endDate)
+   *  "checkin"  — guest arriving (this date is the bar's startDate)
+   *  "midstay"  — date is in the middle of a multi-day stay
+   *  "fullday"  — single-day stay where startDate === endDate */
+  role: "checkout" | "checkin" | "midstay" | "fullday";
+  reservationId?: number;
+  eventUid?: string;
 }
 
 export interface ExtendableBooking {
@@ -28,6 +38,11 @@ interface DateActionsPopoverProps {
   date: string;
   anchorRect: DOMRect;
   status: DateStatus;
+  /** All bars touching this date, sorted by role (checkout → midstay
+   *  → checkin). The popover renders them in that order so a same-day
+   *  turnover surfaces both the leaving guest and the arriving guest,
+   *  with a cleaning hint between them. */
+  dateBars: DateBarInfo[];
   extendable: ExtendableBooking[];
   onClose: () => void;
   onCloseDate: () => void;
@@ -57,6 +72,7 @@ export function DateActionsPopover({
   date,
   anchorRect,
   status,
+  dateBars,
   extendable,
   onClose,
   onCloseDate,
@@ -96,9 +112,18 @@ export function DateActionsPopover({
     top = anchorRect.top - 6 - 360;
   }
 
-  // Status copy: what is this date today?
+  // Top-level status copy. When there are bars on this date the bar
+  // list below the header carries the actual detail, so we keep the
+  // header line short ("Booked" / "2 stays — turnover").
   const statusText = (() => {
-    if (status.hasBar) return t("dateActions.statusBooked", { name: status.barName || "—" });
+    if (status.hasBar) {
+      if (dateBars.length > 1) {
+        return locale === "ru"
+          ? `${dateBars.length} брони — пересменка`
+          : `${dateBars.length} stays — turnover`;
+      }
+      return t("dateActions.statusBooked", { name: dateBars[0]?.name || "—" });
+    }
     if (status.isOpenOverride) return t("dateActions.statusOpen");
     if (status.isManualCleaning) return locale === "ru" ? "Ручная уборка" : "Manual cleaning";
     if (status.isClosedOverride) return t("dateActions.statusClosed");
@@ -107,6 +132,19 @@ export function DateActionsPopover({
     if (status.isPotential) return t("dateActions.statusPotential");
     if (status.isUnbookable) return t("dateActions.statusUnbookable");
     return t("dateActions.statusFree");
+  })();
+
+  // True when the popover should slot a "Cleaning required" row
+  // between two consecutive bars: a checkout followed (later in the
+  // sorted list) by a checkin. Either guest could be Booking or
+  // Airbnb — the rule is purely role-based.
+  const cleaningBetweenIndex = (() => {
+    for (let i = 0; i < dateBars.length - 1; i++) {
+      if (dateBars[i].role === "checkout" && dateBars[i + 1].role === "checkin") {
+        return i; // insert AFTER index i
+      }
+    }
+    return -1;
   })();
 
   const formattedDate = new Date(date + "T12:00:00").toLocaleDateString(
@@ -265,6 +303,53 @@ export function DateActionsPopover({
           </span>
         </div>
       </div>
+
+      {/* Day timeline — when one or more reservations touch this date,
+          render them in temporal order (checkout → midstay → checkin)
+          with a "Cleaning required" row inserted between a back-to-back
+          checkout and checkin so a same-day turnover is fully visible
+          instead of only the first matching bar. */}
+      {dateBars.length > 0 && (
+        <div className="border-b border-[var(--line)] px-3 py-2 space-y-1.5">
+          {dateBars.map((b, i) => {
+            const platformColor = b.platform === "booking" ? "#003580" : "#ff385c";
+            const platformLabel = b.platform === "booking" ? "Booking" : b.platform === "airbnb" ? "Airbnb" : b.platform;
+            const roleLabel = (() => {
+              if (b.role === "checkout") return locale === "ru" ? "выезжает" : "checking out";
+              if (b.role === "checkin") return locale === "ru" ? "заезжает" : "checking in";
+              if (b.role === "fullday") return locale === "ru" ? "однодневная бронь" : "single-day stay";
+              return locale === "ru" ? "проживает" : "staying";
+            })();
+            return (
+              <div key={`bar-${i}`}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+                    style={{ backgroundColor: platformColor }}
+                  >
+                    {platformLabel}
+                  </span>
+                  <span className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--ink)]">{b.name}</span>
+                </div>
+                <div className="ml-[58px] mt-0.5 text-[11px] text-[var(--ink-3)]">{roleLabel}</div>
+                {/* Slot a cleaning indicator AFTER a checkout that's
+                    immediately followed by a checkin (same-day
+                    turnover). */}
+                {i === cleaningBetweenIndex && (
+                  <div className="my-1.5 flex items-center gap-2 rounded-md border border-[var(--cleaning-border)] bg-[var(--cleaning-bg)] px-2.5 py-1.5">
+                    <svg className="h-4 w-4 text-[var(--cleaning-fg)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-xs font-medium text-[var(--cleaning-fg)]">
+                      {locale === "ru" ? "Нужна уборка между бронями" : "Cleaning required between stays"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="p-1.5">

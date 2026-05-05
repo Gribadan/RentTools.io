@@ -116,6 +116,11 @@ export function CalendarGrid({
         leftPct: isActualStart ? checkInPct : 0,
         rightMarginPct: reachesEnd ? 100 - checkOutPct : 0,
         showLabel: isActualStart || isMonthContinuation,
+        // continuesLeft: this segment is NOT the bar's real start day
+        // (so it's a Monday or month-1 continuation); continuesRight:
+        // this segment ends mid-bar (Sunday or last-of-month).
+        continuesLeft: ds > bar.startDate,
+        continuesRight: !reachesEnd,
       });
     }
 
@@ -222,37 +227,57 @@ export function CalendarGrid({
                     </div>
                   )}
 
-                  {segments.map((seg, si) => (
-                    <div
-                      key={`seg-${si}-${seg.startDate}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        if (seg.reservationId) {
-                          onSelectReservation(seg.reservationId);
-                        } else if (seg.eventUid && onClaimBar) {
-                          onClaimBar(seg, rect);
-                        }
-                      }}
-                      className={`absolute top-9 h-6 flex items-center rounded-md px-2.5 text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${
-                        isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
-                        seg.platform === "booking"
-                          ? "bg-[#003580]"
-                          : "bg-[var(--m-accent)]"
-                      } ${(seg.reservationId || seg.eventUid) ? "hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
-                      style={{
-                        left: `${seg.leftPct}%`,
-                        width: `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
-                        zIndex: 10,
-                        backgroundImage: seg.isExtension
-                          ? "repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255,255,255,0.22) 6px 8px)"
-                          : undefined,
-                      }}
-                      title={`${seg.name} · ${seg.startDate} ${checkInTime} → ${seg.endDate} ${checkOutTime}${isConflict ? " ⚠ CONFLICT" : ""}`}
-                    >
-                      {seg.showLabel ? seg.name : ""}
-                    </div>
-                  ))}
+                  {segments.map((seg, si) => {
+                    // Drop rounding on whichever edge is butted against
+                    // a week / month break so the bar reads as one
+                    // continuous stay across the wrap (Airbnb pattern).
+                    const radiusClass =
+                      seg.continuesLeft && seg.continuesRight
+                        ? "rounded-none"
+                        : seg.continuesLeft
+                          ? "rounded-r-md rounded-l-none"
+                          : seg.continuesRight
+                            ? "rounded-l-md rounded-r-none"
+                            : "rounded-md";
+                    return (
+                      <div
+                        key={`seg-${si}-${seg.startDate}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          if (seg.reservationId) {
+                            onSelectReservation(seg.reservationId);
+                          } else if (seg.eventUid && onClaimBar) {
+                            onClaimBar(seg, rect);
+                          }
+                        }}
+                        className={`absolute top-9 h-6 flex items-center px-2.5 text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${radiusClass} ${
+                          isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
+                          seg.platform === "booking"
+                            ? "bg-[#003580]"
+                            : "bg-[var(--m-accent)]"
+                        } ${(seg.reservationId || seg.eventUid) ? "hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
+                        style={{
+                          left: `${seg.leftPct}%`,
+                          // When we don't reach the segment's right wall (i.e. the
+                          // bar continues into next week), let the bar run flush
+                          // to the cell edge with no 2px gap so the wrap looks
+                          // visually attached. The 2px gap is only useful between
+                          // distinct stays.
+                          width: seg.continuesRight
+                            ? `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}%)`
+                            : `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
+                          zIndex: 10,
+                          backgroundImage: seg.isExtension
+                            ? "repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255,255,255,0.22) 6px 8px)"
+                            : undefined,
+                        }}
+                        title={`${seg.name} · ${seg.startDate} ${checkInTime} → ${seg.endDate} ${checkOutTime}${isConflict ? " ⚠ CONFLICT" : ""}`}
+                      >
+                        {seg.showLabel ? seg.name : ""}
+                      </div>
+                    );
+                  })}
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
                     /* Same-day cleaning happens when one stay checks out

@@ -25,6 +25,14 @@ export interface BarSegment extends CalendarBar {
   leftPct: number;
   rightMarginPct: number;
   showLabel: boolean;
+  /** True when this segment is a continuation from a previous week or
+   *  a previous month — the bar's actual startDate is earlier. We use
+   *  it to drop the left rounding so wrap-around stays read as one
+   *  reservation instead of looking like two separate ones. */
+  continuesLeft: boolean;
+  /** Symmetric: bar continues past this segment's last day (Sunday or
+   *  end-of-month). Drops the right rounding for the same reason. */
+  continuesRight: boolean;
 }
 
 export interface ConflictInfo {
