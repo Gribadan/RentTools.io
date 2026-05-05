@@ -149,11 +149,15 @@
   --ink-2: #3a3a40;
   --ink-3: #6b6b73;
   --ink-4: #9a9aa3;
-  --line: rgba(14, 14, 16, 0.08);
-  --line-2: rgba(14, 14, 16, 0.14);
+  --line: rgba(14, 14, 16, 0.09);
+  --line-2: rgba(14, 14, 16, 0.16);
   --m-accent: #ff385c;
   --m-accent-2: #ff6680;
   --m-accent-soft: #fff0f3;
+  /* Background-pill tints — strong enough to be readable on the warm
+     off-white hero, gentle enough to stay decorative. Tuned per theme. */
+  --pill-coral: rgba(255, 56, 92, 0.14);
+  --pill-blue: rgba(0, 113, 227, 0.13);
 
   background: var(--bg);
   color: var(--ink);
@@ -173,6 +177,8 @@
   --m-accent: #ff5577;
   --m-accent-2: #ff7b96;
   --m-accent-soft: rgba(255, 85, 119, 0.12);
+  --pill-coral: rgba(255, 85, 119, 0.16);
+  --pill-blue: rgba(110, 168, 254, 0.14);
 }
 
 .editorial .display {
@@ -199,79 +205,58 @@
 }
 
 /* Faint coloured strips overlaid on the grid that suggest multi-day
-   bookings. Three pills, two coral (Airbnb-ish) one blue (Booking-ish),
-   placed at the cell-row positions of the .grid-bg above so they line up. */
+   bookings. Four pills (two coral / two blue) placed at row 2, 3, 4, 5
+   of the .grid-bg above. Use --pill-coral / --pill-blue tokens so each
+   theme's tuning lives in one place. */
 .editorial .calendar-pills {
   background-image:
-    /* Row 2 — coral pill spanning ~3 cells, starts at col 2 */
+    /* Row 2 — coral pill, cells 2-5 (4-day stay) */
     linear-gradient(
       to right,
-      transparent 0,
       transparent calc(2 * 80px),
-      var(--m-accent-soft) calc(2 * 80px),
-      var(--m-accent-soft) calc(2 * 80px + 4px),
-      var(--m-accent-soft) calc(5 * 80px - 4px),
-      var(--m-accent-soft) calc(5 * 80px),
+      var(--pill-coral) calc(2 * 80px),
+      var(--pill-coral) calc(5 * 80px),
       transparent calc(5 * 80px)
     ),
-    /* Row 3 — blue pill, slightly offset */
+    /* Row 3 — blue pill, cells 4-7 (3-day stay) */
     linear-gradient(
       to right,
-      transparent 0,
       transparent calc(4 * 80px),
-      rgba(0, 113, 227, 0.10) calc(4 * 80px),
-      rgba(0, 113, 227, 0.10) calc(7 * 80px),
+      var(--pill-blue) calc(4 * 80px),
+      var(--pill-blue) calc(7 * 80px),
       transparent calc(7 * 80px)
     ),
-    /* Row 4 — coral pill on the left */
+    /* Row 4 — coral pill, cells 1-3 */
     linear-gradient(
       to right,
-      transparent 0,
       transparent calc(1 * 80px),
-      var(--m-accent-soft) calc(1 * 80px),
-      var(--m-accent-soft) calc(3 * 80px),
+      var(--pill-coral) calc(1 * 80px),
+      var(--pill-coral) calc(3 * 80px),
       transparent calc(3 * 80px)
+    ),
+    /* Row 5 — blue pill, cells 5-8 */
+    linear-gradient(
+      to right,
+      transparent calc(5 * 80px),
+      var(--pill-blue) calc(5 * 80px),
+      var(--pill-blue) calc(8 * 80px),
+      transparent calc(8 * 80px)
     );
   background-repeat: no-repeat;
-  /* Position pills at row 2, 3, 4 of the 64px-tall grid, vertically
-     centred with a slim height so they look like booking blocks. */
   background-position:
-    0 calc(2 * 64px + 22px),
-    0 calc(3 * 64px + 22px),
-    0 calc(4 * 64px + 22px);
+    0 calc(2 * 64px + 18px),
+    0 calc(3 * 64px + 18px),
+    0 calc(4 * 64px + 18px),
+    0 calc(5 * 64px + 18px);
+  /* Slimmer pills (16px) so they look like a stay-bar inside a 64px row,
+     not a half-row colour band. */
   background-size:
-    100% 20px,
-    100% 20px,
-    100% 20px;
-  mask-image: radial-gradient(ellipse 60% 55% at center 45%, black 30%, transparent 85%);
-  -webkit-mask-image: radial-gradient(ellipse 60% 55% at center 45%, black 30%, transparent 85%);
-}
-.dark .editorial .calendar-pills {
-  background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent calc(2 * 80px),
-      rgba(255, 85, 119, 0.14) calc(2 * 80px),
-      rgba(255, 85, 119, 0.14) calc(5 * 80px),
-      transparent calc(5 * 80px)
-    ),
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent calc(4 * 80px),
-      rgba(110, 168, 254, 0.12) calc(4 * 80px),
-      rgba(110, 168, 254, 0.12) calc(7 * 80px),
-      transparent calc(7 * 80px)
-    ),
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent calc(1 * 80px),
-      rgba(255, 85, 119, 0.12) calc(1 * 80px),
-      rgba(255, 85, 119, 0.12) calc(3 * 80px),
-      transparent calc(3 * 80px)
-    );
+    100% 22px,
+    100% 22px,
+    100% 22px,
+    100% 22px;
+  mask-image: radial-gradient(ellipse 75% 65% at center 50%, black 50%, transparent 95%);
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at center 50%, black 50%, transparent 95%);
 }
 
 /* Hero entrance — subtle blur-in, plays once. Intentionally cheap so
