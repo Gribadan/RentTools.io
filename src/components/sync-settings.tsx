@@ -48,6 +48,25 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
   const [feedToken, setFeedToken] = useState<string | null>(null);
   const [rotating, setRotating] = useState(false);
 
+  // Mobile-only collapse state for the always-on configuration cards
+  // (buffer days, min nights, check-in/out times, booking window). They
+  // dominate the scroll on a 375px screen but get set once and forgotten.
+  // SSR renders them open; on mount we collapse them on <sm only.
+  const [advancedOpen, setAdvancedOpen] = useState({
+    buffer: true,
+    minNights: true,
+    times: true,
+    window: true,
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 639px)").matches) {
+      setAdvancedOpen({ buffer: false, minNights: false, times: false, window: false });
+    }
+  }, []);
+  const toggleAdvanced = (key: keyof typeof advancedOpen) =>
+    setAdvancedOpen((s) => ({ ...s, [key]: !s[key] }));
+
   useEffect(() => {
     fetchData();
   }, [propertyId]);
@@ -383,8 +402,19 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
       {/* Buffer Settings */}
       {links.length > 0 && (
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.bufferDays")}</h2>
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+          <button
+            type="button"
+            onClick={() => toggleAdvanced("buffer")}
+            aria-expanded={advancedOpen.buffer}
+            className="flex w-full items-center justify-between p-4 text-left sm:cursor-default"
+          >
+            <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.bufferDays")}</h2>
+            <svg className={`h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform sm:hidden ${advancedOpen.buffer ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+            </svg>
+          </button>
+          <div className={`px-4 pb-4 space-y-4 sm:block ${advancedOpen.buffer ? "block" : "hidden"}`}>
           <p className="text-xs text-[var(--ink-3)]">
             {t("sync.bufferDesc")}
           </p>
@@ -430,72 +460,109 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
               );
             })}
           </div>
+          </div>
         </div>
       )}
 
       {/* Minimum Nights */}
-      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.minStay")}</h2>
-        <p className="text-xs text-[var(--ink-3)]">
-          {t("sync.minStayDesc")}
-        </p>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[var(--ink-3)]">{t("sync.minNights")}</span>
-          <div className="relative">
-            <select
-              value={minNights}
-              onChange={(e) => onUpdateProperty(propertyId, { minNights: Number(e.target.value) })}
-              className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            >
-              {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "ноч." : (n !== 1 ? "nights" : "night")}</option>)}
-            </select>
-            <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+        <button
+          type="button"
+          onClick={() => toggleAdvanced("minNights")}
+          aria-expanded={advancedOpen.minNights}
+          className="flex w-full items-center justify-between p-4 text-left sm:cursor-default"
+        >
+          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.minStay")}</h2>
+          <svg className={`h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform sm:hidden ${advancedOpen.minNights ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        <div className={`px-4 pb-4 space-y-3 sm:block ${advancedOpen.minNights ? "block" : "hidden"}`}>
+          <p className="text-xs text-[var(--ink-3)]">
+            {t("sync.minStayDesc")}
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[var(--ink-3)]">{t("sync.minNights")}</span>
+            <div className="relative">
+              <select
+                value={minNights}
+                onChange={(e) => onUpdateProperty(propertyId, { minNights: Number(e.target.value) })}
+                className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              >
+                {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "ноч." : (n !== 1 ? "nights" : "night")}</option>)}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Check-in / Check-out times */}
-      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.checkInOutTimes")}</h2>
-        <p className="text-xs text-[var(--ink-3)]">{t("sync.checkInOutDesc")}</p>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--ink-3)]">{t("sync.checkInTime")}</span>
-            <input
-              type="time"
-              value={checkInTime}
-              onChange={(e) => onUpdateProperty(propertyId, { checkInTime: e.target.value })}
-              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-[var(--ink-3)]">{t("sync.checkOutTime")}</span>
-            <input
-              type="time"
-              value={checkOutTime}
-              onChange={(e) => onUpdateProperty(propertyId, { checkOutTime: e.target.value })}
-              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+        <button
+          type="button"
+          onClick={() => toggleAdvanced("times")}
+          aria-expanded={advancedOpen.times}
+          className="flex w-full items-center justify-between p-4 text-left sm:cursor-default"
+        >
+          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.checkInOutTimes")}</h2>
+          <svg className={`h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform sm:hidden ${advancedOpen.times ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        <div className={`px-4 pb-4 space-y-3 sm:block ${advancedOpen.times ? "block" : "hidden"}`}>
+          <p className="text-xs text-[var(--ink-3)]">{t("sync.checkInOutDesc")}</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[var(--ink-3)]">{t("sync.checkInTime")}</span>
+              <input
+                type="time"
+                value={checkInTime}
+                onChange={(e) => onUpdateProperty(propertyId, { checkInTime: e.target.value })}
+                className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-[var(--ink-3)]">{t("sync.checkOutTime")}</span>
+              <input
+                type="time"
+                value={checkOutTime}
+                onChange={(e) => onUpdateProperty(propertyId, { checkOutTime: e.target.value })}
+                className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Booking Window */}
-      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
-        <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.bookingWindow")}</h2>
-        <p className="text-xs text-[var(--ink-3)]">{t("sync.bookingWindowDesc")}</p>
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <select
-              value={bookingWindow}
-              onChange={(e) => onUpdateProperty(propertyId, { bookingWindow: Number(e.target.value) })}
-              className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            >
-              {[90, 180, 270, 365, 548, 730].map((n) => (
-                <option key={n} value={n}>{n} {t("sync.bookingWindowDays")} ({Math.round(n / 30)} {locale === "ru" ? "мес." : "mo"})</option>
-              ))}
-            </select>
-            <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+      <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+        <button
+          type="button"
+          onClick={() => toggleAdvanced("window")}
+          aria-expanded={advancedOpen.window}
+          className="flex w-full items-center justify-between p-4 text-left sm:cursor-default"
+        >
+          <h2 className="text-sm font-semibold text-[var(--ink)]">{t("sync.bookingWindow")}</h2>
+          <svg className={`h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform sm:hidden ${advancedOpen.window ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        <div className={`px-4 pb-4 space-y-3 sm:block ${advancedOpen.window ? "block" : "hidden"}`}>
+          <p className="text-xs text-[var(--ink-3)]">{t("sync.bookingWindowDesc")}</p>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <select
+                value={bookingWindow}
+                onChange={(e) => onUpdateProperty(propertyId, { bookingWindow: Number(e.target.value) })}
+                className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+              >
+                {[90, 180, 270, 365, 548, 730].map((n) => (
+                  <option key={n} value={n}>{n} {t("sync.bookingWindowDays")} ({Math.round(n / 30)} {locale === "ru" ? "мес." : "mo"})</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            </div>
           </div>
         </div>
       </div>
