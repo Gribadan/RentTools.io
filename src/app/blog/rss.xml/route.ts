@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 const FEED_LIMIT = 50;
 
-export const revalidate = 600; // 10 min
+// DB read at request time — don't prerender against the empty CI DB.
+export const dynamic = "force-dynamic";
 
 function escapeXml(s: string): string {
   return s
