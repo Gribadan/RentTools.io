@@ -2,6 +2,11 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { translations, type Locale, type TranslationKey } from "./translations";
+import {
+  isLocale,
+  readLocaleCookieFromDocument,
+  writeLocaleCookieToDocument,
+} from "./cookie";
 
 interface I18nContextType {
   locale: Locale;
@@ -15,19 +20,48 @@ const I18nContext = createContext<I18nContextType>({
   t: (key) => translations[key]?.en || key,
 });
 
+const LEGACY_LOCALSTORAGE_KEY = "rent-tool-locale";
+
+function isSecureContext(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.location.protocol === "https:";
+}
+
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("ru");
 
   useEffect(() => {
-    const saved = localStorage.getItem("rent-tool-locale") as Locale | null;
-    if (saved && (saved === "en" || saved === "ru")) {
-      setLocaleState(saved);
+    const fromCookie = readLocaleCookieFromDocument(
+      typeof document !== "undefined" ? document : null
+    );
+    if (fromCookie) {
+      setLocaleState(fromCookie);
+      return;
+    }
+
+    try {
+      const legacy = localStorage.getItem(LEGACY_LOCALSTORAGE_KEY);
+      if (isLocale(legacy)) {
+        setLocaleState(legacy);
+        writeLocaleCookieToDocument(
+          typeof document !== "undefined" ? document : null,
+          legacy,
+          { secure: isSecureContext() }
+        );
+        localStorage.removeItem(LEGACY_LOCALSTORAGE_KEY);
+      }
+    } catch {
+      // localStorage unavailable (private mode, SSR, etc.) — ignore
     }
   }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem("rent-tool-locale", l);
+    writeLocaleCookieToDocument(
+      typeof document !== "undefined" ? document : null,
+      l,
+      { secure: isSecureContext() }
+    );
   }, []);
 
   const t = useCallback(
