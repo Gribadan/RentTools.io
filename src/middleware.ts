@@ -22,6 +22,8 @@ const PUBLIC_PATHS = [
   "/api/health",
   "/api/site-config",
   "/monitoring", // Sentry tunnel route (next.config.ts → withSentryConfig) — browser SDK POSTs here
+  "/g", // RT-25.2: public guest-form fill-in page at /g/[token]
+  "/api/g", // RT-25.2: public submit endpoint at /api/g/[token]/submit
 ];
 
 function clientIpFromRequest(request: NextRequest): string {
