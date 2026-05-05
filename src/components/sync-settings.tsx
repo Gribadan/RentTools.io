@@ -407,45 +407,6 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
         })}
       </div>
 
-      {/* Feed Token (private feed URL) */}
-      {links.length > 0 && (
-        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--ink)]">Feed access token</h2>
-              <p className="mt-0.5 text-xs text-[var(--ink-3)]">
-                {feedToken
-                  ? "Your feed URLs include a private token. Rotating invalidates the old URL — re-paste the new one into Airbnb / Booking."
-                  : "Your feed URLs are public. Add a token to make them unguessable; old screenshots / leaks become useless after a rotation."}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              {feedToken && (
-                <button
-                  onClick={handleClearToken}
-                  disabled={rotating}
-                  className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] hover:text-[var(--ink)] disabled:opacity-40"
-                >
-                  Make public
-                </button>
-              )}
-              <button
-                onClick={handleRotateToken}
-                disabled={rotating}
-                className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40"
-              >
-                {rotating ? "..." : feedToken ? "Rotate" : "Generate token"}
-              </button>
-            </div>
-          </div>
-          {feedToken && (
-            <code className="block truncate rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--ink-2)]">
-              ?token={feedToken}
-            </code>
-          )}
-        </div>
-      )}
-
       {/* Buffer Settings */}
       {links.length > 0 && (
         <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
@@ -653,6 +614,64 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
       <CleanerAssignmentSection propertyId={propertyId} />
       <MessageTemplatesPanel propertyId={propertyId} />
       <GuestFormBuilder propertyId={propertyId} />
+
+      {/* Feed access token (RT-25.4) — relocated to the bottom of the
+          page. The card explains what the feed URL is for and lets the
+          user opt into a private token. Rendered last so first-time
+          users see the iCal export / cleaner / message pieces before
+          the advanced opt-in. */}
+      {links.length > 0 && (
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-[var(--ink)]">
+                {locale === "ru" ? "Токен доступа к фиду" : "Feed access token"}
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--ink-3)]">
+                {locale === "ru"
+                  ? "URL фида позволяет внешним сервисам, не поддерживающим загрузку iCal (например, инструментам ценообразования, channel manager-ам или вашим собственным скриптам), читать общий календарь Airbnb + Booking этого объекта в формате iCal. Большинству хостов это не нужно — оставьте поле пустым, чтобы фид оставался публичным, или сгенерируйте токен, чтобы URL был приватным."
+                  : "The feed URL lets external services that do not support iCal upload (e.g. price-management tools, channel managers, or your own scripts) read this property's combined Airbnb + Booking calendar in iCal format. Most hosts will not need this — leave the token blank to keep the feed public, or rotate the token to make the URL private."}
+              </p>
+              <p className="mt-2 text-xs text-[var(--ink-3)]">
+                {feedToken
+                  ? (locale === "ru"
+                      ? "Сейчас URL содержит приватный токен. Ротация делает старый URL недействительным — переустановите новый в местах, где он используется."
+                      : "Your feed URLs currently include a private token. Rotating invalidates the old URL — re-paste the new one wherever it's consumed.")
+                  : (locale === "ru"
+                      ? "Сейчас URL фида публичны. Сгенерируйте токен, чтобы их нельзя было угадать."
+                      : "Your feed URLs are currently public. Add a token to make them unguessable.")}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {feedToken && (
+                <button
+                  onClick={handleClearToken}
+                  disabled={rotating}
+                  className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] hover:text-[var(--ink)] disabled:opacity-40"
+                >
+                  {locale === "ru" ? "Сделать публичным" : "Make public"}
+                </button>
+              )}
+              <button
+                onClick={handleRotateToken}
+                disabled={rotating}
+                className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40"
+              >
+                {rotating
+                  ? "..."
+                  : feedToken
+                    ? (locale === "ru" ? "Обновить" : "Rotate")
+                    : (locale === "ru" ? "Сгенерировать токен" : "Generate token")}
+              </button>
+            </div>
+          </div>
+          {feedToken && (
+            <code className="block truncate rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--ink-2)]">
+              ?token={feedToken}
+            </code>
+          )}
+        </div>
+      )}
 
       {/* Danger zone — delete this property. Only the owner can hit
           DELETE /api/properties/:id; the dashboard's handler also

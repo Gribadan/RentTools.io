@@ -59,8 +59,13 @@ export async function GET(request: NextRequest) {
       ? { propertyId: Number(propertyId) }
       : { propertyId: { in: ownedIds } };
 
+    // RT-25.4 — when a propertyId is supplied, drop global (null
+    // propertyId) entries from the result. Each property's settings
+    // page should show only its own log entries; "Sync started"
+    // banners belong on the dashboard-level Tasks panel which queries
+    // without a propertyId filter.
     const logsWhere = propertyId
-      ? { OR: [{ propertyId: Number(propertyId) }, { propertyId: null }] }
+      ? { propertyId: Number(propertyId) }
       : { OR: [{ propertyId: { in: ownedIds } }, { propertyId: null }] };
 
     const [logs, events] = await Promise.all([
