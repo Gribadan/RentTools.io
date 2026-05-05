@@ -28,7 +28,9 @@ interface CalendarDatePopoverProps {
 // produces two bars on the same date — one whose endDate matches (the
 // guest checking out) and one whose startDate matches (the guest
 // checking in) — so we sort them as checkout → checkin and let the
-// popover slot a "Cleaning required" hint between them.
+// popover slot a "Cleaning required" hint between them. We also
+// project linkedEventUid so the popover can suppress that hint when
+// the two abutting bars are actually the same guest's stay.
 function buildDateBars(date: string, bars: CalendarBar[]): DateBarInfo[] {
   const matching = bars.filter(b => date >= b.startDate && date <= b.endDate);
   return matching
@@ -46,6 +48,7 @@ function buildDateBars(date: string, bars: CalendarBar[]): DateBarInfo[] {
         role,
         reservationId: b.reservationId,
         eventUid: b.eventUid,
+        linkedEventUid: b.linkedEventUid,
       };
     })
     .sort((a, b) => {

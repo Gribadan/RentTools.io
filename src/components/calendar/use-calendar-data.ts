@@ -50,7 +50,7 @@ export function useCalendarData(
     const potential = new Set<string>();
     const unbookable = new Set<string>();
     const conflictSet = new Set<string>();
-    const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number; eventUid?: string }>();
+    const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number; eventUid?: string; linkedEventUid?: string }>();
     const resMap = new Map<string, Reservation>();
     const allBooked = new Set<string>();
     const airbnbStay = new Set<string>();
@@ -139,6 +139,11 @@ export function useCalendarData(
           startDate: start,
           endDate: end,
           reservationId: res.id,
+          // Carry linkedEventUid through so the bars step can pair this
+          // standalone reservation with the iCal event it extends. Set
+          // when the user used "Extend booking" / "Add as extension"
+          // in the popover.
+          linkedEventUid: res.linkedEventUid ?? undefined,
         });
         allBookings.push({ start, end, platform, name: res.name });
       }
@@ -243,18 +248,41 @@ export function useCalendarData(
       }
     }
 
+    // Linked-extension boundary dates: when a manual reservation has
+    // linkedEventUid pointing to an adjacent iCal event, the boundary
+    // day between them is for the SAME guest, so it must NOT show a
+    // "needs cleaning" chip — the cleaning warning is only valid for
+    // turnovers between different guests.
+    const linkedBoundaryDates = new Set<string>();
+    for (const res of property.reservations) {
+      if (!res.linkedEventUid) continue;
+      const ev = syncedEvents.find((e) => e.uid === res.linkedEventUid);
+      if (!ev) continue;
+      const resStart = toDateStr(new Date(res.checkIn));
+      const resEnd = toDateStr(new Date(res.checkOut));
+      // If the reservation's range overlaps the event's range it's a
+      // "claim" of the event itself — the boundary is implicit and
+      // there is no transition day to suppress.
+      if (resStart < ev.endDate && resEnd > ev.startDate) continue;
+      // Adjacent extensions abut at exactly one date.
+      if (resEnd === ev.startDate) linkedBoundaryDates.add(resEnd);
+      else if (resStart === ev.endDate) linkedBoundaryDates.add(resStart);
+    }
+
     if (maxBefore === 0 && maxAfter === 0) {
       for (let bi = 0; bi < dedupedBookings.length; bi++) {
         const b = dedupedBookings[bi];
         const next = dedupedBookings[bi + 1];
-        sameDayCleaning.add(b.end);
+        if (!linkedBoundaryDates.has(b.end)) {
+          sameDayCleaning.add(b.end);
+        }
 
         if (next) {
           const gapStart = addDaysStr(b.end, 1);
           const gapDays = Math.max(0, Math.ceil(
             (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
           ));
-          if (gapDays >= minStay) {
+          if (gapDays >= minStay && !linkedBoundaryDates.has(next.start)) {
             sameDayCleaning.add(next.start);
           }
         }
@@ -328,6 +356,7 @@ export function useCalendarData(
         platform: ev.platform,
         reservationId: resId,
         eventUid: ev.eventUid,
+        linkedEventUid: ev.linkedEventUid,
         isExtension,
       });
     }
@@ -347,8 +376,35 @@ export function useCalendarData(
         if (bar.eventUid && !existing.eventUid) {
           existing.eventUid = bar.eventUid;
         }
+        if (bar.linkedEventUid && !existing.linkedEventUid) {
+          existing.linkedEventUid = bar.linkedEventUid;
+        }
       } else {
         deduped.push({ ...bar });
+      }
+    }
+
+    // Pair linked bars: a manual reservation that has linkedEventUid
+    // pointing to an iCal event becomes a separate bar (no overlap), so
+    // here we cross-reference to mark which side of each abuts a
+    // linked partner. The renderer uses these flags to drop the inner
+    // rounding + 2 px gap between the pair so it reads as one stay.
+    const eventUidToBar = new Map<string, CalendarBar>();
+    for (const bar of deduped) {
+      if (bar.eventUid) eventUidToBar.set(bar.eventUid, bar);
+    }
+    for (const bar of deduped) {
+      if (!bar.linkedEventUid) continue;
+      const partner = eventUidToBar.get(bar.linkedEventUid);
+      if (!partner || partner === bar) continue;
+      if (bar.endDate === partner.startDate) {
+        // bar abuts before partner
+        bar.linkedAfter = true;
+        partner.linkedBefore = true;
+      } else if (bar.startDate === partner.endDate) {
+        // bar abuts after partner
+        bar.linkedBefore = true;
+        partner.linkedAfter = true;
       }
     }
 

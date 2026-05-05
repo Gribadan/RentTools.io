@@ -110,11 +110,19 @@ export function CalendarGrid({
       const lastDds = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       const reachesEnd = lastDds === bar.endDate;
 
+      // When the bar abuts a linked partner on its right, end the bar
+      // at the partner's check-in mark instead of the normal check-out
+      // mark — so the two bars touch at exactly one X position. The
+      // 2 px gap and the right rounding are dropped in the renderer
+      // (see `endGap` and `radiusClass`).
+      const abutsRightPartner = !!bar.linkedAfter && reachesEnd;
       segments.push({
         ...bar,
         span,
         leftPct: isActualStart ? checkInPct : 0,
-        rightMarginPct: reachesEnd ? 100 - checkOutPct : 0,
+        rightMarginPct: reachesEnd
+          ? (abutsRightPartner ? 100 - checkInPct : 100 - checkOutPct)
+          : 0,
         showLabel: isActualStart || isMonthContinuation,
         // continuesLeft: this segment is NOT the bar's real start day
         // (so it's a Monday or month-1 continuation); continuesRight:
@@ -232,15 +240,21 @@ export function CalendarGrid({
                   )}
 
                   {segments.map((seg, si) => {
-                    // Drop rounding on whichever edge is butted against
-                    // a week / month break so the bar reads as one
-                    // continuous stay across the wrap (Airbnb pattern).
+                    // A segment's edge is treated as "shared" when the
+                    // bar either continues into another week (wrap) OR
+                    // abuts a linked partner bar (manual extension of
+                    // an iCal stay) — in both cases we want the bar to
+                    // read as one continuous stay across that edge.
+                    const abutsLeftPartner = !!seg.linkedBefore && !seg.continuesLeft;
+                    const abutsRightPartner = !!seg.linkedAfter && !seg.continuesRight;
+                    const sharedLeft = seg.continuesLeft || abutsLeftPartner;
+                    const sharedRight = seg.continuesRight || abutsRightPartner;
                     const radiusClass =
-                      seg.continuesLeft && seg.continuesRight
+                      sharedLeft && sharedRight
                         ? "rounded-none"
-                        : seg.continuesLeft
+                        : sharedLeft
                           ? "rounded-r-md rounded-l-none"
-                          : seg.continuesRight
+                          : sharedRight
                             ? "rounded-l-md rounded-r-none"
                             : "rounded-md";
                     // Wrap-around bleed: when this segment continues
@@ -249,13 +263,16 @@ export function CalendarGrid({
                     // the row, the way Airbnb's host calendar shows a
                     // multi-week stay. The parent calendar wrapper has
                     // overflow-clip-margin: 12px so the bleed stays
-                    // contained inside the rounded card.
+                    // contained inside the rounded card. Linked-partner
+                    // edges don't bleed — they meet a sibling bar
+                    // exactly, so they only need the rounding/gap drop.
                     const BLEED = 8;
                     const leftBleed = seg.continuesLeft ? BLEED : 0;
                     const rightBleed = seg.continuesRight ? BLEED : 0;
-                    // Existing 2 px gap between distinct stays only
-                    // applies when this segment really ends here.
-                    const endGap = seg.continuesRight ? 0 : 2;
+                    // 2 px gap between distinct stays is suppressed
+                    // when the right edge is shared with a wrap or a
+                    // linked partner.
+                    const endGap = sharedRight ? 0 : 2;
                     const widthAdjust = leftBleed + rightBleed - endGap;
                     const widthStyle = widthAdjust >= 0
                       ? `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% + ${widthAdjust}px)`

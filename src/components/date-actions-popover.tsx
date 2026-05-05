@@ -25,6 +25,12 @@ export interface DateBarInfo {
   role: "checkout" | "checkin" | "midstay" | "fullday";
   reservationId?: number;
   eventUid?: string;
+  /** UID of the iCal event this bar's reservation extends, when the
+   *  reservation was added via "Extend booking" / "Add as extension".
+   *  When two abutting bars share an event-uid <-> linked-event-uid
+   *  relationship they are the same guest's stay, and we suppress the
+   *  "Cleaning required between stays" hint on the boundary date. */
+  linkedEventUid?: string;
 }
 
 export interface ExtendableBooking {
@@ -134,13 +140,22 @@ export function DateActionsPopover({
     return t("dateActions.statusFree");
   })();
 
+  // Two bars are the SAME guest's stay (a manual reservation linked
+  // to the iCal event it extends) iff one's eventUid matches the
+  // other's linkedEventUid. A boundary between linked bars must NOT
+  // surface a "cleaning required" row — there's no turnover.
+  const isLinkedPair = (a: DateBarInfo, b: DateBarInfo) =>
+    (!!a.eventUid && a.eventUid === b.linkedEventUid) ||
+    (!!b.eventUid && b.eventUid === a.linkedEventUid);
+
   // True when the popover should slot a "Cleaning required" row
   // between two consecutive bars: a checkout followed (later in the
-  // sorted list) by a checkin. Either guest could be Booking or
-  // Airbnb — the rule is purely role-based.
+  // sorted list) by a checkin from a DIFFERENT guest.
   const cleaningBetweenIndex = (() => {
     for (let i = 0; i < dateBars.length - 1; i++) {
-      if (dateBars[i].role === "checkout" && dateBars[i + 1].role === "checkin") {
+      const a = dateBars[i];
+      const b = dateBars[i + 1];
+      if (a.role === "checkout" && b.role === "checkin" && !isLinkedPair(a, b)) {
         return i; // insert AFTER index i
       }
     }
@@ -156,7 +171,35 @@ export function DateActionsPopover({
   // sees ONE coherent set of options, never duplicates of the same effect
   // labelled differently. Order is most-likely-action first.
   const actions: ResolvedAction[] = (() => {
-    if (status.hasBar) return [];
+    // Booked dates — no actions in the general case, but a same-day
+    // turnover between DIFFERENT guests is the one place where the
+    // host might want to confirm a manual cleaning slot (per user
+    // request: "manually I need to be able to insert cleaning"). So
+    // we surface a single Schedule-cleaning action there. The cleaning
+    // override coexists with the bookings — useCalendarData picks it
+    // up via cleaningOverrides.
+    if (status.hasBar) {
+      const turnoverNeedsCleaning = cleaningBetweenIndex >= 0 && !status.isManualCleaning;
+      const lSchedule = locale === "ru" ? "Запланировать уборку" : "Schedule cleaning";
+      const lScheduleDesc = locale === "ru"
+        ? "Подтвердить уборку между бронированиями."
+        : "Confirm a cleaning slot between the two stays.";
+      const lRemoveCleaning = locale === "ru" ? "Снять уборку" : "Remove cleaning";
+      const lRemoveCleaningDesc = locale === "ru"
+        ? "Вернуть автоматическое определение."
+        : "Go back to the auto-detected hint.";
+      if (turnoverNeedsCleaning) {
+        return [
+          { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning },
+        ];
+      }
+      if (status.isManualCleaning) {
+        return [
+          { kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride },
+        ];
+      }
+      return [];
+    }
 
     const lBlock = locale === "ru" ? "Заблокировать дату" : "Block this date";
     const lBlockDesc = locale === "ru"
@@ -341,7 +384,9 @@ export function DateActionsPopover({
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <span className="text-xs font-medium text-[var(--cleaning-fg)]">
-                      {locale === "ru" ? "Нужна уборка между бронями" : "Cleaning required between stays"}
+                      {status.isManualCleaning
+                        ? (locale === "ru" ? "Уборка подтверждена" : "Cleaning scheduled")
+                        : (locale === "ru" ? "Нужна уборка между бронями" : "Cleaning required between stays")}
                     </span>
                   </div>
                 )}

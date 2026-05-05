@@ -108,8 +108,8 @@ export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPo
       <div className="p-4 space-y-3">
         <p className="text-xs text-[var(--ink-3)] leading-snug">
           {locale === "ru"
-            ? "Эта бронь подтянулась из iCal. Дайте ей имя, чтобы видеть гостя в списке и привязывать паспорта / уборки."
-            : "This booking came in from iCal. Give it a guest name so it shows up in your list and you can attach passports / cleanings."}
+            ? "Эта бронь подтянулась из iCal. Дайте ей имя, чтобы видеть гостя в списке."
+            : "This booking came in from iCal. Give it a guest name so it shows up in your list."}
         </p>
         <div>
           <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
