@@ -169,15 +169,54 @@ export function TopBar({
         {/* LEFT: Logo + Property selector */}
         <div className="flex items-center gap-3 min-w-0 z-10 max-w-[55%] sm:max-w-none">
           <button
-            onClick={() => { onSelectProperty(null); onChangeView("dashboard"); }}
-            className="flex items-center gap-2 shrink-0 text-[var(--ink)] hover:opacity-80 transition-opacity"
+            onClick={() => onNavigate({ property: null, reservation: null, view: "dashboard" })}
+            className="flex items-center gap-2 shrink-0 text-[var(--ink)] hover:opacity-90 transition-opacity"
             aria-label="Dashboard home"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--m-accent)]">
-              <svg viewBox="0 0 32 32" className="h-4 w-4 text-white" aria-hidden="true">
-                <rect x="6" y="9" width="20" height="3" rx="1.5" fill="currentColor" />
-                <rect x="6" y="15" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.85" />
-                <rect x="6" y="21" width="9" height="3" rx="1.5" fill="currentColor" opacity="0.7" />
+            {/* Brand mark: white house silhouette on coral pill, with
+                three drifting smoke puffs from the chimney. Smoke is
+                pure SVG <animate> so no framer-motion dep, no
+                entrance shake / scale-rotate spring — the mark just
+                paints in place on first render. */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
+              <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
+                <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
+                  {/* Roof + walls outline as one shape */}
+                  <path d="M3.4 11.6 L12 4.5 L20.6 11.6 L19 11.6 L19 19.5 L5 19.5 L5 11.6 Z" />
+                  {/* Chimney */}
+                  <rect x="15.6" y="6.2" width="1.7" height="3.4" rx="0.2" />
+                </g>
+                {/* Door + windows are punched out using the coral
+                    bg colour so they read as openings on the white
+                    silhouette, no extra fill needed. */}
+                <g fill="var(--m-accent)">
+                  <rect x="10.6" y="14" width="2.8" height="5.5" rx="0.4" />
+                  <rect x="6.7" y="13" width="2.4" height="2.4" rx="0.3" />
+                  <rect x="14.9" y="13" width="2.4" height="2.4" rx="0.3" />
+                </g>
+                {/* Smoke — three circles drifting up from the chimney,
+                    staggered so the puffs feel continuous. Pure SVG
+                    SMIL so it works with no JS. */}
+                <g fill="white">
+                  <circle cx="16.45" cy="5.5" r="0.6" opacity="0">
+                    <animate attributeName="cy" values="5.5;3.2;1" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="cx" values="16.45;16.7;17.1" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="0.4;0.7;0.9" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0;0.85;0" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="16.45" cy="5.5" r="0.6" opacity="0">
+                    <animate attributeName="cy" values="5.5;3.2;1" dur="3s" begin="1s" repeatCount="indefinite" />
+                    <animate attributeName="cx" values="16.45;16.2;15.9" dur="3s" begin="1s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="0.4;0.7;0.9" dur="3s" begin="1s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0;0.7;0" dur="3s" begin="1s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="16.45" cy="5.5" r="0.6" opacity="0">
+                    <animate attributeName="cy" values="5.5;3.2;1" dur="3s" begin="2s" repeatCount="indefinite" />
+                    <animate attributeName="cx" values="16.45;16.6;17" dur="3s" begin="2s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="0.4;0.7;0.9" dur="3s" begin="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0;0.6;0" dur="3s" begin="2s" repeatCount="indefinite" />
+                  </circle>
+                </g>
               </svg>
             </div>
             <span className="hidden sm:block text-sm font-semibold tracking-tight">RentTools</span>
@@ -201,9 +240,19 @@ export function TopBar({
               <div className="absolute top-full left-0 mt-2 w-64 rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/20 z-50">
                 <div className="p-1.5">
                   <button
-                    onClick={() => { onSelectProperty(null); onChangeView("dashboard"); setPropDropdown(false); }}
-                    className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                      !selectedPropertyId ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
+                    onClick={() => {
+                      // Atomic navigate so the URL update is one
+                      // commit, not two — the previous code did
+                      // onSelectProperty(null) THEN onChangeView()
+                      // which read selectedPropertyId from a stale
+                      // closure and silently reverted the property
+                      // change. That was the "doesn't work on first
+                      // click" bug.
+                      onNavigate({ property: null, reservation: null, view: "dashboard" });
+                      setPropDropdown(false);
+                    }}
+                    className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+                      !selectedPropertyId ? "bg-[var(--bg-3)] text-[var(--ink)] font-medium" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
                     }`}
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -227,19 +276,39 @@ export function TopBar({
                       <button
                         key={p.id}
                         onClick={() => {
-                          onSelectProperty(p.id);
-                          if (activeView === "dashboard") onChangeView("calendar");
+                          // Single atomic URL commit. Previously this
+                          // ran onSelectProperty(p.id) and then a
+                          // separate onChangeView("calendar"); the
+                          // second navigate read selectedPropertyId
+                          // from closure (still the OLD value) and
+                          // overwrote the new property selection,
+                          // which is why a fresh selection from the
+                          // dashboard view used to need two clicks.
+                          onNavigate({
+                            property: p.id,
+                            reservation: null,
+                            view: activeView === "dashboard" ? "calendar" : activeView,
+                          });
                           setPropDropdown(false);
                         }}
-                        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                           p.id === selectedPropertyId ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
                         }`}
                       >
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
-                        <span className="flex-1 min-w-0 text-left">
-                          <span className="block truncate">{p.name}</span>
-                          <span className="block truncate text-[10px] text-[var(--ink-4)]">{countLabel}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.6}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12L12 3l9.75 9M4.5 9.75v9.75A1.5 1.5 0 006 21h3.75v-6h4.5v6H18a1.5 1.5 0 001.5-1.5V9.75" />
+                          </svg>
                         </span>
+                        <span className="flex-1 min-w-0 text-left">
+                          <span className={`block truncate ${p.id === selectedPropertyId ? "font-medium" : ""}`}>{p.name}</span>
+                          <span className="block truncate text-[11px] text-[var(--ink-4)]">{countLabel}</span>
+                        </span>
+                        {p.id === selectedPropertyId && (
+                          <svg className="h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        )}
                       </button>
                     );
                   })}

@@ -401,48 +401,6 @@ export function ReservationView({
         </div>
       </div>
 
-      {/* Instructions */}
-      <details className="group rounded-xl border border-border/40 bg-card/30">
-        <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-          <svg className="h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
-          Registration Instructions
-        </summary>
-        <div className="border-t border-border/30 px-4 py-3">
-          <ol className="space-y-2.5 text-[13px] leading-relaxed">
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">1</span>
-              <span>
-                Go to{" "}
-                <a href="https://emehmon.uz/" target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline decoration-primary/30 underline-offset-2 hover:decoration-primary">
-                  emehmon.uz
-                </a>
-                {" "}<span className="text-muted-foreground">— select &quot;для физических лиц&quot;</span>
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">2</span>
-              <span>
-                Login:{" "}
-                <code className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono">asminkin</code>{" "}
-                / <code className="rounded bg-muted/50 px-1.5 py-0.5 text-xs font-mono">wEq4782bst123$</code>
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">3</span>
-              <span className="text-muted-foreground">
-                Мои листки → Создать → Выбираем гражданство → Дату рождения → Вводим паспортные данные. Заполняем 3 вкладки по визам и дням.
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">4</span>
-              <span className="text-muted-foreground">Оплачиваем</span>
-            </li>
-          </ol>
-        </div>
-      </details>
-
       {/* Drop Zone */}
       <div
         {...getRootProps()}
