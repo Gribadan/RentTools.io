@@ -122,6 +122,23 @@ export default async function BlogPostPage({
   const session = await getSession();
   const isSuperadmin = session?.role === "superadmin";
 
+  // Related posts: same primary tag (first tag), newest first, exclude current.
+  const primaryTag = tags[0];
+  const related = primaryTag
+    ? await prisma.blogPost.findMany({
+        where: {
+          locale: "en",
+          status: "published",
+          publishedAt: { lte: new Date() },
+          id: { not: post.id },
+          tagsJson: { contains: `"${primaryTag}"` },
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 6,
+        select: { id: true, slug: true, title: true, excerpt: true, publishedAt: true },
+      })
+    : [];
+
   const commentRows = await prisma.blogComment.findMany({
     where: {
       postId: post.id,
@@ -173,7 +190,7 @@ export default async function BlogPostPage({
                   {tags.map((t) => (
                     <Link
                       key={t}
-                      href={`/blog?tag=${encodeURIComponent(t)}`}
+                      href={`/blog/tag/${encodeURIComponent(t)}`}
                       className="rounded-full border border-[#1e2329] px-2 py-0.5 text-[11px] hover:border-[#2a313b] hover:text-[#a0a0a8]"
                     >
                       {t}
@@ -192,6 +209,39 @@ export default async function BlogPostPage({
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </article>
+
+        {related.length > 0 && (
+          <section aria-labelledby="related-heading" className="mt-12 border-t border-[#1e2329] pt-8">
+            <h2 id="related-heading" className="text-lg font-semibold text-[#e8e8ec]">
+              Related posts
+            </h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {related.map((r) => (
+                <li
+                  key={r.id}
+                  className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-4 transition-colors hover:border-[#2a313b]"
+                >
+                  <Link href={`/blog/${r.slug}`} className="block">
+                    <h3 className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
+                      {r.title}
+                    </h3>
+                    {r.excerpt && (
+                      <p className="mt-1 text-xs text-[#a0a0a8] line-clamp-2">{r.excerpt}</p>
+                    )}
+                    {r.publishedAt && (
+                      <time
+                        dateTime={r.publishedAt.toISOString()}
+                        className="mt-2 block text-[11px] text-[#71717a]"
+                      >
+                        {formatDate(r.publishedAt)}
+                      </time>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <BlogComments
           postId={post.id}

@@ -1,34 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 12;
-const TITLE = "Blog";
-const DESCRIPTION =
-  "Practical guides on calendar sync, double-booking prevention, cleaning automation, and GDPR for short-term rental hosts.";
-
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/blog" },
-  openGraph: {
-    type: "website",
-    title: `${TITLE} · RentTools`,
-    description: DESCRIPTION,
-    url: "/blog",
-    siteName: "RentTools",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${TITLE} · RentTools`,
-    description: DESCRIPTION,
-  },
-};
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
 interface SearchParams {
   page?: string;
-  tag?: string;
 }
 
 function parsePage(raw: string | undefined): number {
@@ -50,27 +30,70 @@ function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default async function BlogIndexPage({
+function normaliseSlug(raw: string): string {
+  return raw.trim().toLowerCase().slice(0, 60);
+}
+
+async function findTag(slug: string) {
+  return prisma.blogTag.findFirst({
+    where: { slug, locale: "en" },
+    select: { slug: true, displayName: true },
+  });
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const cleanSlug = normaliseSlug(slug);
+  const tag = await findTag(cleanSlug);
+  if (!tag) {
+    return { title: "Tag not found", robots: { index: false, follow: false } };
+  }
+  const title = `${tag.displayName} — RentTools blog`;
+  const description = `Posts tagged ${tag.displayName} on the RentTools blog.`;
+  return {
+    title,
+    description,
+    alternates: { canonical: `/blog/tag/${tag.slug}` },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: `${SITE_URL}/blog/tag/${tag.slug}`,
+      siteName: "RentTools",
+    },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
+export default async function BlogTagPage({
+  params,
   searchParams,
 }: {
+  params: Promise<{ slug: string }>;
   searchParams: Promise<SearchParams>;
 }) {
+  const { slug: rawSlug } = await params;
   const sp = await searchParams;
-  const page = parsePage(sp.page);
-  const tagFilter = (sp.tag ?? "").trim().toLowerCase().slice(0, 60) || undefined;
+  const slug = normaliseSlug(rawSlug);
+  if (!slug) notFound();
 
-  // tagsJson is a JSON array of slug strings, e.g. ["airbnb","ical-sync"].
-  // SQLite `contains` on the JSON-encoded string is good enough for the
-  // expected post volume (<200 posts in a few years). We bracket the slug
-  // with quotes so "host" doesn't match "host-tips".
+  const tag = await findTag(slug);
+  if (!tag) notFound();
+
+  const page = parsePage(sp.page);
+
   const where = {
     locale: "en",
     status: "published" as const,
     publishedAt: { lte: new Date() },
-    ...(tagFilter ? { tagsJson: { contains: `"${tagFilter}"` } } : {}),
+    tagsJson: { contains: `"${slug}"` },
   };
 
-  const [total, posts, tagRows] = await Promise.all([
+  const [total, posts] = await Promise.all([
     prisma.blogPost.count({ where }),
     prisma.blogPost.findMany({
       where,
@@ -86,25 +109,20 @@ export default async function BlogIndexPage({
         publishedAt: true,
       },
     }),
-    prisma.blogTag.findMany({
-      where: { locale: "en" },
-      orderBy: { displayName: "asc" },
-      select: { slug: true, displayName: true },
-    }),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
-  const prevHref = buildHref({ page: page - 1, tag: tagFilter });
-  const nextHref = buildHref({ page: page + 1, tag: tagFilter });
+  const prevHref = page - 1 > 1 ? `/blog/tag/${slug}?page=${page - 1}` : `/blog/tag/${slug}`;
+  const nextHref = `/blog/tag/${slug}?page=${page + 1}`;
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
       <header className="border-b border-[#1e2329]">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
-            ← RentTools
+          <Link href="/blog" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
+            ← Blog
           </Link>
           <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
             <Link href="/login" className="hover:text-[#e8e8ec]">Sign in</Link>
@@ -114,47 +132,18 @@ export default async function BlogIndexPage({
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blog</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#a0a0a8] sm:text-base">
-          Notes from running short-term rentals — calendar sync, cleaning workflows,
-          guest data, and the boring parts of GDPR a host actually has to do.
+        <p className="text-xs uppercase tracking-wide text-[#71717a]">Tag</p>
+        <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{tag.displayName}</h1>
+        <p className="mt-2 text-sm text-[#a0a0a8]">
+          {total === 0
+            ? "No posts yet under this tag."
+            : `${total} ${total === 1 ? "post" : "posts"} under this tag.`}
         </p>
-
-        {tagRows.length > 0 && (
-          <nav className="mt-6 flex flex-wrap gap-2 text-xs">
-            <Link
-              href="/blog"
-              className={`rounded-full border px-3 py-1 ${
-                tagFilter
-                  ? "border-[#1e2329] text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
-                  : "border-[#ff385c] text-[#ff385c]"
-              }`}
-            >
-              All
-            </Link>
-            {tagRows.map((t) => {
-              const active = tagFilter === t.slug;
-              return (
-                <Link
-                  key={t.slug}
-                  href={`/blog/tag/${encodeURIComponent(t.slug)}`}
-                  className={`rounded-full border px-3 py-1 ${
-                    active
-                      ? "border-[#ff385c] text-[#ff385c]"
-                      : "border-[#1e2329] text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
-                  }`}
-                >
-                  {t.displayName}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
 
         <section className="mt-8">
           {posts.length === 0 ? (
             <p className="rounded-lg border border-[#1e2329] bg-[#0f1419] px-4 py-8 text-center text-sm text-[#a0a0a8]">
-              No posts yet{tagFilter ? ` for tag "${tagFilter}"` : ""}.
+              Nothing here yet — <Link href="/blog" className="text-[#ff385c] hover:underline">browse all posts</Link>.
             </p>
           ) : (
             <ul className="space-y-4">
@@ -236,6 +225,7 @@ export default async function BlogIndexPage({
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
+            <Link href="/blog" className="hover:text-[#e8e8ec]">Blog</Link>
             <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>
             <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>
           </nav>
@@ -243,11 +233,4 @@ export default async function BlogIndexPage({
       </footer>
     </div>
   );
-}
-
-function buildHref(opts: { page: number; tag: string | undefined }): string {
-  const params: string[] = [];
-  if (opts.page > 1) params.push(`page=${opts.page}`);
-  if (opts.tag) params.push(`tag=${encodeURIComponent(opts.tag)}`);
-  return params.length === 0 ? "/blog" : `/blog?${params.join("&")}`;
 }
