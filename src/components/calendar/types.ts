@@ -13,6 +13,10 @@ export interface CalendarBar {
   name: string;
   platform: string;
   reservationId?: number;
+  /** UID of the iCal event this bar comes from. Present when the bar
+   *  was sourced from a synced feed; lets us link a future Reservation
+   *  back to the original event when the user "claims" it. */
+  eventUid?: string;
   isExtension?: boolean;
 }
 

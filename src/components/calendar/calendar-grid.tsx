@@ -22,6 +22,7 @@ interface CalendarGridProps {
   closedOverrides: Set<string>;
   loading?: boolean;
   onSelectReservation: (id: number) => void;
+  onClaimBar?: (bar: BarSegment, rect: DOMRect) => void;
   onCellClick: (dateStr: string, rect: DOMRect) => void;
 }
 
@@ -42,6 +43,7 @@ export function CalendarGrid({
   closedOverrides,
   loading,
   onSelectReservation,
+  onClaimBar,
   onCellClick,
 }: CalendarGridProps) {
   const { t, locale } = useI18n();
@@ -213,13 +215,21 @@ export function CalendarGrid({
                   {segments.map((seg, si) => (
                     <div
                       key={`seg-${si}-${seg.startDate}`}
-                      onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
-                      className={`absolute top-9 h-6 flex items-center rounded-md px-2.5 text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        if (seg.reservationId) {
+                          onSelectReservation(seg.reservationId);
+                        } else if (seg.eventUid && onClaimBar) {
+                          onClaimBar(seg, rect);
+                        }
+                      }}
+                      className={`absolute top-9 h-6 flex items-center rounded-md px-2.5 text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${
                         isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
                         seg.platform === "booking"
                           ? "bg-[#003580]"
                           : "bg-[var(--m-accent)]"
-                      } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
+                      } ${(seg.reservationId || seg.eventUid) ? "hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
                       style={{
                         left: `${seg.leftPct}%`,
                         width: `calc(${seg.span * 100}% - ${seg.leftPct}% - ${seg.rightMarginPct}% - 2px)`,
@@ -236,14 +246,14 @@ export function CalendarGrid({
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
                     /* Same-day cleaning happens when one stay checks out
-                       and another checks in on the same day, so the cell
-                       already has two booking bars in the middle band.
-                       Park the indicator in the top-right corner where
-                       the cell is otherwise empty — day number lives at
-                       top-left, bars in the middle, so this is the only
-                       conflict-free anchor. */
-                    <div className="absolute top-1 right-1 z-20 pointer-events-none">
-                      <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm">
+                       and another checks in on the same day. Anchor the
+                       chip top-center so it visually sits between the two
+                       abutting booking bars (which live in the middle
+                       band) — that's where the cleaning physically
+                       happens within the day. Day number is top-left,
+                       bars are mid, so top-center stays conflict-free. */
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                      <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
                         {t("calendar.cleaning")}
                       </div>
                     </div>

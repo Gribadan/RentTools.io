@@ -43,7 +43,7 @@ export function useCalendarData(
     const potential = new Set<string>();
     const unbookable = new Set<string>();
     const conflictSet = new Set<string>();
-    const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number }>();
+    const evMap = new Map<string, { name: string; platform: string; startDate: string; endDate: string; reservationId?: number; eventUid?: string }>();
     const resMap = new Map<string, Reservation>();
     const allBooked = new Set<string>();
     const airbnbStay = new Set<string>();
@@ -74,6 +74,7 @@ export function useCalendarData(
           platform,
           startDate: ev.startDate,
           endDate: ev.endDate,
+          eventUid: ev.uid,
         });
       }
       const isAirbnbBlock = platform === "airbnb" && (
@@ -315,6 +316,7 @@ export function useCalendarData(
         name: label,
         platform: ev.platform,
         reservationId: resId,
+        eventUid: ev.eventUid,
         isExtension,
       });
     }
@@ -330,6 +332,9 @@ export function useCalendarData(
         if (bar.reservationId && !existing.reservationId) {
           existing.name = bar.name;
           existing.reservationId = bar.reservationId;
+        }
+        if (bar.eventUid && !existing.eventUid) {
+          existing.eventUid = bar.eventUid;
         }
       } else {
         deduped.push({ ...bar });

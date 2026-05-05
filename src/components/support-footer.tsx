@@ -33,6 +33,7 @@ export function SupportFooter() {
       </p>
       <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
         <span>© 2026 RentTools</span>
+        <Link href="/blog" className="hover:text-[var(--ink-2)]">Blog</Link>
         <Link href="/privacy" className="hover:text-[var(--ink-2)]">Privacy</Link>
         <Link href="/terms" className="hover:text-[var(--ink-2)]">Terms</Link>
         <a

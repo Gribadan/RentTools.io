@@ -8,6 +8,7 @@ import { CalendarNavigation } from "@/components/calendar/calendar-navigation";
 import { CalendarLegend } from "@/components/calendar/calendar-legend";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarDatePopover } from "@/components/calendar/calendar-date-popover";
+import { BarClaimPopover, type ClaimableBar } from "@/components/calendar/bar-claim-popover";
 import { AgendaList } from "@/components/calendar/agenda-list";
 import { ConflictBanner } from "@/components/calendar/conflict-banner";
 import { useCalendarFetch } from "@/components/calendar/use-calendar-fetch";
@@ -38,6 +39,8 @@ export function PropertyCalendar({
   const [monthOffset, setMonthOffset] = useState(0);
   const [popoverDate, setPopoverDate] = useState<string | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
+  const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
+  const [claimAnchor, setClaimAnchor] = useState<DOMRect | null>(null);
   const [exportCopied, setExportCopied] = useState(false);
 
   const { syncedEvents, links, overrides, loadingEvents, syncing, refetchOverrides, handleSyncNow } =
@@ -63,6 +66,29 @@ export function PropertyCalendar({
   const closePopover = () => {
     setPopoverDate(null);
     setPopoverAnchor(null);
+  };
+
+  const closeClaim = () => {
+    setClaimBar(null);
+    setClaimAnchor(null);
+  };
+
+  const claimSyncedBooking = async (name: string) => {
+    if (!claimBar) return;
+    await fetch(`/api/reservations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        checkIn: claimBar.startDate,
+        checkOut: claimBar.endDate,
+        platform: claimBar.platform,
+        propertyId: property.id,
+        linkedEventUid: claimBar.eventUid,
+      }),
+    });
+    closeClaim();
+    window.location.reload();
   };
 
   const setOverride = async (dateStr: string, type: "open" | "closed") => {
@@ -196,6 +222,17 @@ export function PropertyCalendar({
           closedOverrides={data.closedOverrides}
           loading={loadingEvents}
           onSelectReservation={onSelectReservation}
+          onClaimBar={(seg, rect) => {
+            if (!seg.eventUid) return;
+            setClaimBar({
+              eventUid: seg.eventUid,
+              startDate: seg.startDate,
+              endDate: seg.endDate,
+              platform: seg.platform,
+              defaultName: seg.name,
+            });
+            setClaimAnchor(rect);
+          }}
           onCellClick={(dateStr, rect) => {
             setPopoverDate(dateStr);
             setPopoverAnchor(rect);
@@ -220,6 +257,14 @@ export function PropertyCalendar({
           onSetOverride={(type) => setOverride(popoverDate, type)}
           onRemoveOverride={() => deleteOverride(popoverDate)}
           onExtendBooking={(b) => extendBooking(popoverDate, b)}
+        />
+      )}
+      {claimBar && claimAnchor && (
+        <BarClaimPopover
+          bar={claimBar}
+          anchorRect={claimAnchor}
+          onClose={closeClaim}
+          onSave={claimSyncedBooking}
         />
       )}
     </div>
