@@ -275,7 +275,7 @@ export function Dashboard({
                   <select
                     value={formPropertyId}
                     onChange={(e) => setFormPropertyId(Number(e.target.value))}
-                    className="h-9 w-full appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[#e8e8ec]/30"
+                    className="h-9 w-full appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
                     required
                   >
                     <option value="" disabled>{t("dashboard.selectProperty")}</option>
@@ -295,7 +295,7 @@ export function Dashboard({
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder={t("dashboard.enterName")}
-                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[#e8e8ec]/30"
+                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
                   required
                 />
               </div>

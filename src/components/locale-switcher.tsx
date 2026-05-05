@@ -54,7 +54,7 @@ export function LocaleSwitcher({
   if (variant === "inline") {
     return (
       <div
-        className={`flex items-center rounded-md border border-[#333338] overflow-hidden ${className}`}
+        className={`flex items-center rounded-md border border-[var(--line-2)] overflow-hidden ${className}`}
         role="group"
         aria-label="Language"
       >
@@ -66,8 +66,8 @@ export function LocaleSwitcher({
             aria-pressed={locale === opt.code}
             className={`px-2 py-1 text-xs transition-colors ${
               locale === opt.code
-                ? "bg-[#1e1e22] text-[#e8e8ec]"
-                : "text-[#71717a] hover:text-[#d4d4d8]"
+                ? "bg-[var(--bg-3)] text-[var(--ink)]"
+                : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"
             }`}
           >
             {opt.short}
@@ -87,12 +87,12 @@ export function LocaleSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Change language"
-        className="flex items-center gap-1.5 rounded-md border border-[#333338] bg-[#111113] px-2.5 py-1.5 text-xs text-[#d4d4d8] hover:border-[#e8e8ec]/50 hover:text-[#e8e8ec] transition-colors"
+        className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] hover:border-[var(--ink)]/40 hover:text-[var(--ink)] transition-colors"
       >
         <span aria-hidden>{current.flag}</span>
         <span>{current.short}</span>
         <svg
-          className={`h-3 w-3 text-[#71717a] transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-3 w-3 text-[var(--ink-4)] transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -107,7 +107,7 @@ export function LocaleSwitcher({
         <ul
           role="listbox"
           aria-label="Language"
-          className="absolute right-0 top-full z-50 mt-1 w-36 overflow-hidden rounded-lg border border-[#333338] bg-[#18181b] p-1 shadow-xl shadow-black/40"
+          className="absolute right-0 top-full z-50 mt-1 w-36 overflow-hidden rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] p-1 shadow-xl shadow-black/40"
         >
           {OPTIONS.map((opt) => (
             <li key={opt.code} role="none">
@@ -118,8 +118,8 @@ export function LocaleSwitcher({
                 onClick={() => choose(opt.code)}
                 className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
                   locale === opt.code
-                    ? "bg-[#1e1e22] text-[#e8e8ec]"
-                    : "text-[#d4d4d8] hover:bg-[#1e1e22]"
+                    ? "bg-[var(--bg-3)] text-[var(--ink)]"
+                    : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
                 }`}
               >
                 <span className="text-base" aria-hidden>
@@ -128,7 +128,7 @@ export function LocaleSwitcher({
                 <span className="flex-1 text-left">{opt.label}</span>
                 {locale === opt.code && (
                   <svg
-                    className="h-3.5 w-3.5 text-[#34d399]"
+                    className="h-3.5 w-3.5 text-emerald-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

@@ -160,7 +160,7 @@ export function CalendarGrid({
                   }}
                   className={`relative h-16 border-r border-[var(--line)] last:border-r-0 ${bg} ${
                     overrideMode ? "cursor-pointer hover:bg-[var(--bg-3)]" : ""
-                  } ${isOpen ? "ring-1 ring-inset ring-[#34d399]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#ef4444]/40" : ""}`}
+                  } ${isOpen ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
                   <div className="absolute top-1 left-1.5 z-20 pointer-events-none">
                     <span className={`text-xs leading-none ${
@@ -203,7 +203,7 @@ export function CalendarGrid({
                       key={`seg-${si}-${seg.startDate}`}
                       onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
                       className={`absolute top-7 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
-                        isConflict ? "bg-rose-500 ring-1 ring-[#ef4444]/40" :
+                        isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
                         seg.platform === "booking"
                           ? "bg-[#003580]"
                           : "bg-[var(--m-accent)]"

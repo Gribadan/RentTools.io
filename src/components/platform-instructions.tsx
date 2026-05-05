@@ -78,15 +78,15 @@ export function PlatformInstructions({ platform, mode, defaultOpen = false }: Pl
   const data = DATA[platform][mode];
 
   return (
-    <div className="rounded-md border border-[#1e2329] bg-[#0d1117]">
+    <div className="rounded-md border border-[var(--line)] bg-[var(--bg)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-medium text-[#d4d4d8] hover:text-[#e8e8ec]"
+        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-medium text-[var(--ink-2)] hover:text-[var(--ink)]"
       >
         <span>{data.title}</span>
         <svg
-          className={`h-3.5 w-3.5 text-[#71717a] transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-3.5 w-3.5 text-[var(--ink-4)] transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -96,7 +96,7 @@ export function PlatformInstructions({ platform, mode, defaultOpen = false }: Pl
         </svg>
       </button>
       {open && (
-        <div className="border-t border-[#1e2329] p-3 space-y-3">
+        <div className="border-t border-[var(--line)] p-3 space-y-3">
           {!imgError ? (
             <Image
               src={data.gif}
@@ -105,17 +105,17 @@ export function PlatformInstructions({ platform, mode, defaultOpen = false }: Pl
               height={720}
               unoptimized
               onError={() => setImgError(true)}
-              className="h-auto w-full rounded-md border border-[#1e2329]"
+              className="h-auto w-full rounded-md border border-[var(--line)]"
             />
           ) : (
-            <div className="flex items-center justify-center rounded-md border border-dashed border-[#1e2329] bg-[#0f1419] py-6 text-center text-[11px] text-[#71717a]">
+            <div className="flex items-center justify-center rounded-md border border-dashed border-[var(--line)] bg-[var(--bg)] py-6 text-center text-[11px] text-[var(--ink-4)]">
               Tutorial GIF coming soon — follow the steps below.
             </div>
           )}
-          <ol className="space-y-1.5 text-[12px] text-[#a0a0a8]">
+          <ol className="space-y-1.5 text-[12px] text-[var(--ink-3)]">
             {data.steps.map((line, i) => (
               <li key={i} className="flex items-start gap-2">
-                <span className="mt-px shrink-0 rounded bg-[#1e1e22] px-1.5 text-center font-mono text-[10px] text-[#a0a0a8]">
+                <span className="mt-px shrink-0 rounded bg-[var(--bg-3)] px-1.5 text-center font-mono text-[10px] text-[var(--ink-3)]">
                   {i + 1}
                 </span>
                 <span>{line}</span>

@@ -877,7 +877,7 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
                     return (
                       <div
                         key={idx}
-                        className={`relative flex items-center justify-center rounded-sm h-7 sm:h-6 text-[11px] sm:text-[10px] ${textCls} ${day.isToday ? "ring-1 ring-[#58a6ff]" : ""}`}
+                        className={`relative flex items-center justify-center rounded-sm h-7 sm:h-6 text-[11px] sm:text-[10px] ${textCls} ${day.isToday ? "ring-1 ring-sky-400" : ""}`}
                         style={bgStyle}
                         title={
                           day.airbnb && day.booking ? `${day.dateStr} — Airbnb + Booking`
