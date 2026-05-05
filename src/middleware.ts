@@ -21,6 +21,7 @@ const PUBLIC_PATHS = [
   "/api/calendar/cron",
   "/api/health",
   "/api/site-config",
+  "/monitoring", // Sentry tunnel route (next.config.ts → withSentryConfig) — browser SDK POSTs here
 ];
 
 function clientIpFromRequest(request: NextRequest): string {
