@@ -6,7 +6,21 @@ const JWT_SECRET_RAW = process.env.JWT_SECRET || "fallback-secret-change-me";
 const SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
 const IS_DEFAULT_SECRET = JWT_SECRET_RAW === "fallback-secret-change-me";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/terms", "/privacy", "/api/auth/login", "/api/auth/signup", "/api/calendar/feed", "/api/calendar/cron", "/api/health", "/api/site-config"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/terms",
+  "/privacy",
+  "/onboard",
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/google", // covers /api/auth/google + /callback + /one-tap (startsWith match)
+  "/api/onboard",
+  "/api/calendar/feed",
+  "/api/calendar/cron",
+  "/api/health",
+  "/api/site-config",
+];
 
 function clientIpFromRequest(request: NextRequest): string {
   const fwd = request.headers.get("x-forwarded-for");
