@@ -290,6 +290,24 @@ export function useCalendarData(
     }
 
     if (maxBefore === 0 && maxAfter === 0) {
+      // Pre-compute: dates that are abutted on the START side by an
+      // airbnb host-block (an "Airbnb (Not available)" / "Blocked"
+      // event whose endDate equals this date). When such a block sits
+      // immediately before a Reserved event, it visually owns the
+      // prep slot — there's no real free-floating gap that the
+      // cleaning could happen anywhere in. Without this guard,
+      // Квартира 68 May 3 (Iain checks in immediately after the
+      // May 1-3 host block) reads as dashed "Cleaning?" because the
+      // algorithm sees a 13-day gap back to the previous booking on
+      // Apr 19, ignoring that 2 of those days are blocked.
+      const datesAbuttedByAirbnbBlockEnd = new Set<string>();
+      for (const ev of syncedEvents) {
+        const isAirbnbBlock = ev.platform === "airbnb" && (
+          ev.summary.includes("Not available") || ev.summary.includes("Blocked")
+        );
+        if (isAirbnbBlock) datesAbuttedByAirbnbBlockEnd.add(ev.endDate);
+      }
+
       for (let bi = 0; bi < dedupedBookings.length; bi++) {
         const b = dedupedBookings[bi];
         const next = dedupedBookings[bi + 1];
@@ -326,7 +344,12 @@ export function useCalendarData(
           // The first guard is the load-bearing one for the
           // user-reported bug: it prevents the same-day case from
           // getting marked potential even if minStay is 0 or 1.
-          if (gapDays >= 1 && gapDays >= minStay && !linkedBoundaryDates.has(next.start)) {
+          if (
+            gapDays >= 1 &&
+            gapDays >= minStay &&
+            !linkedBoundaryDates.has(next.start) &&
+            !datesAbuttedByAirbnbBlockEnd.has(next.start)
+          ) {
             sameDayCleaning.add(next.start);
             potential.add(next.start);
           }

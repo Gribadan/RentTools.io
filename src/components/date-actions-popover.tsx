@@ -209,7 +209,20 @@ export function DateActionsPopover({
     if (singleStatus.isOpenOverride) {
       return [createAction, { kind: "removeOverride", label: lRemoveOverride, description: lRemoveOverrideDesc, tone: "neutral", onClick: onRemoveOverride }, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }, { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
     }
-    if (singleStatus.isBuffer || singleStatus.isSameDayCleaning || singleStatus.isUnbookable || singleStatus.isPotential) {
+    // Auto-detected unavailable. Two label flavours:
+    //   * Cleaning days (buffer / same-day / potential): "Cancel
+    //     cleaning" — the host's mental model is "the cleaner is
+    //     not coming this day, schedule it elsewhere".
+    //   * Min-nights blocks (unbookable): "Make available" — the
+    //     date is locked for booking-fit reasons, no cleaning concept.
+    if (singleStatus.isBuffer || singleStatus.isSameDayCleaning || singleStatus.isPotential) {
+      const lCancelCleaning = locale === "ru" ? "Отменить уборку" : "Cancel cleaning";
+      const lCancelCleaningDesc = locale === "ru"
+        ? "Освободить дату — выберите другой день для уборки."
+        : "Free up this date — schedule cleaning on another day instead.";
+      return [createAction, { kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
+    }
+    if (singleStatus.isUnbookable) {
       return [createAction, { kind: "openForBooking", label: lOpen, description: lOpenDesc, tone: "open", onClick: onOpenDate }];
     }
     return [createAction, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }, { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
