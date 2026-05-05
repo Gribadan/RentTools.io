@@ -205,17 +205,17 @@ export function Dashboard({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-[#e8e8ec]">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--ink)]">
             {title}
             {loadingCalendarData && (
-              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-[#30363d] border-t-[#58a6ff]" />
+              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-[var(--line-2)] border-t-[#58a6ff]" />
             )}
           </h1>
-          <p className="mt-1 text-sm text-[#71717a]">{subtitle}</p>
+          <p className="mt-1 text-sm text-[var(--ink-4)]">{subtitle}</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 rounded-lg bg-[#ff385c] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#e0294d]"
+          className="flex items-center gap-1.5 rounded-lg bg-[var(--m-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -234,24 +234,24 @@ export function Dashboard({
               <button
                 key={p.id}
                 onClick={() => onSelectProperty(p.id)}
-                className="group rounded-xl border border-[#27272b] bg-[#18181b] p-5 text-left transition-all hover:border-[#333338] hover:bg-[#1e1e22]"
+                className="group rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-left transition-all hover:border-[var(--line-2)] hover:bg-[var(--bg-3)]"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-[#e8e8ec] group-hover:text-[#e8e8ec] transition-colors">{p.name}</h3>
-                  <svg className="h-4 w-4 text-[#333338] group-hover:text-[#71717a] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <h3 className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors">{p.name}</h3>
+                  <svg className="h-4 w-4 text-[var(--ink-4)] group-hover:text-[var(--ink-4)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs text-[#71717a]">
+                  <div className="flex items-center gap-2 text-xs text-[var(--ink-4)]">
                     <span>{futureRes.length} {locale === "ru" ? "бронир." : "bookings"}</span>
-                    <span className="text-[#333338]">·</span>
+                    <span className="text-[var(--ink-4)]">·</span>
                     <span>{locale === "ru" ? "мин." : "min"} {p.minNights} {locale === "ru" ? "ноч." : "n"}</span>
                   </div>
                   {nextRes && (
-                    <div className="text-xs text-[#a0a0a8]">
-                      <span className="text-[#71717a]">{locale === "ru" ? "Далее:" : "Next:"} </span>
-                      <span className="font-medium text-[#d4d4d8]">{nextRes.name}</span>
+                    <div className="text-xs text-[var(--ink-3)]">
+                      <span className="text-[var(--ink-4)]">{locale === "ru" ? "Далее:" : "Next:"} </span>
+                      <span className="font-medium text-[var(--ink-2)]">{nextRes.name}</span>
                       {" "}
                       <span>{formatDate(nextRes.checkIn)}</span>
                     </div>
@@ -265,17 +265,17 @@ export function Dashboard({
 
       {/* Quick Add Form */}
       {showForm && (
-        <div className="rounded-lg border border-[#333338] bg-[#18181b] p-5">
-          <h2 className="mb-4 text-sm font-medium text-[#e8e8ec]">{t("dashboard.newReservation")}</h2>
+        <div className="rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] p-5">
+          <h2 className="mb-4 text-sm font-medium text-[var(--ink)]">{t("dashboard.newReservation")}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-xs text-[#a0a0a8]">{t("dashboard.property")}</label>
+                <label className="text-xs text-[var(--ink-3)]">{t("dashboard.property")}</label>
                 <div className="relative">
                   <select
                     value={formPropertyId}
                     onChange={(e) => setFormPropertyId(Number(e.target.value))}
-                    className="h-9 w-full appearance-none rounded-md border border-[#333338] bg-[#111113] pl-3 pr-8 text-sm text-[#e8e8ec] outline-none transition-colors focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]/30"
+                    className="h-9 w-full appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[#e8e8ec]/30"
                     required
                   >
                     <option value="" disabled>{t("dashboard.selectProperty")}</option>
@@ -283,27 +283,27 @@ export function Dashboard({
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
                   </select>
-                  <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                   </svg>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs text-[#a0a0a8]">{t("dashboard.guestName")}</label>
+                <label className="text-xs text-[var(--ink-3)]">{t("dashboard.guestName")}</label>
                 <input
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder={t("dashboard.enterName")}
-                  className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none transition-colors focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]/30"
+                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[#e8e8ec]/30"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs text-[#a0a0a8]">{t("dashboard.platform")}</label>
-              <div className="flex w-fit rounded-md border border-[#333338] bg-[#111113] p-0.5">
+              <label className="text-xs text-[var(--ink-3)]">{t("dashboard.platform")}</label>
+              <div className="flex w-fit rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-0.5">
                 {(["airbnb", "booking"] as const).map((p) => (
                   <button
                     key={p}
@@ -312,9 +312,9 @@ export function Dashboard({
                     className={`rounded-[5px] px-4 py-1.5 text-xs font-medium transition-all ${
                       formPlatform === p
                         ? p === "airbnb"
-                          ? "bg-[#ff385c]/15 text-[#ff385c]"
-                          : "bg-[#003580]/25 text-[#93c5fd]"
-                        : "text-[#71717a] hover:text-[#a0a0a8]"
+                          ? "bg-[var(--m-accent)]/15 text-[var(--m-accent)]"
+                          : "bg-[#003580]/25 text-sky-300"
+                        : "text-[var(--ink-4)] hover:text-[var(--ink-3)]"
                     }`}
                   >
                     {p === "airbnb" ? "Airbnb" : "Booking"}
@@ -324,7 +324,7 @@ export function Dashboard({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs text-[#a0a0a8]">{t("dashboard.dates")}</label>
+              <label className="text-xs text-[var(--ink-3)]">{t("dashboard.dates")}</label>
               <DateSlider
                 checkIn={formCheckIn}
                 checkOut={formCheckOut}
@@ -336,14 +336,14 @@ export function Dashboard({
             <div className="flex items-center gap-2 pt-1">
               <button
                 type="submit"
-                className="rounded-md bg-[#ff385c] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#e0294d]"
+                className="rounded-md bg-[var(--m-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
               >
                 {t("dashboard.createReservation")}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="rounded-md px-4 py-2 text-sm text-[#a0a0a8] hover:text-[#e8e8ec]"
+                className="rounded-md px-4 py-2 text-sm text-[var(--ink-3)] hover:text-[var(--ink)]"
               >
                 {t("common.cancel")}
               </button>
@@ -360,15 +360,15 @@ export function Dashboard({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={locale === "ru" ? "Поиск по имени гостя..." : "Search by guest name..."}
-            className="h-9 w-full rounded-md border border-[#27272b] bg-[#18181b] pl-9 pr-8 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none transition-colors focus:border-[#333338]"
+            className="h-9 w-full rounded-md border border-[var(--line)] bg-[var(--bg-2)] pl-9 pr-8 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none transition-colors focus:border-[var(--line-2)]"
           />
-          <svg className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#71717a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.2-5.2M16.5 10.5a6 6 0 11-12 0 6 6 0 0112 0z" />
           </svg>
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-[#71717a] hover:text-[#e8e8ec]"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-[var(--ink-4)] hover:text-[var(--ink)]"
               aria-label="Clear search"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -381,12 +381,12 @@ export function Dashboard({
 
       {/* Reservations List */}
       {displayReservations.length > 0 ? (
-        <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
-          <div className="border-b border-[#27272b] px-4 py-3">
-            <h2 className="text-xs font-medium text-[#a0a0a8]">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+          <div className="border-b border-[var(--line)] px-4 py-3">
+            <h2 className="text-xs font-medium text-[var(--ink-3)]">
               {selectedProperty ? t("dashboard.reservations") : t("dashboard.recentReservations")}
               {trimmedQuery && (
-                <span className="ml-2 text-[#71717a]">
+                <span className="ml-2 text-[var(--ink-4)]">
                   · {displayReservations.length} {locale === "ru" ? "найдено" : "found"}
                 </span>
               )}
@@ -397,22 +397,22 @@ export function Dashboard({
               <div
                 key={res.id}
                 onClick={() => handleRowClick(res.propertyId, res.id)}
-                className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[#1e1e22] ${
-                  i < displayReservations.length - 1 ? "border-b border-[#27272b]/50" : ""
+                className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--bg-3)] ${
+                  i < displayReservations.length - 1 ? "border-b border-[var(--line)]/50" : ""
                 }`}
               >
                 <span
                   className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                    res.platform === "booking" ? "bg-[#93c5fd]" : "bg-[#ff385c]"
+                    res.platform === "booking" ? "bg-sky-300" : "bg-[var(--m-accent)]"
                   }`}
                 />
 
                 <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-[#e8e8ec]">{res.name}</span>
+                  <span className="text-sm font-medium text-[var(--ink)]">{res.name}</span>
                 </div>
 
                 {!selectedProperty && (
-                  <span className="hidden text-sm text-[#a0a0a8] sm:block">
+                  <span className="hidden text-sm text-[var(--ink-3)] sm:block">
                     {res.propertyName}
                   </span>
                 )}
@@ -420,27 +420,27 @@ export function Dashboard({
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
                     res.platform === "booking"
-                      ? "bg-[#003580]/20 text-[#93c5fd]"
-                      : "bg-[#ff385c]/10 text-[#ff385c]"
+                      ? "bg-[#003580]/20 text-sky-300"
+                      : "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
                   }`}
                 >
                   {res.platform === "booking" ? "Booking" : "Airbnb"}
                 </span>
 
-                <span className="shrink-0 text-sm text-[#a0a0a8]">
+                <span className="shrink-0 text-sm text-[var(--ink-3)]">
                   {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
                 </span>
 
-                <span className="shrink-0 w-10 text-right text-xs text-[#71717a]">
+                <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
                   {dayCount(res.checkIn, res.checkOut)}{locale === "ru" ? "д" : "d"}
                 </span>
 
-                <span className="shrink-0 w-10 text-right text-xs text-[#71717a]">
+                <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
                   {res._count?.guests || 0}
-                  <span className="ml-0.5 text-[#333338]">{locale === "ru" ? "г" : "g"}</span>
+                  <span className="ml-0.5 text-[var(--ink-4)]">{locale === "ru" ? "г" : "g"}</span>
                 </span>
 
-                <svg className="h-4 w-4 shrink-0 text-[#333338]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
               </div>
@@ -448,8 +448,8 @@ export function Dashboard({
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-[#27272b] py-16 text-center">
-          <p className="text-sm text-[#71717a]">
+        <div className="rounded-lg border border-dashed border-[var(--line)] py-16 text-center">
+          <p className="text-sm text-[var(--ink-4)]">
             {selectedProperty
               ? t("dashboard.noReservations")
               : t("dashboard.noReservationsGlobal")}
@@ -459,21 +459,21 @@ export function Dashboard({
 
       {/* Recent Activity */}
       {properties.length > 0 && (activity.length > 0 || loadingActivity) && (
-        <div className="rounded-lg border border-[#27272b] bg-[#18181b]">
-          <div className="flex items-center justify-between border-b border-[#27272b] px-4 py-3">
-            <h2 className="text-xs font-medium text-[#a0a0a8]">
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+          <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
+            <h2 className="text-xs font-medium text-[var(--ink-3)]">
               {locale === "ru" ? "Недавняя активность" : "Recent activity"}
             </h2>
             <button
               onClick={fetchActivity}
-              className="text-[10px] text-[#71717a] hover:text-[#d4d4d8]"
+              className="text-[10px] text-[var(--ink-4)] hover:text-[var(--ink-2)]"
               title={locale === "ru" ? "Обновить" : "Refresh"}
             >
               {loadingActivity ? (locale === "ru" ? "Загрузка..." : "Loading...") : (locale === "ru" ? "Обновить" : "Refresh")}
             </button>
           </div>
           {activity.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-[#71717a]">
+            <p className="px-4 py-6 text-center text-xs text-[var(--ink-4)]">
               {locale === "ru" ? "Активности пока нет" : "No activity yet"}
             </p>
           ) : (
@@ -489,12 +489,12 @@ export function Dashboard({
                   : (locale === "ru" ? `${Math.floor(diffMin / (60 * 24))} дн. назад` : `${Math.floor(diffMin / (60 * 24))}d ago`);
                 const dotClass =
                   item.level === "error"
-                    ? "bg-[#ef4444]"
+                    ? "bg-rose-500"
                     : item.level === "warn"
-                    ? "bg-[#fbbf24]"
+                    ? "bg-amber-400"
                     : item.level === "success"
-                    ? "bg-[#34d399]"
-                    : "bg-[#71717a]";
+                    ? "bg-emerald-500"
+                    : "bg-[var(--ink-4)]";
                 const clickable = item.kind === "audit" && item.resourceType === "reservation" && item.resourceId && item.propertyId;
                 const onClick = clickable
                   ? () => handleRowClick(item.propertyId!, item.resourceId!)
@@ -504,21 +504,21 @@ export function Dashboard({
                 return (
                   <li
                     key={item.id}
-                    className={`flex items-start gap-3 border-b border-[#27272b]/50 px-4 py-2.5 last:border-b-0 ${
-                      onClick ? "cursor-pointer hover:bg-[#1e1e22]" : ""
+                    className={`flex items-start gap-3 border-b border-[var(--line)]/50 px-4 py-2.5 last:border-b-0 ${
+                      onClick ? "cursor-pointer hover:bg-[var(--bg-3)]" : ""
                     }`}
                     onClick={onClick}
                   >
                     <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${dotClass}`} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-[#e8e8ec]">
+                      <p className="text-xs text-[var(--ink)]">
                         {item.summary}
                         {item.propertyName && (
-                          <span className="ml-1 text-[#71717a]">· {item.propertyName}</span>
+                          <span className="ml-1 text-[var(--ink-4)]">· {item.propertyName}</span>
                         )}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[11px] text-[#71717a]" title={ts.toLocaleString()}>
+                    <span className="shrink-0 text-[11px] text-[var(--ink-4)]" title={ts.toLocaleString()}>
                       {relative}
                     </span>
                   </li>
