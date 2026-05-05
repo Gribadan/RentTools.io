@@ -27,6 +27,11 @@ export interface ExtendableBooking {
   name: string;
   platform: string;
   eventUid?: string;
+  /** Original stay window of the booking we're appending to —
+   *  shown in the panel so the host sees the full context (e.g.
+   *  "Iain · May 3 → May 9") instead of the bare iCal SUMMARY. */
+  bookingStart: string;
+  bookingEnd: string;
   side: "before" | "after";
 }
 
@@ -35,6 +40,11 @@ interface BulkCounts {
   openOverride: number;
   closedOverride: number;
   cleaningOverride: number;
+  /** Selected dates that are auto-flagged unavailable by the system
+   *  (buffer / same-day cleaning / unbookable / potential cleaning).
+   *  Used to decide whether the bulk "Make available" action makes
+   *  sense — without this we would show it on already-free dates. */
+  autoBlocked: number;
 }
 
 interface DateActionsPanelProps {
@@ -43,7 +53,15 @@ interface DateActionsPanelProps {
   /** When exactly one date is selected, single-date detail. */
   singleDate: string | null;
   singleDateBars: DateBarInfo[];
-  singleExtendable: ExtendableBooking[];
+  /** Bookings the WHOLE selection could be appended to (extend
+   *  before / after). For a single-date selection this is the same
+   *  set the per-date popup used to compute. For a multi-date
+   *  contiguous selection these are bookings whose start equals
+   *  last+1 or whose end equals first. */
+  extendable: ExtendableBooking[];
+  /** Whether the multi-date selection is contiguous — drives whether
+   *  Create reservation / Extend booking are offered. */
+  isContiguousRange: boolean;
   singleStatus: DateStatus | null;
   /** Aggregate flags across the entire selection — drives the bulk
    *  action list when 2+ dates are selected. */
@@ -79,7 +97,8 @@ export function DateActionsPopover({
   selectedDates,
   singleDate,
   singleDateBars,
-  singleExtendable,
+  extendable,
+  isContiguousRange,
   singleStatus,
   bulkCounts,
   onClose,
@@ -108,21 +127,18 @@ export function DateActionsPopover({
     setSubmitting(false);
   }, [selectedDates.join(",")]);
 
-  // Are the selected dates contiguous? Determines whether
-  // "Create reservation" makes sense (only contiguous can be a single
-  // booking). Sorted by buildDateBars caller already.
-  const isContiguous = (() => {
-    if (selectedDates.length <= 1) return true;
-    for (let i = 1; i < selectedDates.length; i++) {
-      const prev = new Date(selectedDates[i - 1] + "T12:00:00Z").getTime();
-      const cur = new Date(selectedDates[i] + "T12:00:00Z").getTime();
-      const dayMs = 24 * 60 * 60 * 1000;
-      if (Math.round((cur - prev) / dayMs) !== 1) return false;
-    }
-    return true;
-  })();
+  // Use the contiguous-range flag passed in by the wrapper (shared
+  // with the extendable computation so they stay consistent).
+  const isContiguous = isContiguousRange;
 
   const allUnbooked = bulkCounts.booked === 0;
+  // Has anything in the selection that "Make available" would
+  // actually unblock — without this the bulk panel would offer the
+  // action on dates that are already free.
+  const someNeedsOpening =
+    bulkCounts.closedOverride > 0 ||
+    bulkCounts.cleaningOverride > 0 ||
+    bulkCounts.autoBlocked > 0;
 
   // Single-date mode header status text — matches old per-date popup.
   const singleStatusText = (() => {
@@ -195,8 +211,20 @@ export function DateActionsPopover({
       const turnoverNeedsCleaning = cleaningBetweenIndex >= 0 && !singleStatus.isManualCleaning;
       const lScheduleConfirm = locale === "ru" ? "Подтвердить уборку между бронированиями." : "Confirm a cleaning slot between the two stays.";
       const lRemoveCleaningDesc = locale === "ru" ? "Вернуть автоматическое определение." : "Go back to the auto-detected hint.";
+      const lCancelCleaning = locale === "ru" ? "Отменить уборку" : "Cancel cleaning";
+      const lCancelCleaningDesc = locale === "ru"
+        ? "Освободить дату от уборки — выберите другой день."
+        : "Free this date from the cleaning — schedule it on another day.";
       if (turnoverNeedsCleaning) return [{ kind: "scheduleCleaning", label: lSchedule, description: lScheduleConfirm, tone: "cleaning", onClick: onScheduleCleaning }];
       if (singleStatus.isManualCleaning) return [{ kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride }];
+      // Booked date that ALSO carries an auto cleaning chip (e.g.
+      // sameDayCleaning on a checkout day, or buffer extension days
+      // where the day is part of an iCal "Not available" block).
+      // The user can cancel the cleaning on this specific day; the
+      // cleaning would happen elsewhere instead.
+      if (singleStatus.isSameDayCleaning) {
+        return [{ kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
+      }
       return [];
     }
     if (singleStatus.isManualCleaning) {
@@ -244,7 +272,12 @@ export function DateActionsPopover({
     if (allUnbooked) {
       out.push({ kind: "block", label: lBlockAll, tone: "block", onClick: onCloseDate });
       out.push({ kind: "scheduleCleaning", label: lScheduleAll, tone: "cleaning", onClick: onScheduleCleaning });
-      out.push({ kind: "openForBooking", label: lOpenAll, tone: "open", onClick: onOpenDate });
+      // "Make available" only when at least one selected date is
+      // actually unavailable — otherwise the action is a no-op on
+      // already-free days.
+      if (someNeedsOpening) {
+        out.push({ kind: "openForBooking", label: lOpenAll, tone: "open", onClick: onOpenDate });
+      }
     }
     if (bulkCounts.openOverride + bulkCounts.closedOverride + bulkCounts.cleaningOverride > 0) {
       out.push({ kind: "removeOverride", label: lResetAll, tone: "neutral", onClick: onRemoveOverride });
@@ -282,9 +315,11 @@ export function DateActionsPopover({
           </svg>
         );
       case "scheduleCleaning":
+        // Sparkles glyph — reads as "make this clean / sparkly"
+        // and works for both auto-cleaning and manual scheduling.
         return (
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
           </svg>
         );
       case "openForBooking":
@@ -547,29 +582,55 @@ export function DateActionsPopover({
           <div className="px-2.5 py-2.5">
             {singleDate ? renderActionsList(singleActions) : renderActionsList(bulkActions)}
 
-            {/* Single-date extend booking section (unchanged) */}
-            {singleDate && singleStatus && !singleStatus.hasBar && singleExtendable.length > 0 && (
-              <div className="mt-2 border-t border-[var(--line)] pt-2">
-                <div className="px-3 py-1.5 text-[11px] uppercase tracking-wide text-[var(--ink-4)]">
-                  {t("dateActions.extendDesc")}
+            {/* Extend booking — works for single-date OR multi-date
+                contiguous selection. Each card shows the platform
+                pill, the guest name, the original stay window and a
+                "Extend by N nights" CTA so the host knows exactly
+                what they're appending to before clicking. */}
+            {extendable.length > 0 && bulkCounts.booked === 0 && isContiguous && (
+              <div className="mt-2 border-t border-[var(--line)] pt-2 px-1.5">
+                <div className="px-1.5 py-1.5 text-[11px] uppercase tracking-wide text-[var(--ink-4)]">
+                  {locale === "ru" ? "Привязать к существующей броне" : "Link to an existing booking"}
                 </div>
-                {singleExtendable.map((b, i) => (
-                  <button
-                    key={i}
-                    onClick={() => onExtendBooking(b)}
-                    className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-left text-[var(--ink)] hover:bg-[var(--bg-3)]"
-                  >
-                    <span
-                      className="h-3 w-3 shrink-0 rounded"
-                      style={{
-                        backgroundColor: b.platform === "booking" ? "#003580" : "#ff385c",
-                        backgroundImage: "repeating-linear-gradient(-45deg, transparent 0 3px, rgba(255,255,255,0.25) 3px 4px)",
-                      }}
-                    />
-                    <span className="flex-1 truncate">{b.name}</span>
-                    <span className="text-[10px] text-[var(--ink-4)]">{b.side === "before" ? "→" : "←"}</span>
-                  </button>
-                ))}
+                {extendable.map((b, i) => {
+                  const platformColor = b.platform === "booking" ? "#003580" : "#ff385c";
+                  const platformLabel = b.platform === "booking" ? "Booking" : b.platform === "airbnb" ? "Airbnb" : b.platform;
+                  const nights = selectedDates.length;
+                  const sideLabel = b.side === "before"
+                    ? (locale === "ru" ? "перед заездом" : "before check-in")
+                    : (locale === "ru" ? "после выезда" : "after check-out");
+                  const nightsLabel = nights === 1
+                    ? (locale === "ru" ? "ночь" : "night")
+                    : (locale === "ru" ? "ночей" : "nights");
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => onExtendBooking(b)}
+                      className="w-full mb-1.5 last:mb-0 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--bg-3)]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+                          style={{ backgroundColor: platformColor }}
+                        >
+                          {platformLabel}
+                        </span>
+                        <span className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--ink)]">{b.name}</span>
+                        <svg className="h-3.5 w-3.5 shrink-0 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d={b.side === "before" ? "M8.25 4.5l7.5 7.5-7.5 7.5" : "M15.75 19.5L8.25 12l7.5-7.5"} />
+                        </svg>
+                      </div>
+                      <div className="mt-1 text-[11px] text-[var(--ink-3)]">
+                        {locale === "ru" ? "Бронь" : "Stay"}: <span className="text-[var(--ink-2)]">{formatShort(b.bookingStart)} → {formatShort(b.bookingEnd)}</span>
+                      </div>
+                      <div className="mt-0.5 text-[11px] font-medium text-[var(--m-accent)]">
+                        {locale === "ru"
+                          ? `Добавить ${nights} ${nightsLabel} ${sideLabel}`
+                          : `Add ${nights} ${nightsLabel} ${sideLabel}`}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@
 import type { Property } from "@/lib/types";
 import { DateActionsPopover, type DateBarInfo, type ExtendableBooking } from "@/components/date-actions-popover";
 import { getExtendableBookings } from "./extendable-bookings";
+import { addDaysStr } from "./utils";
 import type { CalendarBar, CalendarEvent } from "./types";
 
 interface CalendarDatePopoverProps {
@@ -23,7 +24,7 @@ interface CalendarDatePopoverProps {
   onRemoveSingleOverride: (dateStr: string) => void;
   onSetBulkOverride: (type: "open" | "closed" | "cleaning") => void;
   onRemoveBulkOverride: () => void;
-  onExtendBooking: (dateStr: string, b: ExtendableBooking) => void;
+  onExtendBooking: (rangeStart: string, rangeEnd: string, b: ExtendableBooking) => void;
   onCreateReservation: (data: { name: string; platform: string }) => void;
 }
 
@@ -86,18 +87,54 @@ export function CalendarDatePopover({
   // aggregated counts to surface bulk actions.
   const singleDate = sortedDates.length === 1 ? sortedDates[0] : null;
   const singleDateBars = singleDate ? buildDateBars(singleDate, bars) : [];
-  const singleExtendable = singleDate ? getExtendableBookings(singleDate, syncedEvents, reservations) : [];
+
+  // Detect whether the selection is a contiguous date range — only
+  // contiguous selections can be appended to a booking as a single
+  // multi-night extension. Non-contiguous selections suppress the
+  // extend-booking section entirely.
+  let isContiguousRange = true;
+  for (let i = 1; i < sortedDates.length; i++) {
+    if (addDaysStr(sortedDates[i - 1], 1) !== sortedDates[i]) {
+      isContiguousRange = false;
+      break;
+    }
+  }
+  // For contiguous selections (including single dates) we ask the
+  // helper for events / reservations that abut the WHOLE range,
+  // not just a single click target. With a 2-day selection the
+  // helper finds the booking whose startDate equals last+1 (extend
+  // before) or whose endDate equals first (extend after).
+  const extendable =
+    sortedDates.length > 0 && isContiguousRange
+      ? getExtendableBookings(sortedDates[0], sortedDates[sortedDates.length - 1], syncedEvents, reservations)
+      : [];
 
   // Aggregate flags across the selection.
   let countBooked = 0;
   let countOpenOverride = 0;
   let countClosedOverride = 0;
   let countCleaningOverride = 0;
+  let countAutoBlocked = 0;
   for (const d of sortedDates) {
     if (bars.some((b) => d >= b.startDate && d <= b.endDate)) countBooked++;
     if (openOverrides.has(d)) countOpenOverride++;
     if (closedOverrides.has(d)) countClosedOverride++;
     if (cleaningOverrides.has(d)) countCleaningOverride++;
+    // Auto-blocked = the system would flag the date as
+    // unbookable / cleaning even without an explicit override
+    // (buffer days, same-day cleaning, min-nights gap, potential
+    // cleaning). "Make available" only makes sense if at least
+    // one selected date falls into one of these — without the
+    // count we'd surface the action on dates that are already
+    // available.
+    if (
+      bufferDates.has(d) ||
+      sameDayCleaningDates.has(d) ||
+      unbookableDates.has(d) ||
+      potentialDates.has(d)
+    ) {
+      countAutoBlocked++;
+    }
   }
 
   return (
@@ -105,7 +142,8 @@ export function CalendarDatePopover({
       selectedDates={sortedDates}
       singleDate={singleDate}
       singleDateBars={singleDateBars}
-      singleExtendable={singleExtendable}
+      extendable={extendable}
+      isContiguousRange={isContiguousRange}
       singleStatus={
         singleDate
           ? {
@@ -125,6 +163,7 @@ export function CalendarDatePopover({
         openOverride: countOpenOverride,
         closedOverride: countClosedOverride,
         cleaningOverride: countCleaningOverride,
+        autoBlocked: countAutoBlocked,
       }}
       onClose={onClose}
       onToggleDate={onToggleDate}
@@ -140,7 +179,12 @@ export function CalendarDatePopover({
       onRemoveOverride={() =>
         singleDate ? onRemoveSingleOverride(singleDate) : onRemoveBulkOverride()
       }
-      onExtendBooking={(b) => singleDate && onExtendBooking(singleDate, b)}
+      onExtendBooking={(b) =>
+        // For multi-day, use the full selected range. For single
+        // date, this collapses to (date, date+1) — same 1-night
+        // extension as before.
+        onExtendBooking(sortedDates[0], sortedDates[sortedDates.length - 1], b)
+      }
       onCreateReservation={onCreateReservation}
     />
   );

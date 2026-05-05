@@ -146,14 +146,18 @@ export function PropertyCalendar({
     clearSelection();
   };
 
-  const extendBooking = async (dateStr: string, booking: ExtendableBooking) => {
+  const extendBooking = async (rangeStart: string, rangeEnd: string, booking: ExtendableBooking) => {
+    // For a contiguous selection covering N nights, the extension
+    // reservation runs from the first selected date to the last + 1
+    // day. linkedEventUid still points at the original booking so
+    // the calendar pairs them as one continuous stay.
     await fetch(`/api/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: booking.name,
-        checkIn: dateStr,
-        checkOut: addDaysStr(dateStr, 1),
+        checkIn: rangeStart,
+        checkOut: addDaysStr(rangeEnd, 1),
         platform: booking.platform,
         propertyId: property.id,
         linkedEventUid: booking.eventUid,
