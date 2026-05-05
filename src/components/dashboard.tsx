@@ -191,6 +191,11 @@ export function Dashboard({
     }
   }, [selectedProperty, properties.length, onAddProperty]);
 
+  // Per-property mode: keep the original "newest booking first" sort
+  // (the per-property reservation list is more about audit-trail than
+  // daily-ops planning). Global mode: sort upcoming-first so a returning
+  // host sees what's happening today + this week at the top of the page.
+  // RT-25.6 tick 3.
   const allReservations = selectedProperty
     ? selectedProperty.reservations
         .map((r) => ({ ...r, propertyName: selectedProperty.name, propertyId: selectedProperty.id }))
@@ -202,13 +207,59 @@ export function Dashboard({
             propertyName: p.name,
             propertyId: p.id,
           }))
-        )
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        );
+
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const sevenDaysOutStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+
+  // Bucket the global-mode list. A reservation counts as "upcoming this
+  // week" if today falls between checkIn and checkOut (active now) OR
+  // checkIn is within the next 7 days. Past = already checked out.
+  const { next7, later, past } = useMemo(() => {
+    if (selectedProperty) {
+      return { next7: [], later: [], past: [] as typeof allReservations };
+    }
+    const next7Bucket: typeof allReservations = [];
+    const laterBucket: typeof allReservations = [];
+    const pastBucket: typeof allReservations = [];
+    for (const r of allReservations) {
+      if (r.checkOut < todayStr) {
+        pastBucket.push(r);
+      } else if (r.checkIn < sevenDaysOutStr) {
+        next7Bucket.push(r);
+      } else {
+        laterBucket.push(r);
+      }
+    }
+    next7Bucket.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+    laterBucket.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
+    pastBucket.sort((a, b) => b.checkOut.localeCompare(a.checkOut));
+    return { next7: next7Bucket, later: laterBucket, past: pastBucket };
+  }, [allReservations, selectedProperty, todayStr, sevenDaysOutStr]);
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
+
+  // When searching, flatten all buckets and filter — sectioning only
+  // makes sense for the daily-ops scan, not for "find a guest by name".
+  // Per-property mode also stays flat (preserves prior behavior).
+  const sortedFlat = useMemo(() => {
+    if (selectedProperty) return allReservations;
+    return [...next7, ...later, ...past];
+  }, [selectedProperty, allReservations, next7, later, past]);
+
   const displayReservations = trimmedQuery
-    ? allReservations.filter((r) => r.name.toLowerCase().includes(trimmedQuery))
-    : allReservations;
+    ? sortedFlat.filter((r) => r.name.toLowerCase().includes(trimmedQuery))
+    : sortedFlat;
+
+  const [showPast, setShowPast] = useState(false);
+  const useSections = !selectedProperty && !trimmedQuery && (next7.length + later.length + past.length) > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -451,11 +502,13 @@ export function Dashboard({
       )}
 
       {/* Reservations List */}
-      {displayReservations.length > 0 ? (
+      {displayReservations.length > 0 || (useSections && past.length > 0) ? (
         <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
           <div className="border-b border-[var(--line)] px-4 py-3">
             <h2 className="text-xs font-medium text-[var(--ink-3)]">
-              {selectedProperty ? t("dashboard.reservations") : t("dashboard.recentReservations")}
+              {selectedProperty
+                ? t("dashboard.reservations")
+                : t("dashboard.upcomingReservations")}
               {trimmedQuery && (
                 <span className="ml-2 text-[var(--ink-4)]">
                   · {displayReservations.length} {locale === "ru" ? "найдено" : "found"}
@@ -463,56 +516,101 @@ export function Dashboard({
               )}
             </h2>
           </div>
-          <div>
-            {displayReservations.map((res, i) => (
-              <div
-                key={res.id}
-                onClick={() => handleRowClick(res.propertyId, res.id)}
-                className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--bg-3)] ${
-                  i < displayReservations.length - 1 ? "border-b border-[var(--line)]/50" : ""
-                }`}
-              >
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: platformColor(res.platform) }}
+          {useSections ? (
+            <div>
+              {next7.length > 0 && (
+                <>
+                  {(later.length > 0 || past.length > 0) && (
+                    <ReservationSectionHeader label={t("calendar.next7Days")} />
+                  )}
+                  {next7.map((res, i) => (
+                    <ReservationRow
+                      key={res.id}
+                      res={res}
+                      isLast={i === next7.length - 1 && later.length === 0 && (!showPast || past.length === 0)}
+                      hideProperty={false}
+                      formatDate={formatDate}
+                      dayCount={dayCount}
+                      locale={locale}
+                      onClick={() => handleRowClick(res.propertyId, res.id)}
+                      muted={false}
+                    />
+                  ))}
+                </>
+              )}
+              {later.length > 0 && (
+                <>
+                  <ReservationSectionHeader label={t("calendar.later")} />
+                  {later.map((res, i) => (
+                    <ReservationRow
+                      key={res.id}
+                      res={res}
+                      isLast={i === later.length - 1 && (!showPast || past.length === 0)}
+                      hideProperty={false}
+                      formatDate={formatDate}
+                      dayCount={dayCount}
+                      locale={locale}
+                      onClick={() => handleRowClick(res.propertyId, res.id)}
+                      muted={false}
+                    />
+                  ))}
+                </>
+              )}
+              {past.length > 0 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowPast((v) => !v)}
+                    className="flex w-full items-center justify-between border-b border-[var(--line)]/50 bg-[var(--bg-3)]/40 px-4 py-1.5 text-left transition-colors hover:bg-[var(--bg-3)]/70"
+                  >
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
+                      {showPast
+                        ? t("dashboard.hidePast")
+                        : t("dashboard.showPast").replace("{n}", String(past.length))}
+                    </span>
+                    <svg
+                      className={`h-3.5 w-3.5 text-[var(--ink-4)] transition-transform ${showPast ? "rotate-180" : ""}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </button>
+                  {showPast && past.map((res, i) => (
+                    <ReservationRow
+                      key={res.id}
+                      res={res}
+                      isLast={i === past.length - 1}
+                      hideProperty={false}
+                      formatDate={formatDate}
+                      dayCount={dayCount}
+                      locale={locale}
+                      onClick={() => handleRowClick(res.propertyId, res.id)}
+                      muted={true}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          ) : (
+            <div>
+              {displayReservations.map((res, i) => (
+                <ReservationRow
+                  key={res.id}
+                  res={res}
+                  isLast={i === displayReservations.length - 1}
+                  hideProperty={Boolean(selectedProperty)}
+                  formatDate={formatDate}
+                  dayCount={dayCount}
+                  locale={locale}
+                  onClick={() => handleRowClick(res.propertyId, res.id)}
+                  muted={false}
                 />
-
-                <div className="min-w-0 flex-1">
-                  <span className="text-sm font-medium text-[var(--ink)]">{res.name}</span>
-                </div>
-
-                {!selectedProperty && (
-                  <span className="hidden text-sm text-[var(--ink-3)] sm:block">
-                    {res.propertyName}
-                  </span>
-                )}
-
-                <span
-                  className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ink-2)]"
-                  style={{ backgroundColor: `${platformColor(res.platform)}26` }}
-                >
-                  {platformDisplayName(res.platform)}
-                </span>
-
-                <span className="shrink-0 text-sm text-[var(--ink-3)]">
-                  {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
-                </span>
-
-                <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
-                  {dayCount(res.checkIn, res.checkOut)}{locale === "ru" ? "д" : "d"}
-                </span>
-
-                <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
-                  {res._count?.guests || 0}
-                  <span className="ml-0.5 text-[var(--ink-4)]">{locale === "ru" ? "г" : "g"}</span>
-                </span>
-
-                <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-[var(--line)] py-16 text-center">
@@ -535,6 +633,86 @@ export function Dashboard({
           onOverrideChanged={fetchAllCalendarData}
         />
       )}
+    </div>
+  );
+}
+
+function ReservationSectionHeader({ label }: { label: string }) {
+  return (
+    <div className="border-b border-[var(--line)]/50 bg-[var(--bg-3)]/40 px-4 py-1.5">
+      <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+interface ReservationRowProps {
+  res: {
+    id: number;
+    name: string;
+    platform: string;
+    checkIn: string;
+    checkOut: string;
+    propertyName: string;
+    propertyId: number;
+    _count?: { guests: number };
+  };
+  isLast: boolean;
+  hideProperty: boolean;
+  formatDate: (d: string) => string;
+  dayCount: (a: string, b: string) => number;
+  locale: string;
+  onClick: () => void;
+  muted: boolean;
+}
+
+function ReservationRow({ res, isLast, hideProperty, formatDate, dayCount, locale, onClick, muted }: ReservationRowProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--bg-3)] ${
+        !isLast ? "border-b border-[var(--line)]/50" : ""
+      } ${muted ? "opacity-60" : ""}`}
+    >
+      <span
+        className="h-2.5 w-2.5 shrink-0 rounded-full"
+        style={{ backgroundColor: platformColor(res.platform) }}
+      />
+
+      <div className="min-w-0 flex-1">
+        <span className="text-sm font-medium text-[var(--ink)]">{res.name}</span>
+      </div>
+
+      {!hideProperty && (
+        <span className="hidden text-sm text-[var(--ink-3)] sm:block">
+          {res.propertyName}
+        </span>
+      )}
+
+      <span
+        className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ink-2)]"
+        style={{ backgroundColor: `${platformColor(res.platform)}26` }}
+      >
+        {platformDisplayName(res.platform)}
+      </span>
+
+      <span className="shrink-0 text-sm text-[var(--ink-3)]">
+        {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
+      </span>
+
+      <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
+        {dayCount(res.checkIn, res.checkOut)}{locale === "ru" ? "д" : "d"}
+      </span>
+
+      <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
+        {res._count?.guests || 0}
+        <span className="ml-0.5 text-[var(--ink-4)]">{locale === "ru" ? "г" : "g"}</span>
+      </span>
+
+      <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
     </div>
   );
 }
