@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { getSetting } from "@/lib/site-settings";
 import { GoogleOneTap } from "@/components/google-one-tap";
 import { JsonLd } from "@/components/json-ld";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
@@ -70,6 +71,7 @@ export default async function HomePage() {
             >
               Sign in
             </Link>
+            <LocaleSwitcher />
           </nav>
         </div>
       </header>

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { GoogleOneTap } from "@/components/google-one-tap";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 // Only allow same-origin redirects (must start with "/" but not "//")
 function safeNext(raw: string | null): string {
@@ -26,7 +27,7 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -144,20 +145,8 @@ function LoginPageInner() {
           </Link>
         </p>
 
-        {/* Language selector */}
-        <div className="mt-4 flex justify-center gap-2">
-          <button
-            onClick={() => setLocale("ru")}
-            className={`rounded px-2.5 py-1 text-xs transition-colors ${locale === "ru" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:text-[#d4d4d8]"}`}
-          >
-            Русский
-          </button>
-          <button
-            onClick={() => setLocale("en")}
-            className={`rounded px-2.5 py-1 text-xs transition-colors ${locale === "en" ? "bg-[#1e1e22] text-[#e8e8ec]" : "text-[#71717a] hover:text-[#d4d4d8]"}`}
-          >
-            English
-          </button>
+        <div className="mt-4 flex justify-center">
+          <LocaleSwitcher variant="inline" reloadOnChange={false} />
         </div>
       </div>
     </div>

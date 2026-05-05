@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 const PRIVACY_TITLE = "Privacy Policy";
 const PRIVACY_DESCRIPTION =
@@ -38,6 +39,7 @@ export default function PrivacyPage() {
           <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
             <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>
             <Link href="/login" className="hover:text-[#e8e8ec]">Sign in</Link>
+            <LocaleSwitcher />
           </nav>
         </div>
       </header>

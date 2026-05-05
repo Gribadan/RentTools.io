@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PlatformInstructions } from "@/components/platform-instructions";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 interface DraftLink {
   platform: string;
@@ -90,9 +91,12 @@ export default function OnboardPage() {
             </div>
             <span className="text-base font-semibold">RentTools</span>
           </Link>
-          <Link href="/login" className="text-sm text-[#a0a0a8] hover:text-[#e8e8ec]">
-            Sign in
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="text-sm text-[#a0a0a8] hover:text-[#e8e8ec]">
+              Sign in
+            </Link>
+            <LocaleSwitcher />
+          </div>
         </div>
       </header>
 

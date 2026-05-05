@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 const TERMS_TITLE = "Terms of Service";
 const TERMS_DESCRIPTION = "Terms of service for the free hosted instance of RentTools at renttools.io.";
@@ -37,6 +38,7 @@ export default function TermsPage() {
           <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
             <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>
             <Link href="/login" className="hover:text-[#e8e8ec]">Sign in</Link>
+            <LocaleSwitcher />
           </nav>
         </div>
       </header>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 
 // Footer for the logged-in app shell — Privacy, Terms, GitHub source, and
 // optionally a "Need help?" support email when the admin has set one.
@@ -47,6 +48,7 @@ export function SupportFooter() {
             Need help? {email}
           </a>
         )}
+        <LocaleSwitcher variant="inline" reloadOnChange={false} />
       </nav>
     </div>
   );
