@@ -17,6 +17,66 @@ function mintShareToken(): string {
   return randomBytes(24).toString("base64url");
 }
 
+interface AnswerOut {
+  fieldId: string;
+  type: string;
+  label: string;
+  value: unknown;
+}
+
+// Read-only — return current submission state (or null) without
+// creating one. Used by reservation-view to know whether to show
+// "Not sent" / "Awaiting" / submitted-answers panel.
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = await params;
+    const numId = parseInt(id);
+    if (isNaN(numId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: numId },
+      select: { id: true, propertyId: true },
+    });
+    if (!reservation) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!(await canManageProperty(reservation.propertyId, session.userId, session.role))) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const submission = await prisma.guestFormSubmission.findFirst({
+      where: { reservationId: numId },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!submission) return NextResponse.json({ submission: null });
+
+    let answers: AnswerOut[] = [];
+    try {
+      const parsed = JSON.parse(submission.answers);
+      if (Array.isArray(parsed)) answers = parsed as AnswerOut[];
+    } catch {
+      // malformed JSON — treat as empty
+    }
+
+    return NextResponse.json({
+      submission: {
+        shareToken: submission.shareToken,
+        shareUrl: `/g/${submission.shareToken}`,
+        sentAt: submission.createdAt,
+        submittedAt: submission.submittedAt,
+        answers: submission.submittedAt ? answers : [],
+      },
+    });
+  } catch (err) {
+    console.error("Route error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

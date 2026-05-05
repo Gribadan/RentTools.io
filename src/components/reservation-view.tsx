@@ -86,6 +86,12 @@ export function ReservationView({
   const [hasGuestForm, setHasGuestForm] = useState(false);
   const [guestFormSending, setGuestFormSending] = useState(false);
   const [guestFormCopyState, setGuestFormCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [guestFormSubmission, setGuestFormSubmission] = useState<{
+    shareUrl: string;
+    sentAt: string;
+    submittedAt: string | null;
+    answers: { fieldId: string; type: string; label: string; value: unknown }[];
+  } | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const templateMenuRef = useRef<HTMLDivElement>(null);
 
@@ -126,6 +132,21 @@ export function ReservationView({
     };
   }, [reservation.propertyId]);
 
+  const refreshGuestFormSubmission = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/reservations/${reservation.id}/guest-form/share`);
+      if (!res.ok) return;
+      const d = await res.json();
+      setGuestFormSubmission(d.submission ?? null);
+    } catch {
+      // ignore
+    }
+  }, [reservation.id]);
+
+  useEffect(() => {
+    refreshGuestFormSubmission();
+  }, [refreshGuestFormSubmission]);
+
   const sendGuestForm = async () => {
     setGuestFormSending(true);
     setGuestFormCopyState("idle");
@@ -146,9 +167,43 @@ export function ReservationView({
       } catch {
         setGuestFormCopyState("error");
       }
+      refreshGuestFormSubmission();
     } finally {
       setGuestFormSending(false);
     }
+  };
+
+  const guestFormStatusLabel = (): string | null => {
+    if (!guestFormSubmission) return null;
+    if (guestFormSubmission.submittedAt) {
+      const days = Math.max(
+        0,
+        Math.round(
+          (Date.now() - new Date(guestFormSubmission.submittedAt).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+      );
+      return days === 0
+        ? "Submitted today"
+        : `Submitted ${days} day${days === 1 ? "" : "s"} ago`;
+    }
+    const days = Math.max(
+      0,
+      Math.round(
+        (Date.now() - new Date(guestFormSubmission.sentAt).getTime()) /
+          (1000 * 60 * 60 * 24)
+      )
+    );
+    return days === 0 ? "Sent today, awaiting" : `Sent ${days} day${days === 1 ? "" : "s"} ago, awaiting`;
+  };
+
+  const renderGuestFormAnswerValue = (a: { type: string; value: unknown }) => {
+    if (a.value === null || a.value === undefined || a.value === "") {
+      return <span className="text-muted-foreground italic">No answer</span>;
+    }
+    if (Array.isArray(a.value)) return a.value.join(", ");
+    if (a.type === "yes-no") return a.value === "yes" ? "Yes" : "No";
+    return String(a.value);
   };
 
   const formatIsoDate = (s: string) => new Date(s).toISOString().split("T")[0];
@@ -471,7 +526,8 @@ export function ReservationView({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Pre-arrival form</p>
             <p className="text-xs text-muted-foreground">
-              Send the guest a link to fill in their pre-arrival questions.
+              {guestFormStatusLabel() ??
+                "Send the guest a link to fill in their pre-arrival questions."}
             </p>
           </div>
           <Button
@@ -488,7 +544,9 @@ export function ReservationView({
                 ? "Link copied"
                 : guestFormCopyState === "error"
                   ? "Try again"
-                  : "Send pre-arrival form"}
+                  : guestFormSubmission
+                    ? "Copy link again"
+                    : "Send pre-arrival form"}
           </Button>
         </div>
       )}
@@ -723,6 +781,31 @@ export function ReservationView({
         onUpdateParent={onUpdateParent}
         onUpdateGuest={onUpdateGuest}
       />
+
+      {/* RT-25.2 — Pre-arrival answers panel. Renders the submitted
+          GuestFormSubmission keyed by the field labels captured at
+          submit time, so editing the template later does not change
+          history. */}
+      {guestFormSubmission?.submittedAt && guestFormSubmission.answers.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+          <h3 className="text-sm font-semibold">Pre-arrival answers</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {guestFormStatusLabel()}
+          </p>
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+            {guestFormSubmission.answers.map((a) => (
+              <div key={a.fieldId} className="rounded-md border border-border/40 bg-background/40 p-3">
+                <dt className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {a.label || a.fieldId}
+                </dt>
+                <dd className="mt-1 text-sm text-foreground break-words">
+                  {renderGuestFormAnswerValue(a)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
 
       {/* Extraction Log — below guests */}
       {logs.length > 0 && (
