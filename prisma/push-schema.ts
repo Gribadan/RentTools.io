@@ -499,6 +499,70 @@ CREATE INDEX IF NOT EXISTS "ExtractionLog_userId_createdAt_idx" ON "ExtractionLo
     }
   }
 
+  // BlogPost / BlogTag / BlogComment — RT-20.1 blog data model
+  const blogSchema = `
+CREATE TABLE IF NOT EXISTS "BlogPost" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "slug" TEXT NOT NULL,
+    "locale" TEXT NOT NULL DEFAULT 'en',
+    "title" TEXT NOT NULL,
+    "excerpt" TEXT NOT NULL DEFAULT '',
+    "body" TEXT NOT NULL DEFAULT '',
+    "status" TEXT NOT NULL DEFAULT 'draft',
+    "authorId" INTEGER NOT NULL,
+    "tagsJson" TEXT NOT NULL DEFAULT '[]',
+    "ogImageUrl" TEXT,
+    "publishedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "BlogPost_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "BlogPost_slug_locale_key" ON "BlogPost"("slug", "locale");
+CREATE INDEX IF NOT EXISTS "BlogPost_locale_status_publishedAt_idx" ON "BlogPost"("locale", "status", "publishedAt");
+CREATE INDEX IF NOT EXISTS "BlogPost_authorId_idx" ON "BlogPost"("authorId");
+
+CREATE TABLE IF NOT EXISTS "BlogTag" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "slug" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "locale" TEXT NOT NULL DEFAULT 'en',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "BlogTag_slug_locale_key" ON "BlogTag"("slug", "locale");
+
+CREATE TABLE IF NOT EXISTS "BlogComment" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "postId" INTEGER NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "body" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'visible',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "BlogComment_postId_fkey" FOREIGN KEY ("postId") REFERENCES "BlogPost" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "BlogComment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "BlogComment_postId_createdAt_idx" ON "BlogComment"("postId", "createdAt");
+CREATE INDEX IF NOT EXISTS "BlogComment_userId_idx" ON "BlogComment"("userId");
+CREATE INDEX IF NOT EXISTS "BlogComment_status_createdAt_idx" ON "BlogComment"("status", "createdAt");
+`;
+
+  const blogStatements = blogSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of blogStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // Seed default SiteSetting keys (idempotent — only inserts if missing)
   const siteSettingDefaults: Array<{ key: string; value: string }> = [
     { key: "signup_enabled", value: "true" },

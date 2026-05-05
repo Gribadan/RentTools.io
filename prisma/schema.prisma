@@ -24,6 +24,8 @@ model User {
   grantedManagers    PropertyManager[]    @relation("ManagerGrants")
   createdInvites     PropertyManagerInvite[] @relation("InviteCreators")
   acceptedInvites    PropertyManagerInvite[] @relation("InviteAcceptors")
+  blogPosts          BlogPost[]
+  blogComments       BlogComment[]
 }
 
 model AppSettings {
@@ -258,6 +260,65 @@ model OnboardingDraft {
   claimedAt       DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime?
+}
+
+// Blog post — one row per article per locale. Slug uniqueness is per
+// (slug, locale) so the EN and RU translations of the same post can
+// share a slug. tagsJson is a denormalised cache of BlogTag slugs for
+// fast list rendering; the canonical tag table is BlogTag (super-admin
+// can rename / merge tags there without touching every post).
+model BlogPost {
+  id          Int          @id @default(autoincrement())
+  slug        String
+  locale      String       @default("en") // "en" | "ru"
+  title       String
+  excerpt     String       @default("")  // 140-160 char meta-description summary
+  body        String       @default("")  // markdown
+  status      String       @default("draft") // "draft" | "published" | "archived"
+  authorId    Int
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tagsJson    String       @default("[]") // JSON array of BlogTag slugs
+  ogImageUrl  String?
+  publishedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime?
+  comments    BlogComment[]
+
+  @@unique([slug, locale])
+  @@index([locale, status, publishedAt])
+  @@index([authorId])
+}
+
+// Canonical tag table. Editing displayName here flows to the rendered
+// tag label everywhere; renaming the slug is supported but expensive
+// (super-admin tooling will handle the rewrite of every BlogPost.tagsJson).
+model BlogTag {
+  id          Int      @id @default(autoincrement())
+  slug        String
+  displayName String
+  locale      String   @default("en") // tags are per-locale (so "хосты" exists separately from "hosts")
+  createdAt   DateTime @default(now())
+
+  @@unique([slug, locale])
+}
+
+// Comment on a published blog post by a registered user. Status
+// transitions: visible (default) → hidden (super-admin moderation) →
+// deleted (soft delete, kept for audit). Hard-delete is not exposed.
+model BlogComment {
+  id        Int       @id @default(autoincrement())
+  postId    Int
+  post      BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body      String
+  status    String    @default("visible") // "visible" | "hidden" | "deleted"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime?
+
+  @@index([postId, createdAt])
+  @@index([userId])
+  @@index([status, createdAt])
 }
 
 // One row per /api/extract POST. Powers the daily per-user rate limit
