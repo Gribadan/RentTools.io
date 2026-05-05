@@ -90,6 +90,41 @@ const EMPTY_NEW_SEO: NewSeoDraft = {
   canonical: "",
 };
 
+interface AdminBlogPostRow {
+  id: number;
+  slug: string;
+  locale: string;
+  title: string;
+  excerpt: string;
+  status: string;
+  authorId: number;
+  authorUsername: string | null;
+  tags: string[];
+  ogImageUrl: string | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  commentCount: number;
+}
+
+interface NewBlogPostDraft {
+  title: string;
+  slug: string;
+  locale: "en" | "ru";
+  excerpt: string;
+}
+
+const EMPTY_NEW_BLOG_POST: NewBlogPostDraft = {
+  title: "",
+  slug: "",
+  locale: "en",
+  excerpt: "",
+};
+
+type BlogStatusFilter = "all" | "draft" | "published" | "archived";
+type BlogLocaleFilter = "all" | "en" | "ru";
+type BlogSortKey = "createdAt" | "title" | "status" | "locale" | "publishedAt" | "commentCount";
+
 type SortKey =
   | "username"
   | "role"
@@ -178,11 +213,25 @@ export function AdminPanel() {
   const [creatingSeo, setCreatingSeo] = useState(false);
   const [createSeoError, setCreateSeoError] = useState<string | null>(null);
 
+  const [blogPosts, setBlogPosts] = useState<AdminBlogPostRow[]>([]);
+  const [blogPostsLoading, setBlogPostsLoading] = useState(false);
+  const [blogPostsError, setBlogPostsError] = useState<string | null>(null);
+  const [blogPostBusy, setBlogPostBusy] = useState<number | null>(null);
+  const [blogPostMessage, setBlogPostMessage] = useState<{ id: number; text: string; ok: boolean } | null>(null);
+  const [blogStatusFilter, setBlogStatusFilter] = useState<BlogStatusFilter>("all");
+  const [blogLocaleFilter, setBlogLocaleFilter] = useState<BlogLocaleFilter>("all");
+  const [blogSortKey, setBlogSortKey] = useState<BlogSortKey>("createdAt");
+  const [blogSortDir, setBlogSortDir] = useState<SortDir>("desc");
+  const [newBlogPost, setNewBlogPost] = useState<NewBlogPostDraft>(EMPTY_NEW_BLOG_POST);
+  const [creatingBlogPost, setCreatingBlogPost] = useState(false);
+  const [createBlogPostError, setCreateBlogPostError] = useState<string | null>(null);
+
   useEffect(() => {
     void load();
     void loadUsers();
     void loadPlatforms();
     void loadSeoOverrides();
+    void loadBlogPosts();
   }, []);
 
   const load = async () => {
@@ -506,6 +555,133 @@ export function AdminPanel() {
       setCreatingSeo(false);
     }
   };
+
+  const loadBlogPosts = async () => {
+    setBlogPostsLoading(true);
+    setBlogPostsError(null);
+    try {
+      const res = await fetch("/api/admin/blog-posts");
+      if (!res.ok) {
+        setBlogPostsError(`Failed to load blog posts (${res.status})`);
+        return;
+      }
+      const data = (await res.json()) as AdminBlogPostRow[];
+      setBlogPosts(data);
+    } catch {
+      setBlogPostsError("Failed to load blog posts");
+    } finally {
+      setBlogPostsLoading(false);
+    }
+  };
+
+  const setBlogPostStatus = async (post: AdminBlogPostRow, nextStatus: string) => {
+    if (post.status === nextStatus) return;
+    setBlogPostBusy(post.id);
+    setBlogPostMessage(null);
+    try {
+      const res = await fetch(`/api/admin/blog-posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setBlogPostMessage({ id: post.id, text: data.error ?? "Failed to update", ok: false });
+        return;
+      }
+      setBlogPostMessage({ id: post.id, text: "Updated.", ok: true });
+      await loadBlogPosts();
+    } finally {
+      setBlogPostBusy(null);
+      setTimeout(
+        () => setBlogPostMessage((m) => (m && m.id === post.id ? null : m)),
+        4000,
+      );
+    }
+  };
+
+  const deleteBlogPost = async (post: AdminBlogPostRow) => {
+    const warn = post.commentCount > 0
+      ? `Delete "${post.title}"? This will also remove ${post.commentCount} comment(s). This cannot be undone.`
+      : `Delete "${post.title}"? This cannot be undone.`;
+    if (!confirm(warn)) return;
+    setBlogPostBusy(post.id);
+    try {
+      const res = await fetch(`/api/admin/blog-posts/${post.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setBlogPostMessage({ id: post.id, text: data.error ?? "Failed to delete", ok: false });
+        return;
+      }
+      await loadBlogPosts();
+    } finally {
+      setBlogPostBusy(null);
+    }
+  };
+
+  const createBlogPost = async () => {
+    setCreatingBlogPost(true);
+    setCreateBlogPostError(null);
+    try {
+      const res = await fetch("/api/admin/blog-posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newBlogPost),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setCreateBlogPostError(data.error ?? "Failed to create");
+        return;
+      }
+      setNewBlogPost(EMPTY_NEW_BLOG_POST);
+      await loadBlogPosts();
+    } finally {
+      setCreatingBlogPost(false);
+    }
+  };
+
+  const toggleBlogSort = (key: BlogSortKey) => {
+    if (blogSortKey === key) {
+      setBlogSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setBlogSortKey(key);
+      setBlogSortDir(key === "title" || key === "locale" || key === "status" ? "asc" : "desc");
+    }
+  };
+
+  const filteredBlogPosts = useMemo(() => {
+    let rows = blogPosts;
+    if (blogStatusFilter !== "all") {
+      rows = rows.filter((r) => r.status === blogStatusFilter);
+    }
+    if (blogLocaleFilter !== "all") {
+      rows = rows.filter((r) => r.locale === blogLocaleFilter);
+    }
+    const copy = [...rows];
+    copy.sort((a, b) => {
+      let cmp = 0;
+      if (blogSortKey === "title") cmp = a.title.localeCompare(b.title);
+      else if (blogSortKey === "status") cmp = a.status.localeCompare(b.status);
+      else if (blogSortKey === "locale") cmp = a.locale.localeCompare(b.locale);
+      else if (blogSortKey === "commentCount") cmp = a.commentCount - b.commentCount;
+      else if (blogSortKey === "publishedAt") {
+        const av = a.publishedAt ?? "";
+        const bv = b.publishedAt ?? "";
+        if (av === "" && bv === "") cmp = 0;
+        else if (av === "") cmp = -1;
+        else if (bv === "") cmp = 1;
+        else cmp = av.localeCompare(bv);
+      } else {
+        // createdAt
+        cmp = a.createdAt.localeCompare(b.createdAt);
+      }
+      return blogSortDir === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }, [blogPosts, blogStatusFilter, blogLocaleFilter, blogSortKey, blogSortDir]);
+
+  const blogSortIndicator = (key: BlogSortKey) =>
+    blogSortKey === key ? (blogSortDir === "asc" ? " ↑" : " ↓") : "";
 
   const exportData = async () => {
     setExporting(true);
@@ -1177,6 +1353,253 @@ export function AdminPanel() {
               className="h-9 rounded-lg px-4"
             >
               {creatingSeo ? "Adding…" : "Add override"}
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Admin · Blog · Posts
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-lg text-xs"
+            onClick={() => void loadBlogPosts()}
+            disabled={blogPostsLoading}
+          >
+            {blogPostsLoading ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <label className="text-xs text-muted-foreground" htmlFor="blog-status-filter">
+            Status
+          </label>
+          <select
+            id="blog-status-filter"
+            value={blogStatusFilter}
+            onChange={(e) => setBlogStatusFilter(e.target.value as BlogStatusFilter)}
+            className="h-8 rounded-lg border border-border/60 bg-background/50 px-2 text-xs"
+          >
+            <option value="all">All</option>
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+            <option value="archived">Archived</option>
+          </select>
+          <label className="ml-3 text-xs text-muted-foreground" htmlFor="blog-locale-filter">
+            Locale
+          </label>
+          <select
+            id="blog-locale-filter"
+            value={blogLocaleFilter}
+            onChange={(e) => setBlogLocaleFilter(e.target.value as BlogLocaleFilter)}
+            className="h-8 rounded-lg border border-border/60 bg-background/50 px-2 text-xs"
+          >
+            <option value="all">All</option>
+            <option value="en">en</option>
+            <option value="ru">ru</option>
+          </select>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filteredBlogPosts.length} of {blogPosts.length}
+          </span>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-card/50 p-2">
+          {blogPostsError && (
+            <p className="px-3 py-2 text-xs text-destructive">{blogPostsError}</p>
+          )}
+          {!blogPostsError && filteredBlogPosts.length === 0 && !blogPostsLoading && (
+            <p className="px-3 py-2 text-xs text-muted-foreground">
+              {blogPosts.length === 0
+                ? "No blog posts yet. Use the form below to create your first draft."
+                : "No posts match the current filters."}
+            </p>
+          )}
+          {filteredBlogPosts.length > 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogSort("title")}
+                        className="text-left hover:text-foreground"
+                      >
+                        Title{blogSortIndicator("title")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogSort("locale")}
+                        className="text-left hover:text-foreground"
+                      >
+                        Locale{blogSortIndicator("locale")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogSort("status")}
+                        className="text-left hover:text-foreground"
+                      >
+                        Status{blogSortIndicator("status")}
+                      </button>
+                    </TableHead>
+                    <TableHead>Author</TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogSort("createdAt")}
+                        className="text-left hover:text-foreground"
+                      >
+                        Created{blogSortIndicator("createdAt")}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogSort("publishedAt")}
+                        className="text-left hover:text-foreground"
+                      >
+                        Published{blogSortIndicator("publishedAt")}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => toggleBlogSort("commentCount")}
+                        className="hover:text-foreground"
+                      >
+                        Comments{blogSortIndicator("commentCount")}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredBlogPosts.map((post) => (
+                    <TableRow key={post.id}>
+                      <TableCell className="max-w-[280px]">
+                        <div className="truncate text-sm font-medium">{post.title}</div>
+                        <div className="truncate font-mono text-[10px] text-muted-foreground">
+                          /{post.locale === "en" ? "" : `${post.locale}/`}blog/{post.slug}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <span className="inline-flex items-center rounded-md bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                          {post.locale}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <select
+                          value={post.status}
+                          onChange={(e) => void setBlogPostStatus(post, e.target.value)}
+                          disabled={blogPostBusy === post.id}
+                          className="h-8 rounded-lg border border-border/60 bg-background/50 px-2 text-xs"
+                        >
+                          <option value="draft">Draft</option>
+                          <option value="published">Published</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {post.authorUsername ?? `#${post.authorId}`}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {formatDate(post.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {formatDate(post.publishedAt)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-xs">
+                        {post.commentCount}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 rounded-lg px-2 text-xs text-destructive hover:text-destructive"
+                          onClick={() => void deleteBlogPost(post)}
+                          disabled={blogPostBusy === post.id}
+                        >
+                          Delete
+                        </Button>
+                        {blogPostMessage?.id === post.id && (
+                          <p
+                            className={`mt-1 text-[10px] ${
+                              blogPostMessage.ok ? "text-primary" : "text-destructive"
+                            }`}
+                          >
+                            {blogPostMessage.text}
+                          </p>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 rounded-xl border border-border/60 bg-card/50 p-5">
+          <p className="mb-3 text-sm font-medium">New post</p>
+          <p className="mb-4 text-xs text-muted-foreground/70">
+            Creates a draft. The full editor (body, tags, OG image, translation pair)
+            ships in tick 2 — for now use this form to scaffold a post then PATCH the
+            body via API or wait for the editor.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <Input
+              value={newBlogPost.title}
+              onChange={(e) => setNewBlogPost((s) => ({ ...s, title: e.target.value }))}
+              placeholder="Title"
+              maxLength={200}
+              className="h-9 rounded-lg bg-background/50 text-sm"
+            />
+            <select
+              value={newBlogPost.locale}
+              onChange={(e) =>
+                setNewBlogPost((s) => ({ ...s, locale: e.target.value as "en" | "ru" }))
+              }
+              className="h-9 rounded-lg border border-border/60 bg-background/50 px-2 text-sm"
+            >
+              <option value="en">en</option>
+              <option value="ru">ru</option>
+            </select>
+          </div>
+          <div className="mt-3 grid gap-2">
+            <Input
+              value={newBlogPost.slug}
+              onChange={(e) => setNewBlogPost((s) => ({ ...s, slug: e.target.value }))}
+              placeholder="Slug (optional — derived from title if blank)"
+              maxLength={80}
+              className="h-9 rounded-lg bg-background/50 font-mono text-xs"
+            />
+            <textarea
+              value={newBlogPost.excerpt}
+              onChange={(e) => setNewBlogPost((s) => ({ ...s, excerpt: e.target.value }))}
+              placeholder="Excerpt (140-160 chars, used as meta description)"
+              maxLength={320}
+              rows={2}
+              className="rounded-lg border border-input bg-background/50 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+          </div>
+          <div className="mt-3 flex items-center justify-end gap-3">
+            {createBlogPostError && (
+              <span className="text-xs text-destructive">{createBlogPostError}</span>
+            )}
+            <Button
+              onClick={() => void createBlogPost()}
+              disabled={creatingBlogPost || newBlogPost.title.trim().length === 0}
+              className="h-9 rounded-lg px-4"
+            >
+              {creatingBlogPost ? "Creating…" : "Create draft"}
             </Button>
           </div>
         </div>
