@@ -60,7 +60,6 @@ export function PropertyCalendar({
 }: PropertyCalendarProps) {
   const { locale, t } = useI18n();
   const [popoverDate, setPopoverDate] = useState<string | null>(null);
-  const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
   const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
   const [claimAnchor, setClaimAnchor] = useState<DOMRect | null>(null);
   const [exportCopied, setExportCopied] = useState(false);
@@ -105,7 +104,24 @@ export function PropertyCalendar({
 
   const closePopover = () => {
     setPopoverDate(null);
-    setPopoverAnchor(null);
+  };
+
+  const createReservationOnDate = async (data: { name: string; nights: number; platform: string }) => {
+    if (!popoverDate) return;
+    const checkoutDate = addDaysStr(popoverDate, Math.max(1, data.nights));
+    await fetch(`/api/reservations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: data.name,
+        checkIn: popoverDate,
+        checkOut: checkoutDate,
+        platform: data.platform,
+        propertyId: property.id,
+      }),
+    });
+    closePopover();
+    window.location.reload();
   };
 
   const closeClaim = () => {
@@ -214,10 +230,8 @@ export function PropertyCalendar({
         links={links}
         syncing={syncing}
         exportCopied={exportCopied}
-        today={today}
         onSyncNow={handleSyncNow}
         onExport={handleExport}
-        onAddReservation={onAddReservation}
       />
       <ConflictBanner conflicts={data.conflicts} />
       {!loadingEvents &&
@@ -278,17 +292,15 @@ export function PropertyCalendar({
             });
             setClaimAnchor(rect);
           }}
-          onCellClick={(dateStr, rect) => {
+          onCellClick={(dateStr) => {
             setPopoverDate(dateStr);
-            setPopoverAnchor(rect);
           }}
         />
       </div>
       <AgendaList bars={data.bars} today={today} onSelectReservation={onSelectReservation} />
-      {popoverDate && popoverAnchor && (
+      {popoverDate && (
         <CalendarDatePopover
           date={popoverDate}
-          anchorRect={popoverAnchor}
           bars={data.bars}
           bufferDates={data.bufferDates}
           potentialDates={data.potentialDates}
@@ -303,6 +315,7 @@ export function PropertyCalendar({
           onSetOverride={(type) => setOverride(popoverDate, type)}
           onRemoveOverride={() => deleteOverride(popoverDate)}
           onExtendBooking={(b) => extendBooking(popoverDate, b)}
+          onCreateReservation={createReservationOnDate}
         />
       )}
       {claimBar && claimAnchor && (

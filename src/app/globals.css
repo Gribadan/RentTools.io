@@ -344,8 +344,19 @@
   animation: slide-down 220ms cubic-bezier(.2, .7, .2, 1) both;
 }
 
+/* Right-side panel entrance — used by the date-actions side panel
+   that replaced the popover. Slides in from the right edge. */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 240ms cubic-bezier(.2, .7, .2, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-down { animation: none; }
+  .animate-slide-in-right { animation: none; }
 }
 
 /* Native select dropdown styling */

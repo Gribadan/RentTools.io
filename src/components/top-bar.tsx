@@ -164,8 +164,9 @@ export function TopBar({
           actual logo / tabs / avatar stop spreading after ~1760px so
           they don't fly to the corners on a 4K monitor. */}
       <div className="mx-auto max-w-[1760px]">
-      {/* Main bar */}
-      <div className="relative flex items-center justify-between gap-3 h-16 px-3 sm:px-5">
+      {/* Main bar — h-[72px] roughly matches Airbnb's host header, gives
+          enough breathing room around the logo + nav cluster. */}
+      <div className="relative flex items-center justify-between gap-3 h-[72px] px-3 sm:px-5">
         {/* LEFT: Logo + Property selector */}
         <div className="flex items-center gap-3 min-w-0 z-10 max-w-[55%] sm:max-w-none">
           <button
@@ -174,12 +175,14 @@ export function TopBar({
             aria-label="Dashboard home"
           >
             {/* Brand mark: white house silhouette on coral pill, with
-                three drifting smoke puffs from the chimney. Smoke is
+                three drifting smoke puffs from the chimney. Sized to
+                match the marketing site header (h-9 / 22 px svg) so
+                the brand reads identically across pages. Smoke is
                 pure SVG <animate> so no framer-motion dep, no
                 entrance shake / scale-rotate spring — the mark just
                 paints in place on first render. */}
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
-              <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
+              <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
                 <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
                   {/* Roof + walls outline as one shape */}
                   <path d="M3.4 11.6 L12 4.5 L20.6 11.6 L19 11.6 L19 19.5 L5 19.5 L5 11.6 Z" />
@@ -219,7 +222,7 @@ export function TopBar({
                 </g>
               </svg>
             </div>
-            <span className="hidden sm:block text-sm font-semibold tracking-tight">RentTools</span>
+            <span className="hidden sm:block text-[17px] font-semibold tracking-tight">RentTools</span>
           </button>
 
           {/* Property selector */}
