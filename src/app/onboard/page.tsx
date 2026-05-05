@@ -329,9 +329,13 @@ export default function OnboardPage() {
 
       {/* ── Main ── */}
       <main className="flex-1">
-        <div className="mx-auto max-w-[920px] px-6 py-10 sm:py-14">
-          <div className="text-center">
-            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">Onboarding · 1 property · forever free</p>
+        <div className="mx-auto max-w-[920px] px-6 py-6 sm:py-14">
+          {/* Intro hero — RT-25.8: hidden on <sm so the user lands
+              directly on Step 1 above the fold. Free-for-everything
+              wording replaces the old "1 property" line that read like
+              a tier limit. */}
+          <div className="hidden text-center sm:block">
+            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">Onboarding · Free for every property — forever</p>
             <h1 className="display mt-3 text-[32px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[44px]">
               Set up your <span className="italic font-normal">first property</span>.
             </h1>
@@ -341,13 +345,13 @@ export default function OnboardPage() {
           </div>
 
           {!hydrated ? (
-            <div className="mt-10 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-8 text-center text-sm text-[var(--ink-3)]">
+            <div className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-8 text-center text-sm text-[var(--ink-3)] sm:mt-10">
               Loading…
             </div>
           ) : (
-            <div className="mt-10 space-y-6">
-              {/* Property name */}
-              <Card title="Property name" subtitle="Just a label for you. You can rename it later.">
+            <div className="mt-6 space-y-6 sm:mt-10">
+              {/* Step 1 — Property name */}
+              <Card stepNumber={1} title="Name your property" subtitle="Just a label for you. You can rename it later.">
                 <input
                   value={propertyName}
                   onChange={(e) => setPropertyName(e.target.value)}
@@ -357,9 +361,10 @@ export default function OnboardPage() {
                 />
               </Card>
 
-              {/* Platform rows */}
+              {/* Step 2 — Platform rows */}
               <Card
-                title="Where do you list this property?"
+                stepNumber={2}
+                title="Add calendar feeds"
                 subtitle="Tick each platform you use — paste their iCal URL, copy ours back. Anything not on this list, add as Custom."
               >
                 <div className="space-y-3">
@@ -393,17 +398,23 @@ export default function OnboardPage() {
                 </button>
               </Card>
 
-              {/* Submit */}
-              <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 sm:p-8">
-                <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                  <div>
-                    <h2 className="text-[17px] font-semibold text-[var(--ink)]">Save and create your free account</h2>
-                    <p className="mt-1 text-[13px] text-[var(--ink-2)]">
-                      {enabledCount === 0
-                        ? "You can sign up without picking a platform — add them later from the dashboard."
-                        : `${validCount} of ${enabledCount} platform${enabledCount === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`}
-                    </p>
-                  </div>
+              {/* Step 3 — Create account. Visually anchored as a third
+                  numbered step so the three-step rhythm (name / feeds /
+                  account) reads at a glance on a 1280px laptop. */}
+              <Card
+                stepNumber={3}
+                title="Create your account"
+                subtitle={
+                  enabledCount === 0
+                    ? "You can sign up without picking a platform — add them later from the dashboard."
+                    : `${validCount} of ${enabledCount} platform${enabledCount === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`
+                }
+              >
+                <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[13px] text-[var(--ink-3)]">
+                    Forever free, no credit card. Already have an account?{" "}
+                    <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
+                  </p>
                   <button
                     onClick={handleSaveAndSignup}
                     disabled={saving}
@@ -415,11 +426,7 @@ export default function OnboardPage() {
                     </svg>
                   </button>
                 </div>
-                <p className="mt-3 text-[12px] text-[var(--ink-3)]">
-                  Forever free, no credit card. Already have an account?{" "}
-                  <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
-                </p>
-              </div>
+              </Card>
             </div>
           )}
         </div>
@@ -432,12 +439,35 @@ export default function OnboardPage() {
    Components
 ──────────────────────────────────────────────────────────────────── */
 
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Card({
+  stepNumber,
+  title,
+  subtitle,
+  children,
+}: {
+  stepNumber?: number;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-xl border border-[var(--line)] bg-[var(--bg)] p-6 sm:p-8">
-      <div className="mb-5">
-        <h2 className="text-[16px] font-semibold tracking-tight text-[var(--ink)]">{title}</h2>
-        {subtitle && <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-2)]">{subtitle}</p>}
+      <div className="mb-5 flex items-start gap-3">
+        {stepNumber !== undefined && (
+          // Coloured numbered chip — RT-25.8. Coral pill anchors the
+          // step visually so a returning user can scan "1 / 2 / 3"
+          // without reading the headers.
+          <span
+            aria-hidden="true"
+            className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--m-accent)] text-[13px] font-semibold text-white shadow-sm shadow-[var(--m-accent)]/30"
+          >
+            {stepNumber}
+          </span>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-[16px] font-semibold tracking-tight text-[var(--ink)]">{title}</h2>
+          {subtitle && <p className="mt-1 text-[13px] leading-relaxed text-[var(--ink-2)]">{subtitle}</p>}
+        </div>
       </div>
       {children}
     </section>
