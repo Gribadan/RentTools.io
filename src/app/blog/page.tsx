@@ -2,29 +2,33 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { prisma } from "@/lib/prisma";
+import { applySeoOverrides } from "@/lib/seo";
 
 const PAGE_SIZE = 12;
 const TITLE = "Blog";
 const DESCRIPTION =
   "Practical guides on calendar sync, double-booking prevention, cleaning automation, and GDPR for short-term rental hosts.";
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: "/blog" },
-  openGraph: {
-    type: "website",
-    title: `${TITLE} · RentTools`,
+export async function generateMetadata(): Promise<Metadata> {
+  const base: Metadata = {
+    title: TITLE,
     description: DESCRIPTION,
-    url: "/blog",
-    siteName: "RentTools",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${TITLE} · RentTools`,
-    description: DESCRIPTION,
-  },
-};
+    alternates: { canonical: "/blog" },
+    openGraph: {
+      type: "website",
+      title: `${TITLE} · RentTools`,
+      description: DESCRIPTION,
+      url: "/blog",
+      siteName: "RentTools",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${TITLE} · RentTools`,
+      description: DESCRIPTION,
+    },
+  };
+  return applySeoOverrides(base, "/blog", "en");
+}
 
 interface SearchParams {
   page?: string;

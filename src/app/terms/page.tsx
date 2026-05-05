@@ -1,27 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { applySeoOverrides } from "@/lib/seo";
 
 const TERMS_TITLE = "Terms of Service";
 const TERMS_DESCRIPTION = "Terms of service for the free hosted instance of RentTools at renttools.io.";
 
-export const metadata: Metadata = {
-  title: TERMS_TITLE,
-  description: TERMS_DESCRIPTION,
-  alternates: { canonical: "/terms" },
-  openGraph: {
-    type: "article",
-    title: `${TERMS_TITLE} · RentTools`,
+export async function generateMetadata(): Promise<Metadata> {
+  const base: Metadata = {
+    title: TERMS_TITLE,
     description: TERMS_DESCRIPTION,
-    url: "/terms",
-    siteName: "RentTools",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${TERMS_TITLE} · RentTools`,
-    description: TERMS_DESCRIPTION,
-  },
-};
+    alternates: { canonical: "/terms" },
+    openGraph: {
+      type: "article",
+      title: `${TERMS_TITLE} · RentTools`,
+      description: TERMS_DESCRIPTION,
+      url: "/terms",
+      siteName: "RentTools",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${TERMS_TITLE} · RentTools`,
+      description: TERMS_DESCRIPTION,
+    },
+  };
+  return applySeoOverrides(base, "/terms", "en");
+}
 
 const LAST_UPDATED = "2026-05-05";
 const OPERATOR_NAME = "Ilya Asminkin";

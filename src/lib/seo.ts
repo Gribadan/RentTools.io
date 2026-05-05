@@ -177,6 +177,74 @@ export function mergeSeo(defaults: SeoData, override: SeoData | undefined): SeoD
   };
 }
 
+/**
+ * Merge a SeoOverride into a base Next.js Metadata object. Any non-null
+ * field from the override replaces the corresponding base field, with
+ * the OG / Twitter mirror fields kept in sync. Use inside `generateMetadata()`:
+ *
+ *   const base: Metadata = { title: "...", description: "...", ... };
+ *   return applySeoOverrides(base, "/about", "en");
+ *
+ * Typed as a generic so callers can pass `Metadata` (or any subtype) and
+ * get the same shape back, without us coupling this lib to the next/types
+ * import graph.
+ */
+export async function applySeoOverrides<T extends object>(
+  base: T,
+  path: string,
+  locale: string = "en",
+): Promise<T> {
+  const override = await getSeoForPath(path, locale);
+
+  // Nothing to merge — return base unchanged. Saves an object spread on
+  // every page render before the admin has set any overrides.
+  if (
+    override.title === null &&
+    override.description === null &&
+    override.ogImage === null &&
+    override.canonical === null
+  ) {
+    return base;
+  }
+
+  const next: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+  const og = (next.openGraph as Record<string, unknown> | undefined) ?? {};
+  const tw = (next.twitter as Record<string, unknown> | undefined) ?? {};
+  const alt = (next.alternates as Record<string, unknown> | undefined) ?? {};
+
+  if (override.title) {
+    next.title = override.title;
+    next.openGraph = { ...og, title: override.title };
+    next.twitter = { ...tw, title: override.title };
+  }
+  if (override.description) {
+    next.description = override.description;
+    next.openGraph = {
+      ...((next.openGraph as Record<string, unknown> | undefined) ?? og),
+      description: override.description,
+    };
+    next.twitter = {
+      ...((next.twitter as Record<string, unknown> | undefined) ?? tw),
+      description: override.description,
+    };
+  }
+  if (override.ogImage) {
+    next.openGraph = {
+      ...((next.openGraph as Record<string, unknown> | undefined) ?? og),
+      images: [{ url: override.ogImage }],
+    };
+    next.twitter = {
+      ...((next.twitter as Record<string, unknown> | undefined) ?? tw),
+      images: [override.ogImage],
+    };
+  }
+  if (override.canonical) {
+    next.alternates = { ...alt, canonical: override.canonical };
+  }
+
+  return next as T;
+}
+
 /** Drop the in-process cache. Called by admin write endpoints. */
 export function invalidateSeoCache(): void {
   cache = null;

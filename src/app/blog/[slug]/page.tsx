@@ -7,6 +7,7 @@ import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { renderMarkdown } from "@/lib/markdown";
 import { getSession } from "@/lib/auth";
+import { applySeoOverrides } from "@/lib/seo";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
@@ -51,7 +52,7 @@ export async function generateMetadata({
     };
   }
   const url = `${SITE_URL}/blog/${slug}`;
-  return {
+  const base: Metadata = {
     title: post.title,
     description: post.excerpt,
     alternates: { canonical: `/blog/${slug}` },
@@ -72,6 +73,7 @@ export async function generateMetadata({
       images: post.ogImageUrl ? [post.ogImageUrl] : undefined,
     },
   };
+  return applySeoOverrides(base, `/blog/${slug}`, post.locale);
 }
 
 export default async function BlogPostPage({

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { prisma } from "@/lib/prisma";
+import { applySeoOverrides } from "@/lib/seo";
 
 const PAGE_SIZE = 12;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
@@ -54,7 +55,7 @@ export async function generateMetadata({
   }
   const title = `${tag.displayName} — RentTools blog`;
   const description = `Posts tagged ${tag.displayName} on the RentTools blog.`;
-  return {
+  const base: Metadata = {
     title,
     description,
     alternates: { canonical: `/blog/tag/${tag.slug}` },
@@ -67,6 +68,7 @@ export async function generateMetadata({
     },
     twitter: { card: "summary_large_image", title, description },
   };
+  return applySeoOverrides(base, `/blog/tag/${tag.slug}`, "en");
 }
 
 export default async function BlogTagPage({

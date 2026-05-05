@@ -1,11 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSetting } from "@/lib/site-settings";
+import { applySeoOverrides } from "@/lib/seo";
 import { GoogleOneTap } from "@/components/google-one-tap";
 import { JsonLd } from "@/components/json-ld";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+
+// Per-path SEO override hook (RT-18.3). The root layout already supplies
+// title / description / OG / canonical defaults; this lets a super-admin
+// swap any of those for "/" specifically without redeploying.
+export async function generateMetadata(): Promise<Metadata> {
+  return applySeoOverrides<Metadata>({}, "/", "en");
+}
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
