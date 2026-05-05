@@ -50,6 +50,21 @@ export async function GET(
     });
     if (!row) return NextResponse.json({ error: "Post not found" }, { status: 404 });
 
+    let translationSibling: {
+      id: number;
+      slug: string;
+      locale: string;
+      title: string;
+      status: string;
+    } | null = null;
+    if (row.translationGroupId !== null) {
+      const sib = await prisma.blogPost.findFirst({
+        where: { translationGroupId: row.translationGroupId, id: { not: row.id } },
+        select: { id: true, slug: true, locale: true, title: true, status: true },
+      });
+      translationSibling = sib;
+    }
+
     return NextResponse.json({
       id: row.id,
       slug: row.slug,
@@ -62,6 +77,8 @@ export async function GET(
       authorUsername: row.author?.username ?? null,
       tags: parseTags(row.tagsJson),
       ogImageUrl: row.ogImageUrl,
+      translationGroupId: row.translationGroupId,
+      translationSibling,
       publishedAt: row.publishedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt?.toISOString() ?? null,
@@ -312,6 +329,7 @@ export async function PATCH(
       authorUsername: updated.author?.username ?? null,
       tags: parseTags(updated.tagsJson),
       ogImageUrl: updated.ogImageUrl,
+      translationGroupId: updated.translationGroupId,
       publishedAt: updated.publishedAt?.toISOString() ?? null,
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt?.toISOString() ?? null,

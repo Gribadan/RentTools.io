@@ -192,6 +192,11 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `CREATE UNIQUE INDEX IF NOT EXISTS "Property_feedSlug_key" ON "Property"("feedSlug")`,
     `ALTER TABLE "OnboardingDraft" ADD COLUMN "feedSlug" TEXT`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "OnboardingDraft_feedSlug_key" ON "OnboardingDraft"("feedSlug")`,
+    // RT-20.3 tick 2 — cross-locale link for the blog. Posts that
+    // translate the same article share a translationGroupId; null when
+    // the post has no sibling.
+    `ALTER TABLE "BlogPost" ADD COLUMN "translationGroupId" INTEGER`,
+    `CREATE INDEX IF NOT EXISTS "BlogPost_translationGroupId_idx" ON "BlogPost"("translationGroupId")`,
   ];
   for (const sql of migrations) {
     try {
@@ -520,6 +525,7 @@ CREATE TABLE IF NOT EXISTS "BlogPost" (
     "authorId" INTEGER NOT NULL,
     "tagsJson" TEXT NOT NULL DEFAULT '[]',
     "ogImageUrl" TEXT,
+    "translationGroupId" INTEGER,
     "publishedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME,
@@ -529,6 +535,7 @@ CREATE TABLE IF NOT EXISTS "BlogPost" (
 CREATE UNIQUE INDEX IF NOT EXISTS "BlogPost_slug_locale_key" ON "BlogPost"("slug", "locale");
 CREATE INDEX IF NOT EXISTS "BlogPost_locale_status_publishedAt_idx" ON "BlogPost"("locale", "status", "publishedAt");
 CREATE INDEX IF NOT EXISTS "BlogPost_authorId_idx" ON "BlogPost"("authorId");
+CREATE INDEX IF NOT EXISTS "BlogPost_translationGroupId_idx" ON "BlogPost"("translationGroupId");
 
 CREATE TABLE IF NOT EXISTS "BlogTag" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,

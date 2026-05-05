@@ -1520,15 +1520,23 @@ export function AdminPanel() {
                         {post.commentCount}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 rounded-lg px-2 text-xs text-destructive hover:text-destructive"
-                          onClick={() => void deleteBlogPost(post)}
-                          disabled={blogPostBusy === post.id}
-                        >
-                          Delete
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <a
+                            href={`/admin/blog/${post.id}`}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Edit
+                          </a>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 rounded-lg px-2 text-xs text-destructive hover:text-destructive"
+                            onClick={() => void deleteBlogPost(post)}
+                            disabled={blogPostBusy === post.id}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                         {blogPostMessage?.id === post.id && (
                           <p
                             className={`mt-1 text-[10px] ${

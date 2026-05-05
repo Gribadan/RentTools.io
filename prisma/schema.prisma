@@ -278,25 +278,31 @@ model OnboardingDraft {
 // fast list rendering; the canonical tag table is BlogTag (super-admin
 // can rename / merge tags there without touching every post).
 model BlogPost {
-  id          Int          @id @default(autoincrement())
-  slug        String
-  locale      String       @default("en") // "en" | "ru"
-  title       String
-  excerpt     String       @default("")  // 140-160 char meta-description summary
-  body        String       @default("")  // markdown
-  status      String       @default("draft") // "draft" | "published" | "archived"
-  authorId    Int
-  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tagsJson    String       @default("[]") // JSON array of BlogTag slugs
-  ogImageUrl  String?
-  publishedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime?
-  comments    BlogComment[]
+  id                 Int          @id @default(autoincrement())
+  slug               String
+  locale             String       @default("en") // "en" | "ru"
+  title              String
+  excerpt            String       @default("")  // 140-160 char meta-description summary
+  body               String       @default("")  // markdown
+  status             String       @default("draft") // "draft" | "published" | "archived"
+  authorId           Int
+  author             User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tagsJson           String       @default("[]") // JSON array of BlogTag slugs
+  ogImageUrl         String?
+  // Cross-locale link (RT-20.3 tick 2). Posts that translate the same
+  // article share a translationGroupId; the post page renders "Read in
+  // Russian" / "Read in English" by joining on this id. Self-managed by
+  // the translation-link endpoint — null when the post has no sibling.
+  translationGroupId Int?
+  publishedAt        DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime?
+  comments           BlogComment[]
 
   @@unique([slug, locale])
   @@index([locale, status, publishedAt])
   @@index([authorId])
+  @@index([translationGroupId])
 }
 
 // Canonical tag table. Editing displayName here flows to the rendered
