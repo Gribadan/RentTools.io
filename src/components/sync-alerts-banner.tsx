@@ -47,12 +47,12 @@ export function SyncAlertsBanner() {
       : `${alerts.length} sync alerts — feeds may be broken`;
 
   return (
-    <div className="border-b border-[#5a2a2a] bg-[#3d1a1a] px-4 py-2 text-sm text-[#ff9b9b]">
+    <div className="border-b border-rose-300/60 bg-rose-50 px-4 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
       <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">
         <div className="flex-1">
           <span className="font-semibold">Sync issue:</span> {summary}
           {alerts.length > 1 && (
-            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-[#ffb3b3]">
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-rose-700 dark:text-rose-200">
               {alerts.slice(0, 5).map((a) => (
                 <li key={a.id}>{a.message.replace(/^\[ALERT\]\s*/, "")}</li>
               ))}
@@ -63,7 +63,7 @@ export function SyncAlertsBanner() {
           type="button"
           onClick={dismiss}
           disabled={dismissing}
-          className="shrink-0 rounded border border-[#5a2a2a] px-2 py-1 text-xs text-[#ff9b9b] transition hover:bg-[#5a2a2a] disabled:opacity-50"
+          className="shrink-0 rounded border border-rose-300/60 px-2 py-1 text-xs text-rose-800 transition hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/60 dark:text-rose-300 dark:hover:bg-rose-900/40"
         >
           {dismissing ? "Dismissing…" : "Dismiss"}
         </button>

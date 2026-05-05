@@ -26,25 +26,25 @@ export function SupportFooter() {
   }, []);
 
   return (
-    <div className="border-t border-[#1e2329] bg-[#0d1117] px-4 py-3 text-center text-xs text-[#71717a]">
-      <p className="mb-1.5 text-[11px] text-[#5b5b66]">
+    <div className="border-t border-[var(--line)] bg-[var(--bg)] px-4 py-3 text-center text-xs text-[var(--ink-4)]">
+      <p className="mb-1.5 text-[11px] text-[var(--ink-4)]">
         Essential cookies only — no tracking, no analytics. See{" "}
-        <Link href="/privacy" className="underline hover:text-[#a0a0a8]">Privacy</Link>.
+        <Link href="/privacy" className="underline hover:text-[var(--ink-2)]">Privacy</Link>.
       </p>
       <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
         <span>© 2026 RentTools</span>
-        <Link href="/privacy" className="hover:text-[#a0a0a8]">Privacy</Link>
-        <Link href="/terms" className="hover:text-[#a0a0a8]">Terms</Link>
+        <Link href="/privacy" className="hover:text-[var(--ink-2)]">Privacy</Link>
+        <Link href="/terms" className="hover:text-[var(--ink-2)]">Terms</Link>
         <a
           href="https://github.com/Gribadan/RentTools.io"
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:text-[#a0a0a8]"
+          className="hover:text-[var(--ink-2)]"
         >
           Source
         </a>
         {email && (
-          <a href={`mailto:${email}`} className="hover:text-[#a0a0a8]">
+          <a href={`mailto:${email}`} className="hover:text-[var(--ink-2)]">
             Need help? {email}
           </a>
         )}
