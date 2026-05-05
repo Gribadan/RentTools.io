@@ -108,6 +108,23 @@ export function useCalendarData(
 
       if (matchingEventStart) {
         const ev = evMap.get(matchingEventStart)!;
+        // Was this Reservation attached to an airbnb host-block event
+        // (Airbnb (Not available) / Blocked)? Those events get
+        // filtered out of allBookings up in the syncedEvents loop
+        // because most of the time they're pure host blocks (no real
+        // guest, no buffer needed). But when the user has named the
+        // block via the bar-claim popover and a real Reservation is
+        // attached to it, the dates DO represent a real stay and have
+        // to participate in the cleaning-gap math — otherwise the
+        // gap detection sees a phantom hole between the previous and
+        // next stays and surfaces "Cleaning?" on the next checkin
+        // (Квартира 68 May 14 case: Iain May 3-9 → Ольга May 9-14
+        // (block + named reservation) → Booking May 14-28; without
+        // this push, allBookings was [Iain, Booking] with a 4-day
+        // phantom gap and May 14 wrongly read as potential).
+        const matchedAirbnbBlock = ev.platform === "airbnb" && (
+          (ev.name || "").includes("Not available") || (ev.name || "").includes("Blocked")
+        );
         evMap.set(matchingEventStart, {
           ...ev,
           name: res.name,
@@ -117,6 +134,9 @@ export function useCalendarData(
         while (d <= ev.endDate) {
           resMap.set(d, res);
           d = addDaysStr(d, 1);
+        }
+        if (matchedAirbnbBlock) {
+          allBookings.push({ start, end, platform, name: res.name });
         }
       } else {
         const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
