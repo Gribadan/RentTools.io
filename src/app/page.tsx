@@ -79,7 +79,7 @@ export default async function HomePage() {
               href="/onboard"
               className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] hover:bg-[var(--ink-2)] transition-colors sm:inline-flex"
             >
-              Start free
+              Get started
             </Link>
             <span className="mx-1 h-4 w-px bg-[var(--line)]" />
             <ThemeToggle />
@@ -95,12 +95,12 @@ export default async function HomePage() {
           <p className="hero-in mono mb-5 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
             Open source · Forever free
           </p>
-          <h1 className="hero-in hero-in-2 display mx-auto max-w-[920px] text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] text-[var(--ink)] sm:text-[68px] lg:text-[80px]">
+          <h1 className="hero-in hero-in-2 display mx-auto max-w-[820px] text-[36px] font-semibold leading-[1.05] tracking-[-0.03em] text-[var(--ink)] sm:text-[52px] lg:text-[60px]">
             Stop juggling{" "}
             <span className="relative whitespace-nowrap">
-              <span className="italic font-normal">four calendar tabs</span>
+              <span className="italic font-normal">calendar tabs</span>
               <svg
-                className="absolute left-0 right-0 -bottom-1 sm:-bottom-2"
+                className="absolute left-0 right-0 -bottom-1 sm:-bottom-1.5"
                 width="100%"
                 height="10"
                 viewBox="0 0 220 10"
@@ -119,31 +119,25 @@ export default async function HomePage() {
             </span>
             .
           </h1>
-          <p className="hero-in hero-in-3 mx-auto mt-7 max-w-[640px] text-[17px] leading-[1.55] text-[var(--ink-2)] sm:text-[19px]">
+          <p className="hero-in hero-in-3 mx-auto mt-6 max-w-[600px] text-[16px] leading-[1.55] text-[var(--ink-2)] sm:text-[18px]">
             One dashboard for every short-term rental you run.{" "}
             <span className="text-[var(--ink)] font-medium">Sync Airbnb, Booking.com, Vrbo</span>{" "}
-            and any iCal source. Auto-generate cleaning schedules. Extract guest passport data from a photo. Free forever — open-source so you can read every line.
+            and any iCal source. Auto-generate cleaning schedules. Forever free — open-source so you can read every line.
           </p>
 
-          <div className="hero-in hero-in-4 mt-9 flex flex-wrap items-center justify-center gap-3">
+          <div className="hero-in hero-in-4 mt-8 flex justify-center">
             <Link
               href="/onboard"
-              className="group inline-flex h-12 items-center gap-2 rounded-md bg-[var(--m-accent)] px-7 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)]"
+              className="group inline-flex h-12 items-center gap-2 rounded-md bg-[var(--m-accent)] px-8 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)]"
             >
-              Start now
+              Start now — forever free
               <svg className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
-            <a
-              href="#how-it-works"
-              className="inline-flex h-12 items-center gap-2 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-6 text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-2)]"
-            >
-              See how it works
-            </a>
           </div>
-          <p className="hero-in hero-in-4 mt-5 text-[12.5px] text-[var(--ink-3)]">
-            No credit card. Try the wizard before signing up.
+          <p className="hero-in hero-in-4 mt-4 text-[12.5px] text-[var(--ink-3)]">
+            No credit card. No paid tier. Try the wizard before signing up.
           </p>
 
           {/* Stats row */}
@@ -217,8 +211,8 @@ export default async function HomePage() {
               body="Buffer days the platforms can't do natively. Daily cleaning list. Cleaner role with restricted dashboard access."
             />
             <Feature
-              title="Passport extraction"
-              body="Drop a photo, get the fields back via Gemini Vision. Sanitized for hotel registration forms. Cyrillic supported."
+              title="Multi-property dashboard"
+              body="Run as many places as you want from one panel. Switch context with a keystroke. Property managers + cleaners get scoped roles."
             />
             <Feature
               title="Message templates"
@@ -239,7 +233,7 @@ export default async function HomePage() {
       {/* ─────────────── Trust ─────────────── */}
       <section className="border-t border-[var(--line)] bg-[var(--bg-2)]">
         <div className="mx-auto max-w-[1180px] px-6 py-16 sm:py-20">
-          <div className="grid gap-8 sm:grid-cols-3 sm:gap-12">
+          <div className="grid gap-8 sm:grid-cols-2 sm:gap-12">
             <Trust
               title="Open source"
               body="MIT-licensed on GitHub. Read the code, file an issue, or self-host on any $4 droplet."
@@ -249,10 +243,6 @@ export default async function HomePage() {
               title="GDPR compliant"
               body="One essential session cookie. No analytics, no ads, no third-party trackers. Delete your account, your data is gone."
               link={{ href: "/privacy", label: "Privacy policy" }}
-            />
-            <Trust
-              title="Run on real properties"
-              body="Two short-term rentals run on this code daily. The maintainer is the first user — and the loudest critic."
             />
           </div>
         </div>
@@ -292,7 +282,7 @@ export default async function HomePage() {
                 href="/onboard"
                 className="inline-flex h-12 items-center gap-2 rounded-md bg-[var(--m-accent)] px-7 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)]"
               >
-                Start free in 30 seconds
+                Start now — forever free
               </Link>
               <a
                 href={REPO_URL}
