@@ -547,12 +547,12 @@ function PlatformRow({
             <label className="block text-[12px] font-medium text-[var(--ink-2)] mb-1.5">
               {display} iCal export URL
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 value={row.url}
                 onChange={(e) => onUrlChange(e.target.value)}
                 placeholder={preset?.exportPlaceholder ?? "https://…"}
-                className="h-10 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[13px] text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)] transition-colors"
+                className="h-10 w-full min-w-0 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[13px] text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)] transition-colors sm:flex-1"
               />
               <TestButton status={row.testStatus} onClick={onTest} disabled={!row.url.trim()} />
             </div>
@@ -579,15 +579,15 @@ function PlatformRow({
             <label className="block text-[12px] font-medium text-[var(--ink-2)] mb-1.5">
               Paste this RentTools URL back into {display}
             </label>
-            <div className="flex gap-2">
-              <code className="h-10 flex-1 select-all rounded-md border border-[var(--line)] bg-[var(--bg-2)] px-3 text-[12px] text-[var(--ink-2)] flex items-center overflow-x-auto whitespace-nowrap">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <code className="h-10 w-full min-w-0 select-all rounded-md border border-[var(--line)] bg-[var(--bg-2)] px-3 text-[12px] text-[var(--ink-2)] flex items-center overflow-x-auto whitespace-nowrap sm:flex-1">
                 {ourFeedUrl ?? "URL appears once you save the property name above"}
               </code>
               <button
                 type="button"
                 onClick={() => ourFeedUrl && onCopy(ourFeedUrl, copyKey)}
                 disabled={!ourFeedUrl}
-                className="h-10 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[12.5px] text-[var(--ink)] hover:bg-[var(--bg-2)] transition-colors disabled:opacity-40"
+                className="h-10 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[12.5px] text-[var(--ink)] hover:bg-[var(--bg-2)] transition-colors disabled:opacity-40 sm:w-auto"
               >
                 {copied === copyKey ? "Copied!" : "Copy"}
               </button>
@@ -615,7 +615,7 @@ function TestButton({ status, onClick, disabled }: { status: DraftRow["testStatu
       type="button"
       onClick={onClick}
       disabled={disabled || status === "testing"}
-      className={`inline-flex h-10 items-center gap-1.5 rounded-md border px-3 text-[12.5px] font-medium transition-colors disabled:opacity-40 ${tone}`}
+      className={`inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md border px-3 text-[12.5px] font-medium transition-colors disabled:opacity-40 sm:w-auto ${tone}`}
       aria-live="polite"
     >
       {status === "valid" && (
