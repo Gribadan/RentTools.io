@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 type Platform = "airbnb" | "booking";
@@ -97,12 +98,14 @@ export function PlatformInstructions({ platform, mode, defaultOpen = false }: Pl
       {open && (
         <div className="border-t border-[#1e2329] p-3 space-y-3">
           {!imgError ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={data.gif}
               alt={data.title}
+              width={1280}
+              height={720}
+              unoptimized
               onError={() => setImgError(true)}
-              className="w-full rounded-md border border-[#1e2329]"
+              className="h-auto w-full rounded-md border border-[#1e2329]"
             />
           ) : (
             <div className="flex items-center justify-center rounded-md border border-dashed border-[#1e2329] bg-[#0f1419] py-6 text-center text-[11px] text-[#71717a]">
