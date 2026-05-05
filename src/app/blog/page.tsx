@@ -104,14 +104,14 @@ export default async function BlogIndexPage({
   const nextHref = buildHref({ page: page + 1, tag: tagFilter });
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
-      <header className="border-b border-[#1e2329]">
+    <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <header className="border-b border-[var(--line)]">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
+          <Link href="/" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
             ← RentTools
           </Link>
-          <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
-            <Link href="/login" className="hover:text-[#e8e8ec]">Sign in</Link>
+          <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
+            <Link href="/login" className="hover:text-[var(--ink)]">Sign in</Link>
             <LocaleSwitcher />
           </nav>
         </div>
@@ -119,7 +119,7 @@ export default async function BlogIndexPage({
 
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blog</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[#a0a0a8] sm:text-base">
+        <p className="mt-2 max-w-2xl text-sm text-[var(--ink-3)] sm:text-base">
           Notes from running short-term rentals — calendar sync, cleaning workflows,
           guest data, and the boring parts of GDPR a host actually has to do.
         </p>
@@ -130,8 +130,8 @@ export default async function BlogIndexPage({
               href="/blog"
               className={`rounded-full border px-3 py-1 ${
                 tagFilter
-                  ? "border-[#1e2329] text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
-                  : "border-[#ff385c] text-[#ff385c]"
+                  ? "border-[var(--line)] text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
+                  : "border-[var(--m-accent)] text-[var(--m-accent)]"
               }`}
             >
               All
@@ -144,8 +144,8 @@ export default async function BlogIndexPage({
                   href={`/blog/tag/${encodeURIComponent(t.slug)}`}
                   className={`rounded-full border px-3 py-1 ${
                     active
-                      ? "border-[#ff385c] text-[#ff385c]"
-                      : "border-[#1e2329] text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
+                      ? "border-[var(--m-accent)] text-[var(--m-accent)]"
+                      : "border-[var(--line)] text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                   }`}
                 >
                   {t.displayName}
@@ -157,7 +157,7 @@ export default async function BlogIndexPage({
 
         <section className="mt-8">
           {posts.length === 0 ? (
-            <p className="rounded-lg border border-[#1e2329] bg-[#0f1419] px-4 py-8 text-center text-sm text-[#a0a0a8]">
+            <p className="rounded-lg border border-[var(--line)] bg-[var(--bg)] px-4 py-8 text-center text-sm text-[var(--ink-3)]">
               No posts yet{tagFilter ? ` for tag "${tagFilter}"` : ""}.
             </p>
           ) : (
@@ -167,17 +167,17 @@ export default async function BlogIndexPage({
                 return (
                   <li
                     key={p.id}
-                    className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-5 transition-colors hover:border-[#2a313b]"
+                    className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-5 transition-colors hover:border-[var(--line-2)]"
                   >
                     <Link href={`/blog/${p.slug}`} className="block">
-                      <h2 className="text-xl font-semibold text-[#e8e8ec] hover:text-white sm:text-2xl">
+                      <h2 className="text-xl font-semibold text-[var(--ink)] hover:text-white sm:text-2xl">
                         {p.title}
                       </h2>
                       {p.excerpt && (
-                        <p className="mt-2 text-sm text-[#a0a0a8] sm:text-base">{p.excerpt}</p>
+                        <p className="mt-2 text-sm text-[var(--ink-3)] sm:text-base">{p.excerpt}</p>
                       )}
                     </Link>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#71717a]">
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
                       {p.publishedAt && (
                         <time dateTime={p.publishedAt.toISOString()}>
                           {formatDate(p.publishedAt)}
@@ -189,7 +189,7 @@ export default async function BlogIndexPage({
                             <Link
                               key={t}
                               href={`/blog/tag/${encodeURIComponent(t)}`}
-                              className="rounded-full border border-[#1e2329] px-2 py-0.5 text-[11px] hover:border-[#2a313b] hover:text-[#a0a0a8]"
+                              className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] hover:border-[var(--line-2)] hover:text-[var(--ink-3)]"
                             >
                               {t}
                             </Link>
@@ -209,7 +209,7 @@ export default async function BlogIndexPage({
             {hasPrev ? (
               <Link
                 href={prevHref}
-                className="rounded-md border border-[#1e2329] bg-[#0f1419] px-4 py-2 text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="prev"
               >
                 ← Previous
@@ -217,13 +217,13 @@ export default async function BlogIndexPage({
             ) : (
               <span aria-hidden className="opacity-0">prev</span>
             )}
-            <span className="text-[#71717a]">
+            <span className="text-[var(--ink-4)]">
               Page {page} of {totalPages}
             </span>
             {hasNext ? (
               <Link
                 href={nextHref}
-                className="rounded-md border border-[#1e2329] bg-[#0f1419] px-4 py-2 text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="next"
               >
                 Next →
@@ -235,13 +235,13 @@ export default async function BlogIndexPage({
         )}
       </main>
 
-      <footer className="border-t border-[#1e2329]">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
+      <footer className="border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
-            <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>
+            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
+            <Link href="/privacy" className="hover:text-[var(--ink)]">Privacy</Link>
+            <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
           </nav>
         </div>
       </footer>

@@ -120,23 +120,23 @@ export default async function BlogTagPage({
   const nextHref = `/blog/tag/${slug}?page=${page + 1}`;
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
-      <header className="border-b border-[#1e2329]">
+    <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <header className="border-b border-[var(--line)]">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/blog" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
+          <Link href="/blog" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
             ← Blog
           </Link>
-          <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
-            <Link href="/login" className="hover:text-[#e8e8ec]">Sign in</Link>
+          <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
+            <Link href="/login" className="hover:text-[var(--ink)]">Sign in</Link>
             <LocaleSwitcher />
           </nav>
         </div>
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
-        <p className="text-xs uppercase tracking-wide text-[#71717a]">Tag</p>
+        <p className="text-xs uppercase tracking-wide text-[var(--ink-4)]">Tag</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{tag.displayName}</h1>
-        <p className="mt-2 text-sm text-[#a0a0a8]">
+        <p className="mt-2 text-sm text-[var(--ink-3)]">
           {total === 0
             ? "No posts yet under this tag."
             : `${total} ${total === 1 ? "post" : "posts"} under this tag.`}
@@ -144,8 +144,8 @@ export default async function BlogTagPage({
 
         <section className="mt-8">
           {posts.length === 0 ? (
-            <p className="rounded-lg border border-[#1e2329] bg-[#0f1419] px-4 py-8 text-center text-sm text-[#a0a0a8]">
-              Nothing here yet — <Link href="/blog" className="text-[#ff385c] hover:underline">browse all posts</Link>.
+            <p className="rounded-lg border border-[var(--line)] bg-[var(--bg)] px-4 py-8 text-center text-sm text-[var(--ink-3)]">
+              Nothing here yet — <Link href="/blog" className="text-[var(--m-accent)] hover:underline">browse all posts</Link>.
             </p>
           ) : (
             <ul className="space-y-4">
@@ -154,17 +154,17 @@ export default async function BlogTagPage({
                 return (
                   <li
                     key={p.id}
-                    className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-5 transition-colors hover:border-[#2a313b]"
+                    className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-5 transition-colors hover:border-[var(--line-2)]"
                   >
                     <Link href={`/blog/${p.slug}`} className="block">
-                      <h2 className="text-xl font-semibold text-[#e8e8ec] hover:text-white sm:text-2xl">
+                      <h2 className="text-xl font-semibold text-[var(--ink)] hover:text-white sm:text-2xl">
                         {p.title}
                       </h2>
                       {p.excerpt && (
-                        <p className="mt-2 text-sm text-[#a0a0a8] sm:text-base">{p.excerpt}</p>
+                        <p className="mt-2 text-sm text-[var(--ink-3)] sm:text-base">{p.excerpt}</p>
                       )}
                     </Link>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#71717a]">
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
                       {p.publishedAt && (
                         <time dateTime={p.publishedAt.toISOString()}>
                           {formatDate(p.publishedAt)}
@@ -176,7 +176,7 @@ export default async function BlogTagPage({
                             <Link
                               key={t}
                               href={`/blog/tag/${encodeURIComponent(t)}`}
-                              className="rounded-full border border-[#1e2329] px-2 py-0.5 text-[11px] hover:border-[#2a313b] hover:text-[#a0a0a8]"
+                              className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] hover:border-[var(--line-2)] hover:text-[var(--ink-3)]"
                             >
                               {t}
                             </Link>
@@ -196,7 +196,7 @@ export default async function BlogTagPage({
             {hasPrev ? (
               <Link
                 href={prevHref}
-                className="rounded-md border border-[#1e2329] bg-[#0f1419] px-4 py-2 text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="prev"
               >
                 ← Previous
@@ -204,13 +204,13 @@ export default async function BlogTagPage({
             ) : (
               <span aria-hidden className="opacity-0">prev</span>
             )}
-            <span className="text-[#71717a]">
+            <span className="text-[var(--ink-4)]">
               Page {page} of {totalPages}
             </span>
             {hasNext ? (
               <Link
                 href={nextHref}
-                className="rounded-md border border-[#1e2329] bg-[#0f1419] px-4 py-2 text-[#a0a0a8] hover:border-[#2a313b] hover:text-[#e8e8ec]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="next"
               >
                 Next →
@@ -222,14 +222,14 @@ export default async function BlogTagPage({
         )}
       </main>
 
-      <footer className="border-t border-[#1e2329]">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
+      <footer className="border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
-            <Link href="/blog" className="hover:text-[#e8e8ec]">Blog</Link>
-            <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>
+            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
+            <Link href="/blog" className="hover:text-[var(--ink)]">Blog</Link>
+            <Link href="/privacy" className="hover:text-[var(--ink)]">Privacy</Link>
+            <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
           </nav>
         </div>
       </footer>

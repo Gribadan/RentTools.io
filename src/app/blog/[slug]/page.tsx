@@ -158,17 +158,17 @@ export default async function BlogPostPage({
   }));
 
   return (
-    <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
+    <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <JsonLd data={blogPostingJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      <header className="border-b border-[#1e2329]">
+      <header className="border-b border-[var(--line)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/blog" className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
+          <Link href="/blog" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
             ← Blog
           </Link>
-          <nav className="flex items-center gap-4 text-sm text-[#a0a0a8]">
-            <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
-            <Link href="/login" className="hover:text-[#e8e8ec]">Sign in</Link>
+          <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
+            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
+            <Link href="/login" className="hover:text-[var(--ink)]">Sign in</Link>
             <LocaleSwitcher />
           </nav>
         </div>
@@ -178,7 +178,7 @@ export default async function BlogPostPage({
         <article>
           <header className="mb-8">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{post.title}</h1>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#71717a]">
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
               {post.publishedAt && (
                 <time dateTime={post.publishedAt.toISOString()}>
                   {formatDate(post.publishedAt)}
@@ -193,7 +193,7 @@ export default async function BlogPostPage({
                     <Link
                       key={t}
                       href={`/blog/tag/${encodeURIComponent(t)}`}
-                      className="rounded-full border border-[#1e2329] px-2 py-0.5 text-[11px] hover:border-[#2a313b] hover:text-[#a0a0a8]"
+                      className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] hover:border-[var(--line-2)] hover:text-[var(--ink-3)]"
                     >
                       {t}
                     </Link>
@@ -202,38 +202,38 @@ export default async function BlogPostPage({
               )}
             </div>
             {post.excerpt && (
-              <p className="mt-5 text-base leading-relaxed text-[#a0a0a8]">{post.excerpt}</p>
+              <p className="mt-5 text-base leading-relaxed text-[var(--ink-3)]">{post.excerpt}</p>
             )}
           </header>
 
           <div
-            className="prose-blog text-sm leading-relaxed text-[#d4d4d8] sm:text-base"
+            className="prose-blog text-sm leading-relaxed text-[var(--ink-2)] sm:text-base"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </article>
 
         {related.length > 0 && (
-          <section aria-labelledby="related-heading" className="mt-12 border-t border-[#1e2329] pt-8">
-            <h2 id="related-heading" className="text-lg font-semibold text-[#e8e8ec]">
+          <section aria-labelledby="related-heading" className="mt-12 border-t border-[var(--line)] pt-8">
+            <h2 id="related-heading" className="text-lg font-semibold text-[var(--ink)]">
               Related posts
             </h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
               {related.map((r) => (
                 <li
                   key={r.id}
-                  className="rounded-lg border border-[#1e2329] bg-[#0f1419] p-4 transition-colors hover:border-[#2a313b]"
+                  className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-4 transition-colors hover:border-[var(--line-2)]"
                 >
                   <Link href={`/blog/${r.slug}`} className="block">
-                    <h3 className="text-sm font-semibold text-[#e8e8ec] hover:text-white">
+                    <h3 className="text-sm font-semibold text-[var(--ink)] hover:text-white">
                       {r.title}
                     </h3>
                     {r.excerpt && (
-                      <p className="mt-1 text-xs text-[#a0a0a8] line-clamp-2">{r.excerpt}</p>
+                      <p className="mt-1 text-xs text-[var(--ink-3)] line-clamp-2">{r.excerpt}</p>
                     )}
                     {r.publishedAt && (
                       <time
                         dateTime={r.publishedAt.toISOString()}
-                        className="mt-2 block text-[11px] text-[#71717a]"
+                        className="mt-2 block text-[11px] text-[var(--ink-4)]"
                       >
                         {formatDate(r.publishedAt)}
                       </time>
@@ -253,20 +253,20 @@ export default async function BlogPostPage({
           loginHref={`/login?next=${encodeURIComponent(`/blog/${slug}`)}`}
         />
 
-        <nav className="mt-12 border-t border-[#1e2329] pt-6 text-sm">
-          <Link href="/blog" className="text-[#a0a0a8] hover:text-[#e8e8ec]">
+        <nav className="mt-12 border-t border-[var(--line)] pt-6 text-sm">
+          <Link href="/blog" className="text-[var(--ink-3)] hover:text-[var(--ink)]">
             ← All posts
           </Link>
         </nav>
       </main>
 
-      <footer className="border-t border-[#1e2329]">
-        <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[#71717a] sm:flex-row sm:px-6">
+      <footer className="border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[#e8e8ec]">Home</Link>
-            <Link href="/privacy" className="hover:text-[#e8e8ec]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[#e8e8ec]">Terms</Link>
+            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
+            <Link href="/privacy" className="hover:text-[var(--ink)]">Privacy</Link>
+            <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
           </nav>
         </div>
       </footer>

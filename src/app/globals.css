@@ -318,19 +318,20 @@ select option:hover {
 }
 
 /* Blog post body — rendered from markdown via src/lib/markdown.ts.
-   Kept minimal; the renderer emits a small whitelisted set of tags. */
-.prose-blog h2 { font-size: 1.5rem; font-weight: 600; color: #e8e8ec; margin-top: 2rem; margin-bottom: 0.75rem; }
-.prose-blog h3 { font-size: 1.25rem; font-weight: 600; color: #e8e8ec; margin-top: 1.5rem; margin-bottom: 0.5rem; }
-.prose-blog h4 { font-size: 1.05rem; font-weight: 600; color: #e8e8ec; margin-top: 1.25rem; margin-bottom: 0.5rem; }
-.prose-blog p { margin-bottom: 1rem; }
-.prose-blog ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
-.prose-blog ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+   Kept minimal; the renderer emits a small whitelisted set of tags.
+   Uses editorial CSS variables so it switches with the theme toggle. */
+.prose-blog h2 { font-size: 1.5rem; font-weight: 600; color: var(--ink); margin-top: 2rem; margin-bottom: 0.75rem; }
+.prose-blog h3 { font-size: 1.25rem; font-weight: 600; color: var(--ink); margin-top: 1.5rem; margin-bottom: 0.5rem; }
+.prose-blog h4 { font-size: 1.05rem; font-weight: 600; color: var(--ink); margin-top: 1.25rem; margin-bottom: 0.5rem; }
+.prose-blog p { margin-bottom: 1rem; color: var(--ink-2); }
+.prose-blog ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: var(--ink-2); }
+.prose-blog ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; color: var(--ink-2); }
 .prose-blog li { margin-bottom: 0.25rem; }
-.prose-blog a { color: #58a6ff; text-decoration: underline; text-underline-offset: 2px; }
-.prose-blog a:hover { color: #79b8ff; }
-.prose-blog code { background: #1e2329; color: #e8e8ec; padding: 0.1em 0.35em; border-radius: 0.25rem; font-size: 0.9em; }
-.prose-blog pre { background: #0f1419; border: 1px solid #1e2329; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
+.prose-blog a { color: var(--m-accent); text-decoration: underline; text-underline-offset: 2px; }
+.prose-blog a:hover { color: var(--m-accent-2); }
+.prose-blog code { background: var(--bg-3); color: var(--ink); padding: 0.1em 0.35em; border-radius: 0.25rem; font-size: 0.9em; }
+.prose-blog pre { background: var(--bg-2); border: 1px solid var(--line-2); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
 .prose-blog pre code { background: transparent; padding: 0; }
-.prose-blog blockquote { border-left: 3px solid #2a313b; padding-left: 1rem; color: #a0a0a8; font-style: italic; margin: 1rem 0; }
-.prose-blog hr { border-color: #1e2329; margin: 2rem 0; }
-.prose-blog strong { color: #e8e8ec; }
+.prose-blog blockquote { border-left: 3px solid var(--line-2); padding-left: 1rem; color: var(--ink-3); font-style: italic; margin: 1rem 0; }
+.prose-blog hr { border-color: var(--line); margin: 2rem 0; }
+.prose-blog strong { color: var(--ink); }
