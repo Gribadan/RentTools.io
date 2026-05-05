@@ -34,25 +34,34 @@ export function AgendaList({ bars, today, onSelectReservation }: AgendaListProps
             <div
               key={`${item.startDate}-${i}`}
               onClick={() => item.reservationId && onSelectReservation(item.reservationId)}
-              className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--bg-3)] ${
+              className={`flex flex-col gap-1.5 px-4 py-3 transition-colors hover:bg-[var(--bg-3)] sm:flex-row sm:items-center sm:gap-3 sm:py-2.5 ${
                 i < agenda.length - 1 ? "border-b border-[var(--line)]/50" : ""
               } ${item.reservationId ? "cursor-pointer" : ""}`}
             >
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                item.platform === "booking" ? "bg-[#003580]" : "bg-[var(--m-accent)]"
-              }`} />
-              <span className="flex-1 min-w-0 text-sm font-medium text-[var(--ink)] truncate">{item.name}</span>
-              <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                item.platform === "booking" ? "bg-[#003580]/20 text-sky-300" : "bg-[var(--m-accent)]/20 text-[var(--m-accent)]"
-              }`}>
-                {item.platform === "booking" ? "Booking" : "Airbnb"}
-              </span>
-              <span className="shrink-0 text-sm text-[var(--ink-3)]">
-                {formatDate(item.startDate, locale)} — {formatDate(item.endDate, locale)}
-              </span>
-              <span className="shrink-0 text-xs text-[var(--ink-4)]">{dayCount(item.startDate, item.endDate)}d</span>
+              <div className="flex items-center gap-2 min-w-0 sm:flex-1 sm:gap-3">
+                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                  item.platform === "booking" ? "bg-[#003580]" : "bg-[var(--m-accent)]"
+                }`} />
+                <span className="flex-1 min-w-0 text-sm font-medium text-[var(--ink)] truncate">{item.name}</span>
+                {item.reservationId && (
+                  <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)] sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex items-center gap-2 pl-[18px] sm:pl-0 sm:gap-3">
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
+                  item.platform === "booking" ? "bg-[#003580]/20 text-sky-300" : "bg-[var(--m-accent)]/20 text-[var(--m-accent)]"
+                }`}>
+                  {item.platform === "booking" ? "Booking" : "Airbnb"}
+                </span>
+                <span className="shrink-0 text-xs text-[var(--ink-3)] sm:text-sm">
+                  {formatDate(item.startDate, locale)} — {formatDate(item.endDate, locale)}
+                </span>
+                <span className="shrink-0 text-xs text-[var(--ink-4)]">{dayCount(item.startDate, item.endDate)}d</span>
+              </div>
               {item.reservationId && (
-                <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="hidden h-4 w-4 shrink-0 text-[var(--ink-4)] sm:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                 </svg>
               )}

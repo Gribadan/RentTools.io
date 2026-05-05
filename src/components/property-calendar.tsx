@@ -172,7 +172,7 @@ export function PropertyCalendar({
             description={t("empty.calendar.desc")}
           />
         )}
-      <div className={`rounded-lg border bg-[var(--bg-2)] overflow-hidden ${overrideMode ? "border-rose-700/30" : "border-[var(--line)]"}`}>
+      <div className={`hidden sm:block rounded-lg border bg-[var(--bg-2)] overflow-hidden ${overrideMode ? "border-rose-700/30" : "border-[var(--line)]"}`}>
         <CalendarNavigation
           monthLabel={monthLabel}
           monthOffset={monthOffset}
