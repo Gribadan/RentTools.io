@@ -642,7 +642,113 @@ export function CleaningSchedule({
           </div>
         ) : (
           <div className="max-h-[400px] overflow-y-auto">
-            <table className="w-full">
+            {/* Mobile card list — stacks within 375px without horizontal scroll */}
+            <div className="sm:hidden">
+              {futureDays.map((day, i) => {
+                const isOverlap = futureOverlaps.some(o => o.date === day.date);
+                const prevYear = i > 0 ? futureDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
+                const thisYear = day.date.substring(0, 4);
+                const showYearDivider = thisYear !== prevYear;
+                const rec = records[`${day.propertyId}-${day.date}`];
+                const isDone = rec?.status === "done";
+                return (
+                  <div key={`m-${day.date}-${day.propertyId}-${i}`}>
+                    {showYearDivider && (
+                      <div className="border-b border-[var(--line)] bg-[var(--bg-3)] px-4 py-2 text-xs font-semibold text-[var(--ink-3)]">
+                        {thisYear}
+                      </div>
+                    )}
+                    <div className={`flex flex-col gap-2 border-b border-[var(--line)]/50 px-4 py-3 ${isOverlap ? "bg-amber-400/5" : ""}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-[var(--ink)] whitespace-nowrap">
+                          {formatDate(day.date)}
+                          {isOverlap && (
+                            <span className="ml-1.5 text-[10px] font-medium text-amber-400">
+                              {t("cleaning.overlap")}
+                            </span>
+                          )}
+                        </span>
+                        {onOverrideChanged && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() =>
+                                handleMarkStatus(day.propertyId, day.date, isDone ? "pending" : "done")
+                              }
+                              title={isDone ? (locale === "ru" ? "Отменить" : "Undo") : (locale === "ru" ? "Сделано" : "Done")}
+                              className={
+                                "rounded p-1.5 transition-colors " +
+                                (isDone
+                                  ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25"
+                                  : "text-[var(--ink-4)] hover:bg-emerald-500/10 hover:text-emerald-500")
+                              }
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
+                              title={t("cleaning.skip")}
+                              className="rounded p-1.5 text-[var(--ink-4)] transition-colors hover:bg-rose-500/10 hover:text-rose-500"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
+                          day.type === "cleaning"
+                            ? "bg-amber-400/10 text-amber-400"
+                            : "bg-[var(--ink)]/10 text-[var(--ink)]"
+                        }`}>
+                          {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
+                        </span>
+                        {rec?.status === "done" && (
+                          <span className="inline-block rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-500">
+                            {locale === "ru" ? "Сделано" : "Done"}
+                          </span>
+                        )}
+                        {rec?.status === "skipped" && (
+                          <span className="inline-block rounded bg-[var(--ink-4)]/20 px-1.5 py-0.5 font-medium text-[var(--ink-3)]">
+                            {locale === "ru" ? "Пропущено" : "Skipped"}
+                          </span>
+                        )}
+                        {mode === "dashboard" && (
+                          <span className="text-[var(--ink-3)]">{day.property}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        {day.isManual && (
+                          <span className="inline-block rounded bg-[var(--ink)]/10 px-1.5 py-0.5 font-medium text-[var(--ink)]">
+                            {t("cleaning.manual")}
+                          </span>
+                        )}
+                        {!day.isManual && (
+                          <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
+                            day.bufferMode === "quick"
+                              ? "bg-violet-400/10 text-violet-400"
+                              : "bg-amber-400/10 text-amber-400"
+                          }`}>
+                            {day.bufferMode === "quick" ? t("cleaning.quickTurnover") : t("cleaning.fullDay")}
+                          </span>
+                        )}
+                        {day.hoursAvailable !== undefined && (
+                          <span className="inline-block rounded bg-emerald-500/10 px-1.5 py-0.5 font-medium text-emerald-500">
+                            {formatHours(day.hoursAvailable)}
+                          </span>
+                        )}
+                        <span className="text-[var(--ink-2)]">{formatReason(day)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Desktop table */}
+            <table className="hidden w-full sm:table">
               <thead>
                 <tr className="border-b border-[var(--line)] text-left">
                   <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)] w-[140px]">{t("cleaning.date")}</th>
