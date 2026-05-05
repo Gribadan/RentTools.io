@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar";
@@ -20,6 +20,11 @@ import { useI18n } from "@/lib/i18n/context";
 
 interface PropertyCalendarProps {
   property: Property;
+  /** Active month as `YYYY-MM` (e.g. "2026-09"). Lifted to the URL by
+   *  the dashboard so it survives unmount when the user navigates to
+   *  a guest view and back. `null` defaults to the current month. */
+  monthParam: string | null;
+  onMonthChange: (month: string | null) => void;
   onSelectReservation: (id: number) => void;
   onAddReservation: (data: {
     name: string;
@@ -30,13 +35,30 @@ interface PropertyCalendarProps {
   }) => void;
 }
 
+const MONTH_PARAM_RE = /^(\d{4})-(\d{2})$/;
+
+function parseMonthParam(s: string | null, fallback: Date): Date {
+  if (!s) return fallback;
+  const m = MONTH_PARAM_RE.exec(s);
+  if (!m) return fallback;
+  const year = Number(m[1]);
+  const month = Number(m[2]) - 1;
+  if (!Number.isFinite(year) || month < 0 || month > 11) return fallback;
+  return new Date(year, month, 1);
+}
+
+function formatMonthParam(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export function PropertyCalendar({
   property,
+  monthParam,
+  onMonthChange,
   onSelectReservation,
   onAddReservation,
 }: PropertyCalendarProps) {
   const { locale, t } = useI18n();
-  const [monthOffset, setMonthOffset] = useState(0);
   const [popoverDate, setPopoverDate] = useState<string | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
   const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
@@ -52,10 +74,28 @@ export function PropertyCalendar({
     return d;
   }, []);
 
-  const currentMonth = useMemo(
-    () => new Date(today.getFullYear(), today.getMonth() + monthOffset, 1),
-    [today, monthOffset]
+  // Source of truth: URL `month` param. monthOffset is computed from
+  // currentMonth - today so the existing nav (prev / next / today)
+  // can keep talking in offsets without re-architecting.
+  const currentMonthBase = useMemo(
+    () => new Date(today.getFullYear(), today.getMonth(), 1),
+    [today]
   );
+  const currentMonth = useMemo(
+    () => parseMonthParam(monthParam, currentMonthBase),
+    [monthParam, currentMonthBase]
+  );
+  const monthOffset =
+    (currentMonth.getFullYear() - today.getFullYear()) * 12 +
+    (currentMonth.getMonth() - today.getMonth());
+
+  const setMonthOffset = useCallback((updater: number | ((prev: number) => number)) => {
+    const newOffset = typeof updater === "function" ? updater(monthOffset) : updater;
+    const next = new Date(today.getFullYear(), today.getMonth() + newOffset, 1);
+    // Drop the param when on the current month so the URL stays clean.
+    onMonthChange(newOffset === 0 ? null : formatMonthParam(next));
+  }, [monthOffset, today, onMonthChange]);
+
   const monthLabel = currentMonth.toLocaleDateString(
     locale === "ru" ? "ru-RU" : "en",
     { month: "long", year: "numeric" }
@@ -147,7 +187,11 @@ export function PropertyCalendar({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, []);
+    // setMonthOffset is a useCallback that closes over the current
+    // monthOffset, so we re-attach the listener whenever it changes
+    // — otherwise ArrowLeft / ArrowRight would step from a stale
+    // monthOffset captured at first render.
+  }, [setMonthOffset]);
 
   const handleExport = () => {
     const text = buildCalendarExportText({

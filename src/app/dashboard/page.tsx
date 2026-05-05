@@ -46,25 +46,32 @@ function AppContent({
   // Derive state from URL params
   const selectedPropertyId = searchParams.get("property") ? Number(searchParams.get("property")) : null;
   const selectedReservationId = searchParams.get("reservation") ? Number(searchParams.get("reservation")) : null;
+  const monthParam = searchParams.get("month") ?? null; // YYYY-MM, e.g. 2026-09
   const activeView: AppView = (searchParams.get("view") as AppView) ||
     (selectedReservationId ? "guests" : selectedPropertyId ? "calendar" : "dashboard");
 
-  // Navigate by updating URL params
-  const navigate = useCallback((params: { property?: number | null; reservation?: number | null; view?: AppView }) => {
+  // Navigate by updating URL params. `month` lives in the URL so that
+  // jumping into a guest view and pressing back lands the user on the
+  // same calendar month they were browsing — without it, PropertyCalendar
+  // unmounts on view switch and the local monthOffset state is lost,
+  // sending the user back to "today" every time.
+  const navigate = useCallback((params: { property?: number | null; reservation?: number | null; view?: AppView; month?: string | null }) => {
     const sp = new URLSearchParams();
     const propId = params.property !== undefined ? params.property : selectedPropertyId;
     const resId = params.reservation !== undefined ? params.reservation : (params.property !== undefined ? null : selectedReservationId);
     const view = params.view || (resId ? "guests" : propId ? "calendar" : "dashboard");
+    const month = params.month !== undefined ? params.month : monthParam;
 
     if (propId) sp.set("property", String(propId));
     if (resId) sp.set("reservation", String(resId));
+    if (month) sp.set("month", month);
     // Only set view param if it's not the default for the context
     const defaultView = resId ? "guests" : propId ? "calendar" : "dashboard";
     if (view !== defaultView) sp.set("view", view);
 
     const qs = sp.toString();
     router.push(qs ? `/dashboard?${qs}` : "/dashboard");
-  }, [router, selectedPropertyId, selectedReservationId]);
+  }, [router, selectedPropertyId, selectedReservationId, monthParam]);
 
   // Convenience setters that update URL
   const setSelectedPropertyId = useCallback((id: number | null) => {
@@ -285,6 +292,8 @@ function AppContent({
             <PropertyCalendar
               key={`cal-${selectedProperty.id}`}
               property={selectedProperty}
+              monthParam={monthParam}
+              onMonthChange={(m) => navigate({ month: m })}
               onSelectReservation={handleSelectReservation}
               onAddReservation={handleAddReservation}
             />
@@ -320,6 +329,7 @@ function AppContent({
                 propertyName={selectedProperty.name}
                 onGuestsUpdated={handleGuestsUpdated}
                 onDeleteGuest={handleDeleteGuest}
+                onDeleteReservation={handleDeleteReservation}
                 onUpdateReservation={handleUpdateReservation}
                 onUpdateParent={handleUpdateParent}
                 onUpdateGuest={handleUpdateGuest}
@@ -341,6 +351,8 @@ function AppContent({
             <PropertyCalendar
               key={`cal-${selectedProperty.id}`}
               property={selectedProperty}
+              monthParam={monthParam}
+              onMonthChange={(m) => navigate({ month: m })}
               onSelectReservation={handleSelectReservation}
               onAddReservation={handleAddReservation}
             />
