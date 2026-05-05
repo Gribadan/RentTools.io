@@ -26,3 +26,8 @@ MAILTO=""
 # Hourly resource check — alerts on RAM > RAM_WARN_PCT% or disk > DISK_WARN_PCT%.
 # Reads TELEGRAM_BOT_TOKEN/CHAT_ID or ALERT_WEBHOOK_URL from .env.production.
 5 * * * * /home/app/rent-tool/scripts/check-resources.sh >> /home/app/logs/rent-tool-resources.log 2>&1
+
+# Monthly backup-restore drill — proves the latest snapshot is restorable.
+# Runs on the 1st at 04:30 (after the daily backup at 03:15 promotes into
+# the monthly tier). Same alert channel as check-resources.sh.
+30 4 1 * * /home/app/rent-tool/scripts/test-restore.sh >> /home/app/logs/rent-tool-restore-drill.log 2>&1
