@@ -30,7 +30,7 @@ const NAV: NavGroup[] = [
       { label: { en: "Profile", ru: "Профиль" }, href: "/dashboard/admin/account/profile" },
       { label: { en: "Security & 2FA", ru: "Безопасность" } },
       { label: { en: "Sessions", ru: "Сессии" } },
-      { label: { en: "Language & theme", ru: "Язык и тема" } },
+      { label: { en: "Language & theme", ru: "Язык и тема" }, href: "/dashboard/admin/account/preferences" },
     ],
   },
   {
