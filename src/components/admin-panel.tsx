@@ -62,6 +62,34 @@ const EMPTY_NEW_PLATFORM: NewPlatformDraft = {
   sortOrder: "150",
 };
 
+interface AdminSeoOverrideRow {
+  id: number;
+  path: string;
+  locale: string;
+  title: string | null;
+  description: string | null;
+  ogImage: string | null;
+  canonical: string | null;
+}
+
+interface NewSeoDraft {
+  path: string;
+  locale: "en" | "ru";
+  title: string;
+  description: string;
+  ogImage: string;
+  canonical: string;
+}
+
+const EMPTY_NEW_SEO: NewSeoDraft = {
+  path: "",
+  locale: "en",
+  title: "",
+  description: "",
+  ogImage: "",
+  canonical: "",
+};
+
 type SortKey =
   | "username"
   | "role"
@@ -140,10 +168,21 @@ export function AdminPanel() {
   const [creatingPlatform, setCreatingPlatform] = useState(false);
   const [createPlatformError, setCreatePlatformError] = useState<string | null>(null);
 
+  const [seoOverrides, setSeoOverrides] = useState<AdminSeoOverrideRow[]>([]);
+  const [seoDrafts, setSeoDrafts] = useState<Record<number, AdminSeoOverrideRow>>({});
+  const [seoLoading, setSeoLoading] = useState(false);
+  const [seoError, setSeoError] = useState<string | null>(null);
+  const [seoBusy, setSeoBusy] = useState<number | null>(null);
+  const [seoMessage, setSeoMessage] = useState<{ id: number; text: string; ok: boolean } | null>(null);
+  const [newSeo, setNewSeo] = useState<NewSeoDraft>(EMPTY_NEW_SEO);
+  const [creatingSeo, setCreatingSeo] = useState(false);
+  const [createSeoError, setCreateSeoError] = useState<string | null>(null);
+
   useEffect(() => {
     void load();
     void loadUsers();
     void loadPlatforms();
+    void loadSeoOverrides();
   }, []);
 
   const load = async () => {
@@ -359,6 +398,112 @@ export function AdminPanel() {
       await loadPlatforms();
     } finally {
       setCreatingPlatform(false);
+    }
+  };
+
+  const loadSeoOverrides = async () => {
+    setSeoLoading(true);
+    setSeoError(null);
+    try {
+      const res = await fetch("/api/admin/seo");
+      if (!res.ok) {
+        setSeoError(`Failed to load SEO overrides (${res.status})`);
+        return;
+      }
+      const data = (await res.json()) as AdminSeoOverrideRow[];
+      setSeoOverrides(data);
+      const drafts: Record<number, AdminSeoOverrideRow> = {};
+      for (const r of data) drafts[r.id] = { ...r };
+      setSeoDrafts(drafts);
+    } catch {
+      setSeoError("Failed to load SEO overrides");
+    } finally {
+      setSeoLoading(false);
+    }
+  };
+
+  const seoDirty = (row: AdminSeoOverrideRow): boolean => {
+    const draft = seoDrafts[row.id];
+    if (!draft) return false;
+    return (
+      (draft.title ?? "") !== (row.title ?? "") ||
+      (draft.description ?? "") !== (row.description ?? "") ||
+      (draft.ogImage ?? "") !== (row.ogImage ?? "") ||
+      (draft.canonical ?? "") !== (row.canonical ?? "")
+    );
+  };
+
+  const setSeoDraft = <K extends keyof AdminSeoOverrideRow>(
+    id: number,
+    key: K,
+    value: AdminSeoOverrideRow[K],
+  ) => {
+    setSeoDrafts((d) => ({ ...d, [id]: { ...d[id], [key]: value } }));
+  };
+
+  const saveSeo = async (id: number) => {
+    const draft = seoDrafts[id];
+    if (!draft) return;
+    setSeoBusy(id);
+    setSeoMessage(null);
+    try {
+      const res = await fetch(`/api/admin/seo/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: draft.title ?? "",
+          description: draft.description ?? "",
+          ogImage: draft.ogImage ?? "",
+          canonical: draft.canonical ?? "",
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setSeoMessage({ id, text: data.error ?? "Failed to save", ok: false });
+        return;
+      }
+      setSeoMessage({ id, text: "Saved. Live within 60s.", ok: true });
+      await loadSeoOverrides();
+    } finally {
+      setSeoBusy(null);
+      setTimeout(() => setSeoMessage((m) => (m && m.id === id ? null : m)), 4000);
+    }
+  };
+
+  const deleteSeo = async (row: AdminSeoOverrideRow) => {
+    if (!confirm(`Delete SEO override for ${row.path} (${row.locale})?`)) return;
+    setSeoBusy(row.id);
+    try {
+      const res = await fetch(`/api/admin/seo/${row.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setSeoMessage({ id: row.id, text: data.error ?? "Failed to delete", ok: false });
+        return;
+      }
+      await loadSeoOverrides();
+    } finally {
+      setSeoBusy(null);
+    }
+  };
+
+  const createSeo = async () => {
+    setCreatingSeo(true);
+    setCreateSeoError(null);
+    try {
+      const res = await fetch("/api/admin/seo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newSeo),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setCreateSeoError(data.error ?? "Failed to create");
+        return;
+      }
+      setNewSeo(EMPTY_NEW_SEO);
+      await loadSeoOverrides();
+    } finally {
+      setCreatingSeo(false);
     }
   };
 
@@ -825,6 +970,215 @@ export function AdminPanel() {
           {createPlatformError && (
             <p className="mt-2 text-xs text-destructive">{createPlatformError}</p>
           )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Admin · SEO overrides
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-lg text-xs"
+            onClick={() => void loadSeoOverrides()}
+            disabled={seoLoading}
+          >
+            {seoLoading ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-card/50 p-2">
+          {seoError && <p className="px-3 py-2 text-xs text-destructive">{seoError}</p>}
+          {!seoError && seoOverrides.length === 0 && !seoLoading && (
+            <p className="px-3 py-2 text-xs text-muted-foreground">
+              No per-page overrides yet. Add one below to override the default title /
+              description / OG image emitted by the page.
+            </p>
+          )}
+          {seoOverrides.length > 0 && (
+            <div className="space-y-2 p-2">
+              {seoOverrides.map((row) => {
+                const draft = seoDrafts[row.id] ?? row;
+                const dirty = seoDirty(row);
+                return (
+                  <details
+                    key={row.id}
+                    className="rounded-lg border border-border/40 bg-background/30 p-3"
+                  >
+                    <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm">
+                      <span className="font-mono text-xs">
+                        {row.path}
+                        <span className="ml-2 inline-flex items-center rounded-md bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                          {row.locale}
+                        </span>
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {row.title ?? <em>(no title override)</em>}
+                      </span>
+                    </summary>
+                    <div className="mt-3 grid gap-2">
+                      <label className="text-xs text-muted-foreground" htmlFor={`seo-title-${row.id}`}>
+                        Title (leave empty to keep page default)
+                      </label>
+                      <Input
+                        id={`seo-title-${row.id}`}
+                        value={draft.title ?? ""}
+                        onChange={(e) =>
+                          setSeoDraft(row.id, "title", e.target.value || null)
+                        }
+                        maxLength={120}
+                        className="h-9 rounded-lg bg-background/50 text-sm"
+                      />
+                      <label
+                        className="text-xs text-muted-foreground"
+                        htmlFor={`seo-desc-${row.id}`}
+                      >
+                        Description
+                      </label>
+                      <textarea
+                        id={`seo-desc-${row.id}`}
+                        value={draft.description ?? ""}
+                        onChange={(e) =>
+                          setSeoDraft(row.id, "description", e.target.value || null)
+                        }
+                        maxLength={320}
+                        rows={2}
+                        className="rounded-lg border border-input bg-background/50 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      />
+                      <label className="text-xs text-muted-foreground" htmlFor={`seo-og-${row.id}`}>
+                        OG image URL
+                      </label>
+                      <Input
+                        id={`seo-og-${row.id}`}
+                        value={draft.ogImage ?? ""}
+                        onChange={(e) =>
+                          setSeoDraft(row.id, "ogImage", e.target.value || null)
+                        }
+                        maxLength={512}
+                        placeholder="https://renttools.io/og/about.png"
+                        className="h-9 rounded-lg bg-background/50 font-mono text-xs"
+                      />
+                      <label
+                        className="text-xs text-muted-foreground"
+                        htmlFor={`seo-canon-${row.id}`}
+                      >
+                        Canonical URL
+                      </label>
+                      <Input
+                        id={`seo-canon-${row.id}`}
+                        value={draft.canonical ?? ""}
+                        onChange={(e) =>
+                          setSeoDraft(row.id, "canonical", e.target.value || null)
+                        }
+                        maxLength={512}
+                        placeholder="/about or https://renttools.io/about"
+                        className="h-9 rounded-lg bg-background/50 font-mono text-xs"
+                      />
+                      <div className="mt-2 flex items-center justify-end gap-2">
+                        {seoMessage?.id === row.id && (
+                          <span
+                            className={`text-xs ${
+                              seoMessage.ok ? "text-primary" : "text-destructive"
+                            }`}
+                          >
+                            {seoMessage.text}
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 rounded-lg px-3 text-xs text-destructive hover:text-destructive"
+                          onClick={() => void deleteSeo(row)}
+                          disabled={seoBusy === row.id}
+                        >
+                          Delete
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 rounded-lg px-3 text-xs"
+                          onClick={() => void saveSeo(row.id)}
+                          disabled={!dirty || seoBusy === row.id}
+                        >
+                          {seoBusy === row.id ? "Saving…" : "Save"}
+                        </Button>
+                      </div>
+                    </div>
+                  </details>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 rounded-xl border border-border/60 bg-card/50 p-5">
+          <p className="mb-3 text-sm font-medium">Add an override</p>
+          <p className="mb-4 text-xs text-muted-foreground/70">
+            Path is the URL pathname (e.g. <code className="font-mono text-[11px]">/about</code>).
+            Empty fields keep the page&apos;s built-in defaults.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+            <Input
+              value={newSeo.path}
+              onChange={(e) => setNewSeo((s) => ({ ...s, path: e.target.value }))}
+              placeholder="/about"
+              className="h-9 rounded-lg bg-background/50 font-mono text-sm"
+            />
+            <select
+              value={newSeo.locale}
+              onChange={(e) =>
+                setNewSeo((s) => ({ ...s, locale: e.target.value as "en" | "ru" }))
+              }
+              className="h-9 rounded-lg border border-border/60 bg-background/50 px-2 text-sm"
+            >
+              <option value="en">en</option>
+              <option value="ru">ru</option>
+            </select>
+          </div>
+          <div className="mt-3 grid gap-2">
+            <Input
+              value={newSeo.title}
+              onChange={(e) => setNewSeo((s) => ({ ...s, title: e.target.value }))}
+              placeholder="Title (max 120 chars)"
+              maxLength={120}
+              className="h-9 rounded-lg bg-background/50 text-sm"
+            />
+            <textarea
+              value={newSeo.description}
+              onChange={(e) => setNewSeo((s) => ({ ...s, description: e.target.value }))}
+              placeholder="Description (max 320 chars)"
+              maxLength={320}
+              rows={2}
+              className="rounded-lg border border-input bg-background/50 px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            />
+            <Input
+              value={newSeo.ogImage}
+              onChange={(e) => setNewSeo((s) => ({ ...s, ogImage: e.target.value }))}
+              placeholder="OG image URL"
+              maxLength={512}
+              className="h-9 rounded-lg bg-background/50 font-mono text-xs"
+            />
+            <Input
+              value={newSeo.canonical}
+              onChange={(e) => setNewSeo((s) => ({ ...s, canonical: e.target.value }))}
+              placeholder="Canonical URL (optional)"
+              maxLength={512}
+              className="h-9 rounded-lg bg-background/50 font-mono text-xs"
+            />
+          </div>
+          <div className="mt-3 flex items-center justify-end gap-3">
+            {createSeoError && (
+              <span className="text-xs text-destructive">{createSeoError}</span>
+            )}
+            <Button
+              onClick={() => void createSeo()}
+              disabled={creatingSeo || newSeo.path.trim().length === 0}
+              className="h-9 rounded-lg px-4"
+            >
+              {creatingSeo ? "Adding…" : "Add override"}
+            </Button>
+          </div>
         </div>
       </section>
 
