@@ -4,16 +4,47 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 
+// Inline SVG flags. We can't use 🇬🇧 / 🇷🇺 emojis here because Windows
+// desktop browsers render regional indicator chars as plain letters
+// (you see "GB" / "RU" boxes instead of a flag) — fine on iOS / Android /
+// Mac which ship a flag-capable emoji font, broken on Windows. SVGs
+// dodge the OS font fallback entirely.
+function FlagGB({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 16" className={className} aria-hidden="true">
+      <rect width="24" height="16" fill="#012169" />
+      <path d="M0 0 L24 16 M24 0 L0 16" stroke="white" strokeWidth="3.2" />
+      <path d="M0 0 L24 16 M24 0 L0 16" stroke="#C8102E" strokeWidth="1.6" />
+      <path d="M12 0 V16 M0 8 H24" stroke="white" strokeWidth="5.3" />
+      <path d="M12 0 V16 M0 8 H24" stroke="#C8102E" strokeWidth="3.2" />
+    </svg>
+  );
+}
+
+function FlagRU({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 16" className={className} aria-hidden="true">
+      <rect width="24" height="5.34" y="0" fill="white" />
+      <rect width="24" height="5.34" y="5.33" fill="#0039A6" />
+      <rect width="24" height="5.34" y="10.66" fill="#D52B1E" />
+    </svg>
+  );
+}
+
+function FlagFor({ code, className }: { code: Locale; className?: string }) {
+  if (code === "ru") return <FlagRU className={className} />;
+  return <FlagGB className={className} />;
+}
+
 interface LocaleOption {
   code: Locale;
   short: string;
   label: string;
-  flag: string;
 }
 
 const OPTIONS: LocaleOption[] = [
-  { code: "en", short: "EN", label: "English", flag: "🇬🇧" },
-  { code: "ru", short: "RU", label: "Русский", flag: "🇷🇺" },
+  { code: "en", short: "EN", label: "English" },
+  { code: "ru", short: "RU", label: "Русский" },
 ];
 
 interface LocaleSwitcherProps {
@@ -89,7 +120,7 @@ export function LocaleSwitcher({
         aria-label="Change language"
         className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] hover:border-[var(--ink)]/40 hover:text-[var(--ink)] transition-colors"
       >
-        <span aria-hidden>{current.flag}</span>
+        <FlagFor code={current.code} className="h-3 w-[18px] rounded-[1px] border border-[var(--line-2)]" />
         <span>{current.short}</span>
         <svg
           className={`h-3 w-3 text-[var(--ink-4)] transition-transform ${open ? "rotate-180" : ""}`}
@@ -122,9 +153,7 @@ export function LocaleSwitcher({
                     : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
                 }`}
               >
-                <span className="text-base" aria-hidden>
-                  {opt.flag}
-                </span>
+                <FlagFor code={opt.code} className="h-3.5 w-[21px] shrink-0 rounded-[1px] border border-[var(--line-2)]" />
                 <span className="flex-1 text-left">{opt.label}</span>
                 {locale === opt.code && (
                   <svg

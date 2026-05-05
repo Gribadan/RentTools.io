@@ -178,8 +178,8 @@ export function TopBar({
                 pure SVG <animate> so no framer-motion dep, no
                 entrance shake / scale-rotate spring — the mark just
                 paints in place on first render. */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
-              <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
+              <svg viewBox="0 0 24 24" className="h-7 w-7" aria-hidden="true">
                 <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
                   {/* Roof + walls outline as one shape */}
                   <path d="M3.4 11.6 L12 4.5 L20.6 11.6 L19 11.6 L19 19.5 L5 19.5 L5 11.6 Z" />

@@ -65,10 +65,42 @@ export default async function HomePage() {
       <header className="border-b border-[var(--line)]">
         <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink)] text-[var(--bg)] transition-transform group-hover:rotate-6">
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12l9-9 9 9" />
-                <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10" />
+            {/* Same brand mark as the dashboard top-bar — coral pill,
+                white house silhouette, three SMIL-animated smoke
+                puffs from the chimney. Sized down a touch (h-9) so it
+                lives gracefully inside the marketing header without
+                crowding the wordmark. */}
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
+              <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
+                <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
+                  <path d="M3.4 11.6 L12 4.5 L20.6 11.6 L19 11.6 L19 19.5 L5 19.5 L5 11.6 Z" />
+                  <rect x="15.6" y="6.2" width="1.7" height="3.4" rx="0.2" />
+                </g>
+                <g fill="var(--m-accent)">
+                  <rect x="10.6" y="14" width="2.8" height="5.5" rx="0.4" />
+                  <rect x="6.7" y="13" width="2.4" height="2.4" rx="0.3" />
+                  <rect x="14.9" y="13" width="2.4" height="2.4" rx="0.3" />
+                </g>
+                <g fill="white">
+                  <circle cx="16.45" cy="5.5" r="0.6" opacity="0">
+                    <animate attributeName="cy" values="5.5;3.2;1" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="cx" values="16.45;16.7;17.1" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="0.4;0.7;0.9" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0;0.85;0" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="16.45" cy="5.5" r="0.6" opacity="0">
+                    <animate attributeName="cy" values="5.5;3.2;1" dur="3s" begin="1s" repeatCount="indefinite" />
+                    <animate attributeName="cx" values="16.45;16.2;15.9" dur="3s" begin="1s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="0.4;0.7;0.9" dur="3s" begin="1s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0;0.7;0" dur="3s" begin="1s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="16.45" cy="5.5" r="0.6" opacity="0">
+                    <animate attributeName="cy" values="5.5;3.2;1" dur="3s" begin="2s" repeatCount="indefinite" />
+                    <animate attributeName="cx" values="16.45;16.6;17" dur="3s" begin="2s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="0.4;0.7;0.9" dur="3s" begin="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0;0.6;0" dur="3s" begin="2s" repeatCount="indefinite" />
+                  </circle>
+                </g>
               </svg>
             </div>
             <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">RentTools</span>
