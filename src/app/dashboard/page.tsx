@@ -344,7 +344,7 @@ function AppContent({
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#0d1117]">
+    <div className="editorial flex h-screen flex-col overflow-hidden bg-[var(--bg)]">
       <AnnouncementBanner />
       <TopBar
         properties={properties}
@@ -376,7 +376,7 @@ function AppContent({
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-[#0d1117] text-[#9198a1]">Loading...</div>}>
+    <Suspense fallback={<div className="editorial flex h-screen items-center justify-center bg-[var(--bg)] text-[var(--ink-3)]">Loading...</div>}>
       <AuthGuard>
         {(user) =>
           user.role === "cleaner" ? (
