@@ -120,7 +120,7 @@ export function CalendarGrid({
       <div className="min-w-[640px]">
       <div className="grid grid-cols-7 border-b border-[var(--line)]">
         {WEEKDAYS.map(wd => (
-          <div key={wd} className="py-2 text-center text-xs font-medium text-[var(--ink-4)]">{wd}</div>
+          <div key={wd} className="py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-3)]">{wd}</div>
         ))}
       </div>
 
@@ -129,7 +129,7 @@ export function CalendarGrid({
           <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[var(--line)] last:border-b-0">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`c-${di}`} className="h-14" />;
+                return <div key={`c-${di}`} className="h-[72px] border-r border-[var(--line)] last:border-r-0" />;
               }
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
@@ -158,22 +158,22 @@ export function CalendarGrid({
                   onClick={(e) => {
                     if (overrideMode) onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
-                  className={`relative h-16 border-r border-[var(--line)] last:border-r-0 ${bg} ${
-                    overrideMode ? "cursor-pointer hover:bg-[var(--bg-3)]" : ""
+                  className={`relative h-[72px] border-r border-[var(--line)] last:border-r-0 transition-colors ${bg} ${
+                    overrideMode ? "cursor-pointer hover:bg-[var(--bg-3)]" : "hover:bg-[var(--bg-2)]/60"
                   } ${isOpen ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
-                  <div className="absolute top-1 left-1.5 z-20 pointer-events-none">
-                    <span className={`text-xs leading-none ${
-                      isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white font-semibold"
-                      : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ink)] text-white font-semibold"
+                  <div className="absolute top-1.5 left-2 z-20 pointer-events-none">
+                    <span className={`text-[13px] font-medium leading-none ${
+                      isConflict ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white font-semibold"
+                      : isToday ? "inline-flex h-6 w-6 items-center justify-center rounded-full ring-[1.5px] ring-[var(--m-accent)] text-[var(--m-accent)] font-bold"
                       : isOpen ? "text-emerald-500 font-semibold"
                       : isClosed ? "text-rose-500 font-semibold"
-                      : "text-[var(--ink-4)]"
+                      : "text-[var(--ink-2)]"
                     }`}>{dayNum}</span>
                   </div>
 
                   {showMiddleIndicator && (
-                    <div className="absolute left-0 right-0 top-7 flex items-center justify-center px-0.5 pointer-events-none">
+                    <div className="absolute left-0 right-0 top-9 flex items-center justify-center px-0.5 pointer-events-none">
                       {isOpen && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 font-medium">{t("calendar.open")}</div>
                       )}
@@ -202,7 +202,7 @@ export function CalendarGrid({
                     <div
                       key={`seg-${si}-${seg.startDate}`}
                       onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
-                      className={`absolute top-7 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
+                      className={`absolute top-9 h-6 flex items-center rounded-md px-2.5 text-[11.5px] font-medium text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
                         isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
                         seg.platform === "booking"
                           ? "bg-[#003580]"
