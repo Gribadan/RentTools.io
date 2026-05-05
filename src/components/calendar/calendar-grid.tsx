@@ -118,15 +118,15 @@ export function CalendarGrid({
   return (
     <div className="overflow-x-auto">
       <div className="min-w-[640px]">
-      <div className="grid grid-cols-7 border-b border-[#27272b]">
+      <div className="grid grid-cols-7 border-b border-[var(--line)]">
         {WEEKDAYS.map(wd => (
-          <div key={wd} className="py-2 text-center text-xs font-medium text-[#71717a]">{wd}</div>
+          <div key={wd} className="py-2 text-center text-xs font-medium text-[var(--ink-4)]">{wd}</div>
         ))}
       </div>
 
       <div key={monthKey}>
         {weeks.map((week, wi) => (
-          <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[#27272b] last:border-b-0">
+          <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[var(--line)] last:border-b-0">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
                 return <div key={`c-${di}`} className="h-14" />;
@@ -142,13 +142,13 @@ export function CalendarGrid({
               const isSameDayCleaning = sameDayCleaningDates.has(ds);
               const isOpen = openOverrides.has(ds);
               const isClosed = closedOverrides.has(ds);
-              const bg = isOpen ? "bg-[#34d399]/8"
-                : isClosed ? "bg-[#ef4444]/8"
-                : isConflict ? "bg-[#ef4444]/8"
-                : isToday ? "bg-[#e8e8ec]/5"
-                : isBuffer ? "bg-[#fbbf24]/5"
-                : isPotential ? "bg-[#e8e8ec]/3"
-                : isUnbookable ? "bg-[#71717a]/5"
+              const bg = isOpen ? "bg-emerald-500/8"
+                : isClosed ? "bg-rose-500/8"
+                : isConflict ? "bg-rose-500/8"
+                : isToday ? "bg-[var(--ink)]/5"
+                : isBuffer ? "bg-amber-400/5"
+                : isPotential ? "bg-[var(--ink)]/3"
+                : isUnbookable ? "bg-[var(--ink-4)]/5"
                 : "";
 
               const showMiddleIndicator = !hasBar && (isBuffer || isPotential || isUnbookable || (isOpen && !hasBar) || (isClosed && !isBuffer) || (isConflict && !isOpen && !isClosed));
@@ -158,42 +158,42 @@ export function CalendarGrid({
                   onClick={(e) => {
                     if (overrideMode) onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
-                  className={`relative h-16 border-r border-[#27272b] last:border-r-0 ${bg} ${
-                    overrideMode ? "cursor-pointer hover:bg-[#1e1e22]" : ""
+                  className={`relative h-16 border-r border-[var(--line)] last:border-r-0 ${bg} ${
+                    overrideMode ? "cursor-pointer hover:bg-[var(--bg-3)]" : ""
                   } ${isOpen ? "ring-1 ring-inset ring-[#34d399]/40" : ""} ${isClosed ? "ring-1 ring-inset ring-[#ef4444]/40" : ""}`}
                 >
                   <div className="absolute top-1 left-1.5 z-20 pointer-events-none">
                     <span className={`text-xs leading-none ${
-                      isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#ef4444] text-white font-semibold"
-                      : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#e8e8ec] text-white font-semibold"
-                      : isOpen ? "text-[#34d399] font-semibold"
-                      : isClosed ? "text-[#ef4444] font-semibold"
-                      : "text-[#71717a]"
+                      isConflict ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white font-semibold"
+                      : isToday ? "inline-flex h-5 w-5 items-center justify-center rounded-full bg-[var(--ink)] text-white font-semibold"
+                      : isOpen ? "text-emerald-500 font-semibold"
+                      : isClosed ? "text-rose-500 font-semibold"
+                      : "text-[var(--ink-4)]"
                     }`}>{dayNum}</span>
                   </div>
 
                   {showMiddleIndicator && (
                     <div className="absolute left-0 right-0 top-7 flex items-center justify-center px-0.5 pointer-events-none">
                       {isOpen && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#34d399] bg-[#34d399]/10 border border-[#34d399]/20 font-medium">{t("calendar.open")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 font-medium">{t("calendar.open")}</div>
                       )}
                       {isClosed && !isBuffer && !isOpen && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/20 font-medium">{t("calendar.closed")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.closed")}</div>
                       )}
                       {isConflict && !isOpen && !isClosed && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/20 font-medium">{t("calendar.conflict")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.conflict")}</div>
                       )}
                       {isBuffer && !isOpen && !isClosed && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#fbbf24] bg-[#fbbf24]/8 border border-[#fbbf24]/15">{t("calendar.cleaning")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-amber-400 bg-amber-400/8 border border-amber-400/15">{t("calendar.cleaning")}</div>
                       )}
                       {isBuffer && isClosed && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/20 font-medium">{t("calendar.closed")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.closed")}</div>
                       )}
                       {isPotential && !isOpen && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#e8e8ec]/70 bg-[#e8e8ec]/5 border border-[#e8e8ec]/15 border-dashed">{t("calendar.cleaningQ")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/15 border-dashed">{t("calendar.cleaningQ")}</div>
                       )}
                       {isUnbookable && !isOpen && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[#71717a] bg-[#71717a]/8 border border-[#71717a]/15 border-dashed">&lt;{minNights}n</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[var(--ink-4)] bg-[var(--ink-4)]/8 border border-[var(--ink-4)]/15 border-dashed">&lt;{minNights}n</div>
                       )}
                     </div>
                   )}
@@ -203,10 +203,10 @@ export function CalendarGrid({
                       key={`seg-${si}-${seg.startDate}`}
                       onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
                       className={`absolute top-7 h-5 flex items-center rounded px-2 text-[11px] font-medium text-white/90 truncate ${
-                        isConflict ? "bg-[#ef4444] ring-1 ring-[#ef4444]/40" :
+                        isConflict ? "bg-rose-500 ring-1 ring-[#ef4444]/40" :
                         seg.platform === "booking"
                           ? "bg-[#003580]"
-                          : "bg-[#ff385c]"
+                          : "bg-[var(--m-accent)]"
                       } ${seg.reservationId ? "cursor-pointer hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
                       style={{
                         left: `${seg.leftPct}%`,
@@ -224,7 +224,7 @@ export function CalendarGrid({
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
                     <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center px-0.5 pointer-events-none">
-                      <div className="rounded px-1.5 h-4 flex items-center text-[9px] text-[#fbbf24] bg-[#fbbf24]/15 border border-[#fbbf24]/30 font-medium leading-none">
+                      <div className="rounded px-1.5 h-4 flex items-center text-[9px] text-amber-400 bg-amber-400/15 border border-amber-400/30 font-medium leading-none">
                         {t("calendar.cleaning")}
                       </div>
                     </div>
