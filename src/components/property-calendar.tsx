@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
-import { CalendarLegend } from "@/components/calendar/calendar-legend";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarDatePopover } from "@/components/calendar/calendar-date-popover";
 import { BarClaimPopover, type ClaimableBar } from "@/components/calendar/bar-claim-popover";
@@ -203,13 +202,23 @@ export function PropertyCalendar({
     : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   return (
-    /* Wrapper centers calendar + sidebar TOGETHER inside the same
-       max-w-[1760px] container that the dashboard header uses. The
-       sidebar slot is ALWAYS rendered on lg+ (with placeholder copy
+    /* Two layers of layout:
+         1. Outer: negative horizontal margin to ESCAPE the dashboard
+            <main>'s side padding so this content area aligns 1:1
+            with the dashboard header (which lives outside <main>).
+            Otherwise calendar+sidebar would always be inset by
+            main's px-* and never line up with the header's content
+            edges.
+         2. Inner: max-w-[1760px] mx-auto + px-3 sm:px-5, mirroring
+            the header's structure exactly. This way both the header
+            row and the calendar row use the same content rectangle
+            at every viewport width.
+       Sidebar slot is ALWAYS rendered on lg+ (with placeholder copy
        when no dates are selected) so the calendar's effective width
        is stable across selection state — no horizontal jank when the
        user clicks a cell. */
-    <div className="mx-auto max-w-[1760px] flex flex-col lg:flex-row gap-6">
+    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
+    <div className="mx-auto max-w-[1760px] px-3 sm:px-5 flex flex-col lg:flex-row gap-6">
       <div className={`min-w-0 space-y-6 lg:flex-1 ${panelOpen ? "hidden lg:block" : ""}`}>
         <ConflictBanner conflicts={data.conflicts} />
         {!loadingEvents &&
@@ -229,14 +238,6 @@ export function PropertyCalendar({
             </div>
           )}
 
-        {/* Legend rendered once at the top of the stack. */}
-        <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
-          <CalendarLegend
-            minNights={property.minNights || 3}
-            hasOverrides={data.openOverrides.size > 0 || data.closedOverrides.size > 0}
-          />
-        </div>
-
         {/* Vertical month stack with sticky per-month headers. The
             sticky header now spans two rows: the month label + sync
             icon on top, the weekday Mon-Sun row right under it. When
@@ -247,7 +248,7 @@ export function PropertyCalendar({
             const showYear = i === 0 || m.getMonth() === 0;
             return (
               <section key={`${m.getFullYear()}-${m.getMonth()}`} className="mb-8">
-                <header className="sticky top-0 z-30 bg-[var(--bg)] mb-2 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.08)]">
+                <header className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-2 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.08)]">
                   <div className="flex items-center justify-between gap-3 py-3">
                     <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
                       {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
@@ -378,6 +379,7 @@ export function PropertyCalendar({
           onSave={claimSyncedBooking}
         />
       )}
+    </div>
     </div>
   );
 }

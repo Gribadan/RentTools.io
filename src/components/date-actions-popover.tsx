@@ -208,20 +208,30 @@ export function DateActionsPopover({
     const createAction: ResolvedAction = { kind: "createReservation", label: lCreate, description: lCreateDesc, tone: "primary", onClick: () => setCreating(true) };
 
     if (singleStatus.hasBar) {
-      const turnoverNeedsCleaning = cleaningBetweenIndex >= 0 && !singleStatus.isManualCleaning;
-      const lScheduleConfirm = locale === "ru" ? "Подтвердить уборку между бронированиями." : "Confirm a cleaning slot between the two stays.";
+      // On a booked day the only meaningful action is around the
+      // cleaning chip. Three cases, all surfaced as "Cancel
+      // cleaning" with different underlying writes:
+      //
+      //   * Manual cleaning override → DELETE override (back to
+      //     auto-detected state, which on a turnover or end-of-stay
+      //     day still shows the Cleaning chip via sameDayCleaning).
+      //   * Auto sameDayCleaning chip (turnover OR end-of-stay) →
+      //     SET an `open` override that suppresses the auto chip.
+      //
+      // Previously the turnover branch surfaced "Schedule cleaning"
+      // (which writes a cleaning override on top of the existing
+      // auto chip) — confusing because cleaning was already shown.
+      // Now we collapse to a single Cancel-cleaning action that
+      // matches the host's mental model: "the cleaner can't make
+      // this day, free it up so I can schedule another day".
       const lRemoveCleaningDesc = locale === "ru" ? "Вернуть автоматическое определение." : "Go back to the auto-detected hint.";
       const lCancelCleaning = locale === "ru" ? "Отменить уборку" : "Cancel cleaning";
       const lCancelCleaningDesc = locale === "ru"
         ? "Освободить дату от уборки — выберите другой день."
         : "Free this date from the cleaning — schedule it on another day.";
-      if (turnoverNeedsCleaning) return [{ kind: "scheduleCleaning", label: lSchedule, description: lScheduleConfirm, tone: "cleaning", onClick: onScheduleCleaning }];
-      if (singleStatus.isManualCleaning) return [{ kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride }];
-      // Booked date that ALSO carries an auto cleaning chip (e.g.
-      // sameDayCleaning on a checkout day, or buffer extension days
-      // where the day is part of an iCal "Not available" block).
-      // The user can cancel the cleaning on this specific day; the
-      // cleaning would happen elsewhere instead.
+      if (singleStatus.isManualCleaning) {
+        return [{ kind: "removeCleaning", label: lCancelCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride }];
+      }
       if (singleStatus.isSameDayCleaning) {
         return [{ kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
       }
