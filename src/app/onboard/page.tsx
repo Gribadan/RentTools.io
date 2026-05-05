@@ -557,7 +557,7 @@ function PlatformRow({
               <TestButton status={row.testStatus} onClick={onTest} disabled={!row.url.trim()} />
             </div>
             {row.testStatus === "invalid" && (
-              <p className="mt-1.5 text-[11.5px] text-[#c1392b]">
+              <p className="mt-1.5 text-[11.5px] text-rose-700">
                 {row.testReason === "bad_url"
                   ? "URL doesn't look right — check for missing https://"
                   : row.testReason === "unreachable"
@@ -568,7 +568,7 @@ function PlatformRow({
               </p>
             )}
             {row.testStatus === "valid" && (
-              <p className="mt-1.5 text-[11.5px] text-[#1b8a4e]">
+              <p className="mt-1.5 text-[11.5px] text-emerald-700">
                 Looks good — we&apos;ll start syncing every 10 minutes after you sign up.
               </p>
             )}
@@ -606,9 +606,9 @@ function TestButton({ status, onClick, disabled }: { status: DraftRow["testStatu
   const label = status === "testing" ? "Testing…" : status === "valid" ? "Verified" : status === "invalid" || status === "error" ? "Retry" : "Test fetch";
   const tone =
     status === "valid"
-      ? "border-transparent bg-[#1b8a4e] text-white"
+      ? "border-transparent bg-emerald-700 text-white"
       : status === "invalid" || status === "error"
-        ? "border-[#c1392b] bg-[var(--bg)] text-[#c1392b]"
+        ? "border-rose-700 bg-[var(--bg)] text-rose-700"
         : "border-[var(--line-2)] bg-[var(--bg)] text-[var(--ink)] hover:bg-[var(--bg-2)]";
   return (
     <button
