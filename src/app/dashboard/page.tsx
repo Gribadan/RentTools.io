@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { TopBar, type AppView } from "@/components/top-bar";
 import { ReservationView } from "@/components/reservation-view";
+import { ProfilePanel } from "@/components/profile-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Dashboard } from "@/components/dashboard";
 import { PropertyCalendar } from "@/components/property-calendar";
@@ -240,7 +241,17 @@ function AppContent({
 
   const renderContent = () => {
     // Global views (no property selected)
+    const isSuperAdmin = user.role === "superadmin";
+
+    // Admin / Tasks pages are operator-grade (cron URL with secret,
+    // cross-property sync log, force-toggle of auto-sync). Hide their
+    // entry in the avatar menu AND gate the render itself, so a
+    // non-admin who pastes ?view=tasks into the URL bar still gets
+    // bounced to the dashboard.
     if (activeView === "settings") {
+      if (!isSuperAdmin) {
+        return <div className="mx-auto max-w-2xl text-center text-sm text-[var(--ink-3)]">Admin only.</div>;
+      }
       return (
         <div className="mx-auto max-w-2xl">
           <SettingsPanel
@@ -251,7 +262,14 @@ function AppContent({
       );
     }
 
+    if (activeView === "profile") {
+      return <ProfilePanel />;
+    }
+
     if (activeView === "tasks") {
+      if (!isSuperAdmin) {
+        return <div className="mx-auto max-w-2xl text-center text-sm text-[var(--ink-3)]">Admin only.</div>;
+      }
       return <TasksPanel />;
     }
 
@@ -358,6 +376,7 @@ function AppContent({
           navigate({ property: propId, reservation: resId, view: "guests" })
         }
         username={user.username}
+        userRole={user.role}
         onLogout={handleLogout}
       />
       <SyncAlertsBanner />

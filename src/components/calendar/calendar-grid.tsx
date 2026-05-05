@@ -20,6 +20,10 @@ interface CalendarGridProps {
   conflictDates: Set<string>;
   openOverrides: Set<string>;
   closedOverrides: Set<string>;
+  /** Dates where the host has explicitly scheduled a cleaning (override
+   *  type=cleaning). Render with the cleaning chip + "Manual cleaning"
+   *  label so they are visually distinct from auto buffer days. */
+  cleaningOverrides: Set<string>;
   loading?: boolean;
   onSelectReservation: (id: number) => void;
   onClaimBar?: (bar: BarSegment, rect: DOMRect) => void;
@@ -41,6 +45,7 @@ export function CalendarGrid({
   conflictDates,
   openOverrides,
   closedOverrides,
+  cleaningOverrides,
   loading,
   onSelectReservation,
   onClaimBar,
@@ -152,22 +157,24 @@ export function CalendarGrid({
               const isConflict = conflictDates.has(ds);
               const segments = segmentsForDay(dayNum);
               const hasBar = hasBarOnDay(dayNum);
-              const isBuffer = bufferDates.has(ds) && !hasBar;
-              const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer;
-              const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential;
+              const isManualCleaning = cleaningOverrides.has(ds) && !hasBar;
+              const isBuffer = bufferDates.has(ds) && !hasBar && !isManualCleaning;
+              const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer && !isManualCleaning;
+              const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential && !isManualCleaning;
               const isSameDayCleaning = sameDayCleaningDates.has(ds);
               const isOpen = openOverrides.has(ds);
               const isClosed = closedOverrides.has(ds);
               const bg = isOpen ? "bg-emerald-500/8"
                 : isClosed ? "bg-rose-500/8"
                 : isConflict ? "bg-rose-500/8"
+                : isManualCleaning ? "bg-[var(--cleaning-cell-bg)]"
                 : isToday ? "bg-[var(--ink)]/5"
                 : isBuffer ? "bg-[var(--cleaning-cell-bg)]"
                 : isPotential ? "bg-[var(--ink)]/3"
                 : isUnbookable ? "bg-[var(--ink-4)]/5"
                 : "";
 
-              const showMiddleIndicator = !hasBar && (isBuffer || isPotential || isUnbookable || (isOpen && !hasBar) || (isClosed && !isBuffer) || (isConflict && !isOpen && !isClosed));
+              const showMiddleIndicator = !hasBar && (isManualCleaning || isBuffer || isPotential || isUnbookable || (isOpen && !hasBar) || (isClosed && !isBuffer) || (isConflict && !isOpen && !isClosed));
               return (
                 <div
                   key={`c-${dayNum}`}
@@ -196,6 +203,9 @@ export function CalendarGrid({
                       )}
                       {isConflict && !isOpen && !isClosed && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.conflict")}</div>
+                      )}
+                      {isManualCleaning && !isOpen && !isClosed && (
+                        <div className="rounded px-1.5 h-5 flex items-center text-[10px] font-semibold text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] shadow-sm">{t("calendar.manualCleaning")}</div>
                       )}
                       {isBuffer && !isOpen && !isClosed && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] font-medium text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]">{t("calendar.cleaning")}</div>

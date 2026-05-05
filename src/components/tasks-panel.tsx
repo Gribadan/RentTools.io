@@ -228,9 +228,9 @@ export function TasksPanel() {
                 <div key={p.id} className="flex items-center justify-between text-xs">
                   <span className="truncate text-[var(--ink-2)]">{p.name}</span>
                   <span className="shrink-0 text-[var(--ink-3)]">
-                    Airbnb: <span className="text-[var(--m-accent)]">{p.airbnb}</span>
+                    Airbnb: <span className="font-semibold text-[var(--m-accent)]">{p.airbnb}</span>
                     {" · "}
-                    Booking: <span className="text-sky-300">{p.booking}</span>
+                    Booking: <span className="font-semibold text-[#003580] dark:text-sky-300">{p.booking}</span>
                   </span>
                 </div>
               ))}

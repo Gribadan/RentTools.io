@@ -52,9 +52,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["open", "closed"].includes(type)) {
+    // "open"     — force this date open even if buffer / min-nights would
+    //              otherwise mark it unavailable.
+    // "closed"   — block bookings on this date with no other intent.
+    // "cleaning" — block bookings AND surface a "Manual cleaning" chip,
+    //              so the user can schedule a deliberate cleaning slot
+    //              that is visually distinct from a generic block.
+    if (!["open", "closed", "cleaning"].includes(type)) {
       return NextResponse.json(
-        { error: "type must be 'open' or 'closed'" },
+        { error: "type must be 'open', 'closed', or 'cleaning'" },
         { status: 400 }
       );
     }

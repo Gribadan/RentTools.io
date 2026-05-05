@@ -14,6 +14,7 @@ export interface DateStatus {
   isUnbookable: boolean;
   isOpenOverride: boolean;
   isClosedOverride: boolean;
+  isManualCleaning: boolean;
 }
 
 export interface ExtendableBooking {
@@ -31,10 +32,25 @@ interface DateActionsPopoverProps {
   onClose: () => void;
   onCloseDate: () => void;
   onOpenDate: () => void;
-  onAddCleaning: () => void;
-  onRemoveCleaning: () => void;
+  onScheduleCleaning: () => void;
   onRemoveOverride: () => void;
   onExtendBooking: (booking: ExtendableBooking) => void;
+}
+
+// Resolved per-state action set. We compute one of these from the
+// DateStatus so the UI doesn't have to chain a thicket of `canX` flags
+// at render-time and present overlapping or contradictory buttons (the
+// bug the user reported: a date that was just blocked offering both
+// "Open date", "Remove cleaning" — which was never set — and "Remove
+// override", which was the same effect as Open date).
+type ActionKind = "block" | "scheduleCleaning" | "openForBooking" | "removeOverride" | "removeBlock" | "removeCleaning";
+
+interface ResolvedAction {
+  kind: ActionKind;
+  label: string;
+  description?: string;
+  tone: "neutral" | "block" | "open" | "cleaning";
+  onClick: () => void;
 }
 
 export function DateActionsPopover({
@@ -45,8 +61,7 @@ export function DateActionsPopover({
   onClose,
   onCloseDate,
   onOpenDate,
-  onAddCleaning,
-  onRemoveCleaning,
+  onScheduleCleaning,
   onRemoveOverride,
   onExtendBooking,
 }: DateActionsPopoverProps) {
@@ -81,9 +96,11 @@ export function DateActionsPopover({
     top = anchorRect.top - 6 - 360;
   }
 
+  // Status copy: what is this date today?
   const statusText = (() => {
     if (status.hasBar) return t("dateActions.statusBooked", { name: status.barName || "—" });
     if (status.isOpenOverride) return t("dateActions.statusOpen");
+    if (status.isManualCleaning) return locale === "ru" ? "Ручная уборка" : "Manual cleaning";
     if (status.isClosedOverride) return t("dateActions.statusClosed");
     if (status.isBuffer) return t("dateActions.statusCleaning");
     if (status.isSameDayCleaning) return t("dateActions.statusCleaning");
@@ -97,23 +114,140 @@ export function DateActionsPopover({
     { weekday: "long", day: "2-digit", month: "long", year: "numeric" }
   );
 
-  // Determine which actions are available
-  const canClose = !status.hasBar && !status.isClosedOverride;
-  const canOpen = !status.hasBar && (status.isClosedOverride || status.isBuffer || status.isPotential || status.isSameDayCleaning || status.isUnbookable) && !status.isOpenOverride;
-  const canAddCleaning = !status.hasBar && !status.isClosedOverride && !status.isBuffer;
-  const canRemoveCleaning = !status.hasBar && (status.isBuffer || status.isSameDayCleaning) && !status.isOpenOverride;
-  const canRemoveOverride = (status.isOpenOverride || status.isClosedOverride) && !status.hasBar;
+  // Build the action list per state. Each branch is exclusive — the user
+  // sees ONE coherent set of options, never duplicates of the same effect
+  // labelled differently. Order is most-likely-action first.
+  const actions: ResolvedAction[] = (() => {
+    if (status.hasBar) return [];
 
-  const actionBtn = "w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-left transition-colors";
+    const lBlock = locale === "ru" ? "Заблокировать дату" : "Block this date";
+    const lBlockDesc = locale === "ru"
+      ? "Запретить новые брони. Без отметки уборки."
+      : "Stop new bookings. No cleaning chip.";
+    const lSchedule = locale === "ru" ? "Запланировать уборку" : "Schedule cleaning";
+    const lScheduleDesc = locale === "ru"
+      ? "Заблокировать дату и пометить как уборку."
+      : "Block the date and mark it as a cleaning slot.";
+    const lOpen = locale === "ru" ? "Сделать доступной" : "Make available for booking";
+    const lOpenDesc = locale === "ru"
+      ? "Игнорировать буфер уборки / минимум ночей."
+      : "Ignore buffer / min-nights for this date.";
+    const lUnblock = locale === "ru" ? "Разблокировать" : "Unblock this date";
+    const lRemoveCleaning = locale === "ru" ? "Снять уборку" : "Remove cleaning";
+    const lRemoveOverride = locale === "ru" ? "Сбросить ручное состояние" : "Reset to default";
+    const lRemoveOverrideDesc = locale === "ru"
+      ? "Вернуть автоматическое поведение для этой даты."
+      : "Return this date to its auto-detected state.";
+
+    // 1. Manual cleaning override → can lift it (back to default) or
+    //    convert to a plain block.
+    if (status.isManualCleaning) {
+      return [
+        { kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride },
+        { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate },
+      ];
+    }
+
+    // 2. Plain closed override → only "unblock". The previous build
+    //    surfaced "Remove cleaning" + "Remove override" + "Open date"
+    //    here, but cleaning was never applied and the latter two are
+    //    the same thing, hence the user's confusion.
+    if (status.isClosedOverride) {
+      return [
+        { kind: "removeBlock", label: lUnblock, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride },
+      ];
+    }
+
+    // 3. Forced-open override → revert to default OR block.
+    if (status.isOpenOverride) {
+      return [
+        { kind: "removeOverride", label: lRemoveOverride, description: lRemoveOverrideDesc, tone: "neutral", onClick: onRemoveOverride },
+        { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate },
+        { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning },
+      ];
+    }
+
+    // 4. Auto-detected unavailable (buffer / same-day-cleaning / unbookable / potential)
+    //    → only meaningful action is "make this available anyway".
+    if (status.isBuffer || status.isSameDayCleaning || status.isUnbookable || status.isPotential) {
+      return [
+        { kind: "openForBooking", label: lOpen, description: lOpenDesc, tone: "open", onClick: onOpenDate },
+      ];
+    }
+
+    // 5. Free date → block or schedule a cleaning.
+    return [
+      { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate },
+      { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning },
+    ];
+  })();
+
+  const toneClass = (tone: ResolvedAction["tone"]) => {
+    switch (tone) {
+      case "block":
+        return "hover:bg-rose-500/10 hover:text-rose-500";
+      case "open":
+        return "hover:bg-emerald-500/10 hover:text-emerald-500";
+      case "cleaning":
+        return "hover:bg-[var(--cleaning-bg)] hover:text-[var(--cleaning-fg)]";
+      default:
+        return "hover:bg-[var(--bg-3)]";
+    }
+  };
+
+  const iconFor = (kind: ActionKind) => {
+    switch (kind) {
+      case "block":
+        return (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        );
+      case "scheduleCleaning":
+        return (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        );
+      case "openForBooking":
+      case "removeBlock":
+      case "removeCleaning":
+        return (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+        );
+      case "removeOverride":
+        return (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+          </svg>
+        );
+    }
+  };
+
+  // Status badge colour map kept in sync with the cell rendering so the
+  // popover header reads the same as what the user clicked on.
+  const statusBadgeClass = status.hasBar
+    ? "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
+    : status.isOpenOverride
+      ? "bg-emerald-500/10 text-emerald-500"
+      : status.isManualCleaning
+        ? "bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)]"
+        : status.isClosedOverride
+          ? "bg-rose-500/10 text-rose-500"
+          : (status.isBuffer || status.isSameDayCleaning)
+            ? "bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)]"
+            : status.isPotential
+              ? "bg-[var(--ink)]/5 text-[var(--ink-2)]"
+              : status.isUnbookable
+                ? "bg-[var(--ink-4)]/10 text-[var(--ink-3)]"
+                : "bg-emerald-500/10 text-emerald-500";
 
   // The popover lives at <body> via a portal, OUTSIDE the dashboard's
-  // `.editorial` wrapper. Without the `editorial` class here, --bg-2 /
-  // --ink / --line all resolve to nothing, so the popover renders as a
-  // see-through ghost over the calendar (the bug shown in the user's
-  // screenshot). Putting `editorial` on the root re-anchors the token
-  // scope so colours resolve, and we promote it to bg-[var(--bg)] +
-  // line-2 + a stronger shadow so it visually lifts off the page even
-  // though page bg and bg-2 are very close in light mode.
+  // `.editorial` wrapper, so we add the class here to anchor the CSS
+  // variable scope (otherwise --bg / --ink / --line all resolve to
+  // nothing and the popover paints transparent).
   return createPortal(
     <div
       ref={popRef}
@@ -126,15 +260,7 @@ export function DateActionsPopover({
         <div className="mt-0.5 text-sm font-medium text-[var(--ink)]">{formattedDate}</div>
         <div className="mt-2 flex items-center gap-2 text-xs">
           <span className="text-[var(--ink-4)]">{t("dateActions.status")}:</span>
-          <span className={`rounded px-1.5 py-0.5 font-medium ${
-            status.hasBar ? "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
-            : status.isOpenOverride ? "bg-emerald-500/10 text-emerald-500"
-            : status.isClosedOverride ? "bg-rose-500/10 text-rose-500"
-            : (status.isBuffer || status.isSameDayCleaning) ? "bg-amber-400/10 text-amber-400"
-            : status.isPotential ? "bg-sky-300/10 text-sky-300"
-            : status.isUnbookable ? "bg-[var(--ink-4)]/10 text-[var(--ink-3)]"
-            : "bg-emerald-500/10 text-emerald-500"
-          }`}>
+          <span className={`rounded px-1.5 py-0.5 font-medium ${statusBadgeClass}`}>
             {statusText}
           </span>
         </div>
@@ -144,49 +270,26 @@ export function DateActionsPopover({
       <div className="p-1.5">
         {status.hasBar ? (
           <div className="px-3 py-2 text-xs text-[var(--ink-4)]">{t("dateActions.cantModifyBooked")}</div>
+        ) : actions.length === 0 ? (
+          <div className="px-3 py-2 text-xs text-[var(--ink-4)]">
+            {locale === "ru" ? "Нет доступных действий." : "No actions available."}
+          </div>
         ) : (
-          <>
-            {canClose && (
-              <button onClick={onCloseDate} className={`${actionBtn} text-[var(--ink)] hover:bg-rose-500/10 hover:text-rose-500`}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                </svg>
-                {t("dateActions.close")}
-              </button>
-            )}
-            {canOpen && (
-              <button onClick={onOpenDate} className={`${actionBtn} text-[var(--ink)] hover:bg-emerald-500/10 hover:text-emerald-500`}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                </svg>
-                {t("dateActions.open")}
-              </button>
-            )}
-            {canAddCleaning && (
-              <button onClick={onAddCleaning} className={`${actionBtn} text-[var(--ink)] hover:bg-amber-400/10 hover:text-amber-400`}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 2.25L12 6m0 0l-3.75-3.75M12 6v12m6 0H6" />
-                </svg>
-                {t("dateActions.addCleaning")}
-              </button>
-            )}
-            {canRemoveCleaning && (
-              <button onClick={onRemoveCleaning} className={`${actionBtn} text-[var(--ink)] hover:bg-rose-500/10 hover:text-rose-500`}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" />
-                </svg>
-                {t("dateActions.removeCleaning")}
-              </button>
-            )}
-            {canRemoveOverride && (
-              <button onClick={onRemoveOverride} className={`${actionBtn} text-[var(--ink)] hover:bg-[var(--bg-3)]`}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
-                </svg>
-                {t("dateActions.removeOverride")}
-              </button>
-            )}
-          </>
+          actions.map((a) => (
+            <button
+              key={a.kind}
+              onClick={a.onClick}
+              className={`w-full flex items-start gap-2.5 rounded-md px-3 py-2 text-left transition-colors text-[var(--ink)] ${toneClass(a.tone)}`}
+            >
+              <span className="mt-0.5 shrink-0">{iconFor(a.kind)}</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-sm">{a.label}</span>
+                {a.description && (
+                  <span className="block text-[11px] text-[var(--ink-4)] mt-0.5 leading-snug">{a.description}</span>
+                )}
+              </span>
+            </button>
+          ))
         )}
 
         {/* Extend booking section */}
@@ -199,7 +302,7 @@ export function DateActionsPopover({
               <button
                 key={i}
                 onClick={() => onExtendBooking(b)}
-                className={`${actionBtn} text-[var(--ink)] hover:bg-[var(--bg-3)] group`}
+                className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-left text-[var(--ink)] hover:bg-[var(--bg-3)] group"
               >
                 <span
                   className="h-3 w-3 shrink-0 rounded"

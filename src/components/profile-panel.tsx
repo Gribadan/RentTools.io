@@ -11,12 +11,10 @@ interface ProfileUser {
   createdAt: string;
 }
 
-interface ProfilePanelProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
+// Renders as a routed dashboard view (no modal overlay) — was a drawer
+// but felt like a popup. Lives at activeView === "profile" inside the
+// dashboard shell.
+export function ProfilePanel() {
   const { t, locale } = useI18n();
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -32,22 +30,11 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    setError("");
-    setSuccess(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setDeleteOpen(false);
-    setDeletePassword("");
-    setDeleteConfirm("");
-    setDeleteError("");
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => setUser(data?.user ?? null))
       .catch(() => setUser(null));
-  }, [open]);
-
-  if (!open) return null;
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,19 +68,13 @@ export function ProfilePanel({ open, onClose }: ProfilePanelProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--ink)]">{t("profile.title")}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-[var(--ink-3)] hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
-            aria-label={t("profile.close")}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="mx-auto max-w-2xl space-y-4">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-sm">
+        <div className="mb-5">
+          <h1 className="text-xl font-semibold text-[var(--ink)]">{t("profile.title")}</h1>
+          <p className="mt-0.5 text-sm text-[var(--ink-3)]">
+            {locale === "ru" ? "Личные данные, пароль и активность." : "Personal info, password, and activity."}
+          </p>
         </div>
 
         <dl className="grid grid-cols-2 gap-y-2 text-sm">

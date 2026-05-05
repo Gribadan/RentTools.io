@@ -16,6 +16,11 @@ export interface CalendarData {
   bars: CalendarBar[];
   openOverrides: Set<string>;
   closedOverrides: Set<string>;
+  /** Dates where the host has manually scheduled a cleaning. Behaves
+   *  like a closed override (no bookings) but renders a distinct
+   *  "Manual cleaning" chip so the host can tell their own scheduled
+   *  cleanings apart from generic blocks or auto-detected buffers. */
+  cleaningOverrides: Set<string>;
   dateToReservation: Map<string, Reservation>;
 }
 
@@ -25,14 +30,16 @@ export function useCalendarData(
   links: CalendarLink[],
   overrides: DateOverride[]
 ): CalendarData {
-  const { openOverrides, closedOverrides } = useMemo(() => {
+  const { openOverrides, closedOverrides, cleaningOverrides } = useMemo(() => {
     const open = new Set<string>();
     const closed = new Set<string>();
+    const cleaning = new Set<string>();
     for (const o of overrides) {
       if (o.type === "open") open.add(o.date);
       else if (o.type === "closed") closed.add(o.date);
+      else if (o.type === "cleaning") cleaning.add(o.date);
     }
-    return { openOverrides: open, closedOverrides: closed };
+    return { openOverrides: open, closedOverrides: closed, cleaningOverrides: cleaning };
   }, [overrides]);
 
   const computed = useMemo(() => {
@@ -265,6 +272,10 @@ export function useCalendarData(
         buffer.add(d);
       }
     }
+    // cleaningOverrides aren't pushed into `buffer` — they get their
+    // own dedicated chip via the cleaningOverrides Set, so the host
+    // can visually tell their own scheduled cleanings apart from auto
+    // buffer days or generic blocks.
 
     return {
       airbnbDates: airbnb,
@@ -351,6 +362,7 @@ export function useCalendarData(
     potentialDates: computed.potentialDates,
     unbookableDates: computed.unbookableDates,
     sameDayCleaningDates: computed.sameDayCleaningDates,
+    cleaningOverrides,
     conflictDates: computed.conflictDates,
     conflicts: computed.conflicts,
     bars,

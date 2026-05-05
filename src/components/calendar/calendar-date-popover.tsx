@@ -15,10 +15,11 @@ interface CalendarDatePopoverProps {
   unbookableDates: Set<string>;
   openOverrides: Set<string>;
   closedOverrides: Set<string>;
+  cleaningOverrides: Set<string>;
   syncedEvents: CalendarEvent[];
   reservations: Property["reservations"];
   onClose: () => void;
-  onSetOverride: (type: "open" | "closed") => void;
+  onSetOverride: (type: "open" | "closed" | "cleaning") => void;
   onRemoveOverride: () => void;
   onExtendBooking: (b: ExtendableBooking) => void;
 }
@@ -33,6 +34,7 @@ export function CalendarDatePopover({
   unbookableDates,
   openOverrides,
   closedOverrides,
+  cleaningOverrides,
   syncedEvents,
   reservations,
   onClose,
@@ -55,13 +57,13 @@ export function CalendarDatePopover({
         isUnbookable: unbookableDates.has(date),
         isOpenOverride: openOverrides.has(date),
         isClosedOverride: closedOverrides.has(date),
+        isManualCleaning: cleaningOverrides.has(date),
       }}
       extendable={getExtendableBookings(date, syncedEvents, reservations)}
       onClose={onClose}
       onCloseDate={() => onSetOverride("closed")}
       onOpenDate={() => onSetOverride("open")}
-      onAddCleaning={() => onSetOverride("closed")}
-      onRemoveCleaning={() => onSetOverride("open")}
+      onScheduleCleaning={() => onSetOverride("cleaning")}
       onRemoveOverride={onRemoveOverride}
       onExtendBooking={onExtendBooking}
     />

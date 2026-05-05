@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ProfilePanel } from "@/components/profile-panel";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
 
-export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks" | "reports";
+export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks" | "reports" | "profile";
 
 interface GuestSearchResult {
   guestId: number;
@@ -35,6 +34,7 @@ interface TopBarProps {
   onNavigate: (params: { property?: number | null; reservation?: number | null; view?: AppView }) => void;
   onOpenReservation?: (propertyId: number, reservationId: number) => void;
   username: string;
+  userRole: string;
   onLogout: () => void;
 }
 
@@ -48,12 +48,13 @@ export function TopBar({
   onNavigate,
   onOpenReservation,
   username,
+  userRole,
   onLogout,
 }: TopBarProps) {
+  const isSuperAdmin = userRole === "superadmin";
   const { t, locale, setLocale } = useI18n();
   const [propDropdown, setPropDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [addingProp, setAddingProp] = useState(false);
   const [newPropName, setNewPropName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -297,36 +298,62 @@ export function TopBar({
         {/* RIGHT: Search + Avatar */}
         <div className="flex items-center gap-1 z-10 shrink-0">
           {onOpenReservation && (
-            <div className="relative" ref={searchRef}>
+            <div className="relative flex items-center" ref={searchRef}>
+              {/* Search trigger: small icon button when collapsed; turns
+                  into a width-animated input that slides leftward into
+                  the header on click instead of dropping a popover from
+                  the icon. The transition runs on width + opacity so it
+                  feels like the input grew out of the icon. */}
               <button
                 onClick={() => {
                   setSearchOpen(true);
                   setTimeout(() => searchInputRef.current?.focus(), 30);
                 }}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-colors"
-                title={locale === "ru" ? "Поиск гостей (⌘K)" : "Search guests (⌘K)"}
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-all ${
+                  searchOpen ? "opacity-0 pointer-events-none -mr-9" : "opacity-100"
+                }`}
                 aria-label={locale === "ru" ? "Поиск гостей" : "Search guests"}
+                title={locale === "ru" ? "Поиск гостей (⌘K)" : "Search guests (⌘K)"}
               >
                 <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
               </button>
 
+              <div
+                className={`flex items-center overflow-hidden transition-[width,opacity] duration-300 ease-out ${
+                  searchOpen ? "w-[280px] opacity-100" : "w-0 opacity-0"
+                }`}
+              >
+                <div className="relative flex items-center w-full rounded-full border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-1 h-9">
+                  <svg className="h-4 w-4 shrink-0 text-[var(--ink-3)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  <input
+                    ref={searchInputRef}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={
+                      locale === "ru"
+                        ? "Имя, паспорт, страна…"
+                        : "Name, passport, country…"
+                    }
+                    className="ml-2 flex-1 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
+                  />
+                  <button
+                    onClick={() => { setSearchQuery(""); setSearchOpen(false); }}
+                    aria-label={locale === "ru" ? "Закрыть поиск" : "Close search"}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)]"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
               {searchOpen && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-[20rem] rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/20 sm:w-[26rem]">
-                  <div className="border-b border-[var(--line)] p-2">
-                    <input
-                      ref={searchInputRef}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={
-                        locale === "ru"
-                          ? "Имя, паспорт, страна..."
-                          : "Name, passport, country..."
-                      }
-                      className="h-8 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
-                    />
-                  </div>
                   <div className="max-h-80 overflow-y-auto">
                     {searchQuery.trim().length < 2 ? (
                       <p className="px-3 py-4 text-center text-[11px] text-[var(--ink-4)]">
@@ -429,10 +456,15 @@ export function TopBar({
 
                 <div className="my-1 h-px bg-[var(--line)]" />
 
-                {/* Profile drawer */}
+                {/* Profile is now a routed view, not a modal drawer, so it
+                    feels like a real page (the user can deep-link, hit back,
+                    and the page integrates with the rest of the dashboard
+                    chrome). */}
                 <button
-                  onClick={() => { setProfileOpen(true); setUserDropdown(false); }}
-                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
+                  onClick={() => { onChangeView("profile"); setUserDropdown(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                    activeView === "profile" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
+                  }`}
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -440,34 +472,40 @@ export function TopBar({
                   {t("profile.title")}
                 </button>
 
-                {/* Personal settings (was a separate gear icon — now lives
-                    in the personal cabinet so it doesn't clash with the
-                    per-property "Property" tab). */}
-                <button
-                  onClick={() => { onChangeView("settings"); setUserDropdown(false); }}
-                  className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                    activeView === "settings" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
-                  }`}
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {locale === "ru" ? "Настройки аккаунта" : "Account settings"}
-                </button>
+                {/* Admin — was "Account settings", but the page is the
+                    superadmin user-management + Gemini-key + AdminPanel
+                    surface, so we hide it from non-admins entirely and
+                    rename it to match what it actually is. */}
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => { onChangeView("settings"); setUserDropdown(false); }}
+                    className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                      activeView === "settings" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 1.5l9 4.5v6c0 5-3.5 9.5-9 11-5.5-1.5-9-6-9-11v-6l9-4.5z" />
+                    </svg>
+                    {locale === "ru" ? "Админ" : "Admin"}
+                  </button>
+                )}
 
-                {/* Sync tasks (admin/debug — kept here, not promoted to a tab) */}
-                <button
-                  onClick={() => { onChangeView("tasks"); setUserDropdown(false); }}
-                  className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                    activeView === "tasks" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
-                  }`}
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {locale === "ru" ? "Задачи синхронизации" : "Sync tasks"}
-                </button>
+                {/* Sync tasks — now also superadmin-only since the page
+                    exposes the cron URL + cross-property sync log, which
+                    are operator-level concerns. */}
+                {isSuperAdmin && (
+                  <button
+                    onClick={() => { onChangeView("tasks"); setUserDropdown(false); }}
+                    className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
+                      activeView === "tasks" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
+                    }`}
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {locale === "ru" ? "Задачи синхронизации" : "Sync tasks"}
+                  </button>
+                )}
 
                 <div className="my-1 h-px bg-[var(--line)]" />
 
@@ -482,7 +520,6 @@ export function TopBar({
                 </button>
               </div>
             )}
-            <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
           </div>
         </div>
       </div>

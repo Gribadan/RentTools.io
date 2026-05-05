@@ -150,6 +150,7 @@ export const translations = {
   "calendar.airbnb": { en: "Airbnb", ru: "Airbnb" },
   "calendar.booking": { en: "Booking", ru: "Booking" },
   "calendar.cleaning": { en: "Cleaning", ru: "Уборка" },
+  "calendar.manualCleaning": { en: "Manual cleaning", ru: "Ручная уборка" },
   "calendar.potentialCleaning": { en: "Potential cleaning", ru: "Возможная уборка" },
   "calendar.forcedOpen": { en: "Forced open", ru: "Принуд. открыто" },
   "calendar.forcedClosed": { en: "Forced closed", ru: "Принуд. закрыто" },

@@ -91,7 +91,7 @@ export function PropertyCalendar({
     window.location.reload();
   };
 
-  const setOverride = async (dateStr: string, type: "open" | "closed") => {
+  const setOverride = async (dateStr: string, type: "open" | "closed" | "cleaning") => {
     await fetch(`/api/date-overrides`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -220,6 +220,7 @@ export function PropertyCalendar({
           conflictDates={data.conflictDates}
           openOverrides={data.openOverrides}
           closedOverrides={data.closedOverrides}
+          cleaningOverrides={data.cleaningOverrides}
           loading={loadingEvents}
           onSelectReservation={onSelectReservation}
           onClaimBar={(seg, rect) => {
@@ -251,6 +252,7 @@ export function PropertyCalendar({
           unbookableDates={data.unbookableDates}
           openOverrides={data.openOverrides}
           closedOverrides={data.closedOverrides}
+          cleaningOverrides={data.cleaningOverrides}
           syncedEvents={syncedEvents}
           reservations={property.reservations}
           onClose={closePopover}
