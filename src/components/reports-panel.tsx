@@ -4,7 +4,34 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
-import { PLATFORM_PRESETS, FALLBACK_PLATFORM_COLOR, resolvePlatformColor } from "@/lib/platforms";
+
+// Bundled platform presets — kept inline rather than imported from
+// @/lib/platforms because that module's lazy `import("@/lib/prisma")`
+// gets traced into the client bundle by Turbopack and breaks the
+// build (prisma uses node:module). The reports panel only needs
+// slug → label/color, no DB access required.
+const FALLBACK_PLATFORM_COLOR = "#6B7280";
+
+const PLATFORM_PRESETS: ReadonlyArray<{ slug: string; displayName: string; color: string }> = [
+  { slug: "airbnb", displayName: "Airbnb", color: "#FF385C" },
+  { slug: "booking", displayName: "Booking.com", color: "#003580" },
+  { slug: "vrbo", displayName: "Vrbo", color: "#245ABC" },
+  { slug: "expedia", displayName: "Expedia", color: "#FFC72C" },
+  { slug: "hostaway", displayName: "Hostaway", color: "#2E5BFF" },
+  { slug: "lodgify", displayName: "Lodgify", color: "#00B5AD" },
+  { slug: "hospitable", displayName: "Hospitable", color: "#1B5E20" },
+  { slug: "smoobu", displayName: "Smoobu", color: "#4A148C" },
+  { slug: "houfy", displayName: "Houfy", color: "#D84315" },
+  { slug: "plumguide", displayName: "Plum Guide", color: "#2E1065" },
+  { slug: "whimstay", displayName: "Whimstay", color: "#FF7043" },
+  { slug: "direct", displayName: "Direct", color: FALLBACK_PLATFORM_COLOR },
+];
+
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+function resolvePlatformColor(color: string | null | undefined): string {
+  if (!color) return FALLBACK_PLATFORM_COLOR;
+  return HEX_COLOR_RE.test(color) ? color : FALLBACK_PLATFORM_COLOR;
+}
 
 interface ReportsPanelProps {
   /** RT-25.5 — Reports follows the dashboard's selected property; no
