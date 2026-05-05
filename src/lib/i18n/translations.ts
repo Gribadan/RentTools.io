@@ -159,6 +159,8 @@ export const translations = {
   "calendar.cleaningQ": { en: "Cleaning?", ru: "Уборка?" },
   "calendar.upcoming": { en: "Upcoming", ru: "Предстоящие" },
   "calendar.noUpcoming": { en: "No upcoming bookings", ru: "Нет предстоящих бронирований" },
+  "calendar.next7Days": { en: "Next 7 days", ru: "Ближайшие 7 дней" },
+  "calendar.later": { en: "Later", ru: "Позже" },
 
   // Cleaning schedule
   "cleaning.overlapWarning": { en: "Cleaning overlap!", ru: "Пересечение уборок!" },
