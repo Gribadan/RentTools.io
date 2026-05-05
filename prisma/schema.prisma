@@ -66,6 +66,7 @@ model Property {
   messageTemplates   MessageTemplate[]
   managers           PropertyManager[]
   managerInvites     PropertyManagerInvite[]
+  guestFormTemplates GuestFormTemplate[]
 
   @@index([userId])
 }
@@ -194,6 +195,7 @@ model Reservation {
   propertyId      Int
   property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests          Guest[]
+  guestFormSubmissions GuestFormSubmission[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -380,6 +382,48 @@ model SeoOverride {
 
   @@unique([path, locale])
   @@index([path])
+}
+
+// Pre-arrival guest form (RT-25.2). One reusable Template per Property
+// captures the questions the host wants to ask future guests (planned
+// check-in time, transfer needs, etc.). Per Reservation, a Submission
+// is created with a unique shareToken so the guest can fill it without
+// logging in. The submission's `answers` JSON captures the field
+// labels at submit time, so editing the template later does not break
+// previously-collected answers.
+model GuestFormTemplate {
+  id          Int                   @id @default(autoincrement())
+  propertyId  Int
+  property    Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  name        String                @default("")
+  // JSON: ordered list of { id: string, type: string, label: string,
+  //   required: boolean, options?: string[] }. Field types:
+  //   short-text | long-text | number | select | multi-select |
+  //   date | time | yes-no | phone
+  fields      String                @default("[]")
+  submissions GuestFormSubmission[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime?
+
+  @@index([propertyId])
+}
+
+model GuestFormSubmission {
+  id            Int               @id @default(autoincrement())
+  reservationId Int
+  reservation   Reservation       @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  templateId    Int
+  template      GuestFormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  shareToken    String            @unique
+  // JSON: ordered list of { fieldId, type, label, value }. Captured at
+  // submit time so template edits don't retroactively change history.
+  answers       String            @default("[]")
+  submittedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime?
+
+  @@index([reservationId])
+  @@index([templateId])
 }
 
 model CalendarPlatform {

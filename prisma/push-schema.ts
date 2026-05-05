@@ -721,6 +721,52 @@ CREATE UNIQUE INDEX IF NOT EXISTS "CalendarPlatform_slug_key" ON "CalendarPlatfo
     }
   }
 
+  // GuestFormTemplate / GuestFormSubmission — RT-25.2 pre-arrival guest forms
+  const guestFormSchema = `
+CREATE TABLE IF NOT EXISTS "GuestFormTemplate" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "propertyId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL DEFAULT '',
+    "fields" TEXT NOT NULL DEFAULT '[]',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "GuestFormTemplate_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "GuestFormTemplate_propertyId_idx" ON "GuestFormTemplate"("propertyId");
+
+CREATE TABLE IF NOT EXISTS "GuestFormSubmission" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "reservationId" INTEGER NOT NULL,
+    "templateId" INTEGER NOT NULL,
+    "shareToken" TEXT NOT NULL,
+    "answers" TEXT NOT NULL DEFAULT '[]',
+    "submittedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "GuestFormSubmission_reservationId_fkey" FOREIGN KEY ("reservationId") REFERENCES "Reservation" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GuestFormSubmission_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "GuestFormTemplate" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "GuestFormSubmission_shareToken_key" ON "GuestFormSubmission"("shareToken");
+CREATE INDEX IF NOT EXISTS "GuestFormSubmission_reservationId_idx" ON "GuestFormSubmission"("reservationId");
+CREATE INDEX IF NOT EXISTS "GuestFormSubmission_templateId_idx" ON "GuestFormSubmission"("templateId");
+`;
+
+  const guestFormStatements = guestFormSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of guestFormStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   console.log("\nSchema pushed to Turso successfully!");
 }
 
