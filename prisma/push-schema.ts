@@ -583,6 +583,91 @@ CREATE INDEX IF NOT EXISTS "BlogComment_status_createdAt_idx" ON "BlogComment"("
     }
   }
 
+  // CalendarPlatform — RT-17.1 platform preset registry
+  const platformSchema = `
+CREATE TABLE IF NOT EXISTS "CalendarPlatform" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "slug" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "color" TEXT NOT NULL DEFAULT '#6B7280',
+    "iconUrl" TEXT,
+    "defaultBufferBefore" INTEGER NOT NULL DEFAULT 1,
+    "defaultBufferAfter" INTEGER NOT NULL DEFAULT 1,
+    "importInstructionsKey" TEXT,
+    "exportInstructionsKey" TEXT,
+    "isCustom" INTEGER NOT NULL DEFAULT 0,
+    "enabled" INTEGER NOT NULL DEFAULT 1,
+    "sortOrder" INTEGER NOT NULL DEFAULT 100,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "CalendarPlatform_slug_key" ON "CalendarPlatform"("slug");
+`;
+
+  const platformStatements = platformSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of platformStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
+  // Seed the 12 baseline platform presets. Direct gets zero buffer
+  // because manually-entered reservations carry their exact dates.
+  // Insert is idempotent on slug so reruns don't clobber admin edits
+  // — the first push wins, subsequent pushes only fill gaps.
+  const platformPresets: Array<{
+    slug: string;
+    displayName: string;
+    color: string;
+    sortOrder: number;
+    defaultBufferBefore?: number;
+    defaultBufferAfter?: number;
+  }> = [
+    { slug: "airbnb",     displayName: "Airbnb",      color: "#FF385C", sortOrder: 10 },
+    { slug: "booking",    displayName: "Booking.com", color: "#003580", sortOrder: 20 },
+    { slug: "vrbo",       displayName: "Vrbo",        color: "#245ABC", sortOrder: 30 },
+    { slug: "expedia",    displayName: "Expedia",     color: "#FFC72C", sortOrder: 40 },
+    { slug: "hostaway",   displayName: "Hostaway",    color: "#2E5BFF", sortOrder: 50 },
+    { slug: "lodgify",    displayName: "Lodgify",     color: "#00B5AD", sortOrder: 60 },
+    { slug: "hospitable", displayName: "Hospitable",  color: "#1B5E20", sortOrder: 70 },
+    { slug: "smoobu",     displayName: "Smoobu",      color: "#4A148C", sortOrder: 80 },
+    { slug: "houfy",      displayName: "Houfy",       color: "#D84315", sortOrder: 90 },
+    { slug: "plumguide",  displayName: "Plum Guide",  color: "#2E1065", sortOrder: 100 },
+    { slug: "whimstay",   displayName: "Whimstay",    color: "#FF7043", sortOrder: 110 },
+    { slug: "direct",     displayName: "Direct",      color: "#6B7280", sortOrder: 200, defaultBufferBefore: 0, defaultBufferAfter: 0 },
+  ];
+
+  for (const p of platformPresets) {
+    try {
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "CalendarPlatform"
+          ("slug", "displayName", "color", "defaultBufferBefore", "defaultBufferAfter",
+           "importInstructionsKey", "exportInstructionsKey", "isCustom", "enabled", "sortOrder")
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)
+         ON CONFLICT("slug") DO NOTHING`,
+        p.slug,
+        p.displayName,
+        p.color,
+        p.defaultBufferBefore ?? 1,
+        p.defaultBufferAfter ?? 1,
+        `platform.${p.slug}.import`,
+        `platform.${p.slug}.export`,
+        p.sortOrder,
+      );
+      console.log("OK: seed CalendarPlatform", p.slug);
+    } catch (err) {
+      console.error("Seed failed for CalendarPlatform", p.slug, err);
+    }
+  }
+
   console.log("\nSchema pushed to Turso successfully!");
 }
 

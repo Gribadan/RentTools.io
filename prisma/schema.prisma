@@ -334,3 +334,28 @@ model ExtractionLog {
 
   @@index([userId, createdAt])
 }
+
+// Calendar platform preset registry (RT-17.1). Single source of truth
+// for the platforms a CalendarLink can target — Airbnb, Booking, Vrbo,
+// etc. — plus the special "direct" pseudo-platform for manually-entered
+// reservations. Seeded with 12 well-known presets by push-schema.ts;
+// super-admins (RT-17.1 tick 2) can edit displayName / color / icon
+// and add custom presets via the admin panel. isCustom marks
+// user-added rows so the UI offers Delete only on those, never on the
+// seeded baseline.
+model CalendarPlatform {
+  id                    Int       @id @default(autoincrement())
+  slug                  String    @unique
+  displayName           String
+  color                 String    @default("#6B7280") // hex (#rrggbb), used by calendar grid
+  iconUrl               String?
+  defaultBufferBefore   Int       @default(1) // days, copied into new CalendarLink.bufferBefore
+  defaultBufferAfter    Int       @default(1)
+  importInstructionsKey String?   // i18n key for the "where to find your iCal" copy
+  exportInstructionsKey String?   // i18n key for the "paste this back into the platform" copy
+  isCustom              Boolean   @default(false)
+  enabled               Boolean   @default(true) // soft-disable hides the preset from add-link dropdowns
+  sortOrder             Int       @default(100) // smaller appears first; ties broken by displayName
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime?
+}
