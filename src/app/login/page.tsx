@@ -7,6 +7,8 @@ import { useI18n } from "@/lib/i18n/context";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { GoogleOneTap } from "@/components/google-one-tap";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { AuthDivider, AuthError, AuthInput, AuthLabel, AuthSubmit } from "@/components/auth-form";
 
 // Only allow same-origin redirects (must start with "/" but not "//")
 function safeNext(raw: string | null): string {
@@ -17,7 +19,7 @@ function safeNext(raw: string | null): string {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#111113]" />}>
+    <Suspense fallback={<div className="editorial min-h-screen bg-[var(--bg)]" />}>
       <LoginPageInner />
     </Suspense>
   );
@@ -73,82 +75,90 @@ function LoginPageInner() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#111113] p-4">
+    <div className="editorial min-h-screen flex flex-col">
       <GoogleOneTap next={next !== "/dashboard" ? next : undefined} />
-      <div className="w-full max-w-[340px]">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e1e22]">
-            <svg className="h-5 w-5 text-[#e8e8ec]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3H21" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-semibold text-[#e8e8ec]">{t("login.title")}</h1>
-          <p className="mt-1 text-sm text-[#a0a0a8]">{t("login.subtitle")}</p>
-        </div>
 
-        <div className="rounded-lg border border-[#333338] bg-[#18181b] p-6">
-          <div className="mb-4 space-y-3">
-            <GoogleSignInButton next={next !== "/dashboard" ? next : undefined} label={t("login.continueWithGoogle")} />
-            <div className="flex items-center gap-3 text-xs text-[#71717a]">
-              <span className="h-px flex-1 bg-[#333338]" />
-              <span>{t("login.or")}</span>
-              <span className="h-px flex-1 bg-[#333338]" />
+      {/* ── Header ── */}
+      <header className="border-b border-[var(--line)]">
+        <div className="mx-auto flex max-w-[920px] items-center justify-between px-6 py-4">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink)] text-[var(--bg)] transition-transform group-hover:rotate-6">
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 12l9-9 9 9" />
+                <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10" />
+              </svg>
             </div>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm text-[#d4d4d8]" htmlFor="username">{t("login.username")}</label>
-              <input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder={t("login.usernamePlaceholder")}
-                className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]"
-                autoFocus
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm text-[#d4d4d8]" htmlFor="password">{t("login.password")}</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={t("login.passwordPlaceholder")}
-                className="h-9 w-full rounded-md border border-[#333338] bg-[#111113] px-3 text-sm text-[#e8e8ec] placeholder-[#71717a] outline-none focus:border-[#e8e8ec] focus:ring-1 focus:ring-[#e8e8ec]"
-                required
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-md bg-[#ef4444]/10 border border-[#ef4444]/20 px-3 py-2 text-sm text-[#ef4444]">
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="h-9 w-full rounded-md bg-[#ff385c] text-sm font-medium text-white transition-colors hover:bg-[#e0294d] disabled:opacity-50"
-              disabled={loading}
-            >
-              {loading ? t("login.signingIn") : t("login.signIn")}
-            </button>
-          </form>
-        </div>
-
-        <p className="mt-4 text-center text-xs text-[#a0a0a8]">
-          {t("login.noAccount")}{" "}
-          <Link href={next !== "/dashboard" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-[#e8e8ec] hover:underline">
-            {t("login.signUpLink")}
+            <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">RentTools</span>
           </Link>
-        </p>
-
-        <div className="mt-4 flex justify-center">
-          <LocaleSwitcher variant="inline" reloadOnChange={false} />
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <ThemeToggle />
+            <LocaleSwitcher />
+          </nav>
         </div>
-      </div>
+      </header>
+
+      {/* ── Main ── */}
+      <main className="flex flex-1 items-center justify-center px-6 py-10 sm:py-14">
+        <div className="w-full max-w-[360px]">
+          <div className="mb-7 text-center">
+            <h1 className="display text-[28px] font-semibold leading-[1.1] tracking-[-0.025em] text-[var(--ink)] sm:text-[32px]">
+              {t("login.title")}
+            </h1>
+            <p className="mt-2 text-[14px] text-[var(--ink-3)]">{t("login.subtitle")}</p>
+          </div>
+
+          <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 sm:p-7">
+            <div className="mb-4 space-y-3">
+              <GoogleSignInButton
+                next={next !== "/dashboard" ? next : undefined}
+                label={t("login.continueWithGoogle")}
+              />
+              <AuthDivider label={t("login.or")} />
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <AuthLabel htmlFor="username">{t("login.username")}</AuthLabel>
+                <AuthInput
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder={t("login.usernamePlaceholder")}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <AuthLabel htmlFor="password">{t("login.password")}</AuthLabel>
+                <AuthInput
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t("login.passwordPlaceholder")}
+                  required
+                />
+              </div>
+
+              {error && <AuthError message={error} />}
+
+              <AuthSubmit loading={loading}>
+                {loading ? t("login.signingIn") : t("login.signIn")}
+              </AuthSubmit>
+            </form>
+          </div>
+
+          <p className="mt-5 text-center text-[13px] text-[var(--ink-3)]">
+            {t("login.noAccount")}{" "}
+            <Link
+              href={next !== "/dashboard" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+              className="text-[var(--ink)] underline-offset-2 hover:underline"
+            >
+              {t("login.signUpLink")}
+            </Link>
+          </p>
+        </div>
+      </main>
     </div>
   );
 }

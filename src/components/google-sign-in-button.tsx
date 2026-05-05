@@ -33,7 +33,7 @@ export function GoogleSignInButton({ next, label }: Props) {
   return (
     <a
       href={href}
-      className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-[#333338] bg-[#1e1e22] text-sm font-medium text-[#e8e8ec] transition-colors hover:bg-[#26262a]"
+      className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--line-2)] bg-[var(--bg)] text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-3)]"
     >
       <GoogleGlyph />
       <span>{label}</span>
