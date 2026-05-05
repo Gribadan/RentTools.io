@@ -273,6 +273,8 @@ export function useCalendarData(
       for (let bi = 0; bi < dedupedBookings.length; bi++) {
         const b = dedupedBookings[bi];
         const next = dedupedBookings[bi + 1];
+        // After-checkout: cleaning is implied for the same day the
+        // guest leaves, so b.end is a definite same-day cleaning slot.
         if (!linkedBoundaryDates.has(b.end)) {
           sameDayCleaning.add(b.end);
         }
@@ -282,8 +284,21 @@ export function useCalendarData(
           const gapDays = Math.max(0, Math.ceil(
             (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
           ));
+          // Pre-checkin slot. When the gap between bookings is big
+          // enough that a real booking could otherwise fit there
+          // (gapDays >= minStay), the cleaner has actual flexibility
+          // on when to clean — could be b.end, could be any day in
+          // the gap, could be next.start. We still surface a chip on
+          // next.start (so the host sees "cleaning happens here") but
+          // also flag it as potential so the chip picks up the dashed
+          // "Cleaning?" style — symmetric to how a non-zero-buffer
+          // property marks next.start - 1 as potential when the gap
+          // is large. Previously the chip was a definite "Cleaning",
+          // which read as "for sure" even though the host might
+          // schedule the cleaning earlier in the gap.
           if (gapDays >= minStay && !linkedBoundaryDates.has(next.start)) {
             sameDayCleaning.add(next.start);
+            potential.add(next.start);
           }
         }
       }

@@ -314,17 +314,25 @@ export function CalendarGrid({
                   })}
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
-                    /* Same-day cleaning happens when one stay checks out
-                       and another checks in on the same day. Anchor the
-                       chip top-center so it visually sits between the two
-                       abutting booking bars (which live in the middle
-                       band) — that's where the cleaning physically
-                       happens within the day. Day number is top-left,
-                       bars are mid, so top-center stays conflict-free. */
+                    /* Same-day cleaning chip. Anchored top-center so it
+                       sits between the two abutting bars (or above the
+                       single bar on a checkin day with a wide gap behind
+                       it). When the date is ALSO marked as potential —
+                       a 0-buffer property's checkin day with a long
+                       empty gap behind it — the chip switches to the
+                       dashed "Cleaning?" style to communicate that the
+                       cleaning could just as well have happened earlier
+                       in the gap. */
                     <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                      <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
-                        {t("calendar.cleaning")}
-                      </div>
+                      {potentialDates.has(ds) ? (
+                        <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/20 border-dashed font-semibold leading-none shadow-sm whitespace-nowrap">
+                          {t("calendar.cleaningQ")}
+                        </div>
+                      ) : (
+                        <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
+                          {t("calendar.cleaning")}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
