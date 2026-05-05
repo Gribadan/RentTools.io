@@ -213,34 +213,34 @@
     /* Row 2 — coral pill, cells 2-5 (4-day stay) */
     linear-gradient(
       to right,
-      transparent calc(2 * 80px),
-      var(--pill-coral) calc(2 * 80px),
-      var(--pill-coral) calc(5 * 80px),
-      transparent calc(5 * 80px)
+      transparent calc(2 * 80px + 40px),
+      var(--pill-coral) calc(2 * 80px + 40px),
+      var(--pill-coral) calc(5 * 80px + 40px),
+      transparent calc(5 * 80px + 40px)
     ),
     /* Row 3 — blue pill, cells 4-7 (3-day stay) */
     linear-gradient(
       to right,
-      transparent calc(4 * 80px),
-      var(--pill-blue) calc(4 * 80px),
-      var(--pill-blue) calc(7 * 80px),
-      transparent calc(7 * 80px)
+      transparent calc(4 * 80px + 40px),
+      var(--pill-blue) calc(4 * 80px + 40px),
+      var(--pill-blue) calc(7 * 80px + 40px),
+      transparent calc(7 * 80px + 40px)
     ),
     /* Row 4 — coral pill, cells 1-3 */
     linear-gradient(
       to right,
-      transparent calc(1 * 80px),
-      var(--pill-coral) calc(1 * 80px),
-      var(--pill-coral) calc(3 * 80px),
-      transparent calc(3 * 80px)
+      transparent calc(1 * 80px + 40px),
+      var(--pill-coral) calc(1 * 80px + 40px),
+      var(--pill-coral) calc(3 * 80px + 40px),
+      transparent calc(3 * 80px + 40px)
     ),
     /* Row 5 — blue pill, cells 5-8 */
     linear-gradient(
       to right,
-      transparent calc(5 * 80px),
-      var(--pill-blue) calc(5 * 80px),
-      var(--pill-blue) calc(8 * 80px),
-      transparent calc(8 * 80px)
+      transparent calc(5 * 80px + 40px),
+      var(--pill-blue) calc(5 * 80px + 40px),
+      var(--pill-blue) calc(8 * 80px + 40px),
+      transparent calc(8 * 80px + 40px)
     );
   background-repeat: no-repeat;
   background-position:

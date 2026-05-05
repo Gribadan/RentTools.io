@@ -131,7 +131,7 @@ export default async function HomePage() {
             Cross-sync calendars across{" "}
             <span className="text-[var(--ink)] font-medium">Airbnb, Booking.com, Vrbo</span>{" "}
             and any iCal source so each platform sees the others&apos; bookings —{" "}
-            <span className="text-[var(--ink)] font-medium">drastically fewer double-booking surprises</span>, no $200/mo channel manager required. Forever free, open-source.
+            <span className="text-[var(--ink)] font-medium">drastically fewer double-booking surprises</span>. Forever free, open-source.
           </p>
 
           <div className="hero-in hero-in-4 mt-8 flex justify-center">
@@ -203,7 +203,7 @@ export default async function HomePage() {
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <Feature
               title="Cross-platform calendar sync"
-              body="Every 10 minutes we pull each platform's iCal feed and republish it for the others. Airbnb sees Booking's bookings and vice versa — the same protection paid channel managers sell for $100-300/mo, free."
+              body="Every 10 minutes we pull each platform's iCal feed and republish it for the others. Airbnb sees Booking's bookings and vice versa — the same protection paid channel managers offer, just free and open-source."
             />
             <Feature
               title="Cleaning automation"
