@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
 import { CalendarToolbar } from "@/components/calendar/calendar-toolbar";
-import { CalendarNavigation } from "@/components/calendar/calendar-navigation";
 import { CalendarLegend } from "@/components/calendar/calendar-legend";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarDatePopover } from "@/components/calendar/calendar-date-popover";
 import { BarClaimPopover, type ClaimableBar } from "@/components/calendar/bar-claim-popover";
-import { AgendaList } from "@/components/calendar/agenda-list";
 import { ConflictBanner } from "@/components/calendar/conflict-banner";
 import { useCalendarFetch } from "@/components/calendar/use-calendar-fetch";
 import { useCalendarData } from "@/components/calendar/use-calendar-data";
@@ -20,11 +18,6 @@ import { useI18n } from "@/lib/i18n/context";
 
 interface PropertyCalendarProps {
   property: Property;
-  /** Active month as `YYYY-MM` (e.g. "2026-09"). Lifted to the URL by
-   *  the dashboard so it survives unmount when the user navigates to
-   *  a guest view and back. `null` defaults to the current month. */
-  monthParam: string | null;
-  onMonthChange: (month: string | null) => void;
   onSelectReservation: (id: number) => void;
   onAddReservation: (data: {
     name: string;
@@ -35,31 +28,27 @@ interface PropertyCalendarProps {
   }) => void;
 }
 
-const MONTH_PARAM_RE = /^(\d{4})-(\d{2})$/;
+// How many months to render in the vertical stack. The user scrolls
+// through them airbnb-style instead of paging via prev/next arrows.
+const VISIBLE_MONTHS = 12;
 
-function parseMonthParam(s: string | null, fallback: Date): Date {
-  if (!s) return fallback;
-  const m = MONTH_PARAM_RE.exec(s);
-  if (!m) return fallback;
-  const year = Number(m[1]);
-  const month = Number(m[2]) - 1;
-  if (!Number.isFinite(year) || month < 0 || month > 11) return fallback;
-  return new Date(year, month, 1);
-}
-
-function formatMonthParam(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
+// Side panel width (px). When the panel is open we add right padding
+// to the calendar wrapper of the same value so the calendar reflows
+// rather than being covered by the panel.
+const PANEL_WIDTH_PX = 400;
 
 export function PropertyCalendar({
   property,
-  monthParam,
-  onMonthChange,
   onSelectReservation,
-  onAddReservation,
+  // onAddReservation kept for prop-shape compat with the dashboard,
+  // but we now POST /api/reservations directly when the side panel
+  // submits since we need the result to refresh local state.
+  onAddReservation: _onAddReservation,
 }: PropertyCalendarProps) {
   const { locale, t } = useI18n();
-  const [popoverDate, setPopoverDate] = useState<string | null>(null);
+  // Multi-date selection — the side panel opens whenever this Set is
+  // non-empty. Each click on a calendar cell toggles membership.
+  const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
   const [claimAnchor, setClaimAnchor] = useState<DOMRect | null>(null);
   const [exportCopied, setExportCopied] = useState(false);
@@ -73,57 +62,129 @@ export function PropertyCalendar({
     return d;
   }, []);
 
-  // Source of truth: URL `month` param. monthOffset is computed from
-  // currentMonth - today so the existing nav (prev / next / today)
-  // can keep talking in offsets without re-architecting.
-  const currentMonthBase = useMemo(
-    () => new Date(today.getFullYear(), today.getMonth(), 1),
-    [today]
-  );
-  const currentMonth = useMemo(
-    () => parseMonthParam(monthParam, currentMonthBase),
-    [monthParam, currentMonthBase]
-  );
-  const monthOffset =
-    (currentMonth.getFullYear() - today.getFullYear()) * 12 +
-    (currentMonth.getMonth() - today.getMonth());
-
-  const setMonthOffset = useCallback((updater: number | ((prev: number) => number)) => {
-    const newOffset = typeof updater === "function" ? updater(monthOffset) : updater;
-    const next = new Date(today.getFullYear(), today.getMonth() + newOffset, 1);
-    // Drop the param when on the current month so the URL stays clean.
-    onMonthChange(newOffset === 0 ? null : formatMonthParam(next));
-  }, [monthOffset, today, onMonthChange]);
-
-  const monthLabel = currentMonth.toLocaleDateString(
-    locale === "ru" ? "ru-RU" : "en",
-    { month: "long", year: "numeric" }
-  );
+  // Build the list of months to render — starting from today's month
+  // and stepping forward N times.
+  const months = useMemo(() => {
+    return Array.from({ length: VISIBLE_MONTHS }, (_, i) =>
+      new Date(today.getFullYear(), today.getMonth() + i, 1)
+    );
+  }, [today]);
 
   const data = useCalendarData(property, syncedEvents, links, overrides);
 
-  const closePopover = () => {
-    setPopoverDate(null);
+  // Selection helpers ----------------------------------------------
+  const toggleDate = (dateStr: string) => {
+    setSelectedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) next.delete(dateStr);
+      else next.add(dateStr);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedDates(new Set());
+
+  // Escape always clears the selection (and therefore closes the panel).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && selectedDates.size > 0) {
+        clearSelection();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selectedDates.size]);
+
+  // Bulk override write — applies the same override type to every
+  // currently-selected date, then clears the selection.
+  const setBulkOverride = async (type: "open" | "closed" | "cleaning") => {
+    const dates = Array.from(selectedDates);
+    await Promise.all(
+      dates.map((dateStr) =>
+        fetch(`/api/date-overrides`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ propertyId: property.id, date: dateStr, type }),
+        })
+      )
+    );
+    await refetchOverrides();
+    clearSelection();
   };
 
-  const createReservationOnDate = async (data: { name: string; nights: number; platform: string }) => {
-    if (!popoverDate) return;
-    const checkoutDate = addDaysStr(popoverDate, Math.max(1, data.nights));
+  const removeBulkOverride = async () => {
+    const dates = Array.from(selectedDates);
+    await Promise.all(
+      dates.map((dateStr) =>
+        fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, {
+          method: "DELETE",
+        })
+      )
+    );
+    await refetchOverrides();
+    clearSelection();
+  };
+
+  const createReservationFromSelection = async (data: { name: string; platform: string }) => {
+    const sortedDates = Array.from(selectedDates).sort();
+    if (sortedDates.length === 0) return;
+    // checkIn = first selected day. checkOut = last selected day + 1
+    // (a 3-night stay across May 1, 2, 3 has check-out on May 4).
+    const checkIn = sortedDates[0];
+    const lastDay = sortedDates[sortedDates.length - 1];
+    const checkOut = addDaysStr(lastDay, 1);
     await fetch(`/api/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name: data.name,
-        checkIn: popoverDate,
-        checkOut: checkoutDate,
+        checkIn,
+        checkOut,
         platform: data.platform,
         propertyId: property.id,
       }),
     });
-    closePopover();
+    clearSelection();
     window.location.reload();
   };
 
+  // Single-date helpers (used by the panel when only one date is
+  // selected — the existing per-date actions still apply).
+  const setSingleOverride = async (dateStr: string, type: "open" | "closed" | "cleaning") => {
+    await fetch(`/api/date-overrides`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ propertyId: property.id, date: dateStr, type }),
+    });
+    await refetchOverrides();
+    clearSelection();
+  };
+
+  const removeSingleOverride = async (dateStr: string) => {
+    await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, { method: "DELETE" });
+    await refetchOverrides();
+    clearSelection();
+  };
+
+  const extendBooking = async (dateStr: string, booking: ExtendableBooking) => {
+    await fetch(`/api/reservations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: booking.name,
+        checkIn: dateStr,
+        checkOut: addDaysStr(dateStr, 1),
+        platform: booking.platform,
+        propertyId: property.id,
+        linkedEventUid: booking.eventUid,
+      }),
+    });
+    clearSelection();
+    window.location.reload();
+  };
+
+  // Bar claim popover (separate from the date selection panel — it
+  // opens when the user clicks an UNCLAIMED iCal-synced bar and asks
+  // to name it).
   const closeClaim = () => {
     setClaimBar(null);
     setClaimAnchor(null);
@@ -147,71 +208,13 @@ export function PropertyCalendar({
     window.location.reload();
   };
 
-  const setOverride = async (dateStr: string, type: "open" | "closed" | "cleaning") => {
-    await fetch(`/api/date-overrides`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ propertyId: property.id, date: dateStr, type }),
-    });
-    await refetchOverrides();
-    closePopover();
-  };
-
-  const deleteOverride = async (dateStr: string) => {
-    await fetch(`/api/date-overrides?propertyId=${property.id}&date=${dateStr}`, { method: "DELETE" });
-    await refetchOverrides();
-    closePopover();
-  };
-
-  const extendBooking = async (dateStr: string, booking: ExtendableBooking) => {
-    await fetch(`/api/reservations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: booking.name,
-        checkIn: dateStr,
-        checkOut: addDaysStr(dateStr, 1),
-        platform: booking.platform,
-        propertyId: property.id,
-        linkedEventUid: booking.eventUid,
-      }),
-    });
-    closePopover();
-    window.location.reload();
-  };
-
-  useEffect(() => {
-    const isTyping = (t: EventTarget | null) => {
-      if (!(t instanceof HTMLElement)) return false;
-      const tag = t.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
-      return t.isContentEditable;
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
-      if (isTyping(e.target)) return;
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        setMonthOffset((o) => o - 1);
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        setMonthOffset((o) => o + 1);
-      } else if (e.key === "t" || e.key === "T") {
-        e.preventDefault();
-        setMonthOffset(0);
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-    // setMonthOffset is a useCallback that closes over the current
-    // monthOffset, so we re-attach the listener whenever it changes
-    // — otherwise ArrowLeft / ArrowRight would step from a stale
-    // monthOffset captured at first render.
-  }, [setMonthOffset]);
-
   const handleExport = () => {
     const text = buildCalendarExportText({
-      property, monthLabel, today, syncedEvents, links,
+      property,
+      monthLabel: months[0].toLocaleDateString(locale === "ru" ? "ru-RU" : "en", { month: "long", year: "numeric" }),
+      today,
+      syncedEvents,
+      links,
       bars: data.bars,
       bufferDates: data.bufferDates,
       potentialDates: data.potentialDates,
@@ -223,84 +226,107 @@ export function PropertyCalendar({
     setTimeout(() => setExportCopied(false), 2000);
   };
 
+  const panelOpen = selectedDates.size > 0;
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <CalendarToolbar
-        property={property}
-        links={links}
-        syncing={syncing}
-        exportCopied={exportCopied}
-        onSyncNow={handleSyncNow}
-        onExport={handleExport}
-      />
-      <ConflictBanner conflicts={data.conflicts} />
-      {!loadingEvents &&
-        property.reservations.length === 0 &&
-        syncedEvents.length === 0 &&
-        links.length === 0 && (
-          <div className="cls-isolate animate-slide-down">
-            <EmptyState
-              icon={
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
-                </svg>
-              }
-              title={t("empty.calendar.title")}
-              description={t("empty.calendar.desc")}
-            />
-          </div>
-        )}
-      <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
-        <CalendarNavigation
-          monthLabel={monthLabel}
-          monthOffset={monthOffset}
-          loading={loadingEvents}
-          onPrev={() => setMonthOffset(o => o - 1)}
-          onNext={() => setMonthOffset(o => o + 1)}
-          onToday={() => setMonthOffset(0)}
+    <div className="mx-auto max-w-5xl">
+      {/* Calendar content reflows narrower on lg+ when the side panel
+          is open, so the calendar isn't covered by the panel. The
+          panel itself stays fixed to the viewport's right edge. */}
+      <div
+        className="space-y-6 transition-[padding] duration-200 ease-out"
+        style={{ paddingRight: panelOpen ? `${PANEL_WIDTH_PX}px` : undefined }}
+      >
+        <CalendarToolbar
+          property={property}
+          links={links}
+          syncing={syncing}
+          exportCopied={exportCopied}
+          onSyncNow={handleSyncNow}
+          onExport={handleExport}
         />
-        <CalendarLegend
-          minNights={property.minNights || 3}
-          hasOverrides={data.openOverrides.size > 0 || data.closedOverrides.size > 0}
-        />
-        <CalendarGrid
-          year={currentMonth.getFullYear()}
-          month={currentMonth.getMonth()}
-          today={today}
-          minNights={property.minNights || 3}
-          checkInTime={property.checkInTime || "14:00"}
-          checkOutTime={property.checkOutTime || "12:00"}
-          bars={data.bars}
-          bufferDates={data.bufferDates}
-          potentialDates={data.potentialDates}
-          unbookableDates={data.unbookableDates}
-          sameDayCleaningDates={data.sameDayCleaningDates}
-          conflictDates={data.conflictDates}
-          openOverrides={data.openOverrides}
-          closedOverrides={data.closedOverrides}
-          cleaningOverrides={data.cleaningOverrides}
-          loading={loadingEvents}
-          onSelectReservation={onSelectReservation}
-          onClaimBar={(seg, rect) => {
-            if (!seg.eventUid) return;
-            setClaimBar({
-              eventUid: seg.eventUid,
-              startDate: seg.startDate,
-              endDate: seg.endDate,
-              platform: seg.platform,
-              defaultName: seg.name,
-            });
-            setClaimAnchor(rect);
-          }}
-          onCellClick={(dateStr) => {
-            setPopoverDate(dateStr);
-          }}
-        />
+        <ConflictBanner conflicts={data.conflicts} />
+        {!loadingEvents &&
+          property.reservations.length === 0 &&
+          syncedEvents.length === 0 &&
+          links.length === 0 && (
+            <div className="cls-isolate animate-slide-down">
+              <EmptyState
+                icon={
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
+                  </svg>
+                }
+                title={t("empty.calendar.title")}
+                description={t("empty.calendar.desc")}
+              />
+            </div>
+          )}
+
+        {/* Legend rendered once at the top (was inside the wrapper
+            per-month before; now it shares context with the entire
+            scrollable stack). */}
+        <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
+          <CalendarLegend
+            minNights={property.minNights || 3}
+            hasOverrides={data.openOverrides.size > 0 || data.closedOverrides.size > 0}
+          />
+        </div>
+
+        {/* Vertical month stack — replaces the prev/next/today nav. */}
+        <div className="hidden sm:block space-y-8">
+          {months.map((m, i) => (
+            <section key={`${m.getFullYear()}-${m.getMonth()}`}>
+              <h2 className="mb-3 text-2xl font-bold tracking-tight text-[var(--ink)]">
+                {m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+                  month: "long",
+                  year: i === 0 || m.getMonth() === 0 ? "numeric" : undefined,
+                })}
+              </h2>
+              <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
+                <CalendarGrid
+                  year={m.getFullYear()}
+                  month={m.getMonth()}
+                  today={today}
+                  minNights={property.minNights || 3}
+                  checkInTime={property.checkInTime || "14:00"}
+                  checkOutTime={property.checkOutTime || "12:00"}
+                  bars={data.bars}
+                  bufferDates={data.bufferDates}
+                  potentialDates={data.potentialDates}
+                  unbookableDates={data.unbookableDates}
+                  sameDayCleaningDates={data.sameDayCleaningDates}
+                  conflictDates={data.conflictDates}
+                  openOverrides={data.openOverrides}
+                  closedOverrides={data.closedOverrides}
+                  cleaningOverrides={data.cleaningOverrides}
+                  selectedDates={selectedDates}
+                  loading={loadingEvents && i === 0}
+                  onSelectReservation={onSelectReservation}
+                  onClaimBar={(seg, rect) => {
+                    if (!seg.eventUid) return;
+                    setClaimBar({
+                      eventUid: seg.eventUid,
+                      startDate: seg.startDate,
+                      endDate: seg.endDate,
+                      platform: seg.platform,
+                      defaultName: seg.name,
+                    });
+                    setClaimAnchor(rect);
+                  }}
+                  onCellClick={(dateStr) => toggleDate(dateStr)}
+                />
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
-      <AgendaList bars={data.bars} today={today} onSelectReservation={onSelectReservation} />
-      {popoverDate && (
+
+      {/* Selection-driven side panel. Opens whenever 1+ dates are
+          selected; closes via panel × button or Escape. */}
+      {panelOpen && (
         <CalendarDatePopover
-          date={popoverDate}
+          selectedDates={selectedDates}
           bars={data.bars}
           bufferDates={data.bufferDates}
           potentialDates={data.potentialDates}
@@ -311,13 +337,17 @@ export function PropertyCalendar({
           cleaningOverrides={data.cleaningOverrides}
           syncedEvents={syncedEvents}
           reservations={property.reservations}
-          onClose={closePopover}
-          onSetOverride={(type) => setOverride(popoverDate, type)}
-          onRemoveOverride={() => deleteOverride(popoverDate)}
-          onExtendBooking={(b) => extendBooking(popoverDate, b)}
-          onCreateReservation={createReservationOnDate}
+          onClose={clearSelection}
+          onToggleDate={toggleDate}
+          onSetSingleOverride={setSingleOverride}
+          onRemoveSingleOverride={removeSingleOverride}
+          onSetBulkOverride={setBulkOverride}
+          onRemoveBulkOverride={removeBulkOverride}
+          onExtendBooking={extendBooking}
+          onCreateReservation={createReservationFromSelection}
         />
       )}
+
       {claimBar && claimAnchor && (
         <BarClaimPopover
           bar={claimBar}

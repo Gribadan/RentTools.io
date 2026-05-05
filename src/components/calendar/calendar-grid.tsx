@@ -24,6 +24,10 @@ interface CalendarGridProps {
    *  type=cleaning). Render with the cleaning chip + "Manual cleaning"
    *  label so they are visually distinct from auto buffer days. */
   cleaningOverrides: Set<string>;
+  /** Dates the user has selected (multi-select via cell clicks). The
+   *  selection drives the side panel — single date opens the per-
+   *  date detail view, multiple dates opens the bulk-action view. */
+  selectedDates: Set<string>;
   loading?: boolean;
   onSelectReservation: (id: number) => void;
   onClaimBar?: (bar: BarSegment, rect: DOMRect) => void;
@@ -46,6 +50,7 @@ export function CalendarGrid({
   openOverrides,
   closedOverrides,
   cleaningOverrides,
+  selectedDates,
   loading,
   onSelectReservation,
   onClaimBar,
@@ -181,6 +186,7 @@ export function CalendarGrid({
               const isSameDayCleaning = sameDayCleaningDates.has(ds);
               const isOpen = openOverrides.has(ds);
               const isClosed = closedOverrides.has(ds);
+              const isSelected = selectedDates.has(ds);
               const bg = isOpen ? "bg-emerald-500/8"
                 : isClosed ? "bg-rose-500/8"
                 : isConflict ? "bg-rose-500/8"
@@ -198,7 +204,7 @@ export function CalendarGrid({
                   onClick={(e) => {
                     onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
-                  className={`relative h-[72px] border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} hover:bg-[var(--bg-3)]/60 ${isOpen ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
+                  className={`relative h-[72px] border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} ${isSelected ? "bg-[var(--m-accent)]/10 ring-2 ring-inset ring-[var(--m-accent)]" : "hover:bg-[var(--bg-3)]/60"} ${isOpen && !isSelected ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed && !isSelected ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
                   <div className="absolute top-1.5 left-2 z-20 pointer-events-none">
                     <span className={`text-sm font-medium leading-none ${
