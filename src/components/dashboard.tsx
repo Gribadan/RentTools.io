@@ -1,11 +1,46 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { DateSlider } from "@/components/date-slider";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
 import { WelcomeModal } from "@/components/welcome-modal";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
+
+// RT-25.6 tick 2 — bundled platform presets, kept inline rather than
+// imported from @/lib/platforms because that module's lazy
+// `import("@/lib/prisma")` gets traced into the client bundle by
+// Turbopack and breaks the build (matches the reports-panel.tsx
+// approach landed in RT-25.5 / commit bd37271). Slugs and colors mirror
+// the seed in prisma/push-schema.ts so the form pills match the
+// calendar bars exactly.
+const FALLBACK_PLATFORM_COLOR = "#6B7280";
+
+const PLATFORM_PRESETS: ReadonlyArray<{ slug: string; displayName: string; color: string }> = [
+  { slug: "airbnb", displayName: "Airbnb", color: "#FF385C" },
+  { slug: "booking", displayName: "Booking.com", color: "#003580" },
+  { slug: "vrbo", displayName: "Vrbo", color: "#245ABC" },
+  { slug: "expedia", displayName: "Expedia", color: "#FFC72C" },
+  { slug: "hostaway", displayName: "Hostaway", color: "#2E5BFF" },
+  { slug: "lodgify", displayName: "Lodgify", color: "#00B5AD" },
+  { slug: "hospitable", displayName: "Hospitable", color: "#1B5E20" },
+  { slug: "smoobu", displayName: "Smoobu", color: "#4A148C" },
+  { slug: "houfy", displayName: "Houfy", color: "#D84315" },
+  { slug: "plumguide", displayName: "Plum Guide", color: "#2E1065" },
+  { slug: "whimstay", displayName: "Whimstay", color: "#FF7043" },
+  { slug: "direct", displayName: "Direct", color: FALLBACK_PLATFORM_COLOR },
+];
+
+const PRESET_BY_SLUG = new Map(PLATFORM_PRESETS.map((p) => [p.slug, p]));
+
+function platformDisplayName(slug: string): string {
+  return PRESET_BY_SLUG.get(slug)?.displayName ?? slug;
+}
+
+function platformColor(slug: string): string {
+  return PRESET_BY_SLUG.get(slug)?.color ?? FALLBACK_PLATFORM_COLOR;
+}
 
 interface CalendarEvent {
   id: number;
@@ -52,6 +87,10 @@ export function Dashboard({
   const [allOverrides, setAllOverrides] = useState<Record<number, DateOverride[]>>({});
   const [loadingCalendarData, setLoadingCalendarData] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // RT-25.6 tick 2 — distinct platform slugs across the user's CalendarLinks.
+  // Populated regardless of selectedProperty so the form pills always reflect
+  // the user's real platform set (Airbnb + Booking + any custom platforms).
+  const [linkedPlatformSlugs, setLinkedPlatformSlugs] = useState<string[]>([]);
 
   // Fetch synced events, links, and overrides for all properties (for cleaning schedule)
   const fetchAllCalendarData = useCallback(async () => {
@@ -87,6 +126,53 @@ export function Dashboard({
   useEffect(() => {
     fetchAllCalendarData();
   }, [fetchAllCalendarData]);
+
+  // RT-25.6 tick 2 — fetch the user's full link inventory once on mount
+  // (single call, no per-property fan-out) so the platform pills are
+  // accurate even in per-property mode where fetchAllCalendarData
+  // early-exits.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/calendar/links`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: CalendarLink[]) => {
+        if (cancelled || !Array.isArray(rows)) return;
+        const slugs = Array.from(new Set(rows.map((r) => r.platform).filter(Boolean)));
+        setLinkedPlatformSlugs(slugs);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  // Platform pills shown in the Add-Reservation form. Order:
+  //   1. Slugs the user has linked (in PLATFORM_PRESETS sort order, then alpha)
+  //   2. "direct" — always offered as the manual-add channel
+  // If the user has no links yet, fall back to airbnb + booking + direct
+  // so a brand-new account doesn't see an empty toggle.
+  const formPlatformOptions = useMemo<string[]>(() => {
+    const linked = linkedPlatformSlugs.length > 0 ? linkedPlatformSlugs : ["airbnb", "booking"];
+    const ordered: string[] = [];
+    for (const preset of PLATFORM_PRESETS) {
+      if (preset.slug === "direct") continue;
+      if (linked.includes(preset.slug)) ordered.push(preset.slug);
+    }
+    // Custom slugs that aren't in the bundled presets: tail in alpha order.
+    const known = new Set(PLATFORM_PRESETS.map((p) => p.slug));
+    for (const slug of [...linked].sort()) {
+      if (!known.has(slug)) ordered.push(slug);
+    }
+    ordered.push("direct");
+    return ordered;
+  }, [linkedPlatformSlugs]);
+
+  // Keep formPlatform in the available set; if it drops out (rare —
+  // user removed the only link of that type), reset to the first option.
+  useEffect(() => {
+    if (formPlatformOptions.length === 0) return;
+    if (!formPlatformOptions.includes(formPlatform)) {
+      setFormPlatform(formPlatformOptions[0]);
+    }
+  }, [formPlatformOptions, formPlatform]);
 
   useEffect(() => {
     if (selectedProperty) {
@@ -270,23 +356,41 @@ export function Dashboard({
 
             <div className="space-y-1.5">
               <label className="text-xs text-[var(--ink-3)]">{t("dashboard.platform")}</label>
-              <div className="flex w-fit rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-0.5">
-                {(["airbnb", "booking"] as const).map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setFormPlatform(p)}
-                    className={`rounded-[5px] px-4 py-1.5 text-xs font-medium transition-all ${
-                      formPlatform === p
-                        ? p === "airbnb"
-                          ? "bg-[var(--m-accent)]/15 text-[var(--m-accent)]"
-                          : "bg-[#003580]/25 text-sky-300"
-                        : "text-[var(--ink-4)] hover:text-[var(--ink-3)]"
-                    }`}
-                  >
-                    {p === "airbnb" ? "Airbnb" : "Booking"}
-                  </button>
-                ))}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-0.5">
+                  {formPlatformOptions.map((slug) => {
+                    const color = platformColor(slug);
+                    const active = formPlatform === slug;
+                    return (
+                      <button
+                        key={slug}
+                        type="button"
+                        onClick={() => setFormPlatform(slug)}
+                        className={`flex items-center gap-1.5 rounded-[5px] px-3 py-1.5 text-xs font-medium transition-all ${
+                          active
+                            ? "text-[var(--ink)]"
+                            : "text-[var(--ink-4)] hover:text-[var(--ink-3)]"
+                        }`}
+                        style={active ? { backgroundColor: `${color}26` } : undefined}
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                        {platformDisplayName(slug)}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Link
+                  href="/dashboard/add-property"
+                  className="flex items-center gap-1 rounded-md border border-dashed border-[var(--line-2)] px-3 py-1.5 text-xs text-[var(--ink-4)] transition-colors hover:border-[var(--line-3)] hover:text-[var(--ink-3)]"
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  {locale === "ru" ? "Добавить платформу" : "Add platform"}
+                </Link>
               </div>
             </div>
 
@@ -369,9 +473,8 @@ export function Dashboard({
                 }`}
               >
                 <span
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                    res.platform === "booking" ? "bg-sky-300" : "bg-[var(--m-accent)]"
-                  }`}
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: platformColor(res.platform) }}
                 />
 
                 <div className="min-w-0 flex-1">
@@ -385,13 +488,10 @@ export function Dashboard({
                 )}
 
                 <span
-                  className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-                    res.platform === "booking"
-                      ? "bg-[#003580]/20 text-sky-300"
-                      : "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
-                  }`}
+                  className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ink-2)]"
+                  style={{ backgroundColor: `${platformColor(res.platform)}26` }}
                 >
-                  {res.platform === "booking" ? "Booking" : "Airbnb"}
+                  {platformDisplayName(res.platform)}
                 </span>
 
                 <span className="shrink-0 text-sm text-[var(--ink-3)]">
