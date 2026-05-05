@@ -116,10 +116,21 @@ export async function fetchGoogleProfile(accessToken: string): Promise<GooglePro
  *   https://renttools.io/api/auth/google/callback
  *   http://localhost:3000/api/auth/google/callback
  * so this returns whichever matches the current host.
+ *
+ * Behind a reverse proxy (nginx → Next on localhost) `new URL(request.url)`
+ * gets the protocol wrong (http instead of https) because the proxy hop is
+ * cleartext locally. Honor X-Forwarded-Proto / X-Forwarded-Host first, fall
+ * back to the request URL only when no proxy headers are present.
  */
 export function deriveRedirectUri(request: Request): string {
   const url = new URL(request.url);
-  return `${url.origin}/api/auth/google/callback`;
+  const fwdProto = request.headers.get("x-forwarded-proto");
+  const fwdHost = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  // Take the FIRST forwarded value if a comma-separated chain is sent
+  // (Cloudflare → nginx → next can stack headers in some setups).
+  const proto = (fwdProto?.split(",")[0]?.trim()) || url.protocol.replace(/:$/, "");
+  const host = (fwdHost?.split(",")[0]?.trim()) || url.host;
+  return `${proto}://${host}/api/auth/google/callback`;
 }
 
 /**
