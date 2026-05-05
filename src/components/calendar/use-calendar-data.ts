@@ -284,19 +284,29 @@ export function useCalendarData(
           const gapDays = Math.max(0, Math.ceil(
             (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
           ));
-          // Pre-checkin slot. When the gap between bookings is big
-          // enough that a real booking could otherwise fit there
-          // (gapDays >= minStay), the cleaner has actual flexibility
-          // on when to clean — could be b.end, could be any day in
-          // the gap, could be next.start. We still surface a chip on
-          // next.start (so the host sees "cleaning happens here") but
-          // also flag it as potential so the chip picks up the dashed
-          // "Cleaning?" style — symmetric to how a non-zero-buffer
-          // property marks next.start - 1 as potential when the gap
-          // is large. Previously the chip was a definite "Cleaning",
-          // which read as "for sure" even though the host might
-          // schedule the cleaning earlier in the gap.
-          if (gapDays >= minStay && !linkedBoundaryDates.has(next.start)) {
+          // Pre-checkin slot. We only surface a "Cleaning?" chip on
+          // next.start when there's actually flexibility — i.e.
+          //
+          //   * gapDays >= 1   (at least one full empty day between
+          //                     the two stays — without this, a same
+          //                     day turnover or a back-to-back day
+          //                     would get marked potential too,
+          //                     which the user explicitly flagged as
+          //                     wrong: "May 14 has 2 bookings, 1
+          //                     ends and 1 starts, system put
+          //                     potential cleaning there not just
+          //                     cleaning"); and
+          //   * gapDays >= minStay  (gap is big enough that the
+          //                          cleaner could've cleaned on
+          //                          ANY day in it — for shorter
+          //                          gaps the cleaning is implicitly
+          //                          on b.end and next.start doesn't
+          //                          add information).
+          //
+          // The first guard is the load-bearing one for the
+          // user-reported bug: it prevents the same-day case from
+          // getting marked potential even if minStay is 0 or 1.
+          if (gapDays >= 1 && gapDays >= minStay && !linkedBoundaryDates.has(next.start)) {
             sameDayCleaning.add(next.start);
             potential.add(next.start);
           }
@@ -348,7 +358,15 @@ export function useCalendarData(
       let label = ev.name;
       let resId = ev.reservationId;
       const matchingResForExt = resId ? property.reservations.find(r => r.id === resId) : undefined;
-      const isExtension = !!matchingResForExt?.linkedEventUid;
+      // A "claim" (reservation that overlaps the iCal event the user
+      // just named) gets merged into the event's evMap entry — which
+      // KEEPS the event's eventUid. A real extension (separate
+      // reservation abutting the event for the same guest) lives in
+      // its OWN evMap entry with no eventUid. We only want the
+      // hatched / striped extension styling on the latter — naming
+      // an existing iCal stay shouldn't make the bar look manually
+      // added.
+      const isExtension = !!matchingResForExt?.linkedEventUid && !ev.eventUid;
 
       if (label.includes("Reserved") || label.includes("CLOSED") || label.includes("Not available")) {
         const matchingRes = property.reservations.find(r => {
