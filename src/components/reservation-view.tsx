@@ -80,6 +80,12 @@ export function ReservationView({
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<MessageTemplate | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  // RT-25.2 — pre-arrival guest form share link. hasGuestForm gates
+  // the "Send pre-arrival form" button so it only shows when the
+  // property actually has a template configured.
+  const [hasGuestForm, setHasGuestForm] = useState(false);
+  const [guestFormSending, setGuestFormSending] = useState(false);
+  const [guestFormCopyState, setGuestFormCopyState] = useState<"idle" | "copied" | "error">("idle");
   const logRef = useRef<HTMLDivElement>(null);
   const templateMenuRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +112,44 @@ export function ReservationView({
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [templatePickerOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/properties/${reservation.propertyId}/guest-form`)
+      .then((r) => (r.ok ? r.json() : { template: null }))
+      .then((d) => {
+        if (!cancelled) setHasGuestForm(!!d.template);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [reservation.propertyId]);
+
+  const sendGuestForm = async () => {
+    setGuestFormSending(true);
+    setGuestFormCopyState("idle");
+    try {
+      const res = await fetch(`/api/reservations/${reservation.id}/guest-form/share`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        setGuestFormCopyState("error");
+        return;
+      }
+      const data = await res.json();
+      const fullUrl = `${window.location.origin}${data.shareUrl}`;
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        setGuestFormCopyState("copied");
+        setTimeout(() => setGuestFormCopyState("idle"), 2500);
+      } catch {
+        setGuestFormCopyState("error");
+      }
+    } finally {
+      setGuestFormSending(false);
+    }
+  };
 
   const formatIsoDate = (s: string) => new Date(s).toISOString().split("T")[0];
 
@@ -419,6 +463,35 @@ export function ReservationView({
           )}
         </div>
       </div>
+
+      {/* RT-25.2 — Pre-arrival form share link. Hidden when the property
+          has no GuestFormTemplate configured (set up under Sync Settings). */}
+      {hasGuestForm && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">Pre-arrival form</p>
+            <p className="text-xs text-muted-foreground">
+              Send the guest a link to fill in their pre-arrival questions.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={sendGuestForm}
+            disabled={guestFormSending}
+            className="rounded-lg text-xs"
+          >
+            {guestFormSending
+              ? "Generating…"
+              : guestFormCopyState === "copied"
+                ? "Link copied"
+                : guestFormCopyState === "error"
+                  ? "Try again"
+                  : "Send pre-arrival form"}
+          </Button>
+        </div>
+      )}
 
       {/* Drop Zone */}
       <div
