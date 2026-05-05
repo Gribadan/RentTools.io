@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 const LAST_UPDATED = "2026-05-05";
 const OPERATOR_NAME = "Ilya Asminkin";
-const OPERATOR_EMAIL = "ilya.asminkin@gmail.com";
+const OPERATOR_EMAIL = "support@renttools.io";
 
 export default function TermsPage() {
   return (
