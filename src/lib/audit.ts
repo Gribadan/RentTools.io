@@ -9,7 +9,8 @@ export type AuditResource =
   | "override"
   | "calendarLink"
   | "manager"
-  | "user"; // RT-21.7: account creation, suspension, password change
+  | "user" // RT-21.7: account creation, suspension, password change
+  | "blogComment"; // RT-20.4: super-admin moderation
 
 // Self-delete (POST /api/auth/delete-account) is intentionally NOT audited
 // — the same request wipes the user's AuditLog rows for GDPR right-to-be-

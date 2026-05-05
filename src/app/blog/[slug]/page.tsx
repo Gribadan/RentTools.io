@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/locale-switcher";
+import { BlogComments, type BlogCommentItem } from "@/components/blog-comments";
 import { prisma } from "@/lib/prisma";
 import { renderMarkdown } from "@/lib/markdown";
+import { getSession } from "@/lib/auth";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
@@ -82,6 +84,24 @@ export default async function BlogPostPage({
 
   const tags = parseTags(post.tagsJson);
   const html = renderMarkdown(post.body);
+  const session = await getSession();
+  const isSuperadmin = session?.role === "superadmin";
+
+  const commentRows = await prisma.blogComment.findMany({
+    where: {
+      postId: post.id,
+      ...(isSuperadmin ? {} : { status: "visible" }),
+    },
+    orderBy: { createdAt: "asc" },
+    include: { user: { select: { username: true } } },
+  });
+  const comments: BlogCommentItem[] = commentRows.map((c) => ({
+    id: c.id,
+    body: c.body,
+    status: c.status as BlogCommentItem["status"],
+    createdAt: c.createdAt.toISOString(),
+    username: c.user?.username ?? "deleted user",
+  }));
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec]">
@@ -135,6 +155,14 @@ export default async function BlogPostPage({
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </article>
+
+        <BlogComments
+          postId={post.id}
+          comments={comments}
+          isSignedIn={!!session}
+          isSuperadmin={isSuperadmin}
+          loginHref={`/login?next=${encodeURIComponent(`/blog/${slug}`)}`}
+        />
 
         <nav className="mt-12 border-t border-[#1e2329] pt-6 text-sm">
           <Link href="/blog" className="text-[#a0a0a8] hover:text-[#e8e8ec]">
