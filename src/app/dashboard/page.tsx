@@ -169,7 +169,7 @@ function AppContent({
     if (res.ok) await fetchProperties();
   };
 
-  const handleUpdateProperty = async (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => {
+  const handleUpdateProperty = async (id: number, data: { name?: string; minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => {
     await fetch(`/api/properties/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -311,6 +311,7 @@ function AppContent({
               bookingWindow={selectedProperty.bookingWindow || 365}
               ownerUserId={selectedProperty.userId}
               onUpdateProperty={handleUpdateProperty}
+              onDeleteProperty={handleDeleteProperty}
             />
           );
         case "guests":
@@ -374,7 +375,6 @@ function AppContent({
         activeView={activeView}
         onSelectProperty={handleSelectProperty}
         onChangeView={setActiveView}
-        onAddProperty={handleAddProperty}
         onNavigate={navigate}
         onOpenReservation={(propId, resId) =>
           navigate({ property: propId, reservation: resId, view: "guests" })

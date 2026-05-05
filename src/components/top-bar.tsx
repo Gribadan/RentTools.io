@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
@@ -26,7 +27,6 @@ interface TopBarProps {
   activeView: AppView;
   onSelectProperty: (id: number | null) => void;
   onChangeView: (view: AppView) => void;
-  onAddProperty: (name: string) => void;
   // Atomic navigate that can change property + view together. Needed for
   // tab clicks like "Calendar" / "Cleaning" / "Settings" that require a
   // property — when none is selected we want to auto-pick the first one
@@ -44,7 +44,6 @@ export function TopBar({
   activeView,
   onSelectProperty,
   onChangeView,
-  onAddProperty,
   onNavigate,
   onOpenReservation,
   username,
@@ -55,8 +54,6 @@ export function TopBar({
   const { t, locale, setLocale } = useI18n();
   const [propDropdown, setPropDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
-  const [addingProp, setAddingProp] = useState(false);
-  const [newPropName, setNewPropName] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GuestSearchResult[]>([]);
@@ -318,38 +315,20 @@ export function TopBar({
 
                   <div className="my-1 h-px bg-[var(--line-2)]" />
 
-                  {addingProp ? (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (newPropName.trim()) {
-                          onAddProperty(newPropName.trim());
-                          setNewPropName("");
-                          setAddingProp(false);
-                        }
-                      }}
-                      className="flex gap-1.5 px-2 py-1.5"
-                    >
-                      <input
-                        value={newPropName}
-                        onChange={(e) => setNewPropName(e.target.value)}
-                        placeholder={t("sidebar.propertyPlaceholder")}
-                        className="h-7 flex-1 rounded border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
-                        autoFocus
-                      />
-                      <button type="submit" className="rounded bg-[var(--m-accent)] px-2 text-xs text-white hover:bg-[var(--m-accent-2)]">+</button>
-                    </form>
-                  ) : (
-                    <button
-                      onClick={() => setAddingProp(true)}
-                      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)]"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                      </svg>
-                      {locale === "ru" ? "Добавить объект" : "Add property"}
-                    </button>
-                  )}
+                  {/* Adding a property is now a full page (with a
+                      proper name + iCal feeds form), not a 1-input
+                      inline prompt. The dropdown just routes there
+                      so the entry stays as a one-click affordance. */}
+                  <Link
+                    href="/dashboard/add-property"
+                    onClick={() => setPropDropdown(false)}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink-2)]"
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    {locale === "ru" ? "Добавить объект" : "Add property"}
+                  </Link>
                 </div>
               </div>
             )}

@@ -26,10 +26,11 @@ interface SyncSettingsProps {
   checkOutTime: string;
   bookingWindow: number;
   ownerUserId: number;
-  onUpdateProperty: (id: number, data: { minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => void;
+  onUpdateProperty: (id: number, data: { name?: string; minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => void;
+  onDeleteProperty: (id: number) => void | Promise<void>;
 }
 
-export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, bookingWindow, ownerUserId, onUpdateProperty }: SyncSettingsProps) {
+export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, bookingWindow, ownerUserId, onUpdateProperty, onDeleteProperty }: SyncSettingsProps) {
   const { t, locale } = useI18n();
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
@@ -38,6 +39,10 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [copied, setCopied] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  // Rename + delete are scoped here so the entire property settings
+  // page doesn't have to remount when the user toggles edit mode.
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
 
   // Per-platform input states
   const [airbnbUrl, setAirbnbUrl] = useState("");
@@ -208,10 +213,50 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
   return (
     <div className="cls-isolate mx-auto max-w-3xl space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-semibold text-[var(--ink)]">{t("sync.title")}</h1>
-          <p className="mt-0.5 text-sm text-[var(--ink-3)]">{propertyName}</p>
+          {renaming ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const next = renameValue.trim();
+                if (next && next !== propertyName) {
+                  onUpdateProperty(propertyId, { name: next });
+                }
+                setRenaming(false);
+              }}
+              className="mt-1 flex items-center gap-2"
+            >
+              <input
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") { setRenaming(false); setRenameValue(propertyName); } }}
+                className="h-8 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--m-accent)]"
+              />
+              <button type="submit" className="rounded-md bg-[var(--m-accent)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--m-accent-2)]">
+                {locale === "ru" ? "Сохранить" : "Save"}
+              </button>
+              <button type="button" onClick={() => { setRenaming(false); setRenameValue(propertyName); }} className="rounded-md px-3 py-1.5 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]">
+                {locale === "ru" ? "Отмена" : "Cancel"}
+              </button>
+            </form>
+          ) : (
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <p className="text-sm text-[var(--ink-3)] truncate">{propertyName}</p>
+              <button
+                onClick={() => { setRenameValue(propertyName); setRenaming(true); }}
+                title={locale === "ru" ? "Переименовать" : "Rename"}
+                aria-label={locale === "ru" ? "Переименовать" : "Rename"}
+                className="rounded p-0.5 text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-colors"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
         <button
           onClick={handleSync}
@@ -606,6 +651,35 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
       <CleanerAssignmentSection propertyId={propertyId} />
       <MessageTemplatesPanel propertyId={propertyId} />
+
+      {/* Danger zone — delete this property. Only the owner can hit
+          DELETE /api/properties/:id; the dashboard's handler also
+          handles the "navigate away" piece (clears selection, calls
+          fetchProperties, etc.). */}
+      <section className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-5">
+        <h2 className="text-sm font-semibold text-[var(--ink)]">
+          {locale === "ru" ? "Опасная зона" : "Danger zone"}
+        </h2>
+        <p className="mt-1 text-xs text-[var(--ink-3)] leading-relaxed">
+          {locale === "ru"
+            ? "Удаление объекта стирает все его брони, гостей, паспорта, журналы синхронизации и iCal-привязки. Действие необратимо."
+            : "Deleting this property removes all of its reservations, guests, passport documents, sync logs, and iCal links. This cannot be undone."}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            const ok = window.confirm(
+              locale === "ru"
+                ? `Удалить объект «${propertyName}»? Это удалит все бронирования и связанные данные. Действие необратимо.`
+                : `Delete property "${propertyName}"? This removes all reservations and related data. This cannot be undone.`
+            );
+            if (ok) onDeleteProperty(propertyId);
+          }}
+          className="mt-3 rounded-md border border-rose-500/40 px-3 py-2 text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/10"
+        >
+          {locale === "ru" ? "Удалить объект" : "Delete property"}
+        </button>
+      </section>
     </div>
   );
 }
