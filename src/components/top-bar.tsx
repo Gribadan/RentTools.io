@@ -158,6 +158,12 @@ export function TopBar({
 
   return (
     <header className="border-b border-[var(--line)] bg-[var(--bg-2)]">
+      {/* Inner wrapper caps content width on ultra-wide screens (Airbnb
+          pattern). The border-b + bg above stays full-width so the
+          chrome still touches both edges of the viewport, but the
+          actual logo / tabs / avatar stop spreading after ~1760px so
+          they don't fly to the corners on a 4K monitor. */}
+      <div className="mx-auto max-w-[1760px]">
       {/* Main bar */}
       <div className="relative flex items-center justify-between gap-3 h-16 px-3 sm:px-5">
         {/* LEFT: Logo + Property selector */}
@@ -352,16 +358,14 @@ export function TopBar({
                 </div>
               </div>
 
-              {searchOpen && (
+              {/* Results panel only renders once the user has typed
+                  enough to query (>=2 chars). Below that the dropdown
+                  is hidden entirely — no "type at least 2 characters"
+                  hint cluttering the header on focus. */}
+              {searchOpen && searchQuery.trim().length >= 2 && (
                 <div className="absolute right-0 top-full z-50 mt-2 w-[20rem] rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] shadow-xl shadow-black/20 sm:w-[26rem]">
                   <div className="max-h-80 overflow-y-auto">
-                    {searchQuery.trim().length < 2 ? (
-                      <p className="px-3 py-4 text-center text-[11px] text-[var(--ink-4)]">
-                        {locale === "ru"
-                          ? "Введите минимум 2 символа"
-                          : "Type at least 2 characters"}
-                      </p>
-                    ) : searchLoading ? (
+                    {searchLoading ? (
                       <p className="px-3 py-4 text-center text-[11px] text-[var(--ink-4)]">
                         {locale === "ru" ? "Поиск..." : "Searching..."}
                       </p>
@@ -536,6 +540,7 @@ export function TopBar({
           />
         ))}
       </nav>
+      </div>
     </header>
   );
 }
