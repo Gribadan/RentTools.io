@@ -41,7 +41,7 @@ export function PropertyCleaningView({ property }: PropertyCleaningViewProps) {
   }, [fetchData]);
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="cls-isolate mx-auto max-w-5xl">
       <div className="mb-3 flex justify-end">
         <button
           onClick={() => setSummaryOpen(true)}

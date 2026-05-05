@@ -206,7 +206,7 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
   ] as const;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="cls-isolate mx-auto max-w-3xl space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

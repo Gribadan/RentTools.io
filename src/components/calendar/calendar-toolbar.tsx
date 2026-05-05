@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import { useI18n } from "@/lib/i18n/context";
-import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import type { Property, CalendarLink } from "@/lib/types";
 import { computeSyncHealth } from "./sync-health";
 import { toDateStr } from "./utils";
@@ -11,11 +10,9 @@ interface CalendarToolbarProps {
   property: Property;
   links: CalendarLink[];
   syncing: boolean;
-  overrideMode: boolean;
   exportCopied: boolean;
   today: Date;
   onSyncNow: () => void;
-  onToggleOverrideMode: () => void;
   onExport: () => void;
   onAddReservation: (data: {
     name: string;
@@ -30,11 +27,9 @@ export function CalendarToolbar({
   property,
   links,
   syncing,
-  overrideMode,
   exportCopied,
   today,
   onSyncNow,
-  onToggleOverrideMode,
   onExport,
   onAddReservation,
 }: CalendarToolbarProps) {
@@ -73,21 +68,6 @@ export function CalendarToolbar({
         )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <OnboardingTooltip id={`edit-dates:${property.id}`} text={t("tooltip.editDates")}>
-          <button
-            onClick={onToggleOverrideMode}
-            className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-              overrideMode
-                ? "border-rose-700 bg-rose-700/10 text-rose-500 hover:bg-rose-700/20"
-                : "border-[var(--line-2)] bg-[var(--line-2)] text-[var(--ink-2)] hover:bg-[var(--line-2)]"
-            }`}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-            </svg>
-            {overrideMode ? t("calendar.doneEditing") : t("calendar.editDates")}
-          </button>
-        </OnboardingTooltip>
         <button
           onClick={onExport}
           className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-3 py-2 text-sm text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"

@@ -20,7 +20,6 @@ interface CalendarGridProps {
   conflictDates: Set<string>;
   openOverrides: Set<string>;
   closedOverrides: Set<string>;
-  overrideMode: boolean;
   loading?: boolean;
   onSelectReservation: (id: number) => void;
   onCellClick: (dateStr: string, rect: DOMRect) => void;
@@ -41,7 +40,6 @@ export function CalendarGrid({
   conflictDates,
   openOverrides,
   closedOverrides,
-  overrideMode,
   loading,
   onSelectReservation,
   onCellClick,
@@ -172,11 +170,9 @@ export function CalendarGrid({
                 <div
                   key={`c-${dayNum}`}
                   onClick={(e) => {
-                    if (overrideMode) onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
+                    onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
-                  className={`relative h-[72px] border-r border-[var(--line)] last:border-r-0 transition-colors ${bg} ${
-                    overrideMode ? "cursor-pointer hover:bg-[var(--bg-3)]" : "hover:bg-[var(--bg-2)]/60"
-                  } ${isOpen ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
+                  className={`relative h-[72px] border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} hover:bg-[var(--bg-3)]/60 ${isOpen ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
                   <div className="absolute top-1.5 left-2 z-20 pointer-events-none">
                     <span className={`text-sm font-medium leading-none ${

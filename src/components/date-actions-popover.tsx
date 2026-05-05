@@ -106,10 +106,18 @@ export function DateActionsPopover({
 
   const actionBtn = "w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm text-left transition-colors";
 
+  // The popover lives at <body> via a portal, OUTSIDE the dashboard's
+  // `.editorial` wrapper. Without the `editorial` class here, --bg-2 /
+  // --ink / --line all resolve to nothing, so the popover renders as a
+  // see-through ghost over the calendar (the bug shown in the user's
+  // screenshot). Putting `editorial` on the root re-anchors the token
+  // scope so colours resolve, and we promote it to bg-[var(--bg)] +
+  // line-2 + a stronger shadow so it visually lifts off the page even
+  // though page bg and bg-2 are very close in light mode.
   return createPortal(
     <div
       ref={popRef}
-      className="fixed z-[100] w-[280px] rounded-xl border border-[var(--line)] bg-[var(--bg-2)] shadow-2xl shadow-black/60"
+      className="editorial fixed z-[100] w-[280px] rounded-xl border border-[var(--line-2)] bg-[var(--bg)] shadow-2xl shadow-black/30"
       style={{ top, left }}
     >
       {/* Header */}

@@ -10,7 +10,6 @@ import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarDatePopover } from "@/components/calendar/calendar-date-popover";
 import { AgendaList } from "@/components/calendar/agenda-list";
 import { ConflictBanner } from "@/components/calendar/conflict-banner";
-import { OverrideBanner } from "@/components/calendar/override-banner";
 import { useCalendarFetch } from "@/components/calendar/use-calendar-fetch";
 import { useCalendarData } from "@/components/calendar/use-calendar-data";
 import { buildCalendarExportText } from "@/components/calendar/calendar-export";
@@ -37,7 +36,6 @@ export function PropertyCalendar({
 }: PropertyCalendarProps) {
   const { locale, t } = useI18n();
   const [monthOffset, setMonthOffset] = useState(0);
-  const [overrideMode, setOverrideMode] = useState(false);
   const [popoverDate, setPopoverDate] = useState<string | null>(null);
   const [popoverAnchor, setPopoverAnchor] = useState<DOMRect | null>(null);
   const [exportCopied, setExportCopied] = useState(false);
@@ -119,9 +117,6 @@ export function PropertyCalendar({
       } else if (e.key === "t" || e.key === "T") {
         e.preventDefault();
         setMonthOffset(0);
-      } else if (e.key === "e" || e.key === "E") {
-        e.preventDefault();
-        setOverrideMode((m) => !m);
       }
     };
     document.addEventListener("keydown", onKey);
@@ -148,16 +143,13 @@ export function PropertyCalendar({
         property={property}
         links={links}
         syncing={syncing}
-        overrideMode={overrideMode}
         exportCopied={exportCopied}
         today={today}
         onSyncNow={handleSyncNow}
-        onToggleOverrideMode={() => setOverrideMode(m => !m)}
         onExport={handleExport}
         onAddReservation={onAddReservation}
       />
       <ConflictBanner conflicts={data.conflicts} />
-      {overrideMode && <OverrideBanner />}
       {!loadingEvents &&
         property.reservations.length === 0 &&
         syncedEvents.length === 0 &&
@@ -174,7 +166,7 @@ export function PropertyCalendar({
             />
           </div>
         )}
-      <div className={`cls-isolate hidden sm:block rounded-lg border bg-[var(--bg-2)] overflow-hidden ${overrideMode ? "border-rose-700/30" : "border-[var(--line)]"}`}>
+      <div className="cls-isolate hidden sm:block rounded-lg border border-[var(--line)] bg-[var(--bg-2)] overflow-hidden">
         <CalendarNavigation
           monthLabel={monthLabel}
           monthOffset={monthOffset}
@@ -202,11 +194,9 @@ export function PropertyCalendar({
           conflictDates={data.conflictDates}
           openOverrides={data.openOverrides}
           closedOverrides={data.closedOverrides}
-          overrideMode={overrideMode}
           loading={loadingEvents}
           onSelectReservation={onSelectReservation}
           onCellClick={(dateStr, rect) => {
-            if (!overrideMode) return;
             setPopoverDate(dateStr);
             setPopoverAnchor(rect);
           }}
