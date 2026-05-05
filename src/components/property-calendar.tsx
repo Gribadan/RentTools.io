@@ -203,6 +203,7 @@ export function PropertyCalendar({
           openOverrides={data.openOverrides}
           closedOverrides={data.closedOverrides}
           overrideMode={overrideMode}
+          loading={loadingEvents}
           onSelectReservation={onSelectReservation}
           onCellClick={(dateStr, rect) => {
             if (!overrideMode) return;

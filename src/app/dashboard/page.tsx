@@ -361,7 +361,7 @@ function AppContent({
         onLogout={handleLogout}
       />
       <SyncAlertsBanner />
-      <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8" style={{ scrollbarGutter: "stable" }}>
         {loadingProperties && properties.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-2)] border-t-sky-400" />

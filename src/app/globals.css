@@ -125,7 +125,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
-    font-size: 15px;
+    /* 16px base — closer to Airbnb / industry comfort. Was 15px which
+       made dashboard chrome feel cramped. */
+    font-size: 16px;
     line-height: 1.5;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;

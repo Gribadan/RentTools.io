@@ -41,7 +41,7 @@ export function AgendaList({ bars, today, onSelectReservation }: AgendaListProps
         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${
           item.platform === "booking" ? "bg-[#003580]" : "bg-[var(--m-accent)]"
         }`} />
-        <span className="flex-1 min-w-0 text-sm font-medium text-[var(--ink)] truncate">{item.name}</span>
+        <span className="flex-1 min-w-0 text-[15px] font-medium text-[var(--ink)] truncate">{item.name}</span>
         {item.reservationId && (
           <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)] sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -49,8 +49,8 @@ export function AgendaList({ bars, today, onSelectReservation }: AgendaListProps
         )}
       </div>
       <div className="flex items-center gap-2 pl-[18px] sm:pl-0 sm:gap-3">
-        <span className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${
-          item.platform === "booking" ? "bg-[#003580]/20 text-sky-300" : "bg-[var(--m-accent)]/20 text-[var(--m-accent)]"
+        <span className={`shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold tracking-wide text-white ${
+          item.platform === "booking" ? "bg-[#003580]" : "bg-[var(--m-accent)]"
         }`}>
           {item.platform === "booking" ? "Booking" : "Airbnb"}
         </span>
@@ -78,7 +78,7 @@ export function AgendaList({ bars, today, onSelectReservation }: AgendaListProps
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
       <div className="border-b border-[var(--line)] px-4 py-3">
-        <h2 className="text-xs font-medium text-[var(--ink-3)]">{t("calendar.upcoming")} ({total})</h2>
+        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-[var(--ink-3)]">{t("calendar.upcoming")} ({total})</h2>
       </div>
       {total === 0 ? (
         <p className="px-4 py-6 text-sm text-[var(--ink-4)] text-center">{t("calendar.noUpcoming")}</p>

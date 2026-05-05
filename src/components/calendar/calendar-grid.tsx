@@ -21,6 +21,7 @@ interface CalendarGridProps {
   openOverrides: Set<string>;
   closedOverrides: Set<string>;
   overrideMode: boolean;
+  loading?: boolean;
   onSelectReservation: (id: number) => void;
   onCellClick: (dateStr: string, rect: DOMRect) => void;
 }
@@ -41,6 +42,7 @@ export function CalendarGrid({
   openOverrides,
   closedOverrides,
   overrideMode,
+  loading,
   onSelectReservation,
   onCellClick,
 }: CalendarGridProps) {
@@ -120,11 +122,25 @@ export function CalendarGrid({
       <div className="min-w-[640px]">
       <div className="grid grid-cols-7 border-b border-[var(--line)]">
         {WEEKDAYS.map(wd => (
-          <div key={wd} className="py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-3)]">{wd}</div>
+          <div key={wd} className="py-3 text-center text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]">{wd}</div>
         ))}
       </div>
 
-      <div key={monthKey}>
+      <div key={monthKey} className="relative">
+        {/* Skeleton bars while events are still being fetched. We park them
+            at deterministic row offsets (top = row * 72 + 36 px so they sit
+            inside the booking-bar band of each row) so the calendar already
+            has visual structure on first paint instead of the bars popping
+            in diagonally as the fetch resolves. Hidden once any real bar
+            exists, even from cache. */}
+        {loading && bars.length === 0 && (
+          <div className="absolute inset-0 z-0 pointer-events-none animate-pulse" aria-hidden="true">
+            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/12" style={{ top: "36px", left: "30%", width: "32%" }} />
+            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/10" style={{ top: "108px", left: "62%", width: "22%" }} />
+            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/12" style={{ top: "180px", left: "8%", width: "38%" }} />
+            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/10" style={{ top: "252px", left: "48%", width: "28%" }} />
+          </div>
+        )}
         {weeks.map((week, wi) => (
           <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[var(--line)] last:border-b-0">
             {week.map((dayNum, di) => {
@@ -163,7 +179,7 @@ export function CalendarGrid({
                   } ${isOpen ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
                   <div className="absolute top-1.5 left-2 z-20 pointer-events-none">
-                    <span className={`text-[13px] font-medium leading-none ${
+                    <span className={`text-sm font-medium leading-none ${
                       isConflict ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white font-semibold"
                       : isToday ? "inline-flex h-6 w-6 items-center justify-center rounded-full ring-[1.5px] ring-[var(--m-accent)] text-[var(--m-accent)] font-bold"
                       : isOpen ? "text-emerald-500 font-semibold"
@@ -202,7 +218,7 @@ export function CalendarGrid({
                     <div
                       key={`seg-${si}-${seg.startDate}`}
                       onClick={(e) => { e.stopPropagation(); seg.reservationId && onSelectReservation(seg.reservationId); }}
-                      className={`absolute top-9 h-6 flex items-center rounded-md px-2.5 text-[11.5px] font-medium text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
+                      className={`absolute top-9 h-6 flex items-center rounded-md px-2.5 text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] ${
                         isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
                         seg.platform === "booking"
                           ? "bg-[#003580]"
@@ -223,8 +239,15 @@ export function CalendarGrid({
                   ))}
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
-                    <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center px-0.5 pointer-events-none">
-                      <div className="rounded px-1.5 h-4 flex items-center text-[9px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-medium leading-none">
+                    /* Same-day cleaning happens when one stay checks out
+                       and another checks in on the same day, so the cell
+                       already has two booking bars in the middle band.
+                       Park the indicator in the top-right corner where
+                       the cell is otherwise empty — day number lives at
+                       top-left, bars in the middle, so this is the only
+                       conflict-free anchor. */
+                    <div className="absolute top-1 right-1 z-20 pointer-events-none">
+                      <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm">
                         {t("calendar.cleaning")}
                       </div>
                     </div>
