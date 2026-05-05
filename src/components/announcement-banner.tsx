@@ -61,7 +61,7 @@ export function AnnouncementBanner() {
   return (
     <div
       role="status"
-      className="flex items-start justify-between gap-4 border-b border-[var(--line-2)] bg-blue-500/10 px-4 py-2 text-sm text-[var(--ink-2)]"
+      className="cls-isolate animate-slide-down flex items-start justify-between gap-4 border-b border-[var(--line-2)] bg-blue-500/10 px-4 py-2 text-sm text-[var(--ink-2)]"
     >
       <p className="leading-snug">{text}</p>
       <button

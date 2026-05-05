@@ -20,7 +20,7 @@ export function CalendarLegend({ minNights, hasOverrides }: CalendarLegendProps)
         <span className="text-xs text-[var(--ink-3)]">{t("calendar.booking")}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="h-2.5 w-6 rounded-sm bg-amber-400/30 border border-amber-400/40" />
+        <span className="h-2.5 w-6 rounded-sm bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]" />
         <span className="text-xs text-[var(--ink-3)]">{t("calendar.cleaning")}</span>
       </div>
       <div className="flex items-center gap-1.5">

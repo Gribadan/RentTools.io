@@ -162,17 +162,19 @@ export function PropertyCalendar({
         property.reservations.length === 0 &&
         syncedEvents.length === 0 &&
         links.length === 0 && (
-          <EmptyState
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
-              </svg>
-            }
-            title={t("empty.calendar.title")}
-            description={t("empty.calendar.desc")}
-          />
+          <div className="cls-isolate animate-slide-down">
+            <EmptyState
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
+                </svg>
+              }
+              title={t("empty.calendar.title")}
+              description={t("empty.calendar.desc")}
+            />
+          </div>
         )}
-      <div className={`hidden sm:block rounded-lg border bg-[var(--bg-2)] overflow-hidden ${overrideMode ? "border-rose-700/30" : "border-[var(--line)]"}`}>
+      <div className={`cls-isolate hidden sm:block rounded-lg border bg-[var(--bg-2)] overflow-hidden ${overrideMode ? "border-rose-700/30" : "border-[var(--line)]"}`}>
         <CalendarNavigation
           monthLabel={monthLabel}
           monthOffset={monthOffset}

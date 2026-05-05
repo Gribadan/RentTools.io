@@ -159,6 +159,15 @@
   --pill-coral: rgba(255, 56, 92, 0.14);
   --pill-blue: rgba(0, 113, 227, 0.13);
 
+  /* Cleaning / buffer chip — amber-400 was too pale on light bg. Use a
+     deeper amber-700 for the foreground in light mode (readable on white)
+     and keep the bright amber-400 in dark mode where it pops. Cell-bg is
+     the soft tint painted on the day cell behind the chip. */
+  --cleaning-fg: #b45309;
+  --cleaning-bg: rgba(180, 83, 9, 0.10);
+  --cleaning-border: rgba(180, 83, 9, 0.28);
+  --cleaning-cell-bg: rgba(180, 83, 9, 0.06);
+
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -179,6 +188,11 @@
   --m-accent-soft: rgba(255, 85, 119, 0.12);
   --pill-coral: rgba(255, 85, 119, 0.16);
   --pill-blue: rgba(110, 168, 254, 0.14);
+  /* Dark mode: bright amber-400 reads well on dark cells. */
+  --cleaning-fg: #fbbf24;
+  --cleaning-bg: rgba(251, 191, 36, 0.10);
+  --cleaning-border: rgba(251, 191, 36, 0.28);
+  --cleaning-cell-bg: rgba(251, 191, 36, 0.06);
 }
 
 .editorial .display {
@@ -306,6 +320,30 @@
     transform: none;
     filter: none;
   }
+}
+
+/* =========================================================
+   CLS isolation — tools to prevent layout shift when async UI
+   like banners and empty states mount after first paint.
+   `cls-isolate` confines the element's layout shift inside its
+   own subtree (no parent reflow). `animate-slide-down` makes
+   the eventual mount slide in instead of pop, so the visual
+   jump is softer even when CLS is unavoidable.
+========================================================= */
+.cls-isolate {
+  contain: layout style;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-down {
+  animation: slide-down 220ms cubic-bezier(.2, .7, .2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-down { animation: none; }
 }
 
 /* Native select dropdown styling */

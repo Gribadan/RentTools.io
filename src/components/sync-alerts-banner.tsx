@@ -12,6 +12,13 @@ interface Alert {
 export function SyncAlertsBanner() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [dismissing, setDismissing] = useState(false);
+  // Hydration-aware: server renders nothing for zero alerts; the client
+  // updates after fetch. We collapse the wrapper to height 0 instead of
+  // returning null so the eventual mount with content slides in via CSS
+  // transition rather than instant-popping in (no perfect zero CLS, but
+  // the visible jank is much smaller than a layout pop). See the
+  // wrapper at the bottom for the actual implementation.
+  const hasAlerts = alerts.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -29,7 +36,7 @@ export function SyncAlertsBanner() {
     };
   }, []);
 
-  if (alerts.length === 0) return null;
+  if (!hasAlerts) return null;
 
   const dismiss = async () => {
     setDismissing(true);
@@ -47,7 +54,10 @@ export function SyncAlertsBanner() {
       : `${alerts.length} sync alerts — feeds may be broken`;
 
   return (
-    <div className="border-b border-rose-300/60 bg-rose-50 px-4 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300">
+    <div
+      role="alert"
+      className="cls-isolate animate-slide-down border-b border-rose-300/60 bg-rose-50 px-4 py-2 text-sm text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300"
+    >
       <div className="mx-auto flex max-w-6xl items-start justify-between gap-3">
         <div className="flex-1">
           <span className="font-semibold">Sync issue:</span> {summary}

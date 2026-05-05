@@ -146,7 +146,7 @@ export function CalendarGrid({
                 : isClosed ? "bg-rose-500/8"
                 : isConflict ? "bg-rose-500/8"
                 : isToday ? "bg-[var(--ink)]/5"
-                : isBuffer ? "bg-amber-400/5"
+                : isBuffer ? "bg-[var(--cleaning-cell-bg)]"
                 : isPotential ? "bg-[var(--ink)]/3"
                 : isUnbookable ? "bg-[var(--ink-4)]/5"
                 : "";
@@ -184,7 +184,7 @@ export function CalendarGrid({
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.conflict")}</div>
                       )}
                       {isBuffer && !isOpen && !isClosed && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-amber-400 bg-amber-400/8 border border-amber-400/15">{t("calendar.cleaning")}</div>
+                        <div className="rounded px-1 h-5 flex items-center text-[10px] font-medium text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]">{t("calendar.cleaning")}</div>
                       )}
                       {isBuffer && isClosed && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.closed")}</div>
@@ -224,7 +224,7 @@ export function CalendarGrid({
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
                     <div className="absolute bottom-1 left-0 right-0 flex items-center justify-center px-0.5 pointer-events-none">
-                      <div className="rounded px-1.5 h-4 flex items-center text-[9px] text-amber-400 bg-amber-400/15 border border-amber-400/30 font-medium leading-none">
+                      <div className="rounded px-1.5 h-4 flex items-center text-[9px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-medium leading-none">
                         {t("calendar.cleaning")}
                       </div>
                     </div>
