@@ -113,6 +113,10 @@ export const translations = {
   "dashboard.hidePast": { en: "Hide past", ru: "Скрыть прошедшие" },
   "dashboard.noReservations": { en: "No reservations yet. Click 'New Reservation' to create one.", ru: "Бронирований пока нет. Нажмите 'Новая бронь' для создания." },
   "dashboard.noReservationsGlobal": { en: "No reservations yet. Create a property and add reservations to get started.", ru: "Бронирований пока нет. Создайте объект и добавьте бронь." },
+  "dashboard.emptyTitle": { en: "Start with your first property", ru: "Начните с первого объекта" },
+  "dashboard.emptyBody": { en: "RentTools needs a property before you can sync calendars or track reservations. Add one in under a minute — or try a pre-filled sample to see how it works.", ru: "RentTools нужен объект, чтобы синхронизировать календари и отслеживать бронирования. Это занимает меньше минуты — или попробуйте заполненный пример." },
+  "dashboard.emptyAdd": { en: "Add my first property", ru: "Добавить первый объект" },
+  "dashboard.emptySample": { en: "Use a sample property", ru: "Создать пример" },
   "dashboard.reservationsAcross": { en: "reservations across", ru: "бронирований в" },
   "dashboard.reservation": { en: "reservation", ru: "бронирование" },
 
