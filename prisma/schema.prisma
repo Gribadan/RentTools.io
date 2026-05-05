@@ -353,6 +353,29 @@ model ExtractionLog {
 // and add custom presets via the admin panel. isCustom marks
 // user-added rows so the UI offers Delete only on those, never on the
 // seeded baseline.
+// Per-page SEO overrides (RT-18.3). Super-admin sets per-(path, locale)
+// title / description / OG image / canonical to override the defaults
+// emitted by `src/app/layout.tsx` and any per-route generateMetadata().
+// Path is the URL pathname (no querystring, no trailing slash except "/").
+// Reads are merged with site-wide defaults stored in SiteSetting
+// (seo_default_title, seo_default_description, seo_default_og_image).
+// Per-locale uniqueness mirrors BlogPost so an EN and RU translation of
+// the same /about page can hold separate metadata.
+model SeoOverride {
+  id          Int       @id @default(autoincrement())
+  path        String
+  locale      String    @default("en") // "en" | "ru"
+  title       String?
+  description String?
+  ogImage     String?
+  canonical   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime?
+
+  @@unique([path, locale])
+  @@index([path])
+}
+
 model CalendarPlatform {
   id                    Int       @id @default(autoincrement())
   slug                  String    @unique

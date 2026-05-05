@@ -571,12 +571,50 @@ CREATE INDEX IF NOT EXISTS "BlogComment_status_createdAt_idx" ON "BlogComment"("
     }
   }
 
+  // SeoOverride — RT-18.3 per-page SEO overrides
+  const seoOverrideSchema = `
+CREATE TABLE IF NOT EXISTS "SeoOverride" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "path" TEXT NOT NULL,
+    "locale" TEXT NOT NULL DEFAULT 'en',
+    "title" TEXT,
+    "description" TEXT,
+    "ogImage" TEXT,
+    "canonical" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "SeoOverride_path_locale_key" ON "SeoOverride"("path", "locale");
+CREATE INDEX IF NOT EXISTS "SeoOverride_path_idx" ON "SeoOverride"("path");
+`;
+
+  const seoOverrideStatements = seoOverrideSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of seoOverrideStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   // Seed default SiteSetting keys (idempotent — only inserts if missing)
   const siteSettingDefaults: Array<{ key: string; value: string }> = [
     { key: "signup_enabled", value: "true" },
     { key: "extraction_per_user_daily_limit", value: "20" },
     { key: "landing_announcement", value: "" },
     { key: "support_email", value: "" },
+    // Site-wide SEO defaults — RT-18.3. Empty string = fall back to the
+    // hard-coded copy in src/app/layout.tsx so a fresh install still
+    // ships sensible metadata before an admin sets these.
+    { key: "seo_default_title", value: "" },
+    { key: "seo_default_description", value: "" },
+    { key: "seo_default_og_image", value: "" },
   ];
   for (const { key, value } of siteSettingDefaults) {
     try {
