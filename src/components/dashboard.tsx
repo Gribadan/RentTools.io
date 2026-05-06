@@ -475,6 +475,16 @@ export function Dashboard({
           {properties.map(p => {
             const futureRes = p.reservations.filter(r => new Date(r.checkOut) >= new Date());
             const nextRes = futureRes.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())[0];
+            // RT-25.6 tick 6 — sync-error chip. Surface a calendar link
+            // that's failing to fetch so the host notices without having
+            // to drill into Sync settings. allLinks is populated by
+            // fetchAllCalendarData; while it's still loading the chip is
+            // hidden (avoid flash-of-warning during initial load).
+            const links = allLinks[p.id];
+            const failingLinks = Array.isArray(links)
+              ? links.filter((l) => Boolean(l.lastError))
+              : [];
+            const hasSyncError = failingLinks.length > 0;
             return (
               <button
                 key={p.id}
@@ -488,10 +498,25 @@ export function Dashboard({
                   </svg>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs text-[var(--ink-4)]">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-4)]">
                     <span>{futureRes.length} {locale === "ru" ? "бронир." : "bookings"}</span>
                     <span className="text-[var(--ink-4)]">·</span>
                     <span>{locale === "ru" ? "мин." : "min"} {p.minNights} {locale === "ru" ? "ноч." : "n"}</span>
+                    {hasSyncError && (
+                      <>
+                        <span className="text-[var(--ink-4)]">·</span>
+                        <span
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300"
+                          style={{ backgroundColor: "rgba(217,119,6,0.18)" }}
+                          title={failingLinks.map((l) => `${platformDisplayName(l.platform)}: ${l.lastError}`).join("\n")}
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                          </svg>
+                          {locale === "ru" ? "Ошибка синхр." : "Sync issue"}
+                        </span>
+                      </>
+                    )}
                   </div>
                   {nextRes && (
                     <div className="text-xs text-[var(--ink-3)]">
