@@ -308,18 +308,21 @@ export function PropertyCalendar({
             it. The header chrome (weekday row + sync button) is fully
             frozen — only the <h2> month label updates as scroll moves
             between sections. Each section just renders its grid; the
-            scroll listener above tracks which section is at the top. */}
-        <div className="hidden sm:block">
+            scroll listener above tracks which section is at the top.
+            Renders on mobile too — the calendar grid is responsive
+            (smaller cells via the responsive classes inside
+            CalendarGrid) so a 7-day-wide month fits at 320px. */}
+        <div className="block">
           {/* Frozen header — airbnb-style. Page-bg fill + soft shadow,
               no border or panel-bg on the weekday row so the labels
               float cleanly. The shadow plus z-30 hide section content
               that scrolls behind it. */}
           <header
             ref={stickyHeaderRef}
-            className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-3 shadow-[0_8px_18px_-10px_rgba(0,0,0,0.18),0_2px_4px_-2px_rgba(0,0,0,0.04)]"
+            className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-2 sm:mb-3 shadow-[0_8px_18px_-10px_rgba(0,0,0,0.18),0_2px_4px_-2px_rgba(0,0,0,0.04)]"
           >
-            <div className="flex items-center justify-between gap-3 pt-3 pb-1">
-              <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
+            <div className="flex items-center justify-between gap-3 pt-2 sm:pt-3 pb-1">
+              <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-[var(--ink)] truncate">
                 {activeMonth.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
                   month: "long",
                   year: activeMonthShowYear ? "numeric" : undefined,
@@ -330,7 +333,7 @@ export function PropertyCalendar({
                 disabled={syncing}
                 title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
                 aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
-                className="rounded-full p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
+                className="shrink-0 rounded-full p-1.5 sm:p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
               >
                 <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -341,9 +344,12 @@ export function PropertyCalendar({
               {WEEKDAYS.map((wd) => (
                 <div
                   key={wd}
-                  className="py-1 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]"
+                  className="py-1 text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]"
                 >
-                  {wd}
+                  {/* Two-letter weekdays on mobile so RU "Пн / Вт" and
+                      EN "Mo / Tu" fit a ~45px column without truncating. */}
+                  <span className="sm:hidden">{wd.slice(0, 2)}</span>
+                  <span className="hidden sm:inline">{wd}</span>
                 </div>
               ))}
             </div>
@@ -359,7 +365,7 @@ export function PropertyCalendar({
             <section
               key={`${m.getFullYear()}-${m.getMonth()}`}
               ref={(el) => { sectionRefs.current[i] = el; }}
-              className="mb-8"
+              className="mb-5 sm:mb-8"
             >
               {/* In-flow month label so each upcoming month is visible
                   at its natural position. When the section reaches the
@@ -370,7 +376,7 @@ export function PropertyCalendar({
                   active one in the frozen header at scroll=0; rendering
                   it again here is a redundant duplicate for the user. */}
               {i > 0 && (
-                <h3 className="mb-3 text-xl font-semibold tracking-tight text-[var(--ink-2)]">
+                <h3 className="mb-2 sm:mb-3 text-base sm:text-xl font-semibold tracking-tight text-[var(--ink-2)]">
                   {monthLabel}
                 </h3>
               )}

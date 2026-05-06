@@ -161,17 +161,20 @@ export function CalendarGrid({
             exists, even from cache. */}
         {loading && bars.length === 0 && (
           <div className="absolute inset-0 z-0 pointer-events-none animate-pulse" aria-hidden="true">
-            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/12" style={{ top: "36px", left: "30%", width: "32%" }} />
-            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/10" style={{ top: "108px", left: "62%", width: "22%" }} />
-            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/12" style={{ top: "180px", left: "8%", width: "38%" }} />
-            <div className="absolute h-6 rounded-md bg-[var(--ink-4)]/10" style={{ top: "252px", left: "48%", width: "28%" }} />
+            {/* Skeleton row offsets follow the responsive cell heights:
+                mobile cells are 56px tall (band y = 28px), desktop 72px
+                (band y = 36px). */}
+            <div className="absolute h-5 sm:h-6 rounded-md bg-[var(--ink-4)]/12 top-[28px] sm:top-[36px] left-[30%] w-[32%]" />
+            <div className="absolute h-5 sm:h-6 rounded-md bg-[var(--ink-4)]/10 top-[84px] sm:top-[108px] left-[62%] w-[22%]" />
+            <div className="absolute h-5 sm:h-6 rounded-md bg-[var(--ink-4)]/12 top-[140px] sm:top-[180px] left-[8%] w-[38%]" />
+            <div className="absolute h-5 sm:h-6 rounded-md bg-[var(--ink-4)]/10 top-[196px] sm:top-[252px] left-[48%] w-[28%]" />
           </div>
         )}
         {weeks.map((week, wi) => (
           <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[var(--line)] last:border-b-0">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`c-${di}`} className="h-[72px] border-r border-[var(--line)] last:border-r-0" />;
+                return <div key={`c-${di}`} className="h-[56px] sm:h-[72px] border-r border-[var(--line)] last:border-r-0" />;
               }
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
@@ -203,12 +206,12 @@ export function CalendarGrid({
                   onClick={(e) => {
                     onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
-                  className={`relative h-[72px] border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} ${isSelected ? "bg-[var(--m-accent)]/10 ring-2 ring-inset ring-[var(--m-accent)]" : "hover:bg-[var(--bg-3)]/60"} ${isOpen && !isSelected ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed && !isSelected ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
+                  className={`relative h-[56px] sm:h-[72px] border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} ${isSelected ? "bg-[var(--m-accent)]/10 ring-2 ring-inset ring-[var(--m-accent)]" : "hover:bg-[var(--bg-3)]/60"} ${isOpen && !isSelected ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed && !isSelected ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
-                  <div className="absolute top-1.5 left-2 z-20 pointer-events-none">
-                    <span className={`text-sm font-medium leading-none ${
-                      isConflict ? "inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-white font-semibold"
-                      : isToday ? "inline-flex h-6 w-6 items-center justify-center rounded-full ring-[1.5px] ring-[var(--m-accent)] text-[var(--m-accent)] font-bold"
+                  <div className="absolute top-1 left-1.5 sm:top-1.5 sm:left-2 z-20 pointer-events-none">
+                    <span className={`text-[12px] sm:text-sm font-medium leading-none ${
+                      isConflict ? "inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-rose-500 text-white font-semibold"
+                      : isToday ? "inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full ring-[1.5px] ring-[var(--m-accent)] text-[var(--m-accent)] font-bold"
                       : isOpen ? "text-emerald-500 font-semibold"
                       : isClosed ? "text-rose-500 font-semibold"
                       : "text-[var(--ink-2)]"
@@ -216,7 +219,7 @@ export function CalendarGrid({
                   </div>
 
                   {showMiddleIndicator && (
-                    <div className="absolute left-0 right-0 top-9 flex items-center justify-center px-0.5 pointer-events-none">
+                    <div className="absolute left-0 right-0 top-7 sm:top-9 flex items-center justify-center px-0.5 pointer-events-none">
                       {isOpen && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 font-medium">{t("calendar.open")}</div>
                       )}
@@ -297,7 +300,7 @@ export function CalendarGrid({
                             onClaimBar(seg, rect);
                           }
                         }}
-                        className={`absolute top-9 h-6 flex items-center px-2.5 text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${radiusClass} ${
+                        className={`absolute top-7 sm:top-9 h-5 sm:h-6 flex items-center px-1.5 sm:px-2.5 text-[10.5px] sm:text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${radiusClass} ${
                           isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
                           seg.platform === "booking"
                             ? "bg-[#003580]"
