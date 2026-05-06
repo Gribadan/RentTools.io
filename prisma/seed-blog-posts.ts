@@ -26,9 +26,12 @@
  *    exists, the script aborts.
  *  - Tags are upserted in the BlogTag table (per locale) before being
  *    referenced by slug from BlogPost.tagsJson.
- *  - status: routine never auto-publishes. If the file says `published`
- *    it is forced to `draft` here so a maintainer review is always
- *    required before going live.
+ *  - status (RT-25.14): on CREATE the post lands as `published` so
+ *    /blog and the admin shell pick it up immediately — these
+ *    articles ship pre-vetted alongside the source markdown. On
+ *    UPDATE the existing status is preserved, so a maintainer who
+ *    flipped a post back to `draft` (or `archived`) does not get
+ *    overridden by the next routine seed run.
  */
 
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -79,7 +82,13 @@ function parseFrontmatter(raw: string, filename: string): ParsedPost {
     const kvMatch = /^([a-zA-Z_]+):\s*(.*)$/.exec(line);
     if (!kvMatch) continue;
     const key = kvMatch[1];
-    const value = kvMatch[2];
+    let value = kvMatch[2];
+    // Strip surrounding YAML quotes — `title: "..."` and `title: '...'`
+    // are both valid scalar forms; prior runs preserved the quotes
+    // verbatim and shipped them into the rendered <title>.
+    if (value.length >= 2 && ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))) {
+      value = value.slice(1, -1);
+    }
     if (key === "ogImageUrl") {
       fm.ogImageUrl = value === "null" || value === "" ? null : value;
     } else if (key === "slug" || key === "locale" || key === "title" || key === "excerpt" || key === "status") {
@@ -164,9 +173,12 @@ async function main() {
       const raw = fs.readFileSync(path.join(dir, file), "utf-8");
       const parsed = parseFrontmatter(raw, file);
 
-      // Force draft on every routine seed run — maintainer reviews and
-      // flips to "published" via the admin panel.
-      const status = "draft";
+      // RT-25.14 — created posts land as `published` because these
+      // 7 articles already shipped on the filesystem and need to be
+      // visible on /blog. Maintainer can still flip individual posts
+      // back to `draft` from the admin panel; that decision is
+      // preserved (the update branch below does not touch status).
+      const status = "published";
 
       for (const tag of parsed.tags) {
         await prisma.blogTag.upsert({
@@ -183,6 +195,13 @@ async function main() {
       });
 
       if (existing) {
+        // RT-25.14 — environments where the prior seed created rows
+        // as `draft` need a one-time bump to `published` so /blog
+        // surfaces them. We only upgrade draft→published; rows the
+        // maintainer flipped to `archived` stay archived, and rows
+        // already `published` are not touched (preserves their
+        // original publishedAt timestamp).
+        const upgradeStatus = existing.status === "draft" ? { status: "published" as const, publishedAt: existing.publishedAt ?? new Date() } : {};
         await prisma.blogPost.update({
           where: { id: existing.id },
           data: {
@@ -192,11 +211,10 @@ async function main() {
             tagsJson,
             ogImageUrl: parsed.ogImageUrl,
             updatedAt: new Date(),
-            // status / publishedAt left untouched on update so a published
-            // post does not get reverted to draft on re-seed
+            ...upgradeStatus,
           },
         });
-        console.log(`Updated existing post: ${parsed.slug} [${parsed.locale}]`);
+        console.log(`Updated existing post: ${parsed.slug} [${parsed.locale}]${existing.status === "draft" ? " (status: draft → published)" : ""}`);
       } else {
         await prisma.blogPost.create({
           data: {
@@ -209,6 +227,10 @@ async function main() {
             tagsJson,
             ogImageUrl: parsed.ogImageUrl,
             authorId: author.id,
+            // Stamp publishedAt so list / RSS / sitemap queries that
+            // sort by it have a sensible date for the seeded rows.
+            // Maintainer can override later via the admin panel.
+            publishedAt: status === "published" ? new Date() : null,
           },
         });
         console.log(`Created post: ${parsed.slug} [${parsed.locale}] (status=${status})`);
