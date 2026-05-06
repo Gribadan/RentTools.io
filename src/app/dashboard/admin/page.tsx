@@ -153,6 +153,20 @@ const TILES: ReadonlyArray<{
       },
     ],
   },
+  {
+    group: { en: "Content", ru: "Контент" },
+    items: [
+      {
+        href: "/dashboard/admin/content/blog-media",
+        label: { en: "Blog media", ru: "Медиа блога" },
+        desc: {
+          en: "OG images referenced by blog posts. Read-only until R2 / S3 ships.",
+          ru: "OG-картинки статей блога. Только просмотр, пока не подключено R2 / S3.",
+        },
+        requiresSuperadmin: true,
+      },
+    ],
+  },
 ];
 
 export default function AdminHomePage() {
