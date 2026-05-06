@@ -19,11 +19,62 @@ import type { Locale } from "@/lib/i18n/translations";
 // in its own market. The page lives at the same file regardless of
 // locale — middleware rewrites /ru/ to / internally — so the canonical
 // is built from the resolved locale, not the file path.
+//
+// Per-locale title + description + OG locale are set here too. Without
+// them, the root layout's English defaults would leak through onto
+// /ru/, giving Google a `<title>` and `og:description` that say one
+// thing and a `<html lang="ru">` body that says another — exactly the
+// signal mismatch that drops a page out of the Russian SERP.
+const HOME_META: Record<Locale, { title: string; description: string }> = {
+  en: {
+    title:
+      "RentTools — open-source property manager for short-term rentals",
+    description:
+      "Free open-source property manager for short-term rental hosts. Sync Airbnb + Booking.com calendars, automate cleaning, extract guest passports.",
+  },
+  ru: {
+    title:
+      "RentTools — открытый менеджер краткосрочной аренды",
+    description:
+      "Бесплатный менеджер для хостов краткосрочной аренды с открытым кодом. Синхронизация календарей Airbnb и Booking.com, автоматизация уборок, распознавание паспортов гостей.",
+  },
+};
+
 export async function generateMetadata(): Promise<Metadata> {
-  const { localizedAlternates } = await import("@/lib/i18n/alternates");
+  const { localizedAlternates, SUPPORTED_LOCALES } = await import("@/lib/i18n/alternates");
   const locale = await getLocale();
   const alts = localizedAlternates("/", locale);
-  return applySeoOverrides<Metadata>({ alternates: alts }, "/", locale);
+  const meta = HOME_META[locale];
+  // OG `alternateLocale` declares the hreflang siblings inside the
+  // OpenGraph block too — Facebook / LinkedIn use it the same way
+  // Google uses `<link rel="alternate" hreflang>`.
+  const alternateLocale = SUPPORTED_LOCALES
+    .filter((l) => l !== locale)
+    .map((l) => (l === "ru" ? "ru_RU" : "en_US"));
+  const ogLocale = locale === "ru" ? "ru_RU" : "en_US";
+  return applySeoOverrides<Metadata>(
+    {
+      title: meta.title,
+      description: meta.description,
+      alternates: alts,
+      openGraph: {
+        type: "website",
+        title: meta.title,
+        description: meta.description,
+        url: alts.canonical,
+        siteName: "RentTools",
+        locale: ogLocale,
+        alternateLocale,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: meta.title,
+        description: meta.description,
+      },
+    },
+    "/",
+    locale,
+  );
 }
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";

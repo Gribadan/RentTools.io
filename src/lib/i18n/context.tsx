@@ -15,7 +15,7 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-  locale: "ru",
+  locale: "en",
   setLocale: () => {},
   t: (key) => translations[key]?.en || key,
 });
@@ -27,10 +27,27 @@ function isSecureContext(): boolean {
   return window.location.protocol === "https:";
 }
 
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("ru");
+export function I18nProvider({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  // Server-resolved locale (URL prefix → header → cookie → "en"). Passing
+  // it in means the first client paint already matches what the server
+  // rendered, no hydration flash from a default locale.
+  initialLocale?: Locale;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale ?? "en");
 
   useEffect(() => {
+    // The server already passed in the URL-resolved locale via
+    // initialLocale. We still run the cookie/legacy migration so a stale
+    // localStorage entry from before the cookie migration gets cleaned
+    // up — but we never *override* the URL-resolved locale. URL beats
+    // cookie always; the cookie is now only a soft preference for
+    // the next request.
+    if (initialLocale) return;
+
     const fromCookie = readLocaleCookieFromDocument(
       typeof document !== "undefined" ? document : null
     );
@@ -53,7 +70,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // localStorage unavailable (private mode, SSR, etc.) — ignore
     }
-  }, []);
+  }, [initialLocale]);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);

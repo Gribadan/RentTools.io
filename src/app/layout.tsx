@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
 import { FeedbackButton } from "@/components/feedback-button";
 import { JsonLd } from "@/components/json-ld";
-import { LOCALE_COOKIE_NAME } from "@/lib/i18n/cookie";
+import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const inter = Inter({
@@ -124,13 +124,14 @@ export default async function RootLayout({
   // server can read it; localStorage is the toggle's fallback.
   const cookieStore = await cookies();
   const initialTheme = cookieStore.get("rt-theme")?.value === "dark" ? "dark" : "light";
-  // Mirror the locale cookie into <html lang="…"> so non-English readers
-  // don't get a mismatched language declaration. Defaults to "en". A
-  // wrong lang attribute is one of the easier SEO own-goals — Google
-  // ranks EN content lower if the page declares lang="ru" but the body
-  // is English (and vice versa).
-  const localeCookie = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
-  const lang = localeCookie === "ru" ? "ru" : "en";
+  // <html lang="…"> must reflect the URL-resolved locale, NOT a cookie.
+  // Googlebot has no rt-locale cookie, so a cookie-based read serves
+  // /ru/ pages with `lang="en"` to crawlers — Google would then rank
+  // the RU page lower in russophone markets because the language signal
+  // disagrees with the body. getLocale() reads the x-locale header set
+  // by middleware, which mirrors the URL prefix, so the lang attribute
+  // and the body language always agree.
+  const lang = await getLocale();
   return (
     <html
       lang={lang}
@@ -144,7 +145,7 @@ export default async function RootLayout({
         <JsonLd data={WEBSITE_JSON_LD} />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-sans)]">
-        <Providers>{children}</Providers>
+        <Providers initialLocale={lang}>{children}</Providers>
         {/* Floating feedback pill — site-wide on public pages. The
             component itself opts out on /dashboard, /admin, /g/, /invite/
             via usePathname so signed-in app surfaces stay uncluttered. */}
