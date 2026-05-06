@@ -87,6 +87,14 @@ const TILES: ReadonlyArray<{
     group: { en: "Integrations", ru: "Интеграции" },
     items: [
       {
+        href: "/dashboard/admin/integrations/ical-links",
+        label: { en: "iCal links", ru: "iCal ссылки" },
+        desc: {
+          en: "All calendar feeds across your properties — status + last sync.",
+          ru: "Все календарные фиды по объектам — статус и время последней синхронизации.",
+        },
+      },
+      {
         href: "/dashboard/admin/integrations/gemini",
         label: { en: "Gemini AI key", ru: "Gemini AI ключ" },
         desc: { en: "API key for guest passport extraction.", ru: "API ключ для извлечения паспортов." },
