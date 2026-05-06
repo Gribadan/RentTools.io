@@ -277,10 +277,11 @@ function AppContent({
     }
 
     if (activeView === "reports") {
-      // RT-25.5 — Reports is per-property and follows the dashboard's
-      // header property selector. When no property is selected the
-      // panel renders a "pick one" prompt rather than a global view.
-      return <ReportsPanel property={selectedProperty ?? null} />;
+      // Reports follows the dashboard's selected property: when one is
+      // picked, the panel shows that property's pipeline; with no
+      // property selected, the panel shows a meaningful aggregate
+      // across every property in `properties`.
+      return <ReportsPanel property={selectedProperty ?? null} properties={properties} />;
     }
 
     // Property views
