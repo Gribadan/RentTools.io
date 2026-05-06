@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 
 type Platform = "airbnb" | "booking";
@@ -14,7 +13,6 @@ interface PlatformInstructionsProps {
 
 interface InstructionData {
   title: string;
-  gif: string;
   steps: string[];
 }
 
@@ -22,7 +20,6 @@ const DATA: Record<Platform, Record<Mode, InstructionData>> = {
   airbnb: {
     export: {
       title: "How to find the Airbnb iCal export URL",
-      gif: "/onboard/airbnb-export.gif",
       steps: [
         "Open airbnb.com and go to your listing.",
         "Click \"Calendar\" in the top menu.",
@@ -34,7 +31,6 @@ const DATA: Record<Platform, Record<Mode, InstructionData>> = {
     },
     import: {
       title: "How to import RentTools into Airbnb",
-      gif: "/onboard/airbnb-import.gif",
       steps: [
         "Back in Airbnb → Calendar → Availability settings.",
         "Find the \"Sync calendars\" section.",
@@ -48,7 +44,6 @@ const DATA: Record<Platform, Record<Mode, InstructionData>> = {
   booking: {
     export: {
       title: "How to find the Booking.com iCal export URL",
-      gif: "/onboard/booking-export.gif",
       steps: [
         "Open admin.booking.com (Booking.com Extranet).",
         "Open Rates & Availability in the left menu.",
@@ -60,7 +55,6 @@ const DATA: Record<Platform, Record<Mode, InstructionData>> = {
     },
     import: {
       title: "How to import RentTools into Booking.com",
-      gif: "/onboard/booking-import.gif",
       steps: [
         "Back in admin.booking.com → Rates & Availability → Sync calendars.",
         "If Airbnb is already linked there, remove it — replace with our URL.",
@@ -74,7 +68,6 @@ const DATA: Record<Platform, Record<Mode, InstructionData>> = {
 
 export function PlatformInstructions({ platform, mode, defaultOpen = false }: PlatformInstructionsProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const [imgError, setImgError] = useState(false);
   const data = DATA[platform][mode];
 
   return (
@@ -96,22 +89,7 @@ export function PlatformInstructions({ platform, mode, defaultOpen = false }: Pl
         </svg>
       </button>
       {open && (
-        <div className="border-t border-[var(--line)] p-3 space-y-3">
-          {!imgError ? (
-            <Image
-              src={data.gif}
-              alt={data.title}
-              width={1280}
-              height={720}
-              unoptimized
-              onError={() => setImgError(true)}
-              className="h-auto w-full rounded-md border border-[var(--line)]"
-            />
-          ) : (
-            <div className="flex items-center justify-center rounded-md border border-dashed border-[var(--line)] bg-[var(--bg)] py-6 text-center text-[11px] text-[var(--ink-4)]">
-              Tutorial GIF coming soon — follow the steps below.
-            </div>
-          )}
+        <div className="border-t border-[var(--line)] p-3">
           <ol className="space-y-1.5 text-[12px] text-[var(--ink-3)]">
             {data.steps.map((line, i) => (
               <li key={i} className="flex items-start gap-2">
