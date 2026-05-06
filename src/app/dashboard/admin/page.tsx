@@ -76,6 +76,14 @@ const TILES: ReadonlyArray<{
         label: { en: "Gemini AI key", ru: "Gemini AI ключ" },
         desc: { en: "API key for guest passport extraction.", ru: "API ключ для извлечения паспортов." },
       },
+      {
+        href: "/dashboard/admin/integrations/seo",
+        label: { en: "SEO overrides", ru: "SEO переопределения" },
+        desc: {
+          en: "Override title, description, OG image, canonical per page.",
+          ru: "Переопределить title, description, OG-картинку и canonical для страницы.",
+        },
+      },
     ],
   },
   {
