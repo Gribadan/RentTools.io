@@ -5,6 +5,29 @@ import { useI18n } from "@/lib/i18n/context";
 import { timeToPercent } from "./utils";
 import type { BarSegment, CalendarBar } from "./types";
 
+/** Tiny inline broom-glyph used inside the cleaning chip. Inherits the
+ *  surrounding text color so it works across the amber chip and the
+ *  ink-neutral "Cleaning?" potential variant without a tone tweak. */
+function CleaningIcon() {
+  return (
+    <svg
+      className="h-2.5 w-2.5 shrink-0"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* Sparkle — reads as "fresh / cleaned" at this small size
+          better than a literal broom. */}
+      <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" />
+      <path d="M19 14l.7 1.6 1.6.7-1.6.7L19 18.6l-.7-1.6-1.6-.7 1.6-.7L19 14z" />
+    </svg>
+  );
+}
+
 interface CalendarGridProps {
   year: number;
   month: number;
@@ -230,10 +253,16 @@ export function CalendarGrid({
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.conflict")}</div>
                       )}
                       {isManualCleaning && !isOpen && !isClosed && (
-                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-5 flex items-center text-[10px] font-semibold text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] shadow-sm">{t("calendar.manualCleaning")}</div>
+                        <div title={defaultCleanerName ? `${t("calendar.manualCleaning")} · ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-5 flex items-center gap-0.5 text-[10px] font-semibold text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] shadow-sm">
+                          <CleaningIcon />
+                          <span className="truncate max-w-[80px] sm:max-w-none">{defaultCleanerName ?? t("calendar.manualCleaning")}</span>
+                        </div>
                       )}
                       {isBuffer && !isOpen && !isClosed && (
-                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1 h-5 flex items-center text-[10px] font-medium text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]">{t("calendar.cleaning")}</div>
+                        <div title={defaultCleanerName ? `${t("calendar.cleaning")} · ${defaultCleanerName}` : undefined} className="rounded px-1 h-5 flex items-center gap-0.5 text-[10px] font-medium text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]">
+                          <CleaningIcon />
+                          <span className="truncate max-w-[80px] sm:max-w-none">{defaultCleanerName ?? t("calendar.cleaning")}</span>
+                        </div>
                       )}
                       {isBuffer && isClosed && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.closed")}</div>
@@ -333,12 +362,14 @@ export function CalendarGrid({
                        in the gap. */
                     <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
                       {potentialDates.has(ds) ? (
-                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/20 border-dashed font-semibold leading-none shadow-sm whitespace-nowrap">
-                          {t("calendar.cleaningQ")}
+                        <div title={defaultCleanerName ? `${t("calendar.cleaningQ")} · ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center gap-0.5 text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/20 border-dashed font-semibold leading-none shadow-sm whitespace-nowrap">
+                          <CleaningIcon />
+                          <span>{defaultCleanerName ?? t("calendar.cleaningQ")}</span>
                         </div>
                       ) : (
-                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
-                          {t("calendar.cleaning")}
+                        <div title={defaultCleanerName ? `${t("calendar.cleaning")} · ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center gap-0.5 text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
+                          <CleaningIcon />
+                          <span>{defaultCleanerName ?? t("calendar.cleaning")}</span>
                         </div>
                       )}
                     </div>

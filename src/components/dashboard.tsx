@@ -623,8 +623,39 @@ export function Dashboard({
     if (onAddProperty) await onAddProperty("Sample Apartment");
   }, [onAddProperty]);
 
+  // Stats for the dashboard sidebar — light-weight portfolio
+  // summary so the right column has actionable signal next to the
+  // quick-add CTA. Computed only in dashboard mode (per-property
+  // mode renders a different reservation list, no stats sidebar).
+  const portfolioStats = useMemo(() => {
+    if (selectedProperty) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let upcoming = 0;
+    let active = 0;
+    for (const r of allReservations) {
+      const ci = new Date(r.checkIn);
+      ci.setHours(0, 0, 0, 0);
+      const co = new Date(r.checkOut);
+      co.setHours(0, 0, 0, 0);
+      if (ci <= today && co > today) active += 1;
+      else if (ci > today) upcoming += 1;
+    }
+    return { properties: properties.length, active, upcoming, total: allReservations.length };
+  }, [selectedProperty, properties.length, allReservations]);
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    /* Two-column shell — matches the calendar / cleaning / reports
+       pages so navigation feels uniform. Outer escapes <main>'s
+       side padding (1:1 alignment with the dashboard header); inner
+       max-w-1760 caps the content rectangle on ultra-wide. The
+       sidebar sticks (lg:sticky lg:top-3) so a long reservations
+       list keeps the quick-add CTA in view. Per-property mode
+       (selectedProperty != null) renders only the main column —
+       the stats sidebar is portfolio-scoped and would be empty. */
+    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
+    <div className="mx-auto max-w-[1760px] px-3 sm:px-5 flex flex-col lg:flex-row gap-6">
+    <div className="min-w-0 lg:flex-1 space-y-6">
       {onAddProperty && (
         <WelcomeModal
           open={showWelcome}
@@ -646,15 +677,26 @@ export function Dashboard({
           )}
         </div>
         {!isZeroProperties && (
-          <button
-            onClick={() => setShowForm(!showForm)}
+          /* "+ New Reservation" routes to the calendar instead of
+              opening an inline form. The calendar's date popover
+              already owns the create-reservation flow (click date →
+              Create reservation), so a separate form is duplication.
+              In dashboard mode we land on the first property; in
+              per-property mode we route to the current property's
+              calendar tab. */
+          <Link
+            href={
+              selectedProperty
+                ? `/dashboard?property=${selectedProperty.id}&view=calendar`
+                : `/dashboard?property=${properties[0]?.id ?? ""}&view=calendar`
+            }
             className="flex items-center gap-1.5 rounded-lg bg-[var(--m-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
             {t("dashboard.newReservation")}
-          </button>
+          </Link>
         )}
       </div>
 
@@ -937,144 +979,6 @@ export function Dashboard({
         </div>
       )}
 
-      {/* Quick Add Form */}
-      {showForm && (
-        <div className="rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] p-5">
-          <h2 className="mb-4 text-sm font-medium text-[var(--ink)]">{t("dashboard.newReservation")}</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs text-[var(--ink-3)]">{t("dashboard.property")}</label>
-                <div className="relative">
-                  <select
-                    value={formPropertyId}
-                    onChange={(e) => setFormPropertyId(Number(e.target.value))}
-                    className="h-9 w-full appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
-                    required
-                  >
-                    <option value="" disabled>{t("dashboard.selectProperty")}</option>
-                    {properties.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-                  <svg className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                  </svg>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-[var(--ink-3)]">{t("dashboard.guestName")}</label>
-                <input
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder={t("dashboard.enterName")}
-                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none transition-colors focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs text-[var(--ink-3)]">{t("dashboard.platform")}</label>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <div className="flex flex-wrap rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-0.5">
-                  {formPlatformOptions.map((slug) => {
-                    const color = platformColor(slug);
-                    const active = formPlatform === slug;
-                    return (
-                      <button
-                        key={slug}
-                        type="button"
-                        onClick={() => setFormPlatform(slug)}
-                        className={`flex items-center gap-1.5 rounded-[5px] px-3 py-1.5 text-xs font-medium transition-all ${
-                          active
-                            ? "text-[var(--ink)]"
-                            : "text-[var(--ink-4)] hover:text-[var(--ink-3)]"
-                        }`}
-                        style={active ? { backgroundColor: `${color}26` } : undefined}
-                      >
-                        <span
-                          className="h-2 w-2 rounded-full"
-                          style={{ backgroundColor: color }}
-                        />
-                        {platformDisplayName(slug)}
-                      </button>
-                    );
-                  })}
-                </div>
-                <Link
-                  href="/dashboard/add-property"
-                  className="flex items-center gap-1 rounded-md border border-dashed border-[var(--line-2)] px-3 py-1.5 text-xs text-[var(--ink-4)] transition-colors hover:border-[var(--line-3)] hover:text-[var(--ink-3)]"
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  {locale === "ru" ? "Добавить платформу" : "Add platform"}
-                </Link>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs text-[var(--ink-3)]">{t("dashboard.dates")}</label>
-              <DateSlider
-                checkIn={formCheckIn}
-                checkOut={formCheckOut}
-                onChangeCheckIn={setFormCheckIn}
-                onChangeCheckOut={setFormCheckOut}
-                bookedDates={bookedDates}
-              />
-            </div>
-
-            {/* RT-25.6 tick 7 — in-form conflict warning. Hidden when no
-                conflicts so a clean range stays calm. Renders an amber
-                strip listing every overlapping reservation or synced event
-                so the host can decide whether to adjust dates or proceed
-                anyway (no hard block — the reservation can still submit). */}
-            {formConflicts.length > 0 && (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
-                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-300">
-                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                  {formConflicts.length === 1
-                    ? t("dashboard.formConflict")
-                    : t("dashboard.formConflicts").replace("{n}", String(formConflicts.length))}
-                </div>
-                <ul className="space-y-1">
-                  {formConflicts.map((c) => (
-                    <li key={c.key} className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--ink-3)]">
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: platformColor(c.platform) }}
-                      />
-                      <span className="font-medium text-[var(--ink-2)]">{c.name}</span>
-                      <span className="text-[var(--ink-4)]">·</span>
-                      <span>{formatDate(c.from)} — {formatDate(c.to)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="submit"
-                className="rounded-md bg-[var(--m-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
-              >
-                {t("dashboard.createReservation")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="rounded-md px-4 py-2 text-sm text-[var(--ink-3)] hover:text-[var(--ink)]"
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
 
       {/* Search */}
       {allReservations.length > 0 && (
@@ -1260,6 +1164,91 @@ export function Dashboard({
           />
         </div>
       )}
+    </div>
+
+      {/* Sidebar — portfolio summary + quick-add CTA. Mirrors the
+          calendar / cleaning / reports sidebars so the dashboard
+          feels like the same app. Hidden in per-property mode
+          because the stats are inherently cross-property. */}
+      {!selectedProperty && portfolioStats && (
+        <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
+          <div className="border-b border-[var(--line)] px-5 py-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
+              {locale === "ru" ? "Обзор" : "Dashboard"}
+            </div>
+            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
+              {locale === "ru"
+                ? `${portfolioStats.properties} ${portfolioStats.properties === 1 ? "объект" : portfolioStats.properties < 5 ? "объекта" : "объектов"}`
+                : `${portfolioStats.properties} ${portfolioStats.properties === 1 ? "property" : "properties"}`}
+            </div>
+          </div>
+
+          {/* Portfolio stats */}
+          <div className="border-b border-[var(--line)] px-5 py-4 space-y-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[11px] text-[var(--ink-3)]">
+                {locale === "ru" ? "Сейчас в гостях" : "Currently staying"}
+              </span>
+              <span className="text-base font-semibold tabular-nums text-[var(--ink)]">{portfolioStats.active}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[11px] text-[var(--ink-3)]">
+                {locale === "ru" ? "Впереди" : "Upcoming"}
+              </span>
+              <span className="text-base font-semibold tabular-nums text-[var(--ink)]">{portfolioStats.upcoming}</span>
+            </div>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[11px] text-[var(--ink-3)]">
+                {locale === "ru" ? "Всего броней" : "Total bookings"}
+              </span>
+              <span className="text-base font-semibold tabular-nums text-[var(--ink-2)]">{portfolioStats.total}</span>
+            </div>
+          </div>
+
+          {/* Quick-add CTA — routes to the first property's calendar
+              where the date popover handles the create flow. Same
+              behaviour as the header button so the two CTAs stay in
+              sync mentally. */}
+          {!isZeroProperties && properties[0] && (
+            <div className="border-b border-[var(--line)] px-5 py-4">
+              <Link
+                href={`/dashboard?property=${properties[0].id}&view=calendar`}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-[var(--m-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                {t("dashboard.newReservation")}
+              </Link>
+              <p className="mt-2 text-[11px] text-[var(--ink-4)] leading-relaxed">
+                {locale === "ru"
+                  ? "Откроется календарь — кликните по дате, чтобы создать бронь."
+                  : "Opens the calendar — click a date to create a reservation."}
+              </p>
+            </div>
+          )}
+
+          {/* Quick links */}
+          <div className="px-5 py-4 space-y-1">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
+              {locale === "ru" ? "Перейти" : "Jump to"}
+            </div>
+            <a
+              href="?view=cleaning"
+              className="block rounded-md px-2 py-1.5 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
+            >
+              {locale === "ru" ? "Уборки →" : "Cleaning →"}
+            </a>
+            <a
+              href="?view=reports"
+              className="block rounded-md px-2 py-1.5 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
+            >
+              {locale === "ru" ? "Отчёты →" : "Reports →"}
+            </a>
+          </div>
+        </aside>
+      )}
+    </div>
     </div>
   );
 }
