@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderMarkdown } from "./markdown";
+import { extractToc, readingMinutes, renderMarkdown, slugifyHeading, stripLeadingH1 } from "./markdown";
 
 describe("renderMarkdown — escaping", () => {
   it("escapes raw HTML in paragraphs", () => {
@@ -9,8 +9,8 @@ describe("renderMarkdown — escaping", () => {
   });
 
   it("escapes ampersands and quotes in headings", () => {
-    expect(renderMarkdown("# Tom & Jerry's \"big\" day")).toBe(
-      "<h2>Tom &amp; Jerry&#39;s &quot;big&quot; day</h2>",
+    expect(renderMarkdown("## Tom & Jerry's \"big\" day")).toBe(
+      '<h2 id="tom-jerrys-big-day">Tom &amp; Jerry&#39;s &quot;big&quot; day</h2>',
     );
   });
 
@@ -68,9 +68,13 @@ describe("renderMarkdown — links", () => {
 });
 
 describe("renderMarkdown — blocks", () => {
-  it("renders three-level headings down-shifted (h1 reserved for page title)", () => {
-    expect(renderMarkdown("# A\n## B\n### C")).toBe(
-      "<h2>A</h2>\n<h3>B</h3>\n<h4>C</h4>",
+  it("renders headings at their literal levels with ids on h2/h3 (page <h1> is set elsewhere)", () => {
+    // Source `## B` → `<h2 id="b">B</h2>`. h1 stays h1 (a stray body
+    // H1 is rendered verbatim so the slip is visible during preview)
+    // and gets no id; h4+ also skip the id since the TOC sidebar only
+    // indexes h2/h3.
+    expect(renderMarkdown("# A\n## B\n### C\n#### D")).toBe(
+      '<h1>A</h1>\n<h2 id="b">B</h2>\n<h3 id="c">C</h3>\n<h4>D</h4>',
     );
   });
 
@@ -109,6 +113,78 @@ describe("renderMarkdown — blocks", () => {
     expect(renderMarkdown("first paragraph.\n\nsecond paragraph.")).toBe(
       "<p>first paragraph.</p>\n<p>second paragraph.</p>",
     );
+  });
+});
+
+describe("renderMarkdown — images", () => {
+  it("renders an image with lazy-load and the alt attribute", () => {
+    expect(renderMarkdown("![diagram](/uploads/blog/abc.webp)")).toBe(
+      '<p><img src="/uploads/blog/abc.webp" alt="diagram" loading="lazy" /></p>',
+    );
+  });
+
+  it("rejects images with unsafe schemes", () => {
+    // Trailing ')' survives as inert text — security property is "no img tag",
+    // not "no leftover text". Same shape as the link-rejection assertion.
+    expect(renderMarkdown("![x](javascript:alert(1))")).toBe("<p>)</p>");
+  });
+
+  it("allows external https image URLs", () => {
+    expect(renderMarkdown("![cover](https://cdn.example.com/x.png)")).toBe(
+      '<p><img src="https://cdn.example.com/x.png" alt="cover" loading="lazy" /></p>',
+    );
+  });
+});
+
+describe("extractToc + slugifyHeading", () => {
+  it("returns h2 + h3 entries with deduped slug ids", () => {
+    expect(
+      extractToc(["## First section", "### Sub one", "## First section", "## Final"].join("\n\n")),
+    ).toEqual([
+      { id: "first-section", text: "First section", level: 2 },
+      { id: "sub-one", text: "Sub one", level: 3 },
+      { id: "first-section-2", text: "First section", level: 2 },
+      { id: "final", text: "Final", level: 2 },
+    ]);
+  });
+
+  it("ignores h1 and h4+ — only h2 and h3 reach the sidebar", () => {
+    expect(extractToc("# H1\n\n## H2\n\n#### H4")).toEqual([
+      { id: "h2", text: "H2", level: 2 },
+    ]);
+  });
+
+  it("handles non-Latin headings instead of collapsing to 'section'", () => {
+    expect(slugifyHeading("Как синхронизировать календари")).toBe(
+      "как-синхронизировать-календари",
+    );
+  });
+});
+
+describe("stripLeadingH1", () => {
+  it("removes a leading H1 line so the page <h1> is the only h1", () => {
+    expect(stripLeadingH1("# Title\n\nFirst paragraph.")).toBe("First paragraph.");
+  });
+
+  it("leaves the body alone when there is no leading H1", () => {
+    expect(stripLeadingH1("First paragraph.")).toBe("First paragraph.");
+  });
+
+  it("only strips a top-of-document H1, not later headings", () => {
+    expect(stripLeadingH1("Intro.\n\n# Later H1")).toBe("Intro.\n\n# Later H1");
+  });
+});
+
+describe("readingMinutes", () => {
+  it("rounds to whole minutes at ~220 wpm and never returns 0", () => {
+    expect(readingMinutes("word ".repeat(220).trim())).toBe(1);
+    expect(readingMinutes("word ".repeat(660).trim())).toBe(3);
+    expect(readingMinutes("hi")).toBe(1); // tiny posts still report 1 min
+  });
+
+  it("excludes fenced code from the word count", () => {
+    const noisy = "word ".repeat(50) + "\n\n```\n" + "x ".repeat(5000) + "\n```";
+    expect(readingMinutes(noisy)).toBe(1);
   });
 });
 
