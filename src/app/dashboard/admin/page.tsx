@@ -68,6 +68,16 @@ const TILES: ReadonlyArray<{
       },
     ],
   },
+  {
+    group: { en: "Operations", ru: "Эксплуатация" },
+    items: [
+      {
+        href: "/dashboard/admin/operations/status",
+        label: { en: "Status page", ru: "Статус" },
+        desc: { en: "Internal health endpoints for spot checks.", ru: "Внутренние эндпоинты здоровья для проверки." },
+      },
+    ],
+  },
 ];
 
 export default function AdminHomePage() {
