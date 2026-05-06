@@ -20,6 +20,7 @@ model User {
   alertsDismissedAt  DateTime?
   properties         Property[]
   cleanerAssignments CleanerAssignment[]  @relation("CleanerAssignments")
+  cleanerProfiles    Cleaner[]            @relation("CleanerProfiles")
   managedProperties  PropertyManager[]    @relation("ManagerAssignments")
   grantedManagers    PropertyManager[]    @relation("ManagerGrants")
   createdInvites     PropertyManagerInvite[] @relation("InviteCreators")
@@ -137,16 +138,46 @@ model CleaningRecord {
   @@index([propertyId, date])
 }
 
+// Cleaner profile (RT-25.10). Account-level entity owned by a host;
+// represents a real-world cleaner the host can assign to one or more
+// properties via CleanerAssignment.cleanerProfileId. Cleaners do NOT
+// need login access — they're metadata. Existing already-provisioned
+// cleaner Users keep working through the legacy CleanerAssignment.cleanerId
+// path during the transitional cycle.
+model Cleaner {
+  id           Int                 @id @default(autoincrement())
+  ownerUserId  Int
+  owner        User                @relation("CleanerProfiles", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String?
+  createdAt    DateTime            @default(now())
+  assignments  CleanerAssignment[] @relation("CleanerProfileAssignments")
+
+  @@index([ownerUserId])
+}
+
 model CleanerAssignment {
-  id         Int      @id @default(autoincrement())
-  cleanerId  Int
-  cleaner    User     @relation("CleanerAssignments", fields: [cleanerId], references: [id], onDelete: Cascade)
-  propertyId Int
-  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  // After RT-25.10 tick 1, exactly one of cleanerId / cleanerProfileId
+  // is set per row. Legacy login-capable cleaner Users use cleanerId;
+  // new profile-only cleaners use cleanerProfileId. The backfill in
+  // push-schema.ts populates BOTH on existing rows so already-assigned
+  // cleaners keep working while gaining a profile in the new pool.
+  id               Int      @id @default(autoincrement())
+  cleanerId        Int?
+  cleaner          User?    @relation("CleanerAssignments", fields: [cleanerId], references: [id], onDelete: Cascade)
+  cleanerProfileId Int?
+  cleanerProfile   Cleaner? @relation("CleanerProfileAssignments", fields: [cleanerProfileId], references: [id], onDelete: Cascade)
+  propertyId       Int
+  property         Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  // Lower number = higher rank. 0 = default cleaner for the property,
+  // 1 = first backup, 2 = second backup, etc.
+  priority         Int      @default(0)
+  createdAt        DateTime @default(now())
 
   @@unique([cleanerId, propertyId])
+  @@unique([cleanerProfileId, propertyId])
   @@index([cleanerId])
+  @@index([cleanerProfileId])
   @@index([propertyId])
 }
 

@@ -271,6 +271,200 @@ CREATE INDEX IF NOT EXISTS "CleanerAssignment_propertyId_idx" ON "CleanerAssignm
     }
   }
 
+  // RT-25.10 tick 1 — Cleaner profile table (account-level metadata,
+  // no login). Idempotent: created once, ignored on rerun.
+  const cleanerProfileSchema = `
+CREATE TABLE IF NOT EXISTS "Cleaner" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "ownerUserId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "phone" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Cleaner_ownerUserId_fkey" FOREIGN KEY ("ownerUserId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "Cleaner_ownerUserId_idx" ON "Cleaner"("ownerUserId");
+`;
+
+  const cleanerProfileStatements = cleanerProfileSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of cleanerProfileStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
+  // RT-25.10 tick 1 — extend CleanerAssignment with cleanerProfileId
+  // + priority. Rebuilds the table once to make cleanerId nullable
+  // (SQLite has no ALTER COLUMN; we detect the existing NOT NULL via
+  // PRAGMA table_info and only rebuild on first run). Backfill below
+  // copies existing rows verbatim, so already-assigned cleaners keep
+  // their cleanerId; cleanerProfileId is filled in by the per-row
+  // backfill step further down.
+  try {
+    const tableInfo = await prisma.$queryRawUnsafe<
+      Array<{ name: string; notnull: number }>
+    >(`PRAGMA table_info("CleanerAssignment")`);
+    const cleanerIdCol = tableInfo.find((c) => c.name === "cleanerId");
+    const hasProfileIdCol = tableInfo.some((c) => c.name === "cleanerProfileId");
+    const hasPriorityCol = tableInfo.some((c) => c.name === "priority");
+    const cleanerIdIsNotNull = cleanerIdCol?.notnull === 1;
+
+    if (cleanerIdIsNotNull) {
+      console.log("Rebuilding CleanerAssignment to make cleanerId nullable…");
+      await prisma.$executeRawUnsafe(`PRAGMA foreign_keys=OFF`);
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "CleanerAssignment" RENAME TO "CleanerAssignment_old"`,
+      );
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE "CleanerAssignment" (
+          "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          "cleanerId" INTEGER,
+          "cleanerProfileId" INTEGER,
+          "propertyId" INTEGER NOT NULL,
+          "priority" INTEGER NOT NULL DEFAULT 0,
+          "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "CleanerAssignment_cleanerId_fkey" FOREIGN KEY ("cleanerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+          CONSTRAINT "CleanerAssignment_cleanerProfileId_fkey" FOREIGN KEY ("cleanerProfileId") REFERENCES "Cleaner" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+          CONSTRAINT "CleanerAssignment_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+        )
+      `);
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO "CleanerAssignment" ("id", "cleanerId", "cleanerProfileId", "propertyId", "priority", "createdAt")
+        SELECT "id", "cleanerId", NULL, "propertyId", 0, "createdAt" FROM "CleanerAssignment_old"
+      `);
+      await prisma.$executeRawUnsafe(`DROP TABLE "CleanerAssignment_old"`);
+      await prisma.$executeRawUnsafe(
+        `CREATE UNIQUE INDEX IF NOT EXISTS "CleanerAssignment_cleanerId_propertyId_key" ON "CleanerAssignment"("cleanerId", "propertyId")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `CREATE UNIQUE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_propertyId_key" ON "CleanerAssignment"("cleanerProfileId", "propertyId")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "CleanerAssignment_cleanerId_idx" ON "CleanerAssignment"("cleanerId")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_idx" ON "CleanerAssignment"("cleanerProfileId")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "CleanerAssignment_propertyId_idx" ON "CleanerAssignment"("propertyId")`,
+      );
+      await prisma.$executeRawUnsafe(`PRAGMA foreign_keys=ON`);
+      console.log("OK: CleanerAssignment rebuilt with nullable cleanerId");
+    } else {
+      // Table already nullable — just make sure the new columns + index exist.
+      if (!hasProfileIdCol) {
+        try {
+          await prisma.$executeRawUnsafe(
+            `ALTER TABLE "CleanerAssignment" ADD COLUMN "cleanerProfileId" INTEGER`,
+          );
+          console.log("OK: added cleanerProfileId column");
+        } catch {
+          /* already added */
+        }
+      }
+      if (!hasPriorityCol) {
+        try {
+          await prisma.$executeRawUnsafe(
+            `ALTER TABLE "CleanerAssignment" ADD COLUMN "priority" INTEGER NOT NULL DEFAULT 0`,
+          );
+          console.log("OK: added priority column");
+        } catch {
+          /* already added */
+        }
+      }
+      try {
+        await prisma.$executeRawUnsafe(
+          `CREATE UNIQUE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_propertyId_key" ON "CleanerAssignment"("cleanerProfileId", "propertyId")`,
+        );
+        await prisma.$executeRawUnsafe(
+          `CREATE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_idx" ON "CleanerAssignment"("cleanerProfileId")`,
+        );
+      } catch {
+        /* already exists */
+      }
+    }
+  } catch (err) {
+    console.error("CleanerAssignment migration failed:", err);
+  }
+
+  // RT-25.10 tick 1 — backfill Cleaner profiles for existing User
+  // cleaners. For each User with role='cleaner', create one Cleaner
+  // profile (name = username, phone = null, ownerUserId = the FIRST
+  // property's owner). Then update each CleanerAssignment.cleanerProfileId.
+  // Idempotent: skips users who already have a profile (matched by
+  // ownerUserId + name + a corresponding cleaner-User username).
+  try {
+    const cleanerUsers = await prisma.$queryRawUnsafe<
+      Array<{ id: number; username: string }>
+    >(`SELECT id, username FROM "User" WHERE role = 'cleaner'`);
+
+    for (const u of cleanerUsers) {
+      // Find first property they're assigned to (by createdAt) so we
+      // know which owner to attach the new profile to.
+      const firstAssignment = await prisma.$queryRawUnsafe<
+        Array<{ id: number; propertyId: number; cleanerProfileId: number | null }>
+      >(
+        `SELECT id, propertyId, cleanerProfileId FROM "CleanerAssignment"
+         WHERE cleanerId = ? ORDER BY createdAt ASC LIMIT 1`,
+        u.id,
+      );
+      if (firstAssignment.length === 0) continue;
+
+      const property = await prisma.$queryRawUnsafe<
+        Array<{ userId: number }>
+      >(`SELECT userId FROM "Property" WHERE id = ?`, firstAssignment[0].propertyId);
+      if (property.length === 0) continue;
+      const ownerUserId = property[0].userId;
+
+      // Look for an existing profile for this owner with this name.
+      const existingProfile = await prisma.$queryRawUnsafe<
+        Array<{ id: number }>
+      >(
+        `SELECT id FROM "Cleaner" WHERE ownerUserId = ? AND name = ? LIMIT 1`,
+        ownerUserId,
+        u.username,
+      );
+
+      let profileId: number;
+      if (existingProfile.length > 0) {
+        profileId = existingProfile[0].id;
+      } else {
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "Cleaner" ("ownerUserId", "name", "phone") VALUES (?, ?, NULL)`,
+          ownerUserId,
+          u.username,
+        );
+        const inserted = await prisma.$queryRawUnsafe<Array<{ id: number }>>(
+          `SELECT id FROM "Cleaner" WHERE ownerUserId = ? AND name = ? ORDER BY id DESC LIMIT 1`,
+          ownerUserId,
+          u.username,
+        );
+        profileId = inserted[0].id;
+        console.log(
+          `OK: backfilled Cleaner profile for user ${u.username} (id=${u.id}) → profile ${profileId}`,
+        );
+      }
+
+      // Update every CleanerAssignment for this user that doesn't
+      // already point at a profile.
+      await prisma.$executeRawUnsafe(
+        `UPDATE "CleanerAssignment" SET cleanerProfileId = ?
+         WHERE cleanerId = ? AND cleanerProfileId IS NULL`,
+        profileId,
+        u.id,
+      );
+    }
+  } catch (err) {
+    console.error("Cleaner profile backfill failed:", err);
+  }
+
   // PropertyManager table — owner grants management rights to other users
   const managerSchema = `
 CREATE TABLE IF NOT EXISTS "PropertyManager" (
