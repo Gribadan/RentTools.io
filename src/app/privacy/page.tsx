@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { MarketingHeader } from "@/components/marketing-header";
 import { applySeoOverrides } from "@/lib/seo";
 
 const PRIVACY_TITLE = "Privacy Policy";
@@ -35,18 +35,7 @@ const OPERATOR_EMAIL = "support@renttools.io";
 export default function PrivacyPage() {
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
-      <header className="border-b border-[var(--line)]">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
-            ← RentTools
-          </Link>
-          <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
-            <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
-            <Link href="/login" className="hover:text-[var(--ink)]">Sign in</Link>
-            <LocaleSwitcher />
-          </nav>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Privacy Policy</h1>

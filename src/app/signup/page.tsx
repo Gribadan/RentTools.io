@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { MarketingHeader } from "@/components/marketing-header";
 import { AuthDivider, AuthError, AuthInput, AuthLabel, AuthSubmit } from "@/components/auth-form";
 
 function safeNext(raw: string | null): string {
@@ -82,24 +81,7 @@ function SignupPageInner() {
 
   return (
     <div className="editorial min-h-screen flex flex-col">
-      {/* ── Header ── */}
-      <header className="border-b border-[var(--line)]">
-        <div className="mx-auto flex max-w-[920px] items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ink)] text-[var(--bg)] transition-transform group-hover:rotate-6">
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M3 12l9-9 9 9" />
-                <path d="M5 10v10a1 1 0 0 0 1 1h4v-7h4v7h4a1 1 0 0 0 1-1V10" />
-              </svg>
-            </div>
-            <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">RentTools</span>
-          </Link>
-          <nav className="flex items-center gap-1 sm:gap-2">
-            <ThemeToggle />
-            <LocaleSwitcher />
-          </nav>
-        </div>
-      </header>
+      <MarketingHeader />
 
       {/* ── Main ── */}
       <main className="flex flex-1 items-center justify-center px-6 py-10 sm:py-14">

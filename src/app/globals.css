@@ -135,6 +135,13 @@
   }
   html {
     @apply font-sans;
+    /* Reserve scrollbar space always, even on short pages (e.g. /onboard
+       fits in the viewport on desktop). Without this, navigating from a
+       page that scrolls (home) to one that doesn't (onboard) shifts the
+       centered content right by ~7-8px because the scrollbar disappears.
+       `stable` keeps a 15-16px strip reserved on the right so layout is
+       horizontally identical across every page. */
+    scrollbar-gutter: stable;
   }
 }
 
