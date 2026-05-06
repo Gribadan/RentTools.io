@@ -7,6 +7,7 @@ import { BlogFaq } from "@/components/blog-faq";
 import { MarketingHeader } from "@/components/marketing-header";
 import { BlogTldr } from "@/components/blog-tldr";
 import { BlogToc } from "@/components/blog-toc";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { extractToc, readingMinutes, renderMarkdown, stripLeadingH1 } from "@/lib/markdown";
@@ -381,7 +382,22 @@ export default async function BlogPostPage({
           in the same column (the right TOC sidebar floats alongside them on
           lg+), so the hero is always exactly as wide as the prose. */}
       <main className="mx-auto max-w-[1180px] px-6">
-        <div className="grid gap-10 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12">
+        <Breadcrumbs
+          className="pt-6 sm:pt-8"
+          navLabel={requestedLocale === "ru" ? "Хлебные крошки" : "Breadcrumb"}
+          items={[
+            {
+              label: requestedLocale === "ru" ? "Главная" : "Home",
+              href: requestedLocale === "ru" ? "/ru" : "/",
+            },
+            {
+              label: requestedLocale === "ru" ? "Блог" : "Blog",
+              href: requestedLocale === "ru" ? "/ru/blog" : "/blog",
+            },
+            { label: post.title },
+          ]}
+        />
+        <div className="grid gap-10 py-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12">
           <article className="min-w-0">
             {untranslated && (
               <div

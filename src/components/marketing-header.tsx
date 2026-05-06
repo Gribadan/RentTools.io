@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/context";
+import { useSession } from "@/lib/session-context";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
@@ -14,8 +15,8 @@ interface MarketingHeaderProps {
 }
 
 const NAV_LABELS = {
-  en: { blog: "Blog", signIn: "Sign in", getStarted: "Get started" },
-  ru: { blog: "Блог", signIn: "Войти", getStarted: "Начать" },
+  en: { blog: "Blog", signIn: "Sign in", getStarted: "Get started", dashboard: "Dashboard" },
+  ru: { blog: "Блог", signIn: "Войти", getStarted: "Начать", dashboard: "Панель" },
 };
 
 /**
@@ -32,7 +33,9 @@ const NAV_LABELS = {
  */
 export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
   const { locale } = useI18n();
+  const session = useSession();
   const t = NAV_LABELS[locale];
+  const isAuthenticated = session !== null;
   return (
     <header
       className={
@@ -99,18 +102,35 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
             </svg>
             GitHub
           </a>
-          <Link
-            href="/login"
-            className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
-          >
-            {t.signIn}
-          </Link>
-          <Link
-            href="/onboard"
-            className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:inline-flex"
-          >
-            {t.getStarted}
-          </Link>
+          {isAuthenticated ? (
+            // Already signed in — collapse Sign in + Get started into a
+            // single Dashboard button. Anything else is the wrong call:
+            // showing Sign in to a signed-in user is confusing, and a
+            // separate Sign out belongs in the dashboard chrome (where
+            // the user is when they want to leave), not in marketing
+            // header that they hit while exploring blog/onboard pages.
+            <Link
+              href="/dashboard"
+              className="rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)]"
+            >
+              {t.dashboard}
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
+              >
+                {t.signIn}
+              </Link>
+              <Link
+                href="/onboard"
+                className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:inline-flex"
+              >
+                {t.getStarted}
+              </Link>
+            </>
+          )}
           <span className="mx-1 h-4 w-px bg-[var(--line)]" />
           <ThemeToggle />
           <LocaleSwitcher />

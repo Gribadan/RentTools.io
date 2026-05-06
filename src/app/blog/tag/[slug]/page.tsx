@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { MarketingHeader } from "@/components/marketing-header";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
@@ -173,11 +174,19 @@ export default async function BlogTagPage({
       <MarketingHeader sticky />
 
       <main className="mx-auto max-w-[1180px] px-6">
+        <Breadcrumbs
+          className="pt-6 sm:pt-8"
+          items={[
+            { label: "Home", href: "/" },
+            { label: "Blog", href: "/blog" },
+            { label: tag.displayName },
+          ]}
+        />
         {/* Tag hero — same shape as the /blog index hero so the surface
             stays visually consistent across the section. The hero
             is intentionally smaller than the blog-index one because a
             tag landing is a sub-page, not the section root. */}
-        <section className="relative mt-6 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-8 pt-8 sm:px-10 sm:pb-10 sm:pt-10">
+        <section className="relative mt-4 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-8 pt-8 sm:px-10 sm:pb-10 sm:pt-10">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-70"

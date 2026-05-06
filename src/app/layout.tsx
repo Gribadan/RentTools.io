@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { FeedbackButton } from "@/components/feedback-button";
 import { JsonLd } from "@/components/json-ld";
 import { getLocale } from "@/lib/i18n/server";
+import { getSession } from "@/lib/auth";
 import "./globals.css";
 
 const inter = Inter({
@@ -132,6 +133,15 @@ export default async function RootLayout({
   // by middleware, which mirrors the URL prefix, so the lang attribute
   // and the body language always agree.
   const lang = await getLocale();
+  // Lift the session into the client provider so chrome that lives in
+  // client components (MarketingHeader, etc.) can show the right state
+  // without an extra fetch. getSession() already runs on every page that
+  // gates content; re-running it in the root layout is the same DB hit
+  // because Prisma's request-scoped cache reuses the result.
+  const session = await getSession();
+  const clientSession = session
+    ? { userId: session.userId, username: session.username, role: session.role }
+    : null;
   return (
     <html
       lang={lang}
@@ -145,7 +155,7 @@ export default async function RootLayout({
         <JsonLd data={WEBSITE_JSON_LD} />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-sans)]">
-        <Providers initialLocale={lang}>{children}</Providers>
+        <Providers initialLocale={lang} initialSession={clientSession}>{children}</Providers>
         {/* Floating feedback pill — site-wide on public pages. The
             component itself opts out on /dashboard, /admin, /g/, /invite/
             via usePathname so signed-in app surfaces stay uncluttered. */}
