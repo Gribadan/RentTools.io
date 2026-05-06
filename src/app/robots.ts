@@ -25,12 +25,33 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   }
 
   return {
-    rules: {
-      userAgent: "*",
-      // Authenticated app surfaces — no SEO value, and they redirect to
-      // /login for unauth visitors so a crawler hits a sign-in wall.
-      disallow: ["/api/", "/dashboard", "/admin", "/invite/"],
-    },
-    sitemap: `${SITE_URL}/sitemap.xml`,
+    rules: [
+      // Default policy for every other bot — crawl public surfaces,
+      // skip authenticated/private/token-gated paths.
+      {
+        userAgent: "*",
+        allow: "/",
+        // /api  — JSON, no SEO value, would only burn crawl budget.
+        // /dashboard, /admin — auth-walled; redirects to /login.
+        // /invite/, /g/ — one-time tokens; must NEVER be indexed because
+        //                  each URL exposes private data (manager invite
+        //                  or guest form share). Per-route layout.tsx
+        //                  also emits noindex meta as belt-and-suspenders.
+        disallow: ["/api/", "/dashboard", "/admin", "/invite/", "/g/"],
+      },
+      // Explicit Allow lines for major LLM training + retrieval crawlers.
+      // We *want* RentTools content cited in AI answers — every blog
+      // article is a host-facing how-to that's the right surface for a
+      // "how do I sync my Airbnb to Booking.com" prompt to land on. The
+      // disallow list mirrors the wildcard policy so private routes still
+      // stay out of LLM corpora.
+      ...["GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web", "anthropic-ai", "Google-Extended", "PerplexityBot", "Perplexity-User", "Applebot-Extended", "Bytespider", "CCBot", "cohere-ai"].map((userAgent) => ({
+        userAgent,
+        allow: "/",
+        disallow: ["/api/", "/dashboard", "/admin", "/invite/", "/g/"],
+      })),
+    ],
+    sitemap: [`${SITE_URL}/sitemap.xml`],
+    host: SITE_URL,
   };
 }
