@@ -215,6 +215,16 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // invite URL once into their profile.
     `ALTER TABLE "User" ADD COLUMN "tgGroupInviteUrl" TEXT`,
     `ALTER TABLE "User" ADD COLUMN "waGroupInviteUrl" TEXT`,
+    // Blog structured fields — RT-blog SEO pass. tldr renders as a
+    // callout above the article body; faqJson drives both the on-page
+    // Q/A section and the FAQPage JSON-LD that makes posts eligible for
+    // Google's FAQ rich result. ogImageWidth/Height feed the cover <img>
+    // and the BlogPosting ImageObject so we can both kill CLS and ship
+    // the dimensions Google expects.
+    `ALTER TABLE "BlogPost" ADD COLUMN "tldr" TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE "BlogPost" ADD COLUMN "faqJson" TEXT NOT NULL DEFAULT '[]'`,
+    `ALTER TABLE "BlogPost" ADD COLUMN "ogImageWidth" INTEGER`,
+    `ALTER TABLE "BlogPost" ADD COLUMN "ogImageHeight" INTEGER`,
   ];
   for (const sql of migrations) {
     try {
@@ -979,7 +989,7 @@ CREATE INDEX IF NOT EXISTS "GuestFormSubmission_templateId_idx" ON "GuestFormSub
     }
   }
 
-  console.log("\nSchema pushed to Turso successfully!");
+  console.log(`\nSchema pushed to ${config.label} successfully!`);
 }
 
 main()

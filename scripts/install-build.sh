@@ -42,6 +42,11 @@ fi
 # 1. Sync source code so prisma/, scripts/, sentry configs match the SHA we built.
 LOCK_BEFORE=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}' || echo "")
 SCHEMA_BEFORE=$(sha256sum prisma/schema.prisma 2>/dev/null | awk '{print $1}' || echo "")
+# push-schema.ts holds the hand-rolled DDL that actually gets executed
+# against the runtime DB (the .prisma model is for the client only). A
+# new ALTER TABLE there must trigger a push on the next deploy or the
+# seed below 500s on a missing column.
+PUSH_SCRIPT_BEFORE=$(sha256sum prisma/push-schema.ts 2>/dev/null | awk '{print $1}' || echo "")
 SYSTEMD_BEFORE=$(sha256sum deploy/systemd/rent-tool.service 2>/dev/null | awk '{print $1}' || echo "")
 
 # Refuse to proceed if someone edited files directly on the droplet — prevents
@@ -58,6 +63,7 @@ log "now at $(git rev-parse --short HEAD)"
 
 LOCK_AFTER=$(sha256sum package-lock.json | awk '{print $1}')
 SCHEMA_AFTER=$(sha256sum prisma/schema.prisma | awk '{print $1}')
+PUSH_SCRIPT_AFTER=$(sha256sum prisma/push-schema.ts | awk '{print $1}')
 SYSTEMD_AFTER=$(sha256sum deploy/systemd/rent-tool.service | awk '{print $1}')
 
 # 2. Conditional npm ci. Only when dependencies actually changed.
@@ -89,9 +95,9 @@ mv "$TMPDIR/src/generated/prisma" src/generated/prisma
 # Background cleanup — `rm -rf .next.old` is ~5s on this disk, no need to block.
 rm -rf ".next.old.$PID" "src/generated/prisma.old.$PID" "$TMPDIR" "$ARTIFACT" &
 
-# 4. Apply schema if it changed.
-if [ "$SCHEMA_BEFORE" != "$SCHEMA_AFTER" ]; then
-  log "schema changed — pushing"
+# 4. Apply schema if it OR push-schema.ts changed.
+if [ "$SCHEMA_BEFORE" != "$SCHEMA_AFTER" ] || [ "$PUSH_SCRIPT_BEFORE" != "$PUSH_SCRIPT_AFTER" ]; then
+  log "schema or push-schema.ts changed — pushing"
   set -a
   . .env.production
   set +a
