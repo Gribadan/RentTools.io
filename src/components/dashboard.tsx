@@ -219,6 +219,24 @@ export function Dashboard({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }, []);
 
+  // RT-25.6 tick 5 — today's check-ins / check-outs across all
+  // properties. Drives the "Today" strip at the top of the global
+  // dashboard so a returning host can scan today's events without
+  // hunting through the upcoming-week list. Hidden when both buckets
+  // are empty so the strip doesn't add noise on quiet days.
+  const { todayCheckIns, todayCheckOuts } = useMemo(() => {
+    if (selectedProperty) {
+      return { todayCheckIns: [], todayCheckOuts: [] as typeof allReservations };
+    }
+    const ins: typeof allReservations = [];
+    const outs: typeof allReservations = [];
+    for (const r of allReservations) {
+      if (r.checkIn === todayStr) ins.push(r);
+      if (r.checkOut === todayStr) outs.push(r);
+    }
+    return { todayCheckIns: ins, todayCheckOuts: outs };
+  }, [allReservations, selectedProperty, todayStr]);
+
   // Bucket the global-mode list. A reservation counts as "upcoming this
   // week" if today falls between checkIn and checkOut (active now) OR
   // checkIn is within the next 7 days. Past = already checked out.
@@ -379,6 +397,74 @@ export function Dashboard({
             >
               {t("dashboard.emptySample")}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Today strip — check-ins + check-outs scheduled for today across
+          all properties. Skipped on quiet days so the dashboard stays
+          calm when nothing is happening. RT-25.6 tick 5. */}
+      {!selectedProperty && properties.length > 0 && (todayCheckIns.length > 0 || todayCheckOuts.length > 0) && (
+        <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
+          <div className="mb-3 flex items-baseline gap-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
+              {t("dashboard.today")}
+            </h2>
+            <span className="text-xs text-[var(--ink-4)]">
+              {new Date().toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { weekday: "short", day: "2-digit", month: "short" })}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {todayCheckIns.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
+                  {t("dashboard.todayCheckIn")} · {todayCheckIns.length}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {todayCheckIns.map((res) => (
+                    <button
+                      key={`in-${res.id}`}
+                      type="button"
+                      onClick={() => handleRowClick(res.propertyId, res.id)}
+                      className="flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:border-[var(--line-2)] hover:bg-[var(--bg-3)]"
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: platformColor(res.platform) }}
+                      />
+                      <span className="font-medium text-[var(--ink)]">{res.name}</span>
+                      <span className="text-[var(--ink-4)]">·</span>
+                      <span>{res.propertyName}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {todayCheckOuts.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
+                  {t("dashboard.todayCheckOut")} · {todayCheckOuts.length}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {todayCheckOuts.map((res) => (
+                    <button
+                      key={`out-${res.id}`}
+                      type="button"
+                      onClick={() => handleRowClick(res.propertyId, res.id)}
+                      className="flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:border-[var(--line-2)] hover:bg-[var(--bg-3)]"
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: platformColor(res.platform) }}
+                      />
+                      <span className="font-medium text-[var(--ink)]">{res.name}</span>
+                      <span className="text-[var(--ink-4)]">·</span>
+                      <span>{res.propertyName}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

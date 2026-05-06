@@ -119,6 +119,9 @@ export const translations = {
   "dashboard.emptySample": { en: "Use a sample property", ru: "Создать пример" },
   "dashboard.reservationsAcross": { en: "reservations across", ru: "бронирований в" },
   "dashboard.reservation": { en: "reservation", ru: "бронирование" },
+  "dashboard.today": { en: "Today", ru: "Сегодня" },
+  "dashboard.todayCheckIn": { en: "Check-in", ru: "Заезд" },
+  "dashboard.todayCheckOut": { en: "Check-out", ru: "Выезд" },
 
   // Property Calendar
   "calendar.editDates": { en: "Edit Dates", ru: "Ред. даты" },
