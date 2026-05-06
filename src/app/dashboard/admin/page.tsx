@@ -155,6 +155,14 @@ const TILES: ReadonlyArray<{
         },
       },
       {
+        href: "/dashboard/admin/operations/scheduled-jobs",
+        label: { en: "Scheduled jobs", ru: "Запланированные задачи" },
+        desc: {
+          en: "Cron jobs running on the host — schedule + description.",
+          ru: "Задачи cron на сервере — расписание и описание.",
+        },
+      },
+      {
         href: "/dashboard/admin/operations/status",
         label: { en: "Status page", ru: "Статус" },
         desc: { en: "Internal health endpoints for spot checks.", ru: "Внутренние эндпоинты здоровья для проверки." },
