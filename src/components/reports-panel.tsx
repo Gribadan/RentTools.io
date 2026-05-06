@@ -13,6 +13,7 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
+import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
 
@@ -834,17 +835,26 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
             Borderless rounded panel with a soft shadow; lg:top-3 for
             breathing room from the global header. */}
         <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
-          <div className="border-b border-[var(--line)] px-5 py-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-              {locale === "ru" ? "Отчёты" : "Reports"}
+          <div className="border-b border-[var(--line)] px-5 py-4 space-y-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
+                {locale === "ru" ? "Отчёты" : "Reports"}
+              </div>
+              <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
+                {property
+                  ? property.name
+                  : (locale === "ru"
+                      ? `Все объекты (${properties.length})`
+                      : `All properties (${properties.length})`)}
+              </div>
             </div>
-            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
-              {property
-                ? property.name
-                : (locale === "ru"
-                    ? `Все объекты (${properties.length})`
-                    : `All properties (${properties.length})`)}
-            </div>
+            <PropertySwitcher
+              properties={properties}
+              selectedPropertyId={property?.id ?? null}
+              view="reports"
+              showAllOption
+              label={null}
+            />
           </div>
 
           {/* Period selector — controls the past-window of the chart

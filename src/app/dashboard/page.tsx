@@ -309,6 +309,7 @@ function AppContent({
             <PropertyCalendar
               key={`cal-${selectedProperty.id}`}
               property={selectedProperty}
+              properties={properties}
               onSelectReservation={handleSelectReservation}
               onAddReservation={handleAddReservation}
             />
@@ -318,6 +319,7 @@ function AppContent({
             <PropertyCleaningView
               key={`clean-${selectedProperty.id}`}
               property={selectedProperty}
+              properties={properties}
               onCleaningEnabledChanged={fetchProperties}
             />
           );
@@ -327,6 +329,7 @@ function AppContent({
               key={`sync-${selectedProperty.id}`}
               propertyId={selectedProperty.id}
               propertyName={selectedProperty.name}
+              properties={properties}
               minNights={selectedProperty.minNights || 3}
               checkInTime={selectedProperty.checkInTime || "14:00"}
               checkOutTime={selectedProperty.checkOutTime || "12:00"}
@@ -368,6 +371,7 @@ function AppContent({
             <PropertyCalendar
               key={`cal-${selectedProperty.id}`}
               property={selectedProperty}
+              properties={properties}
               onSelectReservation={handleSelectReservation}
               onAddReservation={handleAddReservation}
             />

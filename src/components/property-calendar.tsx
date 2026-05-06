@@ -11,10 +11,16 @@ import { useCalendarFetch } from "@/components/calendar/use-calendar-fetch";
 import { useCalendarData } from "@/components/calendar/use-calendar-data";
 import { addDaysStr } from "@/components/calendar/utils";
 import { EmptyState } from "@/components/empty-state";
+import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
 
 interface PropertyCalendarProps {
   property: Property;
+  /** All properties the user can access — fed to PropertySwitcher
+   *  inside the "Pick a day" empty state of the right aside, so the
+   *  user has a fallback property switcher when the top-bar dropdown
+   *  is out of view. */
+  properties: Property[];
   onSelectReservation: (id: number) => void;
   onAddReservation: (data: {
     name: string;
@@ -31,6 +37,7 @@ const VISIBLE_MONTHS = 12;
 
 export function PropertyCalendar({
   property,
+  properties,
   onSelectReservation,
   // onAddReservation kept for prop-shape compat — the side panel
   // POSTs /api/reservations directly.
@@ -457,20 +464,34 @@ export function PropertyCalendar({
             onCreateReservation={createReservationFromSelection}
           />
         ) : (
-          <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-4 px-8 py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
-              </svg>
+          <div className="flex h-full min-h-[320px] flex-col gap-5 px-6 py-8">
+            {/* Property switcher — fallback to the top-bar dropdown
+                so the user can move between properties without
+                leaving the calendar. Hidden when only one property
+                exists (PropertySwitcher early-returns). */}
+            {properties.length > 1 && (
+              <PropertySwitcher
+                properties={properties}
+                selectedPropertyId={property.id}
+                view="calendar"
+                showAllOption={false}
+              />
+            )}
+            <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V10.5h18v8.25" />
+                </svg>
+              </div>
+              <p className="text-base font-semibold tracking-tight text-[var(--ink)]">
+                {locale === "ru" ? "Выберите день" : "Pick a day"}
+              </p>
+              <p className="text-sm text-[var(--ink-3)] leading-relaxed max-w-[260px]">
+                {locale === "ru"
+                  ? "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь."
+                  : "Click any date in the calendar to open its actions or create a reservation."}
+              </p>
             </div>
-            <p className="text-base font-semibold tracking-tight text-[var(--ink)]">
-              {locale === "ru" ? "Выберите день" : "Pick a day"}
-            </p>
-            <p className="text-sm text-[var(--ink-3)] leading-relaxed max-w-[260px]">
-              {locale === "ru"
-                ? "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь."
-                : "Click any date in the calendar to open its actions or create a reservation."}
-            </p>
           </div>
         )}
       </aside>

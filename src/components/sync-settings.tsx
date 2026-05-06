@@ -6,8 +6,9 @@ import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import { MessageTemplatesPanel } from "@/components/message-templates-panel";
 import { PropertyManagersPanel } from "@/components/property-managers-panel";
 import { GuestFormBuilder } from "@/components/guest-form-builder";
+import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
-import type { CalendarLink, SyncLogEntry } from "@/lib/types";
+import type { CalendarLink, Property, SyncLogEntry } from "@/lib/types";
 
 interface TestResult {
   success: boolean;
@@ -21,6 +22,10 @@ interface TestResult {
 interface SyncSettingsProps {
   propertyId: number;
   propertyName: string;
+  /** All properties the user can access — drives the
+   *  PropertySwitcher pills above the property settings. Not required;
+   *  the switcher hides itself when only one property exists. */
+  properties?: Property[];
   minNights: number;
   checkInTime: string;
   checkOutTime: string;
@@ -30,7 +35,7 @@ interface SyncSettingsProps {
   onDeleteProperty: (id: number) => void | Promise<void>;
 }
 
-export function SyncSettings({ propertyId, propertyName, minNights, checkInTime, checkOutTime, bookingWindow, ownerUserId, onUpdateProperty, onDeleteProperty }: SyncSettingsProps) {
+export function SyncSettings({ propertyId, propertyName, properties, minNights, checkInTime, checkOutTime, bookingWindow, ownerUserId, onUpdateProperty, onDeleteProperty }: SyncSettingsProps) {
   const { t, locale } = useI18n();
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
@@ -212,6 +217,19 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
 
   return (
     <div className="cls-isolate mx-auto max-w-3xl space-y-6">
+      {/* Property switcher — top-of-page pill row so the user can
+          jump between properties without using the top-bar dropdown.
+          Hidden when only one property exists (PropertySwitcher
+          early-returns) so the page stays clean. */}
+      {properties && properties.length > 1 && (
+        <PropertySwitcher
+          properties={properties}
+          selectedPropertyId={propertyId}
+          view="sync"
+          showAllOption={false}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { CleanersPanel } from "@/components/cleaners-panel";
+import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -20,13 +21,18 @@ interface CalendarEvent {
 
 interface PropertyCleaningViewProps {
   property: Property;
+  /** All properties the user can access — drives the sidebar's
+   *  property-switcher pills so the user can jump to another
+   *  property's cleaning view (or the portfolio aggregate)
+   *  without needing the top-bar dropdown. */
+  properties: Property[];
   /** Called after the master cleaning toggle is flipped. Lets the parent
    *  refetch the property record so other tabs (calendar, dashboard)
    *  pick up the new value without a manual refresh. */
   onCleaningEnabledChanged?: () => void;
 }
 
-export function PropertyCleaningView({ property, onCleaningEnabledChanged }: PropertyCleaningViewProps) {
+export function PropertyCleaningView({ property, properties, onCleaningEnabledChanged }: PropertyCleaningViewProps) {
   const { t, locale } = useI18n();
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
@@ -149,13 +155,22 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
             Cleaners panel. Copy/Print/Include-potential live inline in
             the schedule's table header. */}
         <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
-          <div className="border-b border-[var(--line)] px-5 py-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-              {locale === "ru" ? "Уборки" : "Cleaning"}
+          <div className="border-b border-[var(--line)] px-5 py-4 space-y-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
+                {locale === "ru" ? "Уборки" : "Cleaning"}
+              </div>
+              <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
+                {property.name}
+              </div>
             </div>
-            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
-              {property.name}
-            </div>
+            <PropertySwitcher
+              properties={properties}
+              selectedPropertyId={property.id}
+              view="cleaning"
+              showAllOption
+              label={null}
+            />
           </div>
 
           {/* Master toggle (RT-25.3) */}

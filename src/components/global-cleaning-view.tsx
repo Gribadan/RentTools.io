@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
+import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -151,15 +152,24 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
             shadow as PropertyCleaningView's sidebar so the cleaning
             surface looks consistent across the two scopes. */}
         <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
-          <div className="border-b border-[var(--line)] px-5 py-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-              {locale === "ru" ? "Уборки" : "Cleaning"}
+          <div className="border-b border-[var(--line)] px-5 py-4 space-y-3">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
+                {locale === "ru" ? "Уборки" : "Cleaning"}
+              </div>
+              <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
+                {locale === "ru"
+                  ? `Все объекты (${properties.length})`
+                  : `All properties (${properties.length})`}
+              </div>
             </div>
-            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
-              {locale === "ru"
-                ? `Все объекты (${properties.length})`
-                : `All properties (${properties.length})`}
-            </div>
+            <PropertySwitcher
+              properties={properties}
+              selectedPropertyId={null}
+              view="cleaning"
+              showAllOption
+              label={null}
+            />
           </div>
 
           <div className="border-b border-[var(--line)] px-5 py-4">
