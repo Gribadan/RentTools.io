@@ -576,16 +576,16 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     <div className="space-y-4">
       {/* Overlap warnings */}
       {futureOverlaps.length > 0 && (
-        <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 p-4 space-y-2">
+        <div className="rounded-lg border border-[var(--cleaning-border)] bg-[var(--cleaning-bg)] p-4 space-y-2">
           <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-5 w-5 text-[var(--cleaning-fg)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
-            <span className="text-sm font-semibold text-amber-400">
+            <span className="text-sm font-semibold text-[var(--cleaning-fg)]">
               {t("cleaning.overlapWarning")} ({futureOverlaps.length} {locale === "ru" ? (futureOverlaps.length === 1 ? "день" : "дней") : (futureOverlaps.length === 1 ? "day" : "days")})
             </span>
           </div>
-          <p className="text-xs text-amber-400/80">
+          <p className="text-xs text-[var(--cleaning-fg)] opacity-80">
             {t("cleaning.overlapDesc")}
           </p>
           {futureOverlaps.map(o => (
@@ -673,12 +673,12 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                         {thisYear}
                       </div>
                     )}
-                    <div className={`flex flex-col gap-2 border-b border-[var(--line)]/50 px-4 py-3 ${isOverlap ? "bg-amber-400/5" : ""}`}>
+                    <div className={`flex flex-col gap-2 border-b border-[var(--line)]/50 px-4 py-3 ${isOverlap ? "bg-[var(--cleaning-cell-bg)]" : ""}`}>
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-[var(--ink)] whitespace-nowrap">
                           {formatDate(day.date)}
                           {isOverlap && (
-                            <span className="ml-1.5 text-[10px] font-medium text-amber-400">
+                            <span className="ml-1.5 text-[10px] font-medium text-[var(--cleaning-fg)]">
                               {t("cleaning.overlap")}
                             </span>
                           )}
@@ -687,7 +687,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
                         <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
                           day.type === "cleaning"
-                            ? "bg-amber-400/10 text-amber-400"
+                            ? "bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]"
                             : "bg-[var(--ink)]/10 text-[var(--ink)]"
                         }`}>
                           {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
@@ -706,7 +706,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                           <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
                             day.bufferMode === "quick"
                               ? "bg-violet-400/10 text-violet-400"
-                              : "bg-amber-400/10 text-amber-400"
+                              : "bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]"
                           }`}>
                             {day.bufferMode === "quick" ? t("cleaning.quickTurnover") : t("cleaning.fullDay")}
                           </span>
@@ -747,15 +747,15 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                         <td colSpan={10} className="px-4 py-2 text-xs font-semibold text-[var(--ink-3)] bg-[var(--bg-3)]">{thisYear}</td>
                       </tr>
                     )}
-                    <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[var(--line)]/50 ${isOverlap ? "bg-amber-400/5" : "hover:bg-[var(--bg-3)]"}`}>
+                    <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[var(--line)]/50 ${isOverlap ? "bg-[var(--cleaning-cell-bg)]" : "hover:bg-[var(--bg-3)]"}`}>
                       <td className="px-4 py-2 text-sm text-[var(--ink)] whitespace-nowrap">
                         {formatDate(day.date)}
-                        {isOverlap && <span className="ml-1.5 text-[10px] text-amber-400 font-medium">{t("cleaning.overlap")}</span>}
+                        {isOverlap && <span className="ml-1.5 text-[10px] text-[var(--cleaning-fg)] font-medium">{t("cleaning.overlap")}</span>}
                       </td>
                       <td className="px-4 py-2">
                         <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
                           day.type === "cleaning"
-                            ? "bg-amber-400/10 text-amber-400"
+                            ? "bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]"
                             : "bg-[var(--ink)]/10 text-[var(--ink)]"
                         }`}>
                           {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
@@ -775,7 +775,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                             <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
                               day.bufferMode === "quick"
                                 ? "bg-violet-400/10 text-violet-400"
-                                : "bg-amber-400/10 text-amber-400"
+                                : "bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]"
                             }`}>
                               {day.bufferMode === "quick" ? t("cleaning.quickTurnover") : t("cleaning.fullDay")}
                             </span>

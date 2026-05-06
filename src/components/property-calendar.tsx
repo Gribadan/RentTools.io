@@ -341,10 +341,15 @@ export function PropertyCalendar({
                   at its natural position. When the section reaches the
                   frozen header, this label scrolls behind it (the header
                   is opaque + z-30) and the frozen header's <h2> already
-                  shows the same name — no visual duplication. */}
-              <h3 className="mb-3 text-xl font-semibold tracking-tight text-[var(--ink-2)]">
-                {monthLabel}
-              </h3>
+                  shows the same name — no visual duplication.
+                  Skipped for i === 0 because that month is already the
+                  active one in the frozen header at scroll=0; rendering
+                  it again here is a redundant duplicate for the user. */}
+              {i > 0 && (
+                <h3 className="mb-3 text-xl font-semibold tracking-tight text-[var(--ink-2)]">
+                  {monthLabel}
+                </h3>
+              )}
               <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
                 <CalendarGrid
                   year={m.getFullYear()}

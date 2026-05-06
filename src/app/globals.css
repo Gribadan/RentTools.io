@@ -161,14 +161,15 @@
   --pill-coral: rgba(255, 56, 92, 0.14);
   --pill-blue: rgba(0, 113, 227, 0.13);
 
-  /* Cleaning / buffer chip — amber-400 was too pale on light bg. Use a
-     deeper amber-700 for the foreground in light mode (readable on white)
-     and keep the bright amber-400 in dark mode where it pops. Cell-bg is
-     the soft tint painted on the day cell behind the chip. */
-  --cleaning-fg: #b45309;
-  --cleaning-bg: rgba(180, 83, 9, 0.10);
-  --cleaning-border: rgba(180, 83, 9, 0.28);
-  --cleaning-cell-bg: rgba(180, 83, 9, 0.06);
+  /* Cleaning / buffer chip. Tuned for legibility on the warm off-white
+     bg in light mode — solid amber-100 fill + amber-800 fg gives a
+     proper readable badge instead of a wash; tasteful amber-600 ring
+     anchors it visually. Cell-bg is the very soft tint painted on the
+     day cell behind the chip in the calendar. */
+  --cleaning-fg: #92400e;
+  --cleaning-bg: #fef3c7;
+  --cleaning-border: rgba(217, 119, 6, 0.32);
+  --cleaning-cell-bg: rgba(217, 119, 6, 0.06);
 
   background: var(--bg);
   color: var(--ink);
@@ -190,11 +191,13 @@
   --m-accent-soft: rgba(255, 85, 119, 0.12);
   --pill-coral: rgba(255, 85, 119, 0.16);
   --pill-blue: rgba(110, 168, 254, 0.14);
-  /* Dark mode: bright amber-400 reads well on dark cells. */
-  --cleaning-fg: #fbbf24;
-  --cleaning-bg: rgba(251, 191, 36, 0.10);
-  --cleaning-border: rgba(251, 191, 36, 0.28);
-  --cleaning-cell-bg: rgba(251, 191, 36, 0.06);
+  /* Dark mode: amber-300 reads warmer than 400 against the slate-blue
+     bg without losing the cleaning-amber identity. Slightly stronger
+     bg + border than light to give the chip presence on dark cells. */
+  --cleaning-fg: #fcd34d;
+  --cleaning-bg: rgba(252, 211, 77, 0.14);
+  --cleaning-border: rgba(252, 211, 77, 0.34);
+  --cleaning-cell-bg: rgba(252, 211, 77, 0.06);
 }
 
 .editorial .display {
