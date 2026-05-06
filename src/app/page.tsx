@@ -51,6 +51,42 @@ const FAQ_LD = {
   })),
 };
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
+
+// SoftwareApplication schema — describes the *product* RentTools is.
+// Distinct from the Organization block in the root layout (which
+// describes the *publisher*). Required-by-Google fields: name, applicationCategory,
+// operatingSystem, offers. The price=0 + priceCurrency=USD pair is what makes
+// the "Free" badge appear in the rich result.
+const SOFTWARE_LD = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": `${SITE_URL}/#software`,
+  name: "RentTools",
+  description:
+    "Free open-source property management software for short-term rental hosts. Cross-syncs Airbnb, Booking.com, and Vrbo iCal calendars; automates cleaning schedules; manages multi-property guest data.",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, Linux (self-host)",
+  url: SITE_URL,
+  softwareVersion: "1.0",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+    availability: "https://schema.org/InStock",
+  },
+  publisher: { "@id": `${SITE_URL}/#organization` },
+  featureList: [
+    "Cross-platform iCal calendar sync",
+    "Cleaning schedule automation",
+    "Multi-property dashboard",
+    "Guest passport extraction",
+    "Per-property message templates",
+    "Cmd-K guest search",
+    "GDPR-compliant data export and deletion",
+  ],
+};
+
 export default async function HomePage() {
   const session = await getSession();
   if (session) redirect("/dashboard");
@@ -59,6 +95,7 @@ export default async function HomePage() {
   return (
     <div className="editorial min-h-screen flex flex-col">
       <JsonLd data={FAQ_LD} />
+      <JsonLd data={SOFTWARE_LD} />
       <GoogleOneTap />
 
       {/* ─────────────── Header ─────────────── */}

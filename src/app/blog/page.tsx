@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BlogHeader } from "@/components/blog-header";
+import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
 const PAGE_SIZE = 12;
 const TITLE = "Blog";
@@ -112,8 +115,36 @@ export default async function BlogIndexPage({
   const featured = isLanding && posts.length > 0 ? posts[0] : null;
   const rest = featured ? posts.slice(1) : posts;
 
+  // Blog JSON-LD — describes /blog as a Blog, with each visible post
+  // shown as a BlogPosting stub. Distinct from per-post BlogPosting
+  // emitted on /blog/[slug] (those are the canonical entity for a
+  // given article); this shows Google "/blog is the section index".
+  // Only emit on the un-filtered landing so we don't repeat the same
+  // schema on every paginated page.
+  const blogJsonLd = isLanding
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "@id": `${SITE_URL}/blog#blog`,
+        url: `${SITE_URL}/blog`,
+        name: "RentTools blog",
+        description:
+          "Field notes for short-term rental hosts: calendar sync, cleaning automation, GDPR, and the boring parts of running a listing.",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        blogPost: posts.slice(0, 10).map((p) => ({
+          "@type": "BlogPosting",
+          headline: p.title,
+          description: p.excerpt,
+          url: `${SITE_URL}/blog/${p.slug}`,
+          datePublished: p.publishedAt?.toISOString(),
+          image: p.ogImageUrl ?? undefined,
+        })),
+      }
+    : null;
+
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      {blogJsonLd && <JsonLd data={blogJsonLd} />}
       <BlogHeader />
 
       <main className="mx-auto max-w-[1180px] px-4 sm:px-6">

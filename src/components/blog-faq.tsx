@@ -1,7 +1,5 @@
 "use client";
 
-import { useId } from "react";
-
 /**
  * Render the FAQ section as a native <details>/<summary> accordion.
  *
@@ -12,25 +10,26 @@ import { useId } from "react";
  * the post page so all three references (visible UI, accessibility tree,
  * structured data) stay aligned.
  *
- * Client-only because we want one item open by default but consistently
- * across reloads — server can't know which one the reader has clicked.
+ * Client-only because the open/closed state is interactive — server can't
+ * know which item the reader has clicked.
  */
 interface Props {
   items: { q: string; a: string }[];
 }
 
+const FAQ_HEADING_ID = "faq";
+
 export function BlogFaq({ items }: Props) {
-  const sectionId = useId();
   if (items.length === 0) return null;
 
   return (
     <section
-      aria-labelledby={`${sectionId}-heading`}
+      aria-labelledby={FAQ_HEADING_ID}
       className="mt-14 border-t border-[var(--line)] pt-10"
     >
       <h2
-        id={`${sectionId}-heading`}
-        className="text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]"
+        id={FAQ_HEADING_ID}
+        className="scroll-mt-24 text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]"
       >
         Frequently asked questions
       </h2>

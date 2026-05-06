@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
+import { JsonLd } from "@/components/json-ld";
+import { LOCALE_COOKIE_NAME } from "@/lib/i18n/cookie";
 import "./globals.css";
 
 const inter = Inter({
@@ -73,6 +75,44 @@ export const viewport: Viewport = {
 // when neither signal exists. Kept tiny so it doesn't delay first paint.
 const themeBoot = `(function(){try{var c=document.cookie.match(/(?:^|; )rt-theme=([^;]+)/);var t=(c&&c[1])||localStorage.getItem("rt-theme")||"light";if(t==="dark"){document.documentElement.classList.add("dark")}document.documentElement.style.colorScheme=t}catch(e){}})()`;
 
+// Site-identity JSON-LD. Lives in the root layout so every page emits it,
+// which lets Google merge brand signals (sameAs, logo, founder) into a
+// Knowledge Graph entity rather than treating each page as an island.
+// Distinct from per-page Article / SoftwareApplication / FAQPage blocks —
+// those describe the *page*, this describes the *publisher*.
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: {
+    "@type": "ImageObject",
+    url: `${SITE_URL}/icon.svg`,
+    width: 512,
+    height: 512,
+  },
+  sameAs: ["https://github.com/Gribadan/RentTools.io"],
+  founder: { "@type": "Person", name: "Ilya Asminkin" },
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: "support@renttools.io",
+    availableLanguage: ["en", "ru"],
+  },
+};
+
+const WEBSITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  url: SITE_URL,
+  name: SITE_NAME,
+  description: SITE_TAGLINE,
+  inLanguage: ["en", "ru"],
+  publisher: { "@id": `${SITE_URL}/#organization` },
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -83,15 +123,24 @@ export default async function RootLayout({
   // server can read it; localStorage is the toggle's fallback.
   const cookieStore = await cookies();
   const initialTheme = cookieStore.get("rt-theme")?.value === "dark" ? "dark" : "light";
+  // Mirror the locale cookie into <html lang="…"> so non-English readers
+  // don't get a mismatched language declaration. Defaults to "en". A
+  // wrong lang attribute is one of the easier SEO own-goals — Google
+  // ranks EN content lower if the page declares lang="ru" but the body
+  // is English (and vice versa).
+  const localeCookie = cookieStore.get(LOCALE_COOKIE_NAME)?.value;
+  const lang = localeCookie === "ru" ? "ru" : "en";
   return (
     <html
-      lang="en"
+      lang={lang}
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased ${initialTheme === "dark" ? "dark" : ""}`}
       style={{ colorScheme: initialTheme }}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+        <JsonLd data={ORGANIZATION_JSON_LD} />
+        <JsonLd data={WEBSITE_JSON_LD} />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-sans)]">
         <Providers>{children}</Providers>
