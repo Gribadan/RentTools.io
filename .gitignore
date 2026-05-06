@@ -104,6 +104,9 @@ test-results/
 .env.sentry-build-plugin
 .sentryclirc
 
+# === MCP server local config (contains API keys) ===
+.nano-banana-config.json
+
 # === SSH / signing keys (never, under any circumstance) ===
 id_rsa*
 id_ed25519*

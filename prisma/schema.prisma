@@ -325,11 +325,24 @@ model BlogPost {
   title              String
   excerpt            String       @default("")  // 140-160 char meta-description summary
   body               String       @default("")  // markdown
+  // Structured TL;DR — rendered as a callout above the body and excluded
+  // from the main markdown so we don't double-render. Plain markdown
+  // bullet syntax accepted (e.g. "- foo\n- bar").
+  tldr               String       @default("")
+  // Structured FAQ list — JSON: [{ "q": "...", "a": "..." }, ...]. Drives
+  // the on-page Q/A section AND the FAQPage JSON-LD that Google reads
+  // for rich-result eligibility. Empty array = no FAQ section rendered.
+  faqJson            String       @default("[]")
   status             String       @default("draft") // "draft" | "published" | "archived"
   authorId           Int
   author             User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
   tagsJson           String       @default("[]") // JSON array of BlogTag slugs
   ogImageUrl         String?
+  // Cover image dimensions — populated by the upload API so the post
+  // page can emit `width` / `height` in the JSON-LD ImageObject and
+  // <img> tags can reserve layout space (kills CLS on the cover swap).
+  ogImageWidth       Int?
+  ogImageHeight      Int?
   // Cross-locale link (RT-20.3 tick 2). Posts that translate the same
   // article share a translationGroupId; the post page renders "Read in
   // Russian" / "Read in English" by joining on this id. Self-managed by

@@ -9,6 +9,10 @@ const SLUG_MAX = 80;
 const EXCERPT_MAX = 320;
 const BODY_MAX = 200_000;
 const OG_URL_MAX = 512;
+const TLDR_MAX = 1_000;
+const FAQ_QUESTION_MAX = 300;
+const FAQ_ANSWER_MAX = 2_000;
+const FAQ_MAX_ITEMS = 30;
 
 const VALID_STATUS = new Set(["draft", "published", "archived"]);
 const VALID_LOCALE = new Set(["en", "ru"]);
@@ -21,6 +25,51 @@ function parseTags(raw: string): string[] {
   } catch {
     return [];
   }
+}
+
+interface FaqItem {
+  q: string;
+  a: string;
+}
+
+function parseFaq(raw: string): FaqItem[] {
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter((x): x is FaqItem => typeof x === "object" && x !== null && typeof x.q === "string" && typeof x.a === "string")
+      .map((x) => ({ q: x.q, a: x.a }));
+  } catch {
+    return [];
+  }
+}
+
+function validateFaqInput(raw: unknown): { value: FaqItem[]; error: string | null } {
+  if (!Array.isArray(raw)) return { value: [], error: "faq must be an array of {q, a}" };
+  if (raw.length > FAQ_MAX_ITEMS) {
+    return { value: [], error: `faq supports at most ${FAQ_MAX_ITEMS} items` };
+  }
+  const out: FaqItem[] = [];
+  for (const item of raw) {
+    if (typeof item !== "object" || item === null) {
+      return { value: [], error: "each faq item must be an object" };
+    }
+    const rec = item as Record<string, unknown>;
+    if (typeof rec.q !== "string" || typeof rec.a !== "string") {
+      return { value: [], error: "each faq item must have string q and a" };
+    }
+    const q = rec.q.trim();
+    const a = rec.a.trim();
+    if (q.length === 0 || a.length === 0) continue; // silently drop blank rows from the editor
+    if (q.length > FAQ_QUESTION_MAX) {
+      return { value: [], error: `faq question exceeds ${FAQ_QUESTION_MAX} chars` };
+    }
+    if (a.length > FAQ_ANSWER_MAX) {
+      return { value: [], error: `faq answer exceeds ${FAQ_ANSWER_MAX} chars` };
+    }
+    out.push({ q, a });
+  }
+  return { value: out, error: null };
 }
 
 function parseId(raw: string): number | null {
@@ -72,11 +121,15 @@ export async function GET(
       title: row.title,
       excerpt: row.excerpt,
       body: row.body,
+      tldr: row.tldr,
+      faq: parseFaq(row.faqJson),
       status: row.status,
       authorId: row.authorId,
       authorUsername: row.author?.username ?? null,
       tags: parseTags(row.tagsJson),
       ogImageUrl: row.ogImageUrl,
+      ogImageWidth: row.ogImageWidth,
+      ogImageHeight: row.ogImageHeight,
       translationGroupId: row.translationGroupId,
       translationSibling,
       publishedAt: row.publishedAt?.toISOString() ?? null,
@@ -118,9 +171,13 @@ export async function PATCH(
       locale?: unknown;
       excerpt?: unknown;
       body?: unknown;
+      tldr?: unknown;
+      faq?: unknown;
       status?: unknown;
       tags?: unknown;
       ogImageUrl?: unknown;
+      ogImageWidth?: unknown;
+      ogImageHeight?: unknown;
       publishedAt?: unknown;
     };
 
@@ -210,6 +267,55 @@ export async function PATCH(
       if (next !== existing.ogImageUrl) {
         data.ogImageUrl = next;
         changed.push("ogImageUrl");
+      }
+    }
+
+    if (body.ogImageWidth !== undefined) {
+      const next = body.ogImageWidth === null ? null : Number(body.ogImageWidth);
+      if (next !== null && (!Number.isInteger(next) || next <= 0 || next > 10_000)) {
+        return NextResponse.json({ error: "ogImageWidth must be a positive integer ≤ 10000 or null" }, { status: 400 });
+      }
+      if (next !== existing.ogImageWidth) {
+        data.ogImageWidth = next;
+        changed.push("ogImageWidth");
+      }
+    }
+
+    if (body.ogImageHeight !== undefined) {
+      const next = body.ogImageHeight === null ? null : Number(body.ogImageHeight);
+      if (next !== null && (!Number.isInteger(next) || next <= 0 || next > 10_000)) {
+        return NextResponse.json({ error: "ogImageHeight must be a positive integer ≤ 10000 or null" }, { status: 400 });
+      }
+      if (next !== existing.ogImageHeight) {
+        data.ogImageHeight = next;
+        changed.push("ogImageHeight");
+      }
+    }
+
+    if (body.tldr !== undefined) {
+      if (typeof body.tldr !== "string") {
+        return NextResponse.json({ error: "tldr must be a string" }, { status: 400 });
+      }
+      const t = body.tldr.trim();
+      if (t.length > TLDR_MAX) {
+        return NextResponse.json(
+          { error: `TL;DR must be ${TLDR_MAX} characters or fewer` },
+          { status: 400 },
+        );
+      }
+      if (t !== existing.tldr) {
+        data.tldr = t;
+        changed.push("tldr");
+      }
+    }
+
+    if (body.faq !== undefined) {
+      const { value, error } = validateFaqInput(body.faq);
+      if (error) return NextResponse.json({ error }, { status: 400 });
+      const nextJson = JSON.stringify(value);
+      if (nextJson !== existing.faqJson) {
+        data.faqJson = nextJson;
+        changed.push("faq");
       }
     }
 
@@ -324,11 +430,15 @@ export async function PATCH(
       title: updated.title,
       excerpt: updated.excerpt,
       body: updated.body,
+      tldr: updated.tldr,
+      faq: parseFaq(updated.faqJson),
       status: updated.status,
       authorId: updated.authorId,
       authorUsername: updated.author?.username ?? null,
       tags: parseTags(updated.tagsJson),
       ogImageUrl: updated.ogImageUrl,
+      ogImageWidth: updated.ogImageWidth,
+      ogImageHeight: updated.ogImageHeight,
       translationGroupId: updated.translationGroupId,
       publishedAt: updated.publishedAt?.toISOString() ?? null,
       createdAt: updated.createdAt.toISOString(),

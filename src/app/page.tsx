@@ -106,6 +106,12 @@ export default async function HomePage() {
             <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">RentTools</span>
           </Link>
           <nav className="flex items-center gap-1 sm:gap-2">
+            <Link
+              href="/blog"
+              className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
+            >
+              Blog
+            </Link>
             <a
               href={`${REPO_URL}`}
               target="_blank"

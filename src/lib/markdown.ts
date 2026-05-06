@@ -7,7 +7,7 @@
  * smuggle script tags or unsafe URL schemes onto the page.
  *
  * Supports a deliberately small subset:
- *   - Headings:      `# H1`, `## H2`, `### H3` (renders as h2/h3/h4 — h1 is the page title)
+ *   - Headings:      `## H2`, `### H3`, `#### H4` (a leading `# Title` line is stripped — the page <h1> already supplies the title)
  *   - Paragraphs:    blank-line separated
  *   - Lists:         `- item` / `* item` (bullet), `1. item` (numbered)
  *   - Code blocks:   ```fenced```
@@ -222,7 +222,9 @@ export interface TocEntry {
 /**
  * Walk the markdown source and return the heading list the TOC sidebar
  * should render. The same slug + dedup logic runs inside `renderMarkdown`
- * so the ids the TOC links to actually exist in the rendered HTML.
+ * so the ids the TOC links to actually exist in the rendered HTML. Only
+ * h2 and h3 (source `##` and `###`) make the cut so the sidebar stays
+ * scannable; h4+ are still rendered, just not indexed.
  */
 export function extractToc(md: string): TocEntry[] {
   const blocks = tokenize(md);
@@ -231,13 +233,13 @@ export function extractToc(md: string): TocEntry[] {
   for (const b of blocks) {
     if (b.type !== "heading") continue;
     const sourceLevel = b.level ?? 2;
-    if (sourceLevel < 1 || sourceLevel > 2) continue; // only `#` and `##` (rendered as h2 + h3)
+    if (sourceLevel < 2 || sourceLevel > 3) continue;
     const text = (b.lines ?? [""])[0];
     const baseSlug = slugifyHeading(text);
     const count = (seen.get(baseSlug) ?? 0) + 1;
     seen.set(baseSlug, count);
     const id = count === 1 ? baseSlug : `${baseSlug}-${count}`;
-    entries.push({ id, text: text.replace(/[*`_]/g, ""), level: sourceLevel === 1 ? 2 : 3 });
+    entries.push({ id, text: text.replace(/[*`_]/g, ""), level: sourceLevel as 2 | 3 });
   }
   return entries;
 }
@@ -260,15 +262,20 @@ export function renderMarkdown(md: string): string {
     }
 
     if (b.type === "heading") {
-      // Down-shift one level so post body never collides with the page <h1>.
-      // Only h2/h3 (source `#` / `##`) get an id — those are the levels the
-      // TOC sidebar links to. Slug-collision suffix matches `extractToc`.
+      // Source `## H2` → `<h2>`, `### H3` → `<h3>`, etc. We do NOT down-shift
+      // anymore; the page already renders the post title as `<h1>` so a
+      // body `# Title` would have produced two competing h1s. Authors
+      // should now write `## Section` for top-level sections (matches
+      // every blog CMS convention). A stray `# Heading` is rendered
+      // as <h1> so the slip is visible during preview, not silently fixed.
       const sourceLevel = b.level ?? 2;
-      const tag = `h${Math.min(6, sourceLevel + 1)}`;
+      const tag = `h${Math.min(6, sourceLevel)}`;
       const rawText = (b.lines ?? [""])[0];
       const escaped = escapeHtml(rawText);
+      // Index h2 + h3 in the TOC. Other levels still render but don't get
+      // anchors — keeps the sidebar tight on long posts.
       let attrs = "";
-      if (sourceLevel <= 2) {
+      if (sourceLevel >= 2 && sourceLevel <= 3) {
         const baseSlug = slugifyHeading(rawText);
         const count = (headingSeen.get(baseSlug) ?? 0) + 1;
         headingSeen.set(baseSlug, count);
@@ -319,4 +326,16 @@ export function readingMinutes(md: string): number {
   const text = md.replace(/```[\s\S]*?```/g, "");
   const words = text.split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 220));
+}
+
+/**
+ * Drop a leading `# Title` line if the body opens with one. The post
+ * page renders the post title as `<h1>` already, so a body H1 produces
+ * a duplicate-title heading + breaks the h1→h2→h3 outline accessibility
+ * tools expect. Existing markdown sources still ship the H1 for readability
+ * inside an editor; this strips it at render time so we don't have to
+ * do a one-shot rewrite of every post.
+ */
+export function stripLeadingH1(md: string): string {
+  return md.replace(/^\s*#\s+[^\n]*\n+/, "");
 }

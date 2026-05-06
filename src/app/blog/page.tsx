@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { BlogHeader } from "@/components/blog-header";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 
@@ -87,6 +87,9 @@ export default async function BlogIndexPage({
         title: true,
         excerpt: true,
         tagsJson: true,
+        ogImageUrl: true,
+        ogImageWidth: true,
+        ogImageHeight: true,
         publishedAt: true,
       },
     }),
@@ -103,32 +106,50 @@ export default async function BlogIndexPage({
   const prevHref = buildHref({ page: page - 1, tag: tagFilter });
   const nextHref = buildHref({ page: page + 1, tag: tagFilter });
 
+  // Featured = newest post on page 1 with no tag filter — gets a wider
+  // hero card. Everything else flows in the magazine grid below it.
+  const isLanding = page === 1 && !tagFilter;
+  const featured = isLanding && posts.length > 0 ? posts[0] : null;
+  const rest = featured ? posts.slice(1) : posts;
+
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
-      <header className="border-b border-[var(--line)]">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
-            ← RentTools
-          </Link>
-          <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
-            <Link href="/login" className="hover:text-[var(--ink)]">Sign in</Link>
-            <LocaleSwitcher />
-          </nav>
-        </div>
-      </header>
+      <BlogHeader />
 
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Blog</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--ink-3)] sm:text-base">
-          Notes from running short-term rentals — calendar sync, cleaning workflows,
-          guest data, and the boring parts of GDPR a host actually has to do.
-        </p>
+      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
+        {/* Index hero — same accent gradient as the post pages so the
+            shell reads as one product. Headline + intro pitch the section
+            in copy that has actual keywords (Google reads this for the
+            blog hub's own ranking). */}
+        <section className="relative mt-6 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-10 pt-10 sm:px-10 sm:pb-12 sm:pt-14">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              background:
+                "radial-gradient(60% 60% at 50% 0%, color-mix(in oklab, var(--m-accent) 22%, transparent) 0%, transparent 70%)",
+            }}
+          />
+          <div className="relative">
+            <p className="mono mb-4 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+              The RentTools blog
+            </p>
+            <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl md:text-[2.75rem]">
+              Field notes for short-term rental hosts
+            </h1>
+            <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-[var(--ink-3)] sm:text-lg">
+              Calendar sync that actually works, cleaning automation that doesn&rsquo;t
+              double-book the cleaner, and a host&rsquo;s GDPR checklist that fits on
+              one page. Written by people who run listings, not affiliate sites.
+            </p>
+          </div>
+        </section>
 
         {tagRows.length > 0 && (
-          <nav className="mt-6 flex flex-wrap gap-2 text-xs">
+          <nav aria-label="Filter by tag" className="mt-8 flex flex-wrap gap-2 text-xs">
             <Link
               href="/blog"
-              className={`rounded-full border px-3 py-1 ${
+              className={`rounded-full border px-3 py-1 transition-colors ${
                 tagFilter
                   ? "border-[var(--line)] text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                   : "border-[var(--m-accent)] text-[var(--m-accent)]"
@@ -142,7 +163,7 @@ export default async function BlogIndexPage({
                 <Link
                   key={t.slug}
                   href={`/blog/tag/${encodeURIComponent(t.slug)}`}
-                  className={`rounded-full border px-3 py-1 ${
+                  className={`rounded-full border px-3 py-1 transition-colors ${
                     active
                       ? "border-[var(--m-accent)] text-[var(--m-accent)]"
                       : "border-[var(--line)] text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
@@ -155,61 +176,126 @@ export default async function BlogIndexPage({
           </nav>
         )}
 
-        <section className="mt-8">
+        <section className="mt-10 sm:mt-12">
           {posts.length === 0 ? (
-            <p className="rounded-lg border border-[var(--line)] bg-[var(--bg)] px-4 py-8 text-center text-sm text-[var(--ink-3)]">
+            <p className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-12 text-center text-sm text-[var(--ink-3)]">
               No posts yet{tagFilter ? ` for tag "${tagFilter}"` : ""}.
             </p>
           ) : (
-            <ul className="space-y-4">
-              {posts.map((p) => {
-                const tags = parseTags(p.tagsJson);
-                return (
-                  <li
-                    key={p.id}
-                    className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-5 transition-colors hover:border-[var(--line-2)]"
-                  >
-                    <Link href={`/blog/${p.slug}`} className="block">
-                      <h2 className="text-xl font-semibold text-[var(--ink)] hover:text-white sm:text-2xl">
-                        {p.title}
-                      </h2>
-                      {p.excerpt && (
-                        <p className="mt-2 text-sm text-[var(--ink-3)] sm:text-base">{p.excerpt}</p>
-                      )}
-                    </Link>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
-                      {p.publishedAt && (
-                        <time dateTime={p.publishedAt.toISOString()}>
-                          {formatDate(p.publishedAt)}
+            <>
+              {featured && (
+                <Link
+                  href={`/blog/${featured.slug}`}
+                  className="group mb-10 grid overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-2)]/30 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-xl md:grid-cols-2"
+                >
+                  <div className="aspect-[1.91/1] overflow-hidden bg-[var(--bg-3)] md:aspect-auto md:h-full">
+                    {featured.ogImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={featured.ogImageUrl}
+                        alt={featured.title}
+                        width={featured.ogImageWidth ?? undefined}
+                        height={featured.ogImageHeight ?? undefined}
+                        className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                        loading="eager"
+                        fetchPriority="high"
+                      />
+                    ) : (
+                      <FeaturedPlaceholder />
+                    )}
+                  </div>
+                  <div className="flex flex-col justify-center p-6 sm:p-8">
+                    <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[var(--m-accent)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
+                      Featured
+                    </span>
+                    <h2 className="text-balance text-2xl font-bold leading-snug tracking-tight text-[var(--ink)] sm:text-[1.75rem] group-hover:text-white">
+                      {featured.title}
+                    </h2>
+                    {featured.excerpt && (
+                      <p className="mt-3 line-clamp-3 text-[15px] leading-relaxed text-[var(--ink-3)]">
+                        {featured.excerpt}
+                      </p>
+                    )}
+                    <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
+                      {featured.publishedAt && (
+                        <time dateTime={featured.publishedAt.toISOString()}>
+                          {formatDate(featured.publishedAt)}
                         </time>
                       )}
-                      {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {tags.map((t) => (
-                            <Link
-                              key={t}
-                              href={`/blog/tag/${encodeURIComponent(t)}`}
-                              className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] hover:border-[var(--line-2)] hover:text-[var(--ink-3)]"
-                            >
-                              {t}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
+                      {parseTags(featured.tagsJson).slice(0, 3).map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[10px] uppercase tracking-wider"
+                        >
+                          {t}
+                        </span>
+                      ))}
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
+                  </div>
+                </Link>
+              )}
+
+              <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {rest.map((p) => {
+                  const tags = parseTags(p.tagsJson);
+                  return (
+                    <li key={p.id}>
+                      <Link
+                        href={`/blog/${p.slug}`}
+                        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-2)]/30 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
+                      >
+                        <div className="aspect-[1.91/1] overflow-hidden bg-[var(--bg-3)]">
+                          {p.ogImageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={p.ogImageUrl}
+                              alt={p.title}
+                              width={p.ogImageWidth ?? undefined}
+                              height={p.ogImageHeight ?? undefined}
+                              className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <FeaturedPlaceholder small />
+                          )}
+                        </div>
+                        <div className="flex flex-1 flex-col p-5">
+                          <h2 className="text-balance text-[17px] font-semibold leading-snug tracking-tight text-[var(--ink)] group-hover:text-white">
+                            {p.title}
+                          </h2>
+                          {p.excerpt && (
+                            <p className="mt-2 line-clamp-3 text-[13.5px] leading-relaxed text-[var(--ink-3)]">
+                              {p.excerpt}
+                            </p>
+                          )}
+                          <div className="mt-auto pt-4 flex flex-wrap items-center gap-2 text-[11px] text-[var(--ink-4)]">
+                            {p.publishedAt && (
+                              <time dateTime={p.publishedAt.toISOString()}>
+                                {formatDate(p.publishedAt)}
+                              </time>
+                            )}
+                            {tags.slice(0, 2).map((t) => (
+                              <span key={t} className="rounded-full border border-[var(--line)] px-2 py-0.5 uppercase tracking-wider">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
         </section>
 
         {totalPages > 1 && (
-          <nav className="mt-10 flex items-center justify-between text-sm">
+          <nav className="mt-12 flex items-center justify-between text-sm">
             {hasPrev ? (
               <Link
                 href={prevHref}
-                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="prev"
               >
                 ← Previous
@@ -223,7 +309,7 @@ export default async function BlogIndexPage({
             {hasNext ? (
               <Link
                 href={nextHref}
-                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="next"
               >
                 Next →
@@ -235,8 +321,8 @@ export default async function BlogIndexPage({
         )}
       </main>
 
-      <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
+      <footer className="mt-16 border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
@@ -245,6 +331,24 @@ export default async function BlogIndexPage({
           </nav>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function FeaturedPlaceholder({ small = false }: { small?: boolean }) {
+  return (
+    <div
+      className={`flex size-full items-center justify-center text-[var(--m-accent)] opacity-30 ${small ? "" : ""}`}
+      aria-hidden
+      style={{
+        background:
+          "radial-gradient(80% 80% at 50% 50%, color-mix(in oklab, var(--m-accent) 18%, transparent) 0%, transparent 70%)",
+      }}
+    >
+      <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth={1.2}>
+        <path d="M3.4 11.6 L12 4.5 L20.6 11.6 L19 11.6 L19 19.5 L5 19.5 L5 11.6 Z" />
+        <rect x="15.6" y="6.2" width="1.7" height="3.4" rx="0.2" />
+      </svg>
     </div>
   );
 }

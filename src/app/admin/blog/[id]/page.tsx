@@ -61,11 +61,15 @@ export default async function AdminBlogPostPage({ params }: PageProps) {
     title: row.title,
     excerpt: row.excerpt,
     body: row.body,
+    tldr: row.tldr,
+    faq: parseFaq(row.faqJson),
     status: row.status as "draft" | "published" | "archived",
     authorId: row.authorId,
     authorUsername: row.author?.username ?? null,
     tags: parseTags(row.tagsJson),
     ogImageUrl: row.ogImageUrl,
+    ogImageWidth: row.ogImageWidth,
+    ogImageHeight: row.ogImageHeight,
     translationGroupId: row.translationGroupId,
     translationSibling,
     publishedAt: row.publishedAt?.toISOString() ?? null,
@@ -87,6 +91,18 @@ function parseTags(json: string): string[] {
   try {
     const parsed = JSON.parse(json);
     return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function parseFaq(json: string): { q: string; a: string }[] {
+  try {
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((x): x is { q: string; a: string } => typeof x === "object" && x !== null && typeof (x as { q?: unknown }).q === "string" && typeof (x as { a?: unknown }).a === "string")
+      .map((x) => ({ q: x.q, a: x.a }));
   } catch {
     return [];
   }

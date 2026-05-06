@@ -22,11 +22,15 @@ export interface EditorPost {
   title: string;
   excerpt: string;
   body: string;
+  tldr: string;
+  faq: { q: string; a: string }[];
   status: "draft" | "published" | "archived";
   authorId: number;
   authorUsername: string | null;
   tags: string[];
   ogImageUrl: string | null;
+  ogImageWidth: number | null;
+  ogImageHeight: number | null;
   translationGroupId: number | null;
   translationSibling: EditorTranslationCandidate | null;
   publishedAt: string | null;
@@ -45,6 +49,10 @@ const TITLE_MAX = 200;
 const SLUG_MAX = 80;
 const EXCERPT_MAX = 320;
 const OG_URL_MAX = 512;
+const TLDR_MAX = 1_000;
+const FAQ_QUESTION_MAX = 300;
+const FAQ_ANSWER_MAX = 2_000;
+const FAQ_MAX_ITEMS = 30;
 
 function toLocalDateTimeInput(iso: string | null): string {
   if (!iso) return "";
@@ -69,8 +77,12 @@ export function BlogPostEditor({ post, candidates }: Props) {
   const [status, setStatus] = useState<"draft" | "published" | "archived">(post.status);
   const [excerpt, setExcerpt] = useState(post.excerpt);
   const [body, setBody] = useState(post.body);
+  const [tldr, setTldr] = useState(post.tldr);
+  const [faq, setFaq] = useState<{ q: string; a: string }[]>(post.faq);
   const [tagsInput, setTagsInput] = useState(post.tags.join(", "));
   const [ogImageUrl, setOgImageUrl] = useState(post.ogImageUrl ?? "");
+  const [ogImageWidth, setOgImageWidth] = useState<number | null>(post.ogImageWidth);
+  const [ogImageHeight, setOgImageHeight] = useState<number | null>(post.ogImageHeight);
   const [publishedAtLocal, setPublishedAtLocal] = useState(toLocalDateTimeInput(post.publishedAt));
   const [translationSibling, setTranslationSibling] = useState(post.translationSibling);
   const [linkOtherId, setLinkOtherId] = useState<string>("");
@@ -82,6 +94,7 @@ export function BlogPostEditor({ post, candidates }: Props) {
   const [uploading, setUploading] = useState(false);
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   const tags = useMemo(
     () =>
@@ -105,8 +118,12 @@ export function BlogPostEditor({ post, candidates }: Props) {
     status !== post.status ||
     excerpt !== post.excerpt ||
     body !== post.body ||
+    tldr !== post.tldr ||
+    JSON.stringify(faq) !== JSON.stringify(post.faq) ||
     JSON.stringify(tags) !== JSON.stringify(post.tags) ||
     (ogImageUrl.trim() || null) !== (post.ogImageUrl ?? null) ||
+    ogImageWidth !== post.ogImageWidth ||
+    ogImageHeight !== post.ogImageHeight ||
     fromLocalDateTimeInput(publishedAtLocal) !== post.publishedAt;
 
   const setStatusMessage = (text: string, ok: boolean) => {
@@ -176,7 +193,7 @@ export function BlogPostEditor({ post, candidates }: Props) {
     applyEdit("wrap", { before: "[", after: `](${url})`, placeholder: "link text" });
   };
 
-  const handleImageFile = async (file: File) => {
+  const handleImageFile = async (file: File, mode: "insert" | "cover" = "insert") => {
     setUploading(true);
     setMessage(null);
     try {
@@ -188,15 +205,23 @@ export function BlogPostEditor({ post, candidates }: Props) {
         setStatusMessage(data.error ?? "Upload failed", false);
         return;
       }
-      const data = (await res.json()) as { url: string };
-      const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
-      applyEdit("insert", { insert: `\n\n![${alt}](${data.url})\n\n` });
-      setStatusMessage("Image uploaded.", true);
+      const data = (await res.json()) as { url: string; width?: number; height?: number };
+      if (mode === "cover") {
+        setOgImageUrl(data.url);
+        setOgImageWidth(typeof data.width === "number" ? data.width : null);
+        setOgImageHeight(typeof data.height === "number" ? data.height : null);
+        setStatusMessage("Cover image uploaded.", true);
+      } else {
+        const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+        applyEdit("insert", { insert: `\n\n![${alt}](${data.url})\n\n` });
+        setStatusMessage("Image uploaded.", true);
+      }
     } catch (err) {
       setStatusMessage(err instanceof Error ? err.message : "Upload failed", false);
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+      if (coverInputRef.current) coverInputRef.current.value = "";
     }
   };
 
@@ -215,8 +240,12 @@ export function BlogPostEditor({ post, candidates }: Props) {
           status,
           excerpt,
           body,
+          tldr,
+          faq: faq.filter((f) => f.q.trim().length > 0 && f.a.trim().length > 0),
           tags,
           ogImageUrl: ogImageUrl.trim().length > 0 ? ogImageUrl.trim() : null,
+          ogImageWidth,
+          ogImageHeight,
           publishedAt: fromLocalDateTimeInput(publishedAtLocal),
         }),
       });
@@ -612,6 +641,137 @@ export function BlogPostEditor({ post, candidates }: Props) {
               )}
             </div>
           </div>
+
+          {/* TL;DR — surfaces above the fold on the public post page and is
+              prime real estate for keyword-rich opening copy. Stored as
+              its own column so the renderer doesn't have to scrape for a
+              `## TL;DR` section in the body. Markdown bullet syntax is
+              accepted (one bullet per line) and rendered as a list. */}
+          <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                TL;DR
+              </p>
+              <span className="text-[10px] text-muted-foreground/70">
+                {tldr.length} / {TLDR_MAX}
+              </span>
+            </div>
+            <textarea
+              value={tldr}
+              onChange={(e) => setTldr(e.target.value.slice(0, TLDR_MAX))}
+              rows={4}
+              spellCheck
+              className="w-full resize-y rounded-lg border border-border/40 bg-background/50 p-3 text-sm leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              placeholder={
+                "- Both Airbnb and Booking.com expose iCal export URLs for free.\n- iCal sync is not real-time — refresh windows are 2–6 hours.\n- For 1–3 listings, free is more than enough."
+              }
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground/70">
+              Renders as a callout above the article body. Use markdown-style bullets.
+            </p>
+          </div>
+
+          {/* FAQ — structured Q/A pairs. Drives both the on-page Q/A
+              section AND the FAQPage JSON-LD that makes posts eligible
+              for Google rich-result expansion. Each Q/A is a row in the
+              repeater; reorder with the up/down buttons. */}
+          <div className="rounded-xl border border-border/60 bg-card/50 p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  FAQ
+                </p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground/70">
+                  Emits FAQPage schema. Each answer accepts plain text — no markdown.
+                </p>
+              </div>
+              <span className="text-[10px] text-muted-foreground/70">
+                {faq.length} / {FAQ_MAX_ITEMS}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {faq.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-border/40 bg-background/30 p-3"
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Q{idx + 1}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        title="Move up"
+                        disabled={idx === 0}
+                        onClick={() => {
+                          if (idx === 0) return;
+                          const next = faq.slice();
+                          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                          setFaq(next);
+                        }}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        title="Move down"
+                        disabled={idx === faq.length - 1}
+                        onClick={() => {
+                          if (idx === faq.length - 1) return;
+                          const next = faq.slice();
+                          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                          setFaq(next);
+                        }}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        title="Remove"
+                        onClick={() => setFaq(faq.filter((_, i) => i !== idx))}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded text-destructive hover:bg-destructive/10"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    value={item.q}
+                    onChange={(e) => {
+                      const next = faq.slice();
+                      next[idx] = { ...item, q: e.target.value.slice(0, FAQ_QUESTION_MAX) };
+                      setFaq(next);
+                    }}
+                    placeholder="Question…"
+                    className="mb-2 h-9 w-full rounded-md border border-border/40 bg-background/50 px-3 text-sm font-medium outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                  <textarea
+                    value={item.a}
+                    onChange={(e) => {
+                      const next = faq.slice();
+                      next[idx] = { ...item, a: e.target.value.slice(0, FAQ_ANSWER_MAX) };
+                      setFaq(next);
+                    }}
+                    rows={3}
+                    placeholder="Answer…"
+                    className="w-full resize-y rounded-md border border-border/40 bg-background/50 p-3 text-sm leading-relaxed outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-full rounded-lg text-xs"
+                disabled={faq.length >= FAQ_MAX_ITEMS}
+                onClick={() => setFaq([...faq, { q: "", a: "" }])}
+              >
+                + Add question
+              </Button>
+            </div>
+          </div>
         </div>
 
         <aside className="space-y-4">
@@ -666,17 +826,74 @@ export function BlogPostEditor({ post, candidates }: Props) {
 
           <div className="rounded-xl border border-border/60 bg-card/50 p-4">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Open Graph image
+              Cover image (also OG)
             </p>
+            {ogImageUrl ? (
+              <div className="mb-3 overflow-hidden rounded-md border border-border/40">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={ogImageUrl}
+                  alt="Cover preview"
+                  className="aspect-[1.91/1] w-full object-cover"
+                />
+                {(ogImageWidth && ogImageHeight) && (
+                  <p className="px-2 py-1 text-[10px] text-muted-foreground/70">
+                    {ogImageWidth}×{ogImageHeight}
+                  </p>
+                )}
+              </div>
+            ) : null}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 flex-1 rounded-lg text-xs"
+                onClick={() => coverInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? "Uploading…" : ogImageUrl ? "Replace" : "Upload"}
+              </Button>
+              {ogImageUrl && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 rounded-lg text-xs text-destructive hover:text-destructive"
+                  onClick={() => {
+                    setOgImageUrl("");
+                    setOgImageWidth(null);
+                    setOgImageHeight(null);
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImageFile(file, "cover");
+              }}
+            />
             <Input
               value={ogImageUrl}
-              onChange={(e) => setOgImageUrl(e.target.value)}
-              placeholder="https://renttools.io/og/post.png"
+              onChange={(e) => {
+                setOgImageUrl(e.target.value);
+                // External URLs lose width/height — null them so JSON-LD
+                // doesn't ship stale dimensions for a different image.
+                setOgImageWidth(null);
+                setOgImageHeight(null);
+              }}
+              placeholder="…or paste an external URL"
               maxLength={OG_URL_MAX}
-              className="h-9 rounded-lg bg-background/50 font-mono text-[11px]"
+              className="mt-2 h-8 rounded-lg bg-background/50 font-mono text-[10px]"
             />
             <p className="mt-1 text-[10px] text-muted-foreground/70">
-              Optional. Falls back to the site-wide OG image when blank.
+              Used as the post hero AND the social-card image. Falls back to the
+              site-wide OG image when blank.
             </p>
           </div>
 
