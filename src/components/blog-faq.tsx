@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/context";
+import { renderInlineSafe } from "@/lib/markdown";
 
 /**
  * Render the FAQ section as a native <details>/<summary> accordion.
@@ -44,7 +45,7 @@ export function BlogFaq({ items }: Props) {
               {...(idx === 0 ? { open: true } : {})}
             >
               <summary className="flex cursor-pointer items-start justify-between gap-4 p-5 text-[15px] font-semibold leading-snug text-[var(--ink)] marker:hidden [&::-webkit-details-marker]:hidden">
-                <span>{item.q}</span>
+                <span dangerouslySetInnerHTML={{ __html: renderInlineSafe(item.q) }} />
                 <span
                   aria-hidden
                   className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--bg)] text-sm text-[var(--ink-3)] transition-transform group-open:rotate-45"
@@ -54,9 +55,11 @@ export function BlogFaq({ items }: Props) {
               </summary>
               <div className="border-t border-[var(--line)] px-5 pb-5 pt-4 text-[14.5px] leading-relaxed text-[var(--ink-2)]">
                 {item.a.split(/\n{2,}/).map((para, i) => (
-                  <p key={i} className={i > 0 ? "mt-3" : ""}>
-                    {para}
-                  </p>
+                  <p
+                    key={i}
+                    className={i > 0 ? "mt-3" : ""}
+                    dangerouslySetInnerHTML={{ __html: renderInlineSafe(para) }}
+                  />
                 ))}
               </div>
             </details>

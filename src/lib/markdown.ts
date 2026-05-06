@@ -107,10 +107,14 @@ function renderInline(escaped: string): string {
 }
 
 interface Block {
-  type: "heading" | "paragraph" | "ul" | "ol" | "code" | "quote" | "hr";
+  type: "heading" | "paragraph" | "ul" | "ol" | "code" | "quote" | "hr" | "table";
   level?: number;            // for headings
   lines?: string[];           // raw escaped lines
   language?: string;          // for code fences
+  // For tables: parsed cell grid. First sub-array is the header row.
+  // Pre-split on `|` and trimmed at tokenize time so the renderer just
+  // walks rows + cells.
+  rows?: string[][];
 }
 
 /**
@@ -160,6 +164,27 @@ function tokenize(md: string): Block[] {
       const level = headingMatch[1].length;
       blocks.push({ type: "heading", level, lines: [headingMatch[2]] });
       i += 1;
+      continue;
+    }
+
+    // GitHub-flavoured markdown table — pipe-delimited rows. Detected
+    // by a header row followed by a "separator" row of dashes (`|---|---|`).
+    // We don't support cell-alignment markers (`|:---:|`) — alignment
+    // defaults to left, which matches every existing table in content/blog/.
+    if (line.startsWith("|") && i + 1 < lines.length && /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)+\|?\s*$/.test(lines[i + 1])) {
+      const splitRow = (raw: string): string[] => {
+        // Trim the leading/trailing pipes the author may or may not have written,
+        // then split on the inner pipes. Empty trailing cells (from `…|`) are dropped.
+        const stripped = raw.replace(/^\s*\|?/, "").replace(/\|?\s*$/, "");
+        return stripped.split("|").map((c) => c.trim());
+      };
+      const rows: string[][] = [splitRow(line)];
+      i += 2; // skip header + separator
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        rows.push(splitRow(lines[i]));
+        i += 1;
+      }
+      blocks.push({ type: "table", rows });
       continue;
     }
 
@@ -312,9 +337,45 @@ export function renderMarkdown(md: string): string {
       out.push(`<blockquote>${renderInline(text).replace(/\n/g, "<br />")}</blockquote>`);
       continue;
     }
+
+    if (b.type === "table") {
+      const rows = b.rows ?? [];
+      if (rows.length === 0) continue;
+      const [header, ...body] = rows;
+      const headerCells = header
+        .map((c) => `<th>${renderInline(escapeHtml(c))}</th>`)
+        .join("");
+      const bodyRows = body
+        .map(
+          (row) =>
+            `<tr>${row
+              .map((c) => `<td>${renderInline(escapeHtml(c))}</td>`)
+              .join("")}</tr>`,
+        )
+        .join("");
+      out.push(
+        `<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`,
+      );
+      continue;
+    }
   }
 
   return out.join("\n");
+}
+
+/**
+ * Render inline markdown only — bold, italic, inline code, links, images
+ * — for short fragments like TL;DR bullets and FAQ Q/A pairs. Escapes
+ * first so the structured TLDR/FAQ fields can't smuggle script tags or
+ * unsafe URLs even if a future content surface bypasses the body
+ * sanitiser.
+ *
+ * Use with React's `dangerouslySetInnerHTML={{ __html: renderInlineSafe(s) }}`.
+ * Returns a single line of HTML; line breaks in the input become spaces
+ * (use `renderMarkdown` for multi-paragraph text).
+ */
+export function renderInlineSafe(text: string): string {
+  return renderInline(escapeHtml(text));
 }
 
 /**
