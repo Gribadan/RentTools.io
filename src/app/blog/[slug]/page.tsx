@@ -88,6 +88,53 @@ async function findPublishedPost(slug: string, locale: Locale) {
   });
 }
 
+// Stripe-style untranslated-content fallback. When a visitor lands on
+// /<locale>/blog/<slug> and no row exists for that locale, we don't 404
+// (kills UX while the post library is mid-translation) and we don't
+// silently render English under the locale URL (Google would consolidate
+// duplicate content). We render the default-locale row, mark robots
+// noindex, point canonical at the default-locale URL, and surface a
+// banner so the reader knows this isn't a real translation.
+//
+// Returned `untranslated: true` is what triggers all three policies:
+// banner + canonical-to-default + noindex. As soon as a real translated
+// row lands in the DB, the same URL silently switches to native rendering.
+async function findPublishedPostOrFallback(
+  slug: string,
+  locale: Locale,
+): Promise<
+  | {
+      post: NonNullable<Awaited<ReturnType<typeof findPublishedPost>>>;
+      untranslated: false;
+      requestedLocale: Locale;
+    }
+  | {
+      post: NonNullable<Awaited<ReturnType<typeof findPublishedPost>>>;
+      untranslated: true;
+      requestedLocale: Locale;
+    }
+  | null
+> {
+  const native = await findPublishedPost(slug, locale);
+  if (native) return { post: native, untranslated: false, requestedLocale: locale };
+  if (locale === DEFAULT_LOCALE) return null; // EN-only post that doesn't exist → real 404
+  const fallback = await findPublishedPost(slug, DEFAULT_LOCALE);
+  if (!fallback) return null; // No row in any locale → real 404
+  return { post: fallback, untranslated: true, requestedLocale: locale };
+}
+
+// Banner copy shown above the post body when we're serving the EN row
+// under a non-EN URL. Per-locale because the banner itself must be in
+// the visitor's language. Add a new locale here when adding a language;
+// fallback to EN if a copy block is missing.
+const UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> = {
+  en: { line1: "Translation in progress.", line2: "This post is shown in English." },
+  ru: {
+    line1: "Перевод в процессе.",
+    line2: "Эта статья показана на английском.",
+  },
+};
+
 // All locales that have a published row for this slug. Used to build
 // per-post hreflang siblings without pointing at 404s.
 async function findPostLocales(slug: string): Promise<Set<string>> {
@@ -109,17 +156,25 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const locale = await getLocale();
-  const post = await findPublishedPost(slug, locale);
-  if (!post) {
+  const result = await findPublishedPostOrFallback(slug, locale);
+  if (!result) {
     return {
       title: "Post not found",
       robots: { index: false, follow: false },
     };
   }
+  const { post, untranslated } = result;
   const availableLocales = await findPostLocales(slug);
   const languages = buildPostLanguagesForSlug(slug, availableLocales);
-  const canonical =
-    locale === DEFAULT_LOCALE ? `/blog/${slug}` : `/${locale}/blog/${slug}`;
+  // When this URL is serving a fallback (untranslated), the default-locale
+  // URL is the canonical. Self-canonical to /<locale>/blog/<slug> would
+  // tell Google "this URL is the canonical RU version" — the exact
+  // duplicate-content signal we're trying to dodge.
+  const canonical = untranslated
+    ? `/blog/${slug}`
+    : locale === DEFAULT_LOCALE
+      ? `/blog/${slug}`
+      : `/${locale}/blog/${slug}`;
   const url = `${SITE_URL}${canonical}`;
   const tags = parseTags(post.tagsJson);
   const ogImage = post.ogImageUrl
@@ -134,6 +189,13 @@ export async function generateMetadata({
     description: post.excerpt,
     keywords: tags,
     alternates: { canonical, languages },
+    // Untranslated fallback gets noindex — the canonical does most of
+    // the consolidation work, but noindex is the belt-and-suspenders
+    // signal that this URL specifically should never appear in SERPs.
+    // follow:true so link equity still flows to the canonical EN URL.
+    robots: untranslated
+      ? { index: false, follow: true, googleBot: { index: false, follow: true } }
+      : undefined,
     authors: post.author?.username ? [{ name: post.author.username }] : undefined,
     openGraph: {
       type: "article",
@@ -164,12 +226,14 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  // Look up by resolved locale so /ru/blog/<slug> 404s when no Russian
-  // translation exists rather than rendering the EN body under an RU
-  // URL (which Google would consolidate as duplicate content).
+  // Stripe / Shopify pattern: serve the EN row under non-EN URLs
+  // when no translation exists, with a banner + canonical-to-EN +
+  // noindex (set in generateMetadata). 404 only when the post truly
+  // doesn't exist in any locale.
   const resolvedLocale = await getLocale();
-  const post = await findPublishedPost(slug, resolvedLocale);
-  if (!post) notFound();
+  const result = await findPublishedPostOrFallback(slug, resolvedLocale);
+  if (!result) notFound();
+  const { post, untranslated, requestedLocale } = result;
 
   const tags = parseTags(post.tagsJson);
   const faq = parseFaq(post.faqJson);
@@ -319,6 +383,32 @@ export default async function BlogPostPage({
       <main className="mx-auto max-w-[1180px] px-6">
         <div className="grid gap-10 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12">
           <article className="min-w-0">
+            {untranslated && (
+              <div
+                role="status"
+                className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm"
+              >
+                <svg
+                  className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <path strokeLinecap="round" d="M12 8v4M12 16h.01" />
+                </svg>
+                <div>
+                  <p className="font-medium text-[var(--ink)]">
+                    {UNTRANSLATED_BANNER[requestedLocale].line1}
+                  </p>
+                  <p className="mt-0.5 text-[var(--ink-3)]">
+                    {UNTRANSLATED_BANNER[requestedLocale].line2}
+                  </p>
+                </div>
+              </div>
+            )}
             <header className="relative mb-10 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-8 pt-9 sm:px-10 sm:pb-10 sm:pt-12">
               <div
                 aria-hidden

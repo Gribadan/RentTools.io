@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { MarketingHeader } from "@/components/marketing-header";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
@@ -67,11 +67,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  // Tag pages are EN-only today (the post library is EN-only). When a
-  // visitor lands on /ru/blog/tag/foo via the locale switcher, we emit
-  // 404-like metadata so Google doesn't index a Russian URL whose body
-  // is English. Phase C will re-emit per-locale once the post library
-  // grows multilingual.
+  // Tag pages are EN-only today (the post library is EN-only). The page
+  // body redirects /<locale>/blog/tag/<slug> to /blog/tag/<slug>; this
+  // metadata branch only ever runs for the default locale, but we still
+  // gate it just in case the redirect is bypassed somehow.
   const resolvedLocale = await getLocale();
   if (resolvedLocale !== DEFAULT_LOCALE) {
     return { title: "Not found", robots: { index: false, follow: false } };
@@ -120,10 +119,15 @@ export default async function BlogTagPage({
   const slug = normaliseSlug(rawSlug);
   if (!slug) notFound();
 
-  // Mirror the metadata gate: tag pages are EN-only until the post
-  // library is multilingual.
+  // Tag pages are EN-only until the post library goes multilingual.
+  // Redirect /<locale>/blog/tag/<slug> to the canonical /blog/tag/<slug>
+  // so the user lands on the page that actually exists, instead of
+  // hitting a 404. The 308 also tells Google to consolidate any external
+  // links pointing at the localised URL onto the canonical.
   const resolvedLocale = await getLocale();
-  if (resolvedLocale !== DEFAULT_LOCALE) notFound();
+  if (resolvedLocale !== DEFAULT_LOCALE) {
+    redirect(`/blog/tag/${slug}`);
+  }
 
   const tag = await findTag(slug);
   if (!tag) notFound();

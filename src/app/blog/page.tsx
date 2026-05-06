@@ -191,15 +191,43 @@ export default async function BlogIndexPage({
               {locale === "ru"
                 ? "Синхронизация календарей, которая правда работает, автоматизация уборок без двойных назначений и чек-лист GDPR на одну страницу. Писали те, кто сами сдают, а не те, кто пишет для трафика."
                 : "Calendar sync that actually works, cleaning automation that doesn't double-book the cleaner, and a host's GDPR checklist that fits on one page. Written by people who run listings, not affiliate sites."}
-              {/* English-only blog body note: existing posts ship in EN. */}
-              {locale === "ru" && (
-                <span className="mt-2 block text-[12px] text-[var(--ink-4)]">
-                  Тексты статей пока только на английском.
-                </span>
-              )}
             </p>
           </div>
         </section>
+
+        {/* Untranslated-content banner: shown on every non-default-locale
+            blog index because post titles + bodies still come from EN
+            rows in the DB. As soon as a post gets a translated row, the
+            post page itself silently swaps to native rendering — but the
+            index continues to mix both until the library is fully
+            translated, so the banner stays. Keep it prominent: visitors
+            who don't read English need to know before they click. */}
+        {locale === "ru" && (
+          <div
+            role="status"
+            className="mt-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm"
+          >
+            <svg
+              className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" d="M12 8v4M12 16h.01" />
+            </svg>
+            <div>
+              <p className="font-medium text-[var(--ink)]">
+                Статьи пока только на английском.
+              </p>
+              <p className="mt-0.5 text-[var(--ink-3)]">
+                Перевод в процессе — заголовки и тексты статей ниже на английском, навигация на русском.
+              </p>
+            </div>
+          </div>
+        )}
 
         {tagRows.length > 0 && (
           <nav
