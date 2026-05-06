@@ -209,6 +209,12 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // Stored as E.164 (`+CCNNNNNN…`) but we accept any leading `+` followed
     // by 7-15 digits, or empty.
     `ALTER TABLE "Guest" ADD COLUMN "phone" TEXT NOT NULL DEFAULT ''`,
+    // RT-25.13 tick 2 — host-managed group invite links surfaced as a
+    // "Send group invite" CTA on every reservation. Nullable: the host
+    // pre-creates the group manually in the messenger and pastes the
+    // invite URL once into their profile.
+    `ALTER TABLE "User" ADD COLUMN "tgGroupInviteUrl" TEXT`,
+    `ALTER TABLE "User" ADD COLUMN "waGroupInviteUrl" TEXT`,
   ];
   for (const sql of migrations) {
     try {

@@ -80,6 +80,20 @@ export const translations = {
   "profile.save": { en: "Save", ru: "Сохранить" },
   "profile.saved": { en: "Password updated", ru: "Пароль обновлён" },
   "profile.close": { en: "Close", ru: "Закрыть" },
+  // RT-25.13 tick 2 — host-managed messenger group invite URLs
+  "profile.messengerInvites": { en: "Messenger group invites", ru: "Приглашения в группы мессенджеров" },
+  "profile.messengerInvitesHint": {
+    en: "Create a group in your messenger ahead of time, save its invite link here, and we'll surface a “Send group invite” button on every reservation.",
+    ru: "Создайте группу в мессенджере заранее, сохраните ссылку-приглашение здесь — и кнопка «Отправить приглашение в группу» появится на каждом бронировании.",
+  },
+  "profile.tgInviteUrl": { en: "Telegram group invite URL", ru: "Ссылка на группу в Telegram" },
+  "profile.waInviteUrl": { en: "WhatsApp group invite URL", ru: "Ссылка на группу в WhatsApp" },
+  "profile.tgInvitePlaceholder": { en: "https://t.me/+abcdef…", ru: "https://t.me/+abcdef…" },
+  "profile.waInvitePlaceholder": { en: "https://chat.whatsapp.com/abcdef…", ru: "https://chat.whatsapp.com/abcdef…" },
+  "profile.invitesSaved": { en: "Saved", ru: "Сохранено" },
+  "profile.invitesSaving": { en: "Saving…", ru: "Сохранение…" },
+  "profile.invitesInvalidTg": { en: "Telegram URL must start with https://t.me/", ru: "Ссылка Telegram должна начинаться с https://t.me/" },
+  "profile.invitesInvalidWa": { en: "WhatsApp URL must start with https://chat.whatsapp.com/", ru: "Ссылка WhatsApp должна начинаться с https://chat.whatsapp.com/" },
 
   // Sidebar
   "sidebar.title": { en: "RentTools", ru: "RentTools" },
@@ -254,6 +268,14 @@ export const translations = {
   "guest.messageOnWhatsApp": { en: "Message on WhatsApp", ru: "Написать в WhatsApp" },
   "guest.messageOnTelegram": { en: "Message on Telegram", ru: "Написать в Telegram" },
   "guest.messengerPrefill": { en: "Hi {name} — this is {property}, your check-in is on {checkIn}.", ru: "Здравствуйте, {name}! Это {property}, ваш заезд {checkIn}." },
+  // RT-25.13 tick 2 — per-reservation "Send group invite" CTA
+  "reservation.sendGroupInvite": { en: "Send group invite", ru: "Отправить приглашение в группу" },
+  "reservation.sendGroupInviteVia": { en: "Send via {platform}", ru: "Отправить через {platform}" },
+  "reservation.sendGroupInviteNoPhone": { en: "Add a phone to a guest to enable group invites", ru: "Добавьте телефон гостю, чтобы включить приглашение в группу" },
+  "reservation.sendGroupInvitePrefill": {
+    en: "Group for your stay: {groupName}\n\n{url}",
+    ru: "Группа на время вашего проживания: {groupName}\n\n{url}",
+  },
 
   // Settings
   "settings.title": { en: "Settings", ru: "Настройки" },
