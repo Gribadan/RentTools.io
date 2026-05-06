@@ -326,6 +326,44 @@ export function Dashboard({
     return out;
   }, [formPropertyId, formCheckIn, formCheckOut, properties, allSyncedEvents]);
 
+  // RT-25.6 tick 8 — booked-dates set for the in-form date picker.
+  // Same data sources as the conflict warning (tick 7) — Reservation
+  // rows + allSyncedEvents — but rolled out into a Set<dateString> so
+  // CalendarGrid can mark each occupied day with a small amber dot.
+  // Convention: a booking [checkIn, checkOut) occupies the nights from
+  // checkIn (inclusive) through the day BEFORE checkOut (exclusive),
+  // matching the "touching dates aren't a conflict" rule the rest of
+  // the app uses (same-day turnovers are allowed). Recomputes only
+  // when the picked property's data actually changes; the form being
+  // hidden costs nothing at runtime.
+  const bookedDates = useMemo(() => {
+    const set = new Set<string>();
+    if (!formPropertyId) return set;
+    const pid = Number(formPropertyId);
+    const property = properties.find((p) => p.id === pid);
+    const addRange = (from: string, to: string) => {
+      if (!from || !to || from >= to) return;
+      const start = new Date(from + "T00:00:00");
+      const end = new Date(to + "T00:00:00");
+      for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        set.add(`${y}-${m}-${day}`);
+      }
+    };
+    if (property) {
+      for (const res of property.reservations) {
+        addRange(res.checkIn, res.checkOut);
+      }
+    }
+    const events = allSyncedEvents[pid] || [];
+    for (const ev of events) {
+      addRange(ev.startDate, ev.endDate);
+    }
+    return set;
+  }, [formPropertyId, properties, allSyncedEvents]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formCheckIn || !formCheckOut || !formPropertyId) return;
@@ -665,6 +703,7 @@ export function Dashboard({
                 checkOut={formCheckOut}
                 onChangeCheckIn={setFormCheckIn}
                 onChangeCheckOut={setFormCheckOut}
+                bookedDates={bookedDates}
               />
             </div>
 

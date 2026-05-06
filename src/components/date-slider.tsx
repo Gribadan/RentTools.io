@@ -9,6 +9,13 @@ interface DateSliderProps {
   onChangeCheckIn: (date: string) => void;
   onChangeCheckOut: (date: string) => void;
   compact?: boolean;
+  // RT-25.6 tick 8 — set of YYYY-MM-DD dates already covered by an
+  // existing reservation or synced calendar event on the property the
+  // host picked in the form. Days in this set get a small amber marker
+  // in the grid so the host can see what's taken before clicking. No
+  // hard block on selection — matches the no-hard-block convention of
+  // the in-form conflict warning (tick 7).
+  bookedDates?: ReadonlySet<string>;
 }
 
 function toDateStr(d: Date): string {
@@ -24,12 +31,14 @@ function CalendarGrid({
   onChangeCheckIn,
   onChangeCheckOut,
   onDone,
+  bookedDates,
 }: {
   checkIn: string;
   checkOut: string;
   onChangeCheckIn: (date: string) => void;
   onChangeCheckOut: (date: string) => void;
   onDone?: () => void;
+  bookedDates?: ReadonlySet<string>;
 }) {
   const [selecting, setSelecting] = useState<"in" | "out">(
     !checkIn ? "in" : !checkOut ? "out" : "in"
@@ -191,6 +200,7 @@ function CalendarGrid({
                   const isStart = dateStr === checkIn;
                   const isEnd = dateStr === checkOut;
                   const inRange = isInRange(dateStr);
+                  const isBooked = bookedDates?.has(dateStr) ?? false;
 
                   // Dim dates more than 3 days in the past
                   const threeDaysAgo = new Date(today);
@@ -203,6 +213,7 @@ function CalendarGrid({
                       type="button"
                       disabled={isPast}
                       onClick={() => handleDayClick(dateStr)}
+                      title={isBooked ? "Already booked on this property" : undefined}
                       className={`relative flex h-8 items-center justify-center rounded-md text-xs transition-all ${
                         isPast
                           ? "text-[var(--ink-4)] cursor-not-allowed"
@@ -210,6 +221,8 @@ function CalendarGrid({
                           ? "bg-[var(--ink)] text-white font-semibold"
                           : inRange
                           ? "bg-[var(--ink)]/12 text-sky-300"
+                          : isBooked
+                          ? "bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
                           : isToday
                           ? "text-[var(--ink)] ring-1 ring-[var(--ink)]/40"
                           : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
@@ -218,6 +231,9 @@ function CalendarGrid({
                       {d.getDate()}
                       {isToday && !isStart && !isEnd && (
                         <span className="absolute bottom-0.5 left-1/2 h-0.5 w-0.5 -translate-x-1/2 rounded-full bg-[var(--ink)]" />
+                      )}
+                      {isBooked && (
+                        <span className="absolute right-0.5 top-0.5 h-1 w-1 rounded-full bg-amber-400" />
                       )}
                     </button>
                   );
@@ -239,6 +255,7 @@ function CalendarPopover({
   onChangeCheckIn,
   onChangeCheckOut,
   onClose,
+  bookedDates,
 }: {
   anchorRef: React.RefObject<HTMLElement | null>;
   checkIn: string;
@@ -246,6 +263,7 @@ function CalendarPopover({
   onChangeCheckIn: (date: string) => void;
   onChangeCheckOut: (date: string) => void;
   onClose: () => void;
+  bookedDates?: ReadonlySet<string>;
 }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -288,6 +306,7 @@ function CalendarPopover({
         onChangeCheckIn={onChangeCheckIn}
         onChangeCheckOut={onChangeCheckOut}
         onDone={onClose}
+        bookedDates={bookedDates}
       />
     </div>,
     document.body
@@ -300,6 +319,7 @@ export function DateSlider({
   onChangeCheckIn,
   onChangeCheckOut,
   compact = false,
+  bookedDates,
 }: DateSliderProps) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -354,6 +374,7 @@ export function DateSlider({
             onChangeCheckIn={onChangeCheckIn}
             onChangeCheckOut={onChangeCheckOut}
             onClose={() => setOpen(false)}
+            bookedDates={bookedDates}
           />
         )}
       </>
@@ -368,6 +389,7 @@ export function DateSlider({
         checkOut={checkOut}
         onChangeCheckIn={onChangeCheckIn}
         onChangeCheckOut={onChangeCheckOut}
+        bookedDates={bookedDates}
       />
     </div>
   );
