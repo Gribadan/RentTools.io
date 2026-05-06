@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 
@@ -86,7 +86,6 @@ export function LocaleSwitcher({
   reloadOnChange: _reloadOnChange = true,
 }: LocaleSwitcherProps) {
   const { locale, setLocale } = useI18n();
-  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -105,12 +104,27 @@ export function LocaleSwitcher({
   // URL is authoritative for locale (Google needs distinct URLs per
   // language). Cookie is still set as a soft preference so middleware
   // can fall back when a visitor lands on a non-localizable path.
+  //
+  // Hard navigation (window.location.assign) instead of router.push:
+  // App Router's soft navigation reuses the React tree across /blog
+  // and /ru/blog because both URLs render via the same page file
+  // (middleware rewrites internally). The header reflows from the
+  // I18n context flip, but the server-rendered body keeps its old
+  // RSC payload — visually the page header changes language while
+  // the article body stays in the original language. A real reload
+  // forces middleware to re-resolve x-locale from the new URL prefix
+  // and the server component to re-render against it. Slight cost
+  // (~200-400ms full page load vs instant soft transition), worth
+  // it for the language switch — it's a once-per-session action and
+  // partial-flip looks broken.
   const choose = (next: Locale) => {
     setOpen(false);
     if (next === locale) return;
     setLocale(next);
     const target = pathForLocale(pathname ?? "/", next);
-    router.push(target);
+    if (typeof window !== "undefined") {
+      window.location.assign(target);
+    }
   };
 
   if (variant === "inline") {

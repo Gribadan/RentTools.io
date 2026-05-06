@@ -478,23 +478,46 @@ select option:hover {
   border: 1px solid var(--line);
   background: var(--bg-2);
 }
-/* Tables: wrap in their own scroll container so a wide table doesn't
-   force the whole article to scroll horizontally. `display: block` on
-   the table sacrifices some semantic purity but lets `overflow-x: auto`
-   actually take effect; the cells inside still render in a tabular
-   layout because their default UA display values cascade independently.
-   `width: 100%` makes the table fill the prose column instead of
-   shrink-wrapping to its content (which left a wide empty band on
-   the right when the table was narrower than the column). */
-.prose-blog table {
-  display: block;
+/* Tables: the markdown renderer wraps every table in
+   `<div class="md-table-scroll">` so the wrapper handles horizontal
+   overflow on narrow viewports while the table itself stays a real
+   `display: table` element. The previous CSS put `display: block`
+   directly on <table>, which makes overflow-x work but kills cell
+   layout — <td> elements need a `display: table-row` parent inside
+   a `display: table` ancestor to distribute width. With block on
+   the table, cells fell back to inline behavior, the table shrunk
+   to the longest content cell, and the right side of the prose
+   column rendered as a wide empty band. */
+.prose-blog .md-table-scroll {
+  /* Negative margin lets the scroll viewport extend slightly past the
+     prose column edges on small screens so a wide table can still scroll
+     edge-to-edge — but we cap at 100% so the wrapper never visibly
+     overflows the prose container at desktop widths. */
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
-  border-collapse: collapse;
-  font-size: 0.95em;
+  /* Webkit-specific scrollbar polish: thin track that only appears
+     when the table actually overflows; matches the editorial vibe. */
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5em 0;
   border: 1px solid var(--line);
   border-radius: 0.5rem;
+  background: var(--bg);
+}
+.prose-blog .md-table-scroll table {
+  /* Keep default `display: table` so cells get proper table-cell
+     behavior and distribute width evenly. `width: 100%` fills the
+     wrapper; `min-width: max-content` lets a content-rich table push
+     past 100% and trigger the wrapper's horizontal scroll instead of
+     squishing every cell down. `border-collapse: collapse` removes the
+     2px gap between adjacent cell borders. */
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  /* Border + radius live on the wrapper now, so strip them off the
+     table itself to avoid a double border. */
+  border: 0;
 }
 .prose-blog th, .prose-blog td { border-bottom: 1px solid var(--line); padding: 0.55em 0.85em; text-align: left; vertical-align: top; }
 .prose-blog tr:last-child td { border-bottom: 0; }

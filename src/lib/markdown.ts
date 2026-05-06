@@ -353,8 +353,14 @@ export function renderMarkdown(md: string): string {
               .join("")}</tr>`,
         )
         .join("");
+      // Wrapper div is what the CSS targets for horizontal overflow.
+      // The previous attempt put `display: block; overflow-x: auto` on
+      // the <table> itself — which breaks cell layout (cells lose
+      // table-cell behavior because their parent is no longer a
+      // table-row inside a table). Wrapper keeps the table as a real
+      // table so cells distribute width across the container.
       out.push(
-        `<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table>`,
+        `<div class="md-table-scroll"><table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows}</tbody></table></div>`,
       );
       continue;
     }
