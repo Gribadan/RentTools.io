@@ -286,11 +286,15 @@ export function PropertyCalendar({
             between sections. Each section just renders its grid; the
             scroll listener above tracks which section is at the top. */}
         <div className="hidden sm:block">
+          {/* Frozen header — airbnb-style. Page-bg fill + soft shadow,
+              no border or panel-bg on the weekday row so the labels
+              float cleanly. The shadow plus z-30 hide section content
+              that scrolls behind it. */}
           <header
             ref={stickyHeaderRef}
-            className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-2 shadow-[0_4px_8px_-6px_rgba(0,0,0,0.08)]"
+            className="sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--bg)] mb-3 shadow-[0_8px_18px_-10px_rgba(0,0,0,0.18),0_2px_4px_-2px_rgba(0,0,0,0.04)]"
           >
-            <div className="flex items-center justify-between gap-3 py-3">
+            <div className="flex items-center justify-between gap-3 pt-3 pb-1">
               <h2 className="text-2xl font-bold tracking-tight text-[var(--ink)]">
                 {activeMonth.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
                   month: "long",
@@ -309,11 +313,11 @@ export function PropertyCalendar({
                 </svg>
               </button>
             </div>
-            <div className="grid grid-cols-7 border-y border-[var(--line)] bg-[var(--bg-2)]">
+            <div className="grid grid-cols-7 pb-2">
               {WEEKDAYS.map((wd) => (
                 <div
                   key={wd}
-                  className="py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-[var(--ink-3)]"
+                  className="py-1 text-center text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]"
                 >
                   {wd}
                 </div>
@@ -321,12 +325,26 @@ export function PropertyCalendar({
             </div>
           </header>
 
-          {months.map((m, i) => (
+          {months.map((m, i) => {
+            const showYear = i === 0 || m.getMonth() === 0;
+            const monthLabel = m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+              month: "long",
+              year: showYear ? "numeric" : undefined,
+            });
+            return (
             <section
               key={`${m.getFullYear()}-${m.getMonth()}`}
               ref={(el) => { sectionRefs.current[i] = el; }}
               className="mb-8"
             >
+              {/* In-flow month label so each upcoming month is visible
+                  at its natural position. When the section reaches the
+                  frozen header, this label scrolls behind it (the header
+                  is opaque + z-30) and the frozen header's <h2> already
+                  shows the same name — no visual duplication. */}
+              <h3 className="mb-3 text-xl font-semibold tracking-tight text-[var(--ink-2)]">
+                {monthLabel}
+              </h3>
               <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
                 <CalendarGrid
                   year={m.getFullYear()}
@@ -362,7 +380,8 @@ export function PropertyCalendar({
                 />
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
       </div>
 

@@ -460,9 +460,13 @@ export function DateActionsPopover({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-        {/* Single-date day timeline */}
+        {/* Single-date day timeline. All entries — guest bars AND the
+            inline cleaning notice — share the same [badge | title /
+            sub-line] row layout so the visual rhythm stays consistent.
+            The badge is the only element that swaps colour to convey
+            event type. */}
         {singleDate && singleDateBars.length > 0 && (
-          <div className="border-b border-[var(--line)] px-4 py-3 space-y-2">
+          <div className="border-b border-[var(--line)] px-5 py-4 space-y-3">
             {singleDateBars.map((b, i) => {
               const platformColor = b.platform === "booking" ? "#003580" : "#ff385c";
               const platformLabel = b.platform === "booking" ? "Booking" : b.platform === "airbnb" ? "Airbnb" : b.platform;
@@ -474,22 +478,34 @@ export function DateActionsPopover({
                     ? (locale === "ru" ? "однодневная бронь" : "single-day stay")
                     : (locale === "ru" ? "проживает" : "staying");
               return (
-                <div key={`bar-${i}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white" style={{ backgroundColor: platformColor }}>{platformLabel}</span>
-                    <span className="flex-1 min-w-0 truncate text-sm font-medium text-[var(--ink)]">{b.name}</span>
+                <div key={`bar-${i}`} className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="shrink-0 mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+                      style={{ backgroundColor: platformColor }}
+                    >
+                      {platformLabel}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium leading-tight text-[var(--ink)]">{b.name}</div>
+                      <div className="mt-0.5 text-[11px] leading-tight text-[var(--ink-3)]">{roleLabel}</div>
+                    </div>
                   </div>
-                  <div className="ml-[58px] mt-0.5 text-[11px] text-[var(--ink-3)]">{roleLabel}</div>
                   {i === cleaningBetweenIndex && (
-                    <div className="my-2 flex items-center gap-2 rounded-md border border-[var(--cleaning-border)] bg-[var(--cleaning-bg)] px-2.5 py-1.5">
-                      <svg className="h-4 w-4 text-[var(--cleaning-fg)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span className="text-xs font-medium text-[var(--cleaning-fg)]">
-                        {singleStatus?.isManualCleaning
-                          ? (locale === "ru" ? "Уборка подтверждена" : "Cleaning scheduled")
-                          : (locale === "ru" ? "Нужна уборка между бронями" : "Cleaning required between stays")}
+                    <div className="flex items-start gap-3">
+                      <span className="shrink-0 mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]">
+                        {locale === "ru" ? "Уборка" : "Clean"}
                       </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium leading-tight text-[var(--ink)]">
+                          {singleStatus?.isManualCleaning
+                            ? (locale === "ru" ? "Уборка подтверждена" : "Cleaning scheduled")
+                            : (locale === "ru" ? "Нужна уборка" : "Cleaning required")}
+                        </div>
+                        <div className="mt-0.5 text-[11px] leading-tight text-[var(--ink-3)]">
+                          {locale === "ru" ? "между бронями" : "between stays"}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -500,7 +516,7 @@ export function DateActionsPopover({
 
         {/* Multi-date selection list — chips with toggle to remove */}
         {!singleDate && (
-          <div className="border-b border-[var(--line)] px-4 py-3">
+          <div className="border-b border-[var(--line)] px-5 py-4">
             <div className="flex flex-wrap gap-1.5">
               {selectedDates.map((d) => (
                 <button
