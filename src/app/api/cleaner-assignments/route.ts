@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { isPropertyOwner } from "@/lib/ownership";
+import { canReadProperty, isPropertyOwner } from "@/lib/ownership";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/cleaner-assignments?propertyId=X — owner lists assignments for a property they own
+// GET /api/cleaner-assignments?propertyId=X — anyone with read access
+// to the property gets the cleaner list. Other property data
+// (reservations, sync events, calendar overrides) is already shared
+// with managers / cleaners; cleaner assignments were the odd one out
+// — gating reads to owner-only meant a co-host on a shared property
+// couldn't see who was cleaning it. Edit operations (POST / DELETE)
+// keep the stricter isPropertyOwner check below.
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
@@ -20,7 +26,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid propertyId" }, { status: 400 });
     }
 
-    if (!(await isPropertyOwner(propertyId, session.userId))) {
+    if (!(await canReadProperty(propertyId, session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

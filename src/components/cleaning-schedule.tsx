@@ -702,9 +702,11 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
         detail = fullDayLabel;
       }
       const prefix = day.type === "potential" ? potentialPrefix : "";
-      const cleanerLabel = day.cleanerName
-        ? (locale === "ru" ? ` — уборщик: ${day.cleanerName}` : ` — cleaner: ${day.cleanerName}`)
-        : "";
+      // Just the name, no "cleaner:" / "уборщик:" prefix — the
+      // recipient already knows the row is theirs because it sits
+      // in the cleaning schedule, and the prefix reads as cold
+      // when forwarded over messengers.
+      const cleanerLabel = day.cleanerName ? ` — ${day.cleanerName}` : "";
       // RT-25.10 tick 3 — cleaner-conflict suffix. Mirrors the in-app
       // warning so a pasted/printed schedule still surfaces the clash.
       const conflictForCleaner = day.cleanerKey ? conflictByDateAndKey.get(day.date)?.get(day.cleanerKey) : undefined;
