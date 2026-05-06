@@ -376,7 +376,7 @@ export default async function BlogPostPage({
                         href={`/blog/${r.slug}`}
                         className="group block rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/30 p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
                       >
-                        <h3 className="text-[15px] font-semibold leading-snug text-[var(--ink)] group-hover:text-white">
+                        <h3 className="text-[15px] font-semibold leading-snug text-[var(--ink)]">
                           {r.title}
                         </h3>
                         {r.excerpt && (

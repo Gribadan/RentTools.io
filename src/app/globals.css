@@ -482,9 +482,13 @@ select option:hover {
    force the whole article to scroll horizontally. `display: block` on
    the table sacrifices some semantic purity but lets `overflow-x: auto`
    actually take effect; the cells inside still render in a tabular
-   layout because their default UA display values cascade independently. */
+   layout because their default UA display values cascade independently.
+   `width: 100%` makes the table fill the prose column instead of
+   shrink-wrapping to its content (which left a wide empty band on
+   the right when the table was narrower than the column). */
 .prose-blog table {
   display: block;
+  width: 100%;
   max-width: 100%;
   overflow-x: auto;
   border-collapse: collapse;

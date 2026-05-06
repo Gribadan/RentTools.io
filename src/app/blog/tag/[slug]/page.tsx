@@ -221,7 +221,7 @@ export default async function BlogTagPage({
                         )}
                       </div>
                       <div className="flex flex-1 flex-col p-5">
-                        <h2 className="text-balance text-[17px] font-semibold leading-snug tracking-tight text-[var(--ink)] group-hover:text-white">
+                        <h2 className="text-balance text-[17px] font-semibold leading-snug tracking-tight text-[var(--ink)]">
                           {p.title}
                         </h2>
                         {p.excerpt && (

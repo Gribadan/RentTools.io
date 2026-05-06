@@ -254,7 +254,7 @@ export default async function BlogIndexPage({
                     <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[var(--m-accent)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
                       {locale === "ru" ? "Главное" : "Featured"}
                     </span>
-                    <h2 className="text-balance text-2xl font-bold leading-snug tracking-tight text-[var(--ink)] sm:text-[1.75rem] group-hover:text-white">
+                    <h2 className="text-balance text-2xl font-bold leading-snug tracking-tight text-[var(--ink)] sm:text-[1.75rem]">
                       {featured.title}
                     </h2>
                     {featured.excerpt && (
@@ -306,7 +306,7 @@ export default async function BlogIndexPage({
                           )}
                         </div>
                         <div className="flex flex-1 flex-col p-5">
-                          <h2 className="text-balance text-[17px] font-semibold leading-snug tracking-tight text-[var(--ink)] group-hover:text-white">
+                          <h2 className="text-balance text-[17px] font-semibold leading-snug tracking-tight text-[var(--ink)]">
                             {p.title}
                           </h2>
                           {p.excerpt && (
