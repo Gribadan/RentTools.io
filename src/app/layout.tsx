@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
+import { FeedbackButton } from "@/components/feedback-button";
 import { JsonLd } from "@/components/json-ld";
 import { LOCALE_COOKIE_NAME } from "@/lib/i18n/cookie";
 import "./globals.css";
@@ -144,6 +145,10 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-sans)]">
         <Providers>{children}</Providers>
+        {/* Floating feedback pill — site-wide on public pages. The
+            component itself opts out on /dashboard, /admin, /g/, /invite/
+            via usePathname so signed-in app surfaces stay uncluttered. */}
+        <FeedbackButton />
       </body>
     </html>
   );

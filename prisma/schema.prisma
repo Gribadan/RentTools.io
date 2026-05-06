@@ -32,6 +32,33 @@ model User {
   acceptedInvites    PropertyManagerInvite[] @relation("InviteAcceptors")
   blogPosts          BlogPost[]
   blogComments       BlogComment[]
+  feedback           Feedback[]
+}
+
+// Site-wide visitor feedback. Submitted by anyone (signed-in or
+// anonymous) via the floating feedback button on public pages.
+// Super-admin reviews the queue at /dashboard/admin/content/feedback.
+//
+// Rate-limited at the API layer by ipHash (one submit per 30s) so the
+// shared instance can't be carpet-bombed by a single bad actor. ipHash
+// is SHA-256 of the inbound IP — same scheme used elsewhere for GDPR-
+// safe per-IP throttling without retaining raw addresses.
+model Feedback {
+  id           Int       @id @default(autoincrement())
+  body         String                                       // 5-2000 chars; sanitised in admin render
+  contactEmail String?                                      // optional; visitor opts in to a reply
+  pagePath     String    @default("")                       // where they were when they hit Send
+  userAgent    String    @default("")                       // truncated to 250 chars at write time
+  ipHash       String                                       // SHA-256 of inbound IP, hex
+  userId       Int?                                         // null when submitted by an anonymous visitor
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status       String    @default("new")                    // "new" | "read" | "archived"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime?
+
+  @@index([status, createdAt])
+  @@index([ipHash, createdAt])
+  @@index([userId])
 }
 
 model AppSettings {

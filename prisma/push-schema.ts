@@ -226,6 +226,42 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "BlogPost" ADD COLUMN "ogImageWidth" INTEGER`,
     `ALTER TABLE "BlogPost" ADD COLUMN "ogImageHeight" INTEGER`,
   ];
+
+  // Feedback table — site-wide visitor feedback queue. New table, so we
+  // run a CREATE TABLE here (idempotent on IF NOT EXISTS) rather than
+  // ALTER. Indexes are inline so the rate-limit lookup
+  // (`ipHash + createdAt > now() - 30s`) hits an index from day one.
+  const feedbackSchema = `
+CREATE TABLE IF NOT EXISTS "Feedback" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "body" TEXT NOT NULL,
+    "contactEmail" TEXT,
+    "pagePath" TEXT NOT NULL DEFAULT '',
+    "userAgent" TEXT NOT NULL DEFAULT '',
+    "ipHash" TEXT NOT NULL,
+    "userId" INTEGER,
+    "status" TEXT NOT NULL DEFAULT 'new',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME,
+    CONSTRAINT "Feedback_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "Feedback_status_createdAt_idx" ON "Feedback"("status", "createdAt");
+CREATE INDEX IF NOT EXISTS "Feedback_ipHash_createdAt_idx" ON "Feedback"("ipHash", "createdAt");
+CREATE INDEX IF NOT EXISTS "Feedback_userId_idx" ON "Feedback"("userId");
+`;
+  const feedbackStatements = feedbackSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  for (const stmt of feedbackStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
   for (const sql of migrations) {
     try {
       await prisma.$executeRawUnsafe(sql);
