@@ -275,11 +275,11 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
       {step === 1 && (
         <>
           <h2 className="text-balance text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]">
-            {locale === "ru" ? "Назовите ваш первый объект" : "Name your first property"}
+            {locale === "ru" ? "Назовите свой первый объект" : "Name your first property"}
           </h2>
           <p className="mt-2 max-w-md text-sm text-[var(--ink-3)]">
             {locale === "ru"
-              ? "Просто метка для вас — переименуете позже. Дальше подключите календари."
+              ? "Просто пометка для себя — переименовать можно потом. Следующий шаг — подключить календари."
               : "Just a label for you — you can rename it later. Next we'll connect at least one calendar."}
           </p>
           <form
@@ -340,7 +340,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
           </h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--ink-3)]">
             {locale === "ru"
-              ? "Скопируйте URL экспорта iCal с любой платформы, на которой вы размещаетесь. Дальше — наш URL вы скопируете обратно к ним."
+              ? "Вставьте iCal-ссылку с любой платформы, где вы сдаёте. Следующим шагом скопируете нашу ссылку обратно к ним — мы выдаём её в момент сохранения."
               : "Paste the iCal export URL from any platform you list on. Next, you'll copy ours back into them — we generate the import URL the moment you save."}
           </p>
 

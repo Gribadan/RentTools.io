@@ -319,7 +319,7 @@ export default function OnboardPage() {
           <div className="hidden text-center sm:block">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
               {locale === "ru"
-                ? "Онбординг · Бесплатно за каждый объект — навсегда"
+                ? "Старт · Бесплатно для любого числа объектов — навсегда"
                 : "Onboarding · Free for every property — forever"}
             </p>
             <h1 className="display mt-3 text-[32px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[44px]">
@@ -335,7 +335,7 @@ export default function OnboardPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-[560px] text-[15px] leading-relaxed text-[var(--ink-2)]">
               {locale === "ru"
-                ? "Выберите платформы, на которых вы размещаетесь, вставьте URL экспорта iCal каждой, и скопируйте обратно те URL, которые сгенерируем мы. Делать это можно без аккаунта — зарегистрируйтесь в конце, чтобы сохранить данные."
+                ? "Отметьте платформы, на которых вы сдаёте, вставьте iCal-ссылку с каждой и скопируйте наши обратно. Регистрироваться сразу не нужно — аккаунт пригодится в конце, чтобы сохранить настройки."
                 : "Pick the platforms you list on, paste each one's iCal export URL, and copy the URLs we generate back into them. You can do this without an account first — sign up at the end to keep your data."}
             </p>
           </div>
@@ -352,7 +352,7 @@ export default function OnboardPage() {
                 title={locale === "ru" ? "Назовите объект" : "Name your property"}
                 subtitle={
                   locale === "ru"
-                    ? "Просто метка для вас. Можно переименовать позже."
+                    ? "Просто пометка для себя. Переименовать можно когда угодно."
                     : "Just a label for you. You can rename it later."
                 }
               >
@@ -373,7 +373,7 @@ export default function OnboardPage() {
                 title={locale === "ru" ? "Подключите календари" : "Add calendar feeds"}
                 subtitle={
                   locale === "ru"
-                    ? "Отметьте платформы, которыми пользуетесь — вставьте их URL iCal, скопируйте наш обратно. Чего нет в списке — добавьте как «Своя платформа»."
+                    ? "Отметьте платформы, которыми пользуетесь — вставьте их iCal-ссылку, скопируйте нашу обратно. Чего нет в списке — добавьте через «Своя платформа»."
                     : "Tick each platform you use — paste their iCal URL, copy ours back. Anything not on this list, add as Custom."
                 }
               >
@@ -417,10 +417,10 @@ export default function OnboardPage() {
                 subtitle={
                   enabledCount === 0
                     ? locale === "ru"
-                      ? "Можно зарегистрироваться без подключения платформ — добавите их позже из панели."
+                      ? "Можно зарегистрироваться и без платформ — добавите их потом из панели."
                       : "You can sign up without picking a platform — add them later from the dashboard."
                     : locale === "ru"
-                      ? `Проверено ${validCount} из ${enabledCount}. Невалидные можно поправить после регистрации.`
+                      ? `Проверено ${validCount} из ${enabledCount}. Что не прошло — поправите после регистрации.`
                       : `${validCount} of ${enabledCount} platform${enabledCount === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`
                 }
               >
@@ -649,7 +649,7 @@ function PlatformRow({
             {row.testStatus === "valid" && (
               <p className="mt-1.5 text-[11.5px] text-emerald-700">
                 {locale === "ru"
-                  ? "Всё ок — начнём синхронизацию каждые 10 минут после регистрации."
+                  ? "Всё в порядке — начнём синхронизацию каждые 10 минут, как только зарегистрируетесь."
                   : "Looks good — we'll start syncing every 10 minutes after you sign up."}
               </p>
             )}
@@ -685,7 +685,7 @@ function PlatformRow({
             </div>
             <p className="mt-1.5 text-[11.5px] text-[var(--ink-3)]">
               {locale === "ru"
-                ? "Этот URL — ваш навсегда, даже после регистрации. Начнёт отдавать живые данные сразу после регистрации."
+                ? "Эта ссылка — ваша навсегда. Начнёт отдавать живые данные сразу после регистрации."
                 : "This URL is yours forever — even after signup. It'll start serving live data once you complete signup."}
             </p>
           </div>
