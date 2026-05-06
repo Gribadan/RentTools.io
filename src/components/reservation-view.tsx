@@ -81,10 +81,12 @@ export function ReservationView({
   const [activeTemplate, setActiveTemplate] = useState<MessageTemplate | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
   // RT-25.2 — pre-arrival guest form share link. hasGuestForm gates
-  // the "Send pre-arrival form" button so it only shows when the
-  // property actually has a template configured.
+  // the "Copy form link" button so it only shows when the property
+  // actually has a template configured. The action is link-generation
+  // + clipboard copy — RentTools doesn't send anything to the guest;
+  // the host pastes the URL into WhatsApp / SMS / email themselves.
   const [hasGuestForm, setHasGuestForm] = useState(false);
-  const [guestFormSending, setGuestFormSending] = useState(false);
+  const [guestFormGenerating, setGuestFormGenerating] = useState(false);
   const [guestFormCopyState, setGuestFormCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [guestFormSubmission, setGuestFormSubmission] = useState<{
     shareUrl: string;
@@ -189,8 +191,13 @@ export function ReservationView({
     refreshGuestFormSubmission();
   }, [refreshGuestFormSubmission]);
 
-  const sendGuestForm = async () => {
-    setGuestFormSending(true);
+  // Generate (or reuse) the guest's pre-arrival form share URL and
+  // place it on the clipboard. RentTools does NOT send anything to the
+  // guest — the host pastes the URL into WhatsApp / SMS / email
+  // themselves. The endpoint is idempotent on second call: returns the
+  // same shareUrl that was minted the first time.
+  const copyGuestFormLink = async () => {
+    setGuestFormGenerating(true);
     setGuestFormCopyState("idle");
     try {
       const res = await fetch(`/api/reservations/${reservation.id}/guest-form/share`, {
@@ -211,7 +218,7 @@ export function ReservationView({
       }
       refreshGuestFormSubmission();
     } finally {
-      setGuestFormSending(false);
+      setGuestFormGenerating(false);
     }
   };
 
@@ -229,6 +236,9 @@ export function ReservationView({
         ? "Submitted today"
         : `Submitted ${days} day${days === 1 ? "" : "s"} ago`;
     }
+    // Avoid the word "Sent" — RentTools doesn't send the link, the host
+    // does. We only know when the share token was minted (i.e. when the
+    // link was first copied to the clipboard).
     const days = Math.max(
       0,
       Math.round(
@@ -236,7 +246,9 @@ export function ReservationView({
           (1000 * 60 * 60 * 24)
       )
     );
-    return days === 0 ? "Sent today, awaiting" : `Sent ${days} day${days === 1 ? "" : "s"} ago, awaiting`;
+    return days === 0
+      ? "Link generated today, awaiting reply"
+      : `Link generated ${days} day${days === 1 ? "" : "s"} ago, awaiting reply`;
   };
 
   const renderGuestFormAnswerValue = (a: { type: string; value: unknown }) => {
@@ -562,25 +574,28 @@ export function ReservationView({
       </div>
 
       {/* RT-25.2 — Pre-arrival form share link. Hidden when the property
-          has no GuestFormTemplate configured (set up under Sync Settings). */}
+          has no GuestFormTemplate configured (set up under Sync Settings).
+          Action is generate + copy: RentTools doesn't send anything to
+          the guest. The host pastes the link into WhatsApp / SMS / email
+          themselves. */}
       {hasGuestForm && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Pre-arrival form</p>
             <p className="text-xs text-muted-foreground">
               {guestFormStatusLabel() ??
-                "Send the guest a link to fill in their pre-arrival questions."}
+                "Copy the link, then share it with your guest via WhatsApp, SMS, or email."}
             </p>
           </div>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            onClick={sendGuestForm}
-            disabled={guestFormSending}
+            onClick={copyGuestFormLink}
+            disabled={guestFormGenerating}
             className="rounded-lg text-xs"
           >
-            {guestFormSending
+            {guestFormGenerating
               ? "Generating…"
               : guestFormCopyState === "copied"
                 ? "Link copied"
@@ -588,7 +603,7 @@ export function ReservationView({
                   ? "Try again"
                   : guestFormSubmission
                     ? "Copy link again"
-                    : "Send pre-arrival form"}
+                    : "Copy form link"}
           </Button>
         </div>
       )}
