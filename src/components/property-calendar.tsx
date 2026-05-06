@@ -298,7 +298,11 @@ export function PropertyCalendar({
           property.reservations.length === 0 &&
           syncedEvents.length === 0 &&
           links.length === 0 && (
-            <div className="cls-isolate animate-slide-down">
+            // mt-4 sm:mt-6 gives the empty state air to breathe under
+            // the page header — the parent's space-y-6 alone wasn't
+            // enough because the calendar header sits in a separate
+            // sticky context.
+            <div className="cls-isolate mt-4 animate-slide-down sm:mt-6">
               <EmptyState
                 icon={
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -307,6 +311,10 @@ export function PropertyCalendar({
                 }
                 title={t("empty.calendar.title")}
                 description={t("empty.calendar.desc")}
+                link={{
+                  label: locale === "ru" ? "Подключить календарь" : "Connect a calendar",
+                  href: `/dashboard?property=${property.id}&view=sync`,
+                }}
               />
             </div>
           )}

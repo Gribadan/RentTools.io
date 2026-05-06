@@ -465,31 +465,35 @@ export function Dashboard({
   // mode (where the strip renders).
   const dashboardAlerts = useMemo(() => {
     if (selectedProperty) {
-      return { doubleBookings: [] as Array<{ propertyName: string; aName: string; bName: string; overlapStart: Date; overlapEnd: Date }>, propertiesWithoutCleaner: [] as string[] };
+      return {
+        doubleBookings: [] as Array<{ propertyName: string; aName: string; bName: string; overlapStart: Date; overlapEnd: Date }>,
+        propertiesWithoutCalendar: [] as Array<{ id: number; name: string }>,
+      };
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const doubleBookings: Array<{ propertyName: string; aName: string; bName: string; overlapStart: Date; overlapEnd: Date }> = [];
-    const propertiesWithoutCleaner: string[] = [];
+    // Properties that haven't connected any iCal feed AND don't have any
+    // manual reservations either — these need the host's attention because
+    // the dashboard is empty for them. We flag both conditions together
+    // because a property with manual reservations doesn't need a sync to
+    // be useful (some hosts don't list on Airbnb / Booking at all).
+    const propertiesWithoutCalendar: Array<{ id: number; name: string }> = [];
     for (const p of properties) {
       const stays = buildUnifiedStays(p, allSyncedEvents[p.id] || []);
       const overlaps = detectDoubleBookings(stays, today);
       for (const o of overlaps) {
         doubleBookings.push({ propertyName: p.name, ...o });
       }
-      // Only flag missing cleaner if the property has cleaning enabled
-      // AND has at least one upcoming stay (no point warning about an
-      // empty property).
-      const cleaningOn = p.cleaningEnabled !== false;
-      const hasUpcoming = stays.some((s) => s.end > today);
-      const assigns = cleanerAssignments[p.id];
-      const hasCleaner = Array.isArray(assigns) && assigns.length > 0;
-      if (cleaningOn && hasUpcoming && !hasCleaner) {
-        propertiesWithoutCleaner.push(p.name);
+      const links = allLinks[p.id];
+      const hasLinks = Array.isArray(links) && links.length > 0;
+      const hasReservations = p.reservations.length > 0;
+      if (!hasLinks && !hasReservations) {
+        propertiesWithoutCalendar.push({ id: p.id, name: p.name });
       }
     }
-    return { doubleBookings, propertiesWithoutCleaner };
-  }, [properties, allSyncedEvents, cleanerAssignments, selectedProperty]);
+    return { doubleBookings, propertiesWithoutCalendar };
+  }, [properties, allSyncedEvents, allLinks, selectedProperty]);
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
 
@@ -808,7 +812,7 @@ export function Dashboard({
           Running on partial data produced ghost "double bookings"
           and ghost no-cleaner alerts that disappeared once the
           fetches caught up — visible CLS. */}
-      {!selectedProperty && !loadingCalendarData && assignmentsFetched && (dashboardAlerts.doubleBookings.length > 0 || cleanerConflictDates.length > 0 || dashboardAlerts.propertiesWithoutCleaner.length > 0) && (
+      {!selectedProperty && !loadingCalendarData && assignmentsFetched && (dashboardAlerts.doubleBookings.length > 0 || cleanerConflictDates.length > 0 || dashboardAlerts.propertiesWithoutCalendar.length > 0) && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -853,12 +857,33 @@ export function Dashboard({
               </a>
             </div>
           )}
-          {dashboardAlerts.propertiesWithoutCleaner.length > 0 && (
+          {dashboardAlerts.propertiesWithoutCalendar.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
               <span className="font-medium text-amber-300">
-                {locale === "ru" ? "Уборщик не назначен:" : "No cleaner assigned:"}
+                {locale === "ru" ? "Календари не подключены:" : "No calendars connected:"}
               </span>
-              <span>{dashboardAlerts.propertiesWithoutCleaner.join(", ")}</span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {dashboardAlerts.propertiesWithoutCalendar.map((p, i) => (
+                  <span key={p.id} className="inline-flex items-center gap-1.5">
+                    <Link
+                      href={`/dashboard?property=${p.id}&view=sync`}
+                      className="font-medium text-amber-300 underline-offset-2 hover:text-amber-200 hover:underline"
+                    >
+                      {p.name}
+                    </Link>
+                    {i < dashboardAlerts.propertiesWithoutCalendar.length - 1 && (
+                      <span className="text-[var(--ink-4)]">·</span>
+                    )}
+                  </span>
+                ))}
+                <Link
+                  href={`/dashboard?property=${dashboardAlerts.propertiesWithoutCalendar[0].id}&view=sync`}
+                  className="ml-1 inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/25"
+                >
+                  {locale === "ru" ? "Подключить" : "Connect calendars"}
+                  <span aria-hidden>→</span>
+                </Link>
+              </span>
             </div>
           )}
         </div>

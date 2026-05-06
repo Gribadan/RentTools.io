@@ -7,6 +7,7 @@ import { MessageTemplatesPanel } from "@/components/message-templates-panel";
 import { PropertyManagersPanel } from "@/components/property-managers-panel";
 import { GuestFormBuilder } from "@/components/guest-form-builder";
 import { PropertySwitcher } from "@/components/property-switcher";
+import { PlatformInstructions } from "@/components/platform-instructions";
 import { useI18n } from "@/lib/i18n/context";
 import type { CalendarLink, Property, SyncLogEntry } from "@/lib/types";
 
@@ -49,10 +50,23 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
 
-  // Per-platform input states
-  const [airbnbUrl, setAirbnbUrl] = useState("");
-  const [bookingUrl, setBookingUrl] = useState("");
+  // Per-platform local URL input states. Replaces the hard-coded
+  // airbnbUrl/bookingUrl pair so the UI can host every preset platform
+  // (airbnb, booking, vrbo, …) plus any custom ones the user adds.
+  // Hydrated from `links` on every fetchData.
+  const [urlInputs, setUrlInputs] = useState<Record<string, string>>({});
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null);
+
+  // Custom platform rows the user has added but not yet saved. Stored as
+  // a draft list (same shape as the onboarding wizard) so the user can
+  // pick a name + URL before the row exists in `links`. Saving promotes
+  // the row into a real CalendarLink and the draft entry is dropped.
+  const [customDrafts, setCustomDrafts] = useState<Array<{
+    rowId: string;
+    platform: string;
+    displayName: string;
+    color: string;
+  }>>([]);
 
   // Public feed token (null = public feed; non-null = ?token=… required)
   const [feedToken, setFeedToken] = useState<string | null>(null);
@@ -88,13 +102,16 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
       fetch(`/api/properties/${propertyId}/rotate-feed-token`),
     ]);
     if (linksRes.ok) {
-      const data = await linksRes.json();
+      const data: CalendarLink[] = await linksRes.json();
       setLinks(data);
-      // Populate URL inputs from existing links
-      const ab = data.find((l: CalendarLink) => l.platform === "airbnb");
-      const bk = data.find((l: CalendarLink) => l.platform === "booking");
-      if (ab) setAirbnbUrl(ab.icalExportUrl);
-      if (bk) setBookingUrl(bk.icalExportUrl);
+      // Populate URL inputs from EVERY existing link, not just airbnb/booking.
+      // The user might have a Vrbo or custom-platform link from the
+      // onboarding wizard that wouldn't otherwise hydrate.
+      setUrlInputs((prev) => {
+        const next = { ...prev };
+        for (const l of data) next[l.platform] = l.icalExportUrl;
+        return next;
+      });
     }
     if (syncRes.ok) {
       const data = await syncRes.json();
@@ -153,8 +170,11 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
     const link = getLink(platform);
     if (!link) return;
     await fetch(`/api/calendar/links/${link.id}`, { method: "DELETE" });
-    if (platform === "airbnb") setAirbnbUrl("");
-    else setBookingUrl("");
+    setUrlInputs((prev) => {
+      const next = { ...prev };
+      delete next[platform];
+      return next;
+    });
     await fetchData();
   };
 
@@ -210,10 +230,147 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const platforms = [
-    { key: "airbnb", label: "Airbnb", color: "#ff385c", url: airbnbUrl, setUrl: setAirbnbUrl },
-    { key: "booking", label: "Booking.com", color: "#003580", url: bookingUrl, setUrl: setBookingUrl },
-  ] as const;
+  // Preset platforms — same set as the onboarding wizard so a host who
+  // started there sees a consistent shelf in property settings.
+  // `hasInstructions` flags the two presets we ship a step-by-step
+  // tutorial for (PlatformInstructions component); other presets just
+  // get the URL input + outbound feed URL.
+  const PRESETS = [
+    { platform: "airbnb", label: "Airbnb", color: "#ff385c", placeholder: "https://www.airbnb.com/calendar/ical/…", hasInstructions: true as const },
+    { platform: "booking", label: "Booking.com", color: "#003580", placeholder: "https://admin.booking.com/…/ical.html?…", hasInstructions: true as const },
+    { platform: "vrbo", label: "Vrbo", color: "#2c5da9", placeholder: "https://www.vrbo.com/icalendar/…", hasInstructions: false as const },
+  ];
+  const CUSTOM_PALETTE = ["#7c3aed", "#0ea5e9", "#f59e0b", "#10b981", "#ec4899", "#6366f1"];
+
+  // Build the row list rendered in the platform grid. Order:
+  //   1. Presets (airbnb, booking, vrbo) — always shown so the host
+  //      knows what we support out of the box, even before connecting.
+  //   2. Already-saved non-preset links (custom platforms saved earlier
+  //      via onboarding or this same UI).
+  //   3. Draft custom rows the user has just clicked "Add another platform"
+  //      to create — not yet persisted as a CalendarLink row.
+  type PlatformRow = {
+    rowId: string;
+    platform: string;
+    label: string;
+    color: string;
+    placeholder: string;
+    isPreset: boolean;
+    isCustom: boolean;
+    isDraft: boolean;
+    hasInstructions: boolean;
+  };
+  const presetSlugs = new Set(PRESETS.map((p) => p.platform));
+  const customLinks = links.filter((l) => !presetSlugs.has(l.platform));
+  const platformRows: PlatformRow[] = [
+    ...PRESETS.map((p) => ({
+      rowId: `preset:${p.platform}`,
+      platform: p.platform,
+      label: p.label,
+      color: p.color,
+      placeholder: p.placeholder,
+      isPreset: true,
+      isCustom: false,
+      isDraft: false,
+      hasInstructions: p.hasInstructions,
+    })),
+    ...customLinks.map((l, i) => ({
+      rowId: `link:${l.id}`,
+      platform: l.platform,
+      // Display name for a saved custom link: humanise the slug.
+      // The onboarding wizard persists customName in the OnboardingDraft,
+      // but once saved into CalendarLink we only have the slug — the
+      // CalendarPlatform table on the server has the canonical
+      // displayName, but we don't fetch that here. Title-casing the slug
+      // is good enough for the read-back display.
+      label: l.platform.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      color: CUSTOM_PALETTE[i % CUSTOM_PALETTE.length],
+      placeholder: "https://…",
+      isPreset: false,
+      isCustom: true,
+      isDraft: false,
+      hasInstructions: false,
+    })),
+    ...customDrafts.map((d) => ({
+      rowId: d.rowId,
+      platform: d.platform,
+      label: d.displayName || "Custom platform",
+      color: d.color,
+      placeholder: "https://…",
+      isPreset: false,
+      isCustom: true,
+      isDraft: true,
+      hasInstructions: false,
+    })),
+  ];
+
+  // Slugify a custom-platform display name for the URL slug. Mirrors the
+  // onboarding wizard's clientSlug — kept inline so this file is
+  // self-contained.
+  const clientSlug = (raw: string): string => {
+    if (!raw) return "custom";
+    const cyr: Record<string, string> = {
+      а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "yo", ж: "zh",
+      з: "z", и: "i", й: "y", к: "k", л: "l", м: "m", н: "n", о: "o",
+      п: "p", р: "r", с: "s", т: "t", у: "u", ф: "f", х: "h", ц: "ts",
+      ч: "ch", ш: "sh", щ: "sch", ъ: "", ы: "y", ь: "", э: "e", ю: "yu",
+      я: "ya", є: "ye", і: "i", ї: "yi", ґ: "g", ў: "u",
+    };
+    let out = "";
+    for (const ch of raw) {
+      const lower = ch.toLowerCase();
+      out += cyr[lower] !== undefined ? cyr[lower] : lower.normalize("NFD").replace(/[̀-ͯ]/g, "");
+    }
+    return (
+      out
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 24) || "custom"
+    );
+  };
+
+  const addCustomDraft = () => {
+    const rowId = `draft:${Math.random().toString(36).slice(2, 8)}`;
+    setCustomDrafts((prev) => [
+      ...prev,
+      {
+        rowId,
+        platform: rowId, // placeholder — replaced when the user types a name
+        displayName: "",
+        color: CUSTOM_PALETTE[(customLinks.length + prev.length) % CUSTOM_PALETTE.length],
+      },
+    ]);
+  };
+
+  const updateCustomDraftName = (rowId: string, displayName: string) => {
+    setCustomDrafts((prev) =>
+      prev.map((d) => {
+        if (d.rowId !== rowId) return d;
+        const slug = clientSlug(displayName);
+        const finalSlug = presetSlugs.has(slug) ? `${slug}-custom` : slug;
+        return { ...d, displayName, platform: finalSlug };
+      }),
+    );
+  };
+
+  const removeCustomDraft = (rowId: string) => {
+    setCustomDrafts((prev) => prev.filter((d) => d.rowId !== rowId));
+  };
+
+  const platforms = platformRows.map((row) => ({
+    key: row.platform,
+    label: row.label,
+    color: row.color,
+    url: urlInputs[row.platform] ?? "",
+    setUrl: (v: string) => setUrlInputs((prev) => ({ ...prev, [row.platform]: v })),
+    placeholder: row.placeholder,
+    isPreset: row.isPreset,
+    isCustom: row.isCustom,
+    isDraft: row.isDraft,
+    hasInstructions: row.hasInstructions,
+    rowId: row.rowId,
+  }));
 
   return (
     <div className="cls-isolate mx-auto max-w-3xl space-y-6">
@@ -300,29 +457,62 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         />
       )}
 
-      {/* Platform Cards */}
+      {/* Platform Cards — now dynamic. Renders every preset (airbnb,
+          booking, vrbo) plus any saved custom platforms plus any draft
+          custom rows the user is composing. The outbound "import this
+          back into the platform" feed URL is always visible alongside
+          each row so the host can copy it BEFORE connecting too. */}
       <div className="grid gap-4 md:grid-cols-2">
-        {platforms.map(({ key: platform, label, color, url, setUrl }) => {
+        {platforms.map(({ key: platform, label, color, url, setUrl, placeholder, isPreset, isCustom, isDraft, hasInstructions, rowId }) => {
           const link = getLink(platform);
           const isConnected = !!link;
           const isEditing = editingPlatform === platform || !isConnected;
           const result = testResults[platform];
-          const otherPlatform = platform === "airbnb" ? "booking" : "airbnb";
+          const draftRow = isDraft ? customDrafts.find((d) => d.rowId === rowId) : null;
 
           return (
-            <div key={platform} className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-4">
+            <div key={rowId} className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-4">
               {/* Platform header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-sm font-semibold text-[var(--ink)]">{label}</span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  {isDraft ? (
+                    <input
+                      autoFocus
+                      value={draftRow?.displayName ?? ""}
+                      onChange={(e) => updateCustomDraftName(rowId, e.target.value)}
+                      placeholder={locale === "ru" ? "Название платформы" : "Platform name"}
+                      className="h-7 min-w-0 flex-1 rounded border border-[var(--line-2)] bg-[var(--bg)] px-2 text-sm font-semibold text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-[var(--ink)]">{label}</span>
+                  )}
+                  {isCustom && !isDraft && !isPreset && (
+                    <span className="rounded-md bg-[var(--bg-3)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
+                      {locale === "ru" ? "своё" : "custom"}
+                    </span>
+                  )}
                 </div>
-                {isConnected && (
-                  <span className="flex items-center gap-1 text-xs text-emerald-500">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    {t("sync.connected")}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {isConnected && (
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-emerald-500">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      {t("sync.connected")}
+                    </span>
+                  )}
+                  {isDraft && (
+                    <button
+                      type="button"
+                      onClick={() => removeCustomDraft(rowId)}
+                      className="rounded p-0.5 text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-rose-400"
+                      aria-label={locale === "ru" ? "Удалить" : "Remove"}
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Step 1: Export URL from platform */}
@@ -342,7 +532,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                   <input
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder={t("sync.pastePlaceholder", { platform: label })}
+                    placeholder={placeholder || t("sync.pastePlaceholder", { platform: label })}
                     className="h-8 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
                     disabled={isConnected && !isEditing}
                   />
@@ -365,14 +555,19 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleTest(platform, url)}
-                        disabled={!url.trim() || testing === platform}
+                        disabled={!url.trim() || testing === platform || (isDraft && !draftRow?.displayName.trim())}
                         className="rounded-md bg-[var(--line-2)] px-2.5 py-1 text-xs text-[var(--ink-2)] hover:bg-[var(--line-2)] disabled:opacity-40"
                       >
                         {testing === platform ? "..." : t("common.test")}
                       </button>
                       <button
-                        onClick={() => handleSave(platform, url)}
-                        disabled={!url.trim()}
+                        onClick={async () => {
+                          await handleSave(platform, url);
+                          // For drafts: drop the draft row once persisted —
+                          // it'll re-render via the customLinks branch.
+                          if (isDraft) removeCustomDraft(rowId);
+                        }}
+                        disabled={!url.trim() || (isDraft && !draftRow?.displayName.trim())}
                         className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40"
                       >
                         {t("common.save")}
@@ -398,14 +593,33 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                     {t("sync.lastSynced")} {new Date(link.lastFetchedAt).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB")}
                   </p>
                 )}
+
+                {/* Step-by-step instructions for the two presets we have
+                    tutorial copy for. Hidden until expanded so the card
+                    stays compact when the user already knows the steps. */}
+                {hasInstructions && !isConnected && (platform === "airbnb" || platform === "booking") && (
+                  <div className="pt-1">
+                    <PlatformInstructions platform={platform} mode="export" />
+                  </div>
+                )}
               </div>
 
-              {/* Step 2: Import URL for platform */}
-              {isConnected && (
-                <div className="space-y-1.5 border-t border-[var(--line)] pt-3">
-                  <label className="text-xs text-[var(--ink-3)]">
-                    {t("sync.importLabel")} {label}
-                  </label>
+              {/* Step 2: Import URL — always rendered, not just when
+                  connected. Showing the URL pre-connect lets the user
+                  copy it into the OTHER platform's import field before
+                  they've finished pasting their export URL — which is
+                  the actual workflow when wiring two platforms. */}
+              <div className="space-y-1.5 border-t border-[var(--line)] pt-3">
+                <label className="text-xs text-[var(--ink-3)]">
+                  {t("sync.importLabel")} {label}
+                </label>
+                {isDraft && !draftRow?.displayName.trim() ? (
+                  <p className="text-[11px] italic text-[var(--ink-4)]">
+                    {locale === "ru"
+                      ? "Назовите платформу, чтобы получить ссылку для обратного импорта."
+                      : "Name the platform first to get its import URL."}
+                  </p>
+                ) : (
                   <div className="flex items-center gap-1.5">
                     <code className="flex-1 truncate rounded-md bg-[var(--bg)] border border-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)]">
                       {feedUrl(platform)}
@@ -417,12 +631,32 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                       {copied === `feed-${platform}` ? t("common.copied") : t("common.copy")}
                     </button>
                   </div>
-                </div>
-              )}
+                )}
+                {hasInstructions && (platform === "airbnb" || platform === "booking") && (
+                  <div className="pt-1">
+                    <PlatformInstructions platform={platform} mode="import" />
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
+
+      {/* Add custom platform — matches the onboarding wizard CTA so a
+          host who originally added a Hostaway or Plum Guide row in
+          onboarding can do the same here. The row appears as a draft;
+          fill in the name + URL, hit Save, and it's persisted. */}
+      <button
+        type="button"
+        onClick={addCustomDraft}
+        className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-[var(--line-2)] px-3 py-2 text-[13px] text-[var(--ink-3)] hover:text-[var(--ink)] hover:border-[var(--ink-3)] transition-colors"
+      >
+        <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        {locale === "ru" ? "Добавить другую платформу" : "Add another platform"}
+      </button>
 
       {/* Buffer Settings */}
       {links.length > 0 && (
