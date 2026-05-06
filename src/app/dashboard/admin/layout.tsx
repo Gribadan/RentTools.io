@@ -31,6 +31,7 @@ const NAV: NavGroup[] = [
       { label: { en: "Security & 2FA", ru: "Безопасность" } },
       { label: { en: "Sessions", ru: "Сессии" } },
       { label: { en: "Language & theme", ru: "Язык и тема" }, href: "/dashboard/admin/account/preferences" },
+      { label: { en: "Data export", ru: "Экспорт данных" }, href: "/dashboard/admin/account/export" },
     ],
   },
   {

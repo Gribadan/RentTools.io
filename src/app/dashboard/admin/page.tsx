@@ -41,6 +41,11 @@ const TILES: ReadonlyArray<{
         label: { en: "Language & theme", ru: "Язык и тема" },
         desc: { en: "Per-browser display preferences.", ru: "Настройки отображения в этом браузере." },
       },
+      {
+        href: "/dashboard/admin/account/export",
+        label: { en: "Data export", ru: "Экспорт данных" },
+        desc: { en: "Download a JSON backup of your data.", ru: "Скачать JSON резервную копию данных." },
+      },
     ],
   },
   {
