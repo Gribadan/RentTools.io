@@ -122,6 +122,8 @@ export const translations = {
   "dashboard.today": { en: "Today", ru: "Сегодня" },
   "dashboard.todayCheckIn": { en: "Check-in", ru: "Заезд" },
   "dashboard.todayCheckOut": { en: "Check-out", ru: "Выезд" },
+  "dashboard.formConflict": { en: "Conflicts with existing booking", ru: "Конфликт с существующим бронированием" },
+  "dashboard.formConflicts": { en: "Conflicts with {n} existing bookings", ru: "Конфликт с {n} бронированиями" },
 
   // Property Calendar
   "calendar.editDates": { en: "Edit Dates", ru: "Ред. даты" },

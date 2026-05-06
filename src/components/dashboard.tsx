@@ -279,6 +279,53 @@ export function Dashboard({
   const [showPast, setShowPast] = useState(false);
   const useSections = !selectedProperty && !trimmedQuery && (next7.length + later.length + past.length) > 0;
 
+  // RT-25.6 tick 7 — in-form conflict warning. Surfaces overlapping
+  // reservations + synced calendar events on the picked property/date
+  // range BEFORE the host hits "Create Reservation". Addresses a slice
+  // of the tick 2 deferred "show what's already booked" item without
+  // touching DateSlider's internals (a separate larger lift).
+  // Touching dates (checkout === next checkin) are NOT counted as
+  // overlap to match the same-day-turnover convention used elsewhere.
+  // Synced events come from allSyncedEvents (populated in dashboard
+  // mode); in selectedProperty mode the warning relies on the
+  // property's Reservation rows alone, which is acceptable since most
+  // synced bookings ARE represented as reservations or via the
+  // calendar's own conflict UI in that view.
+  const formConflicts = useMemo(() => {
+    if (!formPropertyId || !formCheckIn || !formCheckOut) return [];
+    if (formCheckIn >= formCheckOut) return [];
+    const pid = Number(formPropertyId);
+    const property = properties.find((p) => p.id === pid);
+    type Conflict = { key: string; name: string; platform: string; from: string; to: string };
+    const out: Conflict[] = [];
+    if (property) {
+      for (const res of property.reservations) {
+        if (res.checkIn < formCheckOut && res.checkOut > formCheckIn) {
+          out.push({
+            key: `r-${res.id}`,
+            name: res.name,
+            platform: res.platform,
+            from: res.checkIn,
+            to: res.checkOut,
+          });
+        }
+      }
+    }
+    const events = allSyncedEvents[pid] || [];
+    for (const ev of events) {
+      if (ev.startDate < formCheckOut && ev.endDate > formCheckIn) {
+        out.push({
+          key: `e-${ev.id}`,
+          name: ev.summary || platformDisplayName(ev.platform),
+          platform: ev.platform,
+          from: ev.startDate,
+          to: ev.endDate,
+        });
+      }
+    }
+    return out;
+  }, [formPropertyId, formCheckIn, formCheckOut, properties, allSyncedEvents]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formName.trim() || !formCheckIn || !formCheckOut || !formPropertyId) return;
@@ -620,6 +667,37 @@ export function Dashboard({
                 onChangeCheckOut={setFormCheckOut}
               />
             </div>
+
+            {/* RT-25.6 tick 7 — in-form conflict warning. Hidden when no
+                conflicts so a clean range stays calm. Renders an amber
+                strip listing every overlapping reservation or synced event
+                so the host can decide whether to adjust dates or proceed
+                anyway (no hard block — the reservation can still submit). */}
+            {formConflicts.length > 0 && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-300">
+                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  {formConflicts.length === 1
+                    ? t("dashboard.formConflict")
+                    : t("dashboard.formConflicts").replace("{n}", String(formConflicts.length))}
+                </div>
+                <ul className="space-y-1">
+                  {formConflicts.map((c) => (
+                    <li key={c.key} className="flex flex-wrap items-center gap-1.5 text-xs text-[var(--ink-3)]">
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: platformColor(c.platform) }}
+                      />
+                      <span className="font-medium text-[var(--ink-2)]">{c.name}</span>
+                      <span className="text-[var(--ink-4)]">·</span>
+                      <span>{formatDate(c.from)} — {formatDate(c.to)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 pt-1">
               <button
