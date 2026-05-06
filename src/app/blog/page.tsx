@@ -5,33 +5,48 @@ import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
+import { localizedAlternates } from "@/lib/i18n/alternates";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
 const PAGE_SIZE = 12;
-const TITLE = "Blog";
-const DESCRIPTION =
-  "Practical guides on calendar sync, double-booking prevention, cleaning automation, and GDPR for short-term rental hosts.";
+
+const BLOG_INDEX_COPY: Record<"en" | "ru", { title: string; description: string }> = {
+  en: {
+    title: "Blog",
+    description:
+      "Practical guides on calendar sync, double-booking prevention, cleaning automation, and GDPR for short-term rental hosts.",
+  },
+  ru: {
+    title: "Блог",
+    description:
+      "Практические руководства для хостов: синхронизация календарей, предотвращение двойных бронирований, автоматизация уборок и GDPR.",
+  },
+};
 
 export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const copy = BLOG_INDEX_COPY[locale];
+  const alts = localizedAlternates("/blog", locale);
   const base: Metadata = {
-    title: TITLE,
-    description: DESCRIPTION,
-    alternates: { canonical: "/blog" },
+    title: copy.title,
+    description: copy.description,
+    alternates: alts,
     openGraph: {
       type: "website",
-      title: `${TITLE} · RentTools`,
-      description: DESCRIPTION,
-      url: "/blog",
+      title: `${copy.title} · RentTools`,
+      description: copy.description,
+      url: alts.canonical,
       siteName: "RentTools",
+      locale: locale === "ru" ? "ru_RU" : "en_US",
     },
     twitter: {
       card: "summary_large_image",
-      title: `${TITLE} · RentTools`,
-      description: DESCRIPTION,
+      title: `${copy.title} · RentTools`,
+      description: copy.description,
     },
   };
-  return applySeoOverrides(base, "/blog", "en");
+  return applySeoOverrides(base, "/blog", locale);
 }
 
 interface SearchParams {

@@ -52,31 +52,45 @@ function altLanguages(defaultPath: string): Record<string, string> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  // Static marketing surfaces. Each generates one entry per locale.
+  // Static marketing surfaces. Each `localized: true` path generates one
+  // entry per supported locale with hreflang siblings; `localized: false`
+  // paths emit a single EN-only entry (used for legal copy that hasn't
+  // been professionally translated — see middleware's LOCALIZABLE_PATHS
+  // for the matching list).
   const staticPaths: Array<{
     path: string;
     changeFrequency: "weekly" | "monthly" | "yearly" | "daily";
     priority: number;
+    localized: boolean;
   }> = [
-    { path: "/", changeFrequency: "weekly", priority: 1.0 },
-    { path: "/onboard", changeFrequency: "monthly", priority: 0.9 },
-    { path: "/blog", changeFrequency: "daily", priority: 0.9 },
-    { path: "/signup", changeFrequency: "monthly", priority: 0.8 },
-    { path: "/login", changeFrequency: "monthly", priority: 0.6 },
-    { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
-    { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
+    { path: "/", changeFrequency: "weekly", priority: 1.0, localized: true },
+    { path: "/onboard", changeFrequency: "monthly", priority: 0.9, localized: true },
+    { path: "/blog", changeFrequency: "daily", priority: 0.9, localized: true },
+    { path: "/signup", changeFrequency: "monthly", priority: 0.8, localized: true },
+    { path: "/login", changeFrequency: "monthly", priority: 0.6, localized: true },
+    { path: "/terms", changeFrequency: "yearly", priority: 0.3, localized: false },
+    { path: "/privacy", changeFrequency: "yearly", priority: 0.3, localized: false },
   ];
 
   const staticEntries: MetadataRoute.Sitemap = [];
   for (const entry of staticPaths) {
-    const languages = altLanguages(entry.path);
-    for (const loc of SUPPORTED_LOCALES) {
+    if (entry.localized) {
+      const languages = altLanguages(entry.path);
+      for (const loc of SUPPORTED_LOCALES) {
+        staticEntries.push({
+          url: localizedUrl(entry.path, loc),
+          lastModified: now,
+          changeFrequency: entry.changeFrequency,
+          priority: entry.priority,
+          alternates: { languages },
+        });
+      }
+    } else {
       staticEntries.push({
-        url: localizedUrl(entry.path, loc),
+        url: localizedUrl(entry.path, DEFAULT_LOCALE),
         lastModified: now,
         changeFrequency: entry.changeFrequency,
         priority: entry.priority,
-        alternates: { languages },
       });
     }
   }

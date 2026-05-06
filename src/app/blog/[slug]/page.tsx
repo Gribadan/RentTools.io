@@ -13,8 +13,30 @@ import { extractToc, readingMinutes, renderMarkdown, stripLeadingH1 } from "@/li
 import { getSession } from "@/lib/auth";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/alternates";
+import type { Locale } from "@/lib/i18n/translations";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
+
+// Build per-post hreflang siblings. Posts are stored per-locale (a row
+// per (slug, locale) pair). Pointing hreflang at a URL whose row doesn't
+// exist makes Google chase 404s, so this returns only the locales that
+// actually have a published row for this slug.
+function buildPostLanguagesForSlug(
+  slug: string,
+  availableLocales: Set<string>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const loc of SUPPORTED_LOCALES) {
+    if (!availableLocales.has(loc)) continue;
+    if (loc === DEFAULT_LOCALE) {
+      result[loc] = `/blog/${slug}`;
+    } else {
+      result[loc] = `/${loc}/blog/${slug}`;
+    }
+  }
+  return result;
+}
 
 function parseTags(json: string): string[] {
   try {
@@ -52,11 +74,11 @@ function formatLongDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
-async function findPublishedPost(slug: string) {
+async function findPublishedPost(slug: string, locale: Locale) {
   return prisma.blogPost.findFirst({
     where: {
       slug,
-      locale: "en",
+      locale,
       status: "published",
       publishedAt: { lte: new Date() },
     },
@@ -66,20 +88,39 @@ async function findPublishedPost(slug: string) {
   });
 }
 
+// All locales that have a published row for this slug. Used to build
+// per-post hreflang siblings without pointing at 404s.
+async function findPostLocales(slug: string): Promise<Set<string>> {
+  const rows = await prisma.blogPost.findMany({
+    where: {
+      slug,
+      status: "published",
+      publishedAt: { lte: new Date() },
+    },
+    select: { locale: true },
+  });
+  return new Set(rows.map((r) => r.locale));
+}
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await findPublishedPost(slug);
+  const locale = await getLocale();
+  const post = await findPublishedPost(slug, locale);
   if (!post) {
     return {
       title: "Post not found",
       robots: { index: false, follow: false },
     };
   }
-  const url = `${SITE_URL}/blog/${slug}`;
+  const availableLocales = await findPostLocales(slug);
+  const languages = buildPostLanguagesForSlug(slug, availableLocales);
+  const canonical =
+    locale === DEFAULT_LOCALE ? `/blog/${slug}` : `/${locale}/blog/${slug}`;
+  const url = `${SITE_URL}${canonical}`;
   const tags = parseTags(post.tagsJson);
   const ogImage = post.ogImageUrl
     ? {
@@ -92,7 +133,7 @@ export async function generateMetadata({
     title: post.title,
     description: post.excerpt,
     keywords: tags,
-    alternates: { canonical: `/blog/${slug}` },
+    alternates: { canonical, languages },
     authors: post.author?.username ? [{ name: post.author.username }] : undefined,
     openGraph: {
       type: "article",
@@ -123,7 +164,11 @@ export default async function BlogPostPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = await findPublishedPost(slug);
+  // Look up by resolved locale so /ru/blog/<slug> 404s when no Russian
+  // translation exists rather than rendering the EN body under an RU
+  // URL (which Google would consolidate as duplicate content).
+  const resolvedLocale = await getLocale();
+  const post = await findPublishedPost(slug, resolvedLocale);
   if (!post) notFound();
 
   const tags = parseTags(post.tagsJson);
@@ -149,7 +194,7 @@ export default async function BlogPostPage({
     : undefined;
 
   const session = await getSession();
-  const locale = await getLocale();
+  const locale = resolvedLocale;
   const isSuperadmin = session?.role === "superadmin";
 
   // Related posts: same primary tag (first tag), newest first, exclude current.

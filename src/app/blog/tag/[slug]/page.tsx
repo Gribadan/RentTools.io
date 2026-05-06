@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { MarketingHeader } from "@/components/marketing-header";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
+import { getLocale } from "@/lib/i18n/server";
+import { DEFAULT_LOCALE } from "@/lib/i18n/alternates";
 
 const PAGE_SIZE = 12;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
@@ -65,6 +67,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  // Tag pages are EN-only today (the post library is EN-only). When a
+  // visitor lands on /ru/blog/tag/foo via the locale switcher, we emit
+  // 404-like metadata so Google doesn't index a Russian URL whose body
+  // is English. Phase C will re-emit per-locale once the post library
+  // grows multilingual.
+  const resolvedLocale = await getLocale();
+  if (resolvedLocale !== DEFAULT_LOCALE) {
+    return { title: "Not found", robots: { index: false, follow: false } };
+  }
   const cleanSlug = normaliseSlug(slug);
   const tag = await findTag(cleanSlug);
   if (!tag) {
@@ -108,6 +119,11 @@ export default async function BlogTagPage({
   const sp = await searchParams;
   const slug = normaliseSlug(rawSlug);
   if (!slug) notFound();
+
+  // Mirror the metadata gate: tag pages are EN-only until the post
+  // library is multilingual.
+  const resolvedLocale = await getLocale();
+  if (resolvedLocale !== DEFAULT_LOCALE) notFound();
 
   const tag = await findTag(slug);
   if (!tag) notFound();

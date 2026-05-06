@@ -34,7 +34,14 @@ const LOCALE_PREFIXES = SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE); /
 // API / token-gated routes (g, invite) stay language-agnostic — the
 // dashboard already runs through the client-side useI18n hook and
 // doesn't need URL-distinct versions for SEO.
-const LOCALIZABLE_PATHS = ["/", "/onboard", "/blog", "/login", "/signup", "/privacy", "/terms"];
+//
+// /privacy and /terms are deliberately EN-only: legal copy needs
+// professional review per locale, and serving the same English text
+// from /ru/privacy as from /privacy is a duplicate-content signal to
+// Google. Keeping them off the prefix list means /ru/privacy redirects
+// to /privacy, which matches the user's intent (read the legal terms)
+// without lying about translation status.
+const LOCALIZABLE_PATHS = ["/", "/onboard", "/blog", "/login", "/signup"];
 
 function detectLocaleFromPath(pathname: string): { locale: string; rest: string } | null {
   for (const loc of LOCALE_PREFIXES) {
