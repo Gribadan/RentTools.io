@@ -16,6 +16,12 @@ interface NavItem {
   label: { en: string; ru: string };
   href?: string;
   available?: boolean;
+  // RT-25.9 tick 15 — hide entries non-superadmins can't use. The
+  // underlying API already returns 403, so previously these items
+  // rendered for any logged-in user but bounced to a permission notice
+  // on click. Hiding them at the sidebar level matches what the user
+  // can actually do.
+  requiresSuperadmin?: boolean;
 }
 
 interface NavGroup {
@@ -38,7 +44,7 @@ const NAV: NavGroup[] = [
     label: { en: "Workspace", ru: "Рабочее пространство" },
     items: [
       { label: { en: "Users & roles", ru: "Пользователи и роли" }, href: "/dashboard/admin/workspace/users" },
-      { label: { en: "Site settings", ru: "Настройки сайта" }, href: "/dashboard/admin/workspace/site-settings" },
+      { label: { en: "Site settings", ru: "Настройки сайта" }, href: "/dashboard/admin/workspace/site-settings", requiresSuperadmin: true },
       { label: { en: "Properties", ru: "Объекты" } },
       { label: { en: "Cleaner assignments", ru: "Уборщики" } },
       { label: { en: "Message templates", ru: "Шаблоны сообщений" } },
@@ -48,11 +54,11 @@ const NAV: NavGroup[] = [
   {
     label: { en: "Integrations", ru: "Интеграции" },
     items: [
-      { label: { en: "Calendar platforms", ru: "Платформы" }, href: "/dashboard/admin/integrations/platforms" },
+      { label: { en: "Calendar platforms", ru: "Платформы" }, href: "/dashboard/admin/integrations/platforms", requiresSuperadmin: true },
       { label: { en: "iCal links", ru: "iCal ссылки" } },
       { label: { en: "Feed access tokens", ru: "Токены доступа" } },
       { label: { en: "Gemini AI key", ru: "Gemini AI ключ" }, href: "/dashboard/admin/integrations/gemini" },
-      { label: { en: "SEO overrides", ru: "SEO переопределения" }, href: "/dashboard/admin/integrations/seo" },
+      { label: { en: "SEO overrides", ru: "SEO переопределения" }, href: "/dashboard/admin/integrations/seo", requiresSuperadmin: true },
     ],
   },
   {
@@ -66,16 +72,25 @@ const NAV: NavGroup[] = [
   {
     label: { en: "Content", ru: "Контент" },
     items: [
-      { label: { en: "Blog posts", ru: "Статьи блога" } },
+      { label: { en: "Blog posts", ru: "Статьи блога" }, requiresSuperadmin: true },
       { label: { en: "Guest form templates", ru: "Шаблоны анкет" } },
     ],
   },
 ];
 
-function AdminShell({ children }: { children: React.ReactNode }) {
+function AdminShell({ role, children }: { role: string; children: React.ReactNode }) {
   const { locale } = useI18n();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isSuperadmin = role === "superadmin";
+  // Filter out superadmin-only entries; drop a group entirely if it has
+  // nothing visible left (currently no group is fully gated, but this
+  // future-proofs the shell for content-only-superadmin sections).
+  const visibleNav = NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => isSuperadmin || !item.requiresSuperadmin),
+  })).filter((group) => group.items.length > 0);
 
   // Close drawer on route change (mobile UX).
   useEffect(() => {
@@ -129,7 +144,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           }`}
         >
           <nav className="space-y-5 p-4">
-            {NAV.map((group) => (
+            {visibleNav.map((group) => (
               <div key={group.label.en}>
                 <div className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
                   {locale === "ru" ? group.label.ru : group.label.en}
@@ -192,7 +207,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           if (typeof window !== "undefined") router.replace("/dashboard");
           return null;
         }
-        return <AdminShell>{children}</AdminShell>;
+        return <AdminShell role={user.role}>{children}</AdminShell>;
       }}
     </AuthGuard>
   );

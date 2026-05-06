@@ -24,9 +24,23 @@ interface AuditResponse {
   entries?: AuditEntry[];
 }
 
+interface MeResponse {
+  user?: { role: string } | null;
+}
+
+interface Tile {
+  href: string;
+  label: { en: string; ru: string };
+  desc: { en: string; ru: string };
+  // RT-25.9 tick 15 — match the sidebar gating in layout.tsx so the
+  // admin home only surfaces tiles whose underlying API the user can
+  // actually call.
+  requiresSuperadmin?: boolean;
+}
+
 const TILES: ReadonlyArray<{
   group: { en: string; ru: string };
-  items: ReadonlyArray<{ href: string; label: { en: string; ru: string }; desc: { en: string; ru: string } }>;
+  items: ReadonlyArray<Tile>;
 }> = [
   {
     group: { en: "Account", ru: "Аккаунт" },
@@ -60,6 +74,7 @@ const TILES: ReadonlyArray<{
         href: "/dashboard/admin/workspace/site-settings",
         label: { en: "Site settings", ru: "Настройки сайта" },
         desc: { en: "Public signup, quotas, landing announcement.", ru: "Регистрация, квоты, объявление." },
+        requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/workspace/audit",
@@ -83,6 +98,7 @@ const TILES: ReadonlyArray<{
           en: "Override title, description, OG image, canonical per page.",
           ru: "Переопределить title, description, OG-картинку и canonical для страницы.",
         },
+        requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/integrations/platforms",
@@ -91,6 +107,7 @@ const TILES: ReadonlyArray<{
           en: "Edit colors, sort order, enable/disable. Add custom platforms.",
           ru: "Цвета, порядок, включение/отключение. Добавить пользовательские платформы.",
         },
+        requiresSuperadmin: true,
       },
     ],
   },
@@ -110,6 +127,14 @@ export default function AdminHomePage() {
   const { locale } = useI18n();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [auditLoaded, setAuditLoaded] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? (r.json() as Promise<MeResponse>) : null))
+      .then((data) => setRole(data?.user?.role ?? null))
+      .catch(() => setRole(null));
+  }, []);
 
   useEffect(() => {
     fetch("/api/audit")
@@ -121,6 +146,12 @@ export default function AdminHomePage() {
       .catch(() => {})
       .finally(() => setAuditLoaded(true));
   }, []);
+
+  const isSuperadmin = role === "superadmin";
+  const visibleTiles = TILES.map((group) => ({
+    ...group,
+    items: group.items.filter((t) => isSuperadmin || !t.requiresSuperadmin),
+  })).filter((group) => group.items.length > 0);
 
   const formatRelative = (iso: string): string => {
     const then = new Date(iso).getTime();
@@ -152,7 +183,7 @@ export default function AdminHomePage() {
       </div>
 
       {/* Tile grid */}
-      {TILES.map((group) => (
+      {visibleTiles.map((group) => (
         <section key={group.group.en} className="space-y-3">
           <h3 className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
             {locale === "ru" ? group.group.ru : group.group.en}
