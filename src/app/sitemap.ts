@@ -3,6 +3,17 @@ import { prisma } from "@/lib/prisma";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
+// ISR — regenerate the sitemap at most once an hour. Without this,
+// Next.js renders sitemap() ONCE at build time on the GH Actions
+// runner (where there's no DB), the try/catch falls through to the
+// marketing-only static entries, and the snapshot ships frozen until
+// the next deploy. New posts created via the admin UI would then be
+// invisible to crawlers until somebody pushed a commit. With
+// revalidate=3600 the droplet regenerates its own copy every hour
+// against the live DB, so a post published at 14:05 reaches the
+// sitemap before 15:05.
+export const revalidate = 3600;
+
 /**
  * Sitemap. Static marketing pages + per-post + per-tag entries pulled
  * live from the DB. `lastModified` = `updatedAt` when set, otherwise
