@@ -203,13 +203,38 @@ function platformMeta(slug: string): PlatformMeta {
   return { slug, label: slug.charAt(0).toUpperCase() + slug.slice(1), color: FALLBACK_PLATFORM_COLOR };
 }
 
-/** Build the deduped list of stays for one property. iCal events whose
- *  uid matches a Reservation.linkedEventUid are dropped — the Reservation
- *  side wins because it carries the host-chosen platform + name. */
+/** True for iCal summaries that indicate a generic blocked entry
+ *  rather than a guest name (Airbnb's "Reserved", Booking's "CLOSED",
+ *  host-blocks, etc.). Used to merge iCal twins of manually-entered
+ *  Reservations on identical dates when the host hasn't gone through
+ *  the bar-claim popover. */
+function isGenericIcalName(summary: string): boolean {
+  if (!summary) return true;
+  const s = summary.toLowerCase().trim();
+  return (
+    s === "reserved" ||
+    s === "closed" ||
+    s.includes("not available") ||
+    s.includes("blocked") ||
+    s.includes("closed - not available")
+  );
+}
+
+/** Build the deduped list of stays for one property. Three layers of
+ *  dedup so the same real-world booking is never counted twice:
+ *    1. linkedEventUid match (explicit claim) → drop the iCal twin.
+ *    2. Same start+end + generic iCal summary → drop the iCal twin
+ *       (catches manually-entered Reservations whose iCal feed is
+ *       still emitting an unclaimed twin).
+ *    3. Airbnb host-blocks → filtered out (not real guests). */
 function buildStaysForProperty(prop: Property, events: CalendarEventRow[]): NormalizedStay[] {
   const linkedUids = new Set(
     prop.reservations.map((r) => r.linkedEventUid).filter((u): u is string => !!u)
   );
+  const reservationDateKeys = new Set<string>();
+  for (const r of prop.reservations) {
+    reservationDateKeys.add(`${isoDate(new Date(r.checkIn))}|${isoDate(new Date(r.checkOut))}`);
+  }
   const stays: NormalizedStay[] = [];
   for (const ev of events) {
     if (ev.propertyId !== prop.id) continue;
@@ -219,6 +244,8 @@ function buildStaysForProperty(prop: Property, events: CalendarEventRow[]): Norm
       (ev.summary?.includes("Not available") || ev.summary?.includes("Blocked"));
     if (isAirbnbBlock) continue;
     if (ev.uid && linkedUids.has(ev.uid)) continue;
+    const dateKey = `${ev.startDate}|${ev.endDate}`;
+    if (reservationDateKeys.has(dateKey) && isGenericIcalName(ev.summary || "")) continue;
     stays.push({ start: ev.startDate, end: ev.endDate, platform, propertyId: prop.id });
   }
   for (const r of prop.reservations) {

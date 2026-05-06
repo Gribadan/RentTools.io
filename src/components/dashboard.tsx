@@ -59,15 +59,49 @@ interface UnifiedStay {
   reservationId?: number;
 }
 
+/** True for iCal summaries that almost always indicate "this is a
+ *  generic blocked booking, not a guest name" — Airbnb's "Reserved",
+ *  Booking.com's "CLOSED - Not available", host-blocks, etc. Used to
+ *  distinguish iCal twins of manually-entered Reservations (which the
+ *  host hasn't claimed via the bar-claim popover) from a real second
+ *  booking that just happens to overlap on the same dates. */
+function isGenericIcalName(summary: string): boolean {
+  if (!summary) return true;
+  const s = summary.toLowerCase().trim();
+  return (
+    s === "reserved" ||
+    s === "closed" ||
+    s.includes("not available") ||
+    s.includes("blocked") ||
+    s.includes("closed - not available")
+  );
+}
+
 /** Build a deduped list of stays for one property from Reservation rows
- *  + iCal-synced events. iCal events whose uid matches a Reservation's
- *  linkedEventUid are dropped (the Reservation side wins because it
- *  carries the host-chosen platform + name). Airbnb host blocks are
- *  filtered out — they're not real guests. Sorted by start asc. */
+ *  + iCal-synced events. Three layers of dedup so the dashboard never
+ *  double-counts the SAME booking represented in two places:
+ *    1. iCal events whose uid matches a Reservation.linkedEventUid
+ *       (the host explicitly claimed the bar) → drop the iCal side.
+ *    2. iCal events with generic summaries (Reserved / Blocked / etc)
+ *       whose start+end exactly match a Reservation's dates → drop
+ *       the iCal side. This catches the very common case of a host
+ *       creating a Reservation manually without going through the
+ *       bar-claim popover, leaving the iCal twin orphaned.
+ *    3. Airbnb host-blocks ("Not available" / "Blocked") are filtered
+ *       out — they're not real guests.
+ *  Sorted by start asc. */
 function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] {
   const linkedUids = new Set(
     p.reservations.map((r) => r.linkedEventUid).filter((u): u is string => !!u)
   );
+  // Reservation date-range keys — used to silently merge generic-named
+  // iCal events with the host's manual entry on identical dates.
+  const reservationDateKeys = new Set<string>();
+  for (const r of p.reservations) {
+    const start = new Date(r.checkIn).toISOString().substring(0, 10);
+    const end = new Date(r.checkOut).toISOString().substring(0, 10);
+    reservationDateKeys.add(`${start}|${end}`);
+  }
   const stays: UnifiedStay[] = [];
   for (const r of p.reservations) {
     const start = new Date(r.checkIn);
@@ -85,6 +119,9 @@ function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] 
   for (const ev of events) {
     if (ev.uid && linkedUids.has(ev.uid)) continue;
     if (ev.platform === "airbnb" && (ev.summary?.includes("Not available") || ev.summary?.includes("Blocked"))) continue;
+    // Same-dates + generic-summary heuristic: drop the iCal twin.
+    const dateKey = `${ev.startDate}|${ev.endDate}`;
+    if (reservationDateKeys.has(dateKey) && isGenericIcalName(ev.summary || "")) continue;
     const start = new Date(ev.startDate);
     start.setHours(0, 0, 0, 0);
     const end = new Date(ev.endDate);
@@ -1202,28 +1239,15 @@ export function Dashboard({
         </div>
       ) : null}
 
-      {/* Cleaning Schedule — visible cross-property section so hosts
-          can quickly copy and forward to their cleaners without
-          navigating to the Cleaning tab. The full sidebar layout
-          lives on the Cleaning tab (GlobalCleaningView); this inline
-          version uses the schedule's built-in inline header controls
-          (Copy / Print / Include-potential toggle) so the export is
-          one tap away from the dashboard root. The schedule also
-          emits onCleanerConflictDatesChange which feeds the alerts
-          strip + Today/Next-7-days conflict badges. */}
+      {/* Cleaning has its own dedicated tab — no inline schedule on
+          the dashboard. We still mount a HIDDEN CleaningSchedule
+          purely so the cleaner-conflict detection logic runs and
+          feeds the Today / Next-7-days conflict badges + the alerts
+          strip via onCleanerConflictDatesChange. The visible
+          schedule lives at activeView === "cleaning" inside
+          GlobalCleaningView. */}
       {!selectedProperty && properties.length > 0 && Object.keys(allSyncedEvents).length > 0 && (
-        <div id="cleaning-schedule" className="scroll-mt-4 space-y-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
-              {locale === "ru" ? "Уборки" : "Cleaning"}
-            </h2>
-            <a
-              href="?view=cleaning"
-              className="text-[11px] text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors"
-            >
-              {locale === "ru" ? "Открыть полностью →" : "Open full schedule →"}
-            </a>
-          </div>
+        <div className="hidden" aria-hidden="true">
           <CleaningSchedule
             properties={properties}
             syncedEvents={allSyncedEvents}

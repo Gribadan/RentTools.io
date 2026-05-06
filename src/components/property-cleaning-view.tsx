@@ -6,6 +6,10 @@ import { CleanersPanel } from "@/components/cleaners-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
+// View / display options live in the sidebar so they sit alongside the
+// other per-property settings (master toggle, cleaners). Copy + Print
+// moved to the schedule's table header.
+
 interface CalendarEvent {
   id: number;
   platform: string;
@@ -30,6 +34,7 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
   const [assignments, setAssignments] = useState<CleanerAssignmentInfo[]>([]);
   const [cleaningEnabled, setCleaningEnabled] = useState<boolean>(property.cleaningEnabled !== false);
   const [toggling, setToggling] = useState(false);
+  const [includePotential, setIncludePotential] = useState(true);
 
   useEffect(() => {
     setCleaningEnabled(property.cleaningEnabled !== false);
@@ -118,6 +123,8 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
               mode="property"
               selectedPropertyId={property.id}
               onOverrideChanged={fetchData}
+              includePotential={includePotential}
+              onIncludePotentialChange={setIncludePotential}
               cleanerAssignments={assignmentsByProperty}
             />
           ) : (
@@ -187,6 +194,35 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
               replaces the old SyncSettings CleanerAssignmentSection. Only
               meaningful when the cleaning surface is on. */}
           {cleaningEnabled && <CleanersPanel propertyId={property.id} />}
+
+          {/* View options — include-potential toggle. Sits in sidebar
+              so view-state stays grouped with the other settings;
+              Copy / Print moved to the table header. */}
+          {cleaningEnabled && (
+            <div className="px-5 py-4">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-2.5">
+                {locale === "ru" ? "Отображение" : "View"}
+              </div>
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includePotential}
+                  onChange={(e) => setIncludePotential(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-[var(--line-2)] accent-[var(--m-accent)] cursor-pointer"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-[var(--ink)]">
+                    {t("cleaning.includePotential")}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-[var(--ink-3)] leading-relaxed">
+                    {locale === "ru"
+                      ? "Уборки, которые понадобятся только если промежуток будет занят гостем."
+                      : "Cleanings that only matter if a gap-fill guest books."}
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
         </aside>
       </div>
     </div>

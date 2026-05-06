@@ -5,6 +5,11 @@ import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/clean
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
+// Sidebar carries the View toggle (include-potential) + a Data
+// sources note. Copy + Print live inline in the schedule's table
+// header so the host can grab the export with one tap; the toggle
+// lives here so view-state stays grouped with future settings.
+
 interface CalendarEvent {
   id: number;
   platform: string;
@@ -26,11 +31,12 @@ interface GlobalCleaningViewProps {
  * here — those belong to PropertyCleaningView.
  */
 export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
-  const { locale } = useI18n();
+  const { t, locale } = useI18n();
   const [syncedEvents, setSyncedEvents] = useState<Record<number, CalendarEvent[]>>({});
   const [links, setLinks] = useState<Record<number, CalendarLink[]>>({});
   const [overrides, setOverrides] = useState<Record<number, DateOverride[]>>({});
   const [assignmentsByProperty, setAssignmentsByProperty] = useState<Record<number, CleanerAssignmentInfo[]>>({});
+  const [includePotential, setIncludePotential] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (properties.length === 0) {
@@ -115,26 +121,82 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
 
   return (
     <div className="-mx-3 sm:-mx-6 lg:-mx-8">
-      <div className="mx-auto max-w-[1760px] px-3 sm:px-5 space-y-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
-            {locale === "ru" ? "Уборки" : "Cleaning"}
-          </h1>
-          <p className="mt-1 text-xs text-[var(--ink-3)]">
-            {locale === "ru"
-              ? `По всем объектам (${properties.length})`
-              : `Across all ${properties.length} ${properties.length === 1 ? "property" : "properties"}`}
-          </p>
+      <div className="mx-auto max-w-[1760px] px-3 sm:px-5 flex flex-col lg:flex-row gap-6">
+        <div className="min-w-0 lg:flex-1 space-y-3">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
+              {locale === "ru" ? "Уборки" : "Cleaning"}
+            </h1>
+            <p className="mt-1 text-xs text-[var(--ink-3)]">
+              {locale === "ru"
+                ? `По всем объектам (${properties.length})`
+                : `Across all ${properties.length} ${properties.length === 1 ? "property" : "properties"}`}
+            </p>
+          </div>
+          <CleaningSchedule
+            properties={properties}
+            syncedEvents={syncedEvents}
+            links={links}
+            overrides={overrides}
+            mode="dashboard"
+            onOverrideChanged={fetchData}
+            includePotential={includePotential}
+            onIncludePotentialChange={setIncludePotential}
+            cleanerAssignments={assignmentsByProperty}
+          />
         </div>
-        <CleaningSchedule
-          properties={properties}
-          syncedEvents={syncedEvents}
-          links={links}
-          overrides={overrides}
-          mode="dashboard"
-          onOverrideChanged={fetchData}
-          cleanerAssignments={assignmentsByProperty}
-        />
+
+        {/* Sidebar — View options + a Data sources note. Copy + Print
+            moved to the schedule's table header. Same shell + soft
+            shadow as PropertyCleaningView's sidebar so the cleaning
+            surface looks consistent across the two scopes. */}
+        <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
+          <div className="border-b border-[var(--line)] px-5 py-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
+              {locale === "ru" ? "Уборки" : "Cleaning"}
+            </div>
+            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
+              {locale === "ru"
+                ? `Все объекты (${properties.length})`
+                : `All properties (${properties.length})`}
+            </div>
+          </div>
+
+          <div className="border-b border-[var(--line)] px-5 py-4">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-2.5">
+              {locale === "ru" ? "Отображение" : "View"}
+            </div>
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includePotential}
+                onChange={(e) => setIncludePotential(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-[var(--line-2)] accent-[var(--m-accent)] cursor-pointer"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-medium text-[var(--ink)]">
+                  {t("cleaning.includePotential")}
+                </span>
+                <span className="mt-0.5 block text-xs text-[var(--ink-3)] leading-relaxed">
+                  {locale === "ru"
+                    ? "Уборки, которые понадобятся только если промежуток будет занят гостем."
+                    : "Cleanings that only matter if a gap-fill guest books."}
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="px-5 py-4">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
+              {locale === "ru" ? "Источники данных" : "Data sources"}
+            </div>
+            <p className="text-[11px] text-[var(--ink-3)] leading-relaxed">
+              {locale === "ru"
+                ? "Расписание считается из ваших броней + iCal событий, дедуплицированных. Названия объектов попадают в каждую строку при копировании / печати."
+                : "Schedule is computed from your reservations + iCal events, deduped. Property names appear in each row when copying / printing."}
+            </p>
+          </div>
+        </aside>
       </div>
     </div>
   );
