@@ -64,7 +64,7 @@ const NAV: NavGroup[] = [
   {
     label: { en: "Operations", ru: "Эксплуатация" },
     items: [
-      { label: { en: "Sync logs", ru: "Логи синхронизации" } },
+      { label: { en: "Sync logs", ru: "Логи синхронизации" }, href: "/dashboard/admin/operations/sync-logs" },
       { label: { en: "Scheduled jobs", ru: "Задачи" } },
       { label: { en: "Status page", ru: "Статус" }, href: "/dashboard/admin/operations/status" },
     ],

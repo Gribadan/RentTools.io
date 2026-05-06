@@ -123,6 +123,14 @@ const TILES: ReadonlyArray<{
     group: { en: "Operations", ru: "Эксплуатация" },
     items: [
       {
+        href: "/dashboard/admin/operations/sync-logs",
+        label: { en: "Sync logs", ru: "Логи синхронизации" },
+        desc: {
+          en: "Chronological feed of sync events across all properties.",
+          ru: "Хронологическая лента событий синхронизации по всем объектам.",
+        },
+      },
+      {
         href: "/dashboard/admin/operations/status",
         label: { en: "Status page", ru: "Статус" },
         desc: { en: "Internal health endpoints for spot checks.", ru: "Внутренние эндпоинты здоровья для проверки." },
