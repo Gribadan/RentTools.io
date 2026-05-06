@@ -24,6 +24,10 @@ interface CalendarGridProps {
    *  type=cleaning). Render with the cleaning chip + "Manual cleaning"
    *  label so they are visually distinct from auto buffer days. */
   cleaningOverrides: Set<string>;
+  /** RT-25.10 tick 2 — name of the priority-0 cleaner assigned to this
+   *  property. Surfaced via the `title` attribute (hover tooltip) on
+   *  every cleaning chip. No visual change to the chip itself. */
+  defaultCleanerName?: string;
   /** Dates the user has selected (multi-select via cell clicks). The
    *  selection drives the side panel — single date opens the per-
    *  date detail view, multiple dates opens the bulk-action view. */
@@ -50,6 +54,7 @@ export function CalendarGrid({
   openOverrides,
   closedOverrides,
   cleaningOverrides,
+  defaultCleanerName,
   selectedDates,
   loading,
   onSelectReservation,
@@ -222,16 +227,16 @@ export function CalendarGrid({
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.conflict")}</div>
                       )}
                       {isManualCleaning && !isOpen && !isClosed && (
-                        <div className="rounded px-1.5 h-5 flex items-center text-[10px] font-semibold text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] shadow-sm">{t("calendar.manualCleaning")}</div>
+                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-5 flex items-center text-[10px] font-semibold text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] shadow-sm">{t("calendar.manualCleaning")}</div>
                       )}
                       {isBuffer && !isOpen && !isClosed && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] font-medium text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]">{t("calendar.cleaning")}</div>
+                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1 h-5 flex items-center text-[10px] font-medium text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)]">{t("calendar.cleaning")}</div>
                       )}
                       {isBuffer && isClosed && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 font-medium">{t("calendar.closed")}</div>
                       )}
                       {isPotential && !isOpen && (
-                        <div className="rounded px-1 h-5 flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/15 border-dashed">{t("calendar.cleaningQ")}</div>
+                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1 h-5 flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/15 border-dashed">{t("calendar.cleaningQ")}</div>
                       )}
                       {isUnbookable && !isOpen && (
                         <div className="rounded px-1 h-5 flex items-center text-[10px] text-[var(--ink-4)] bg-[var(--ink-4)]/8 border border-[var(--ink-4)]/15 border-dashed">&lt;{minNights}n</div>
@@ -325,11 +330,11 @@ export function CalendarGrid({
                        in the gap. */
                     <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
                       {potentialDates.has(ds) ? (
-                        <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/20 border-dashed font-semibold leading-none shadow-sm whitespace-nowrap">
+                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--ink)]/70 bg-[var(--ink)]/5 border border-[var(--ink)]/20 border-dashed font-semibold leading-none shadow-sm whitespace-nowrap">
                           {t("calendar.cleaningQ")}
                         </div>
                       ) : (
-                        <div className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
+                        <div title={defaultCleanerName ? `🧹 ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
                           {t("calendar.cleaning")}
                         </div>
                       )}

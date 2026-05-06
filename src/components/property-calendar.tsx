@@ -98,6 +98,30 @@ export function PropertyCalendar({
 
   const data = useCalendarData(property, syncedEvents, links, overrides);
 
+  // RT-25.10 tick 2 — fetch the priority-0 cleaner so the cleaning chips
+  // can show "🧹 {name}" as a hover tooltip. The cleaning sidebar in
+  // PropertyCleaningView already does this fetch on its own surface;
+  // duplicating here keeps the calendar tab self-contained without
+  // pushing more props through the dashboard wrapper.
+  const [defaultCleanerName, setDefaultCleanerName] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/cleaner-assignments?propertyId=${property.id}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => {
+        if (cancelled) return;
+        const arr = Array.isArray(list) ? list : [];
+        const top = arr[0];
+        setDefaultCleanerName(top?.cleanerName ?? top?.username ?? undefined);
+      })
+      .catch(() => {
+        if (!cancelled) setDefaultCleanerName(undefined);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [property.id]);
+
   // Selection helpers ----------------------------------------------
   const toggleDate = (dateStr: string) => {
     setSelectedDates((prev) => {
@@ -367,6 +391,7 @@ export function PropertyCalendar({
                   openOverrides={data.openOverrides}
                   closedOverrides={data.closedOverrides}
                   cleaningOverrides={data.cleaningOverrides}
+                  defaultCleanerName={defaultCleanerName}
                   selectedDates={selectedDates}
                   loading={loadingEvents && i === 0}
                   onSelectReservation={onSelectReservation}
