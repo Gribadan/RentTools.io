@@ -515,6 +515,12 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
   // pasted Telegram / email message identifies the place at a glance.
   // For dashboard mode the [Property] tag on each row already carries
   // that information.
+  // Cleaner-facing export. Stays plain-text + emoji-free because it is
+  // meant for forwarding to the cleaner via Telegram / WhatsApp / SMS,
+  // where a clean header + a one-line-per-day schedule reads better
+  // than chip-style annotations. Notes / reason text are deliberately
+  // dropped — the cleaner only needs WHEN, WHERE, and how (quick vs
+  // full day, with a precise arrival time on quick turnovers).
   const buildScheduleLines = (): string[] => {
     const targetProperties = mode === "property" && selectedPropertyId
       ? properties.filter(p => p.id === selectedPropertyId)
@@ -523,26 +529,37 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
       ? targetProperties[0].name
       : null;
     const headerSuffix = singlePropertyName ? ` — ${singlePropertyName}` : "";
+    const propertyById = new Map(properties.map((p) => [p.id, p]));
+
+    const arriveByLabel = (time: string) =>
+      locale === "ru" ? `быстрая уборка, прибыть к ${time}` : `quick cleaning, arrive by ${time}`;
+    const fullDayLabel = locale === "ru" ? "полный день" : "full day available";
+    const manualLabel = locale === "ru" ? "уборка" : "cleaning";
+    const potentialPrefix = locale === "ru" ? "возможная — " : "potential — ";
 
     const lines: string[] = [];
-    lines.push(
-      (locale === "ru" ? "📋 График уборок" : "📋 Cleaning Schedule") + headerSuffix
-    );
+    lines.push((locale === "ru" ? "График уборок" : "Cleaning Schedule") + headerSuffix);
     lines.push("");
     for (const day of visibleDays) {
       const dateStr = formatDate(day.date);
-      const typeLabel = day.type === "cleaning"
-        ? (locale === "ru" ? "🧹 Уборка" : "🧹 Cleaning")
-        : (locale === "ru" ? "❓ Возможная" : "❓ Potential");
-      const propLabel = mode === "dashboard" ? ` [${day.property}]` : "";
-      const hoursLabel = day.hoursAvailable !== undefined
-        ? ` ⏱ ${formatHours(day.hoursAvailable)}`
+      const propLabel = mode === "dashboard" ? ` — ${day.property}` : "";
+      const prop = propertyById.get(day.propertyId);
+      // Quick turnover = same-day cleaning between guests; the cleaner
+      // can only start once the previous guest has checked out, so the
+      // arrival time IS the property's checkOutTime.
+      let detail: string;
+      if (day.kind === "manual") {
+        detail = manualLabel;
+      } else if (day.bufferMode === "quick") {
+        detail = arriveByLabel(prop?.checkOutTime || "12:00");
+      } else {
+        detail = fullDayLabel;
+      }
+      const prefix = day.type === "potential" ? potentialPrefix : "";
+      const cleanerLabel = day.cleanerName
+        ? (locale === "ru" ? ` — уборщик: ${day.cleanerName}` : ` — cleaner: ${day.cleanerName}`)
         : "";
-      const reasonText = formatReason(day);
-      // RT-25.10 tick 2 — append the assigned default cleaner so the
-      // pasted message tells the recipient who's coming.
-      const cleanerLabel = day.cleanerName ? ` · 🧹 ${day.cleanerName}` : "";
-      lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel}${reasonText ? " — " + reasonText : ""}${cleanerLabel}`);
+      lines.push(`${dateStr}${propLabel} — ${prefix}${detail}${cleanerLabel}`);
     }
     return lines;
   };
