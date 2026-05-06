@@ -70,7 +70,8 @@ interface MonthBucket {
   perPlatform: Record<string, number>;
 }
 
-const PAST_MONTHS = 6;   // how many completed months back to plot + count toward occupancy
+type PeriodChoice = 3 | 6 | 12 | 24 | "all";
+const DEFAULT_PERIOD: PeriodChoice = 6;
 const FUTURE_MONTHS = 6; // forward window for upcoming nights
 
 function ymKey(year: number, monthIndex: number): string {
@@ -92,26 +93,33 @@ interface NormalizedStay {
 }
 
 /**
- * Build a [past 6 months · current · next 6 months] window of buckets,
- * trimmed at the edges to whatever data actually exists. If no past
- * stays exist, the window starts at the current month. If future stays
- * reach further than 6 months out, the window expands up to a hard
- * 12-future cap so the chart stays readable.
+ * Build a [past N months · current · next FUTURE_MONTHS months] window
+ * of buckets, trimmed at the edges to whatever data actually exists.
+ * `pastMonths === "all"` skips the past cap entirely so every historical
+ * stay in the DB renders. The forward edge always extends as far as the
+ * latest upcoming stay (capped at +12 mo so an outlier booking 3 years
+ * out doesn't squish the chart).
  */
-function buildMonthRange(stays: NormalizedStay[]): MonthBucket[] {
+function buildMonthRange(stays: NormalizedStay[], pastMonths: PeriodChoice): MonthBucket[] {
   const now = new Date();
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Start: the earliest stay's month, clamped to PAST_MONTHS back.
-  const startCap = new Date(currentMonthStart);
-  startCap.setMonth(startCap.getMonth() - PAST_MONTHS);
+  // Start: the earliest stay's month, clamped to `pastMonths` back
+  // (or no clamp at all in "all" mode).
   let earliestMonth = currentMonthStart;
   for (const s of stays) {
     const d = new Date(s.start + "T00:00:00");
     if (d < earliestMonth) earliestMonth = new Date(d.getFullYear(), d.getMonth(), 1);
   }
-  const start = earliestMonth < startCap ? startCap : earliestMonth;
+  let start: Date;
+  if (pastMonths === "all") {
+    start = earliestMonth;
+  } else {
+    const startCap = new Date(currentMonthStart);
+    startCap.setMonth(startCap.getMonth() - pastMonths);
+    start = earliestMonth < startCap ? startCap : earliestMonth;
+  }
 
   // End: latest stay's month + 1, clamped to FUTURE_MONTHS forward
   // (with a hard 12-month forward cap so an outlier doesn't blow up).
@@ -357,6 +365,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
   const [exportTo, setExportTo] = useState("");
   const [events, setEvents] = useState<CalendarEventRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [periodMonths, setPeriodMonths] = useState<PeriodChoice>(DEFAULT_PERIOD);
   const abortRef = useRef<AbortController | null>(null);
 
   const targetProperties = useMemo(
@@ -399,10 +408,10 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
   }, [targetProperties, events]);
 
   const buckets = useMemo(() => {
-    const b = buildMonthRange(allStays);
+    const b = buildMonthRange(allStays, periodMonths);
     fillBuckets(b, allStays);
     return b;
-  }, [allStays]);
+  }, [allStays, periodMonths]);
 
   const propertyKpis: PropertyKpis[] = useMemo(() => {
     return targetProperties.map((p) => computePropertyKpis(p, allStays, buckets));
@@ -426,14 +435,16 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
       cleaningsUpcoming += k.cleaningsUpcoming;
       totalNightsAllTime += k.avgStayNights * k.totalBookings;
     }
-    // Re-build per-platform totals from raw stays (avgStay * count loses
-    // precision and per-platform info).
-    for (const s of allStays) {
-      const sStart = new Date(s.start + "T00:00:00");
-      const sEnd = new Date(s.end + "T00:00:00");
-      const stayNights = Math.max(0, Math.round((sEnd.getTime() - sStart.getTime()) / 86_400_000));
-      if (stayNights > 0) {
-        perPlatform.set(s.platform, (perPlatform.get(s.platform) ?? 0) + stayNights);
+    // Per-platform totals derived from the VISIBLE buckets only. This
+    // keeps the "Top source" pill consistent with what the user is
+    // looking at — if the window is "Last 3 months" the source pill
+    // reflects the 3-month winner, not all-time. Earlier the aggregate
+    // used `allStays` (all-time) and the pill said "Booking" while the
+    // chart only showed Airbnb because the user's Booking history fell
+    // outside the visible window.
+    for (const b of buckets) {
+      for (const [slug, n] of Object.entries(b.perPlatform)) {
+        perPlatform.set(slug, (perPlatform.get(slug) ?? 0) + n);
       }
     }
     const pastOccupancy = pastDays > 0 ? Math.round((100 * pastNights) / pastDays) : 0;
@@ -458,7 +469,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
       avgStayNights,
       topPlatform,
     };
-  }, [propertyKpis, allStays]);
+  }, [propertyKpis, buckets]);
 
   const activePlatforms = useMemo(() => {
     const totals = new Map<string, number>();
@@ -807,6 +818,46 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                     ? `Все объекты (${properties.length})`
                     : `All properties (${properties.length})`)}
             </div>
+          </div>
+
+          {/* Period selector — controls the past-window of the chart
+              and every KPI that depends on it. Default 6 months back +
+              6 forward (the original window). "All" stretches back to
+              the earliest stay in the DB so historical-only data
+              becomes visible — needed because past stays in iCal feeds
+              age out, and once they do, the only way to see them is to
+              widen the past window of our own DB snapshot. */}
+          <div className="border-b border-[var(--line)] px-5 py-4">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-2">
+              {locale === "ru" ? "Период" : "Period"}
+            </div>
+            <div className="grid grid-cols-5 gap-1.5">
+              {([3, 6, 12, 24, "all"] as PeriodChoice[]).map((p) => {
+                const active = periodMonths === p;
+                const label = p === "all"
+                  ? (locale === "ru" ? "Все" : "All")
+                  : (locale === "ru" ? `${p}м` : `${p}M`);
+                return (
+                  <button
+                    key={String(p)}
+                    type="button"
+                    onClick={() => setPeriodMonths(p)}
+                    className={`h-8 rounded-md text-xs font-medium transition-colors ${
+                      active
+                        ? "bg-[var(--m-accent)] text-white"
+                        : "bg-[var(--bg-2)] text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-[11px] text-[var(--ink-4)] leading-relaxed">
+              {locale === "ru"
+                ? "Прошлые месяцы + 6 месяцев вперёд. «Все» — с самой ранней брони."
+                : "Past window + next 6 months. \"All\" extends back to your earliest stay."}
+            </p>
           </div>
 
           <div className="px-5 py-4 space-y-3">
