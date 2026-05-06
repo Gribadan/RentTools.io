@@ -71,6 +71,14 @@ const TILES: ReadonlyArray<{
         desc: { en: "Admins and managers of this instance.", ru: "Администраторы и менеджеры." },
       },
       {
+        href: "/dashboard/admin/workspace/properties",
+        label: { en: "Properties", ru: "Объекты" },
+        desc: {
+          en: "Key-settings summary across every accessible property.",
+          ru: "Сводка ключевых настроек по всем доступным объектам.",
+        },
+      },
+      {
         href: "/dashboard/admin/workspace/site-settings",
         label: { en: "Site settings", ru: "Настройки сайта" },
         desc: { en: "Public signup, quotas, landing announcement.", ru: "Регистрация, квоты, объявление." },
