@@ -8,7 +8,9 @@ tags:
   - cleaning:Cleaning
   - host-tips:Host tips
   - automation:Automation
-ogImageUrl: null
+ogImageUrl: /blog-covers/cleaning-schedule-automation.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # Cleaning schedule automation for short-term rental hosts

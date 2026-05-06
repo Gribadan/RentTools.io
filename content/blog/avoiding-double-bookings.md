@@ -8,7 +8,9 @@ tags:
   - double-bookings:Double bookings
   - calendar-sync:Calendar sync
   - host-tips:Host tips
-ogImageUrl: null
+ogImageUrl: /blog-covers/avoiding-double-bookings.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # Avoiding double bookings: the only host cheat sheet you need

@@ -9,7 +9,9 @@ tags:
   - booking-com:Booking.com
   - calendar-sync:Calendar sync
   - ical:iCal
-ogImageUrl: null
+ogImageUrl: /blog-covers/airbnb-booking-calendar-sync-free.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # How to sync Airbnb and Booking.com calendars in one place (free, 2026)

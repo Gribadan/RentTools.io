@@ -8,7 +8,9 @@ tags:
   - gdpr:GDPR
   - host-tips:Host tips
   - data-protection:Data protection
-ogImageUrl: null
+ogImageUrl: /blog-covers/gdpr-for-vacation-rental-hosts.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # GDPR for short-term rental hosts: what you actually need to do

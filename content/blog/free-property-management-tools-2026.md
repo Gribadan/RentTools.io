@@ -8,7 +8,9 @@ tags:
   - host-tips:Host tips
   - calendar-sync:Calendar sync
   - tools:Tools
-ogImageUrl: null
+ogImageUrl: /blog-covers/free-property-management-tools-2026.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # Free property-management tools for short-term rental hosts in 2026

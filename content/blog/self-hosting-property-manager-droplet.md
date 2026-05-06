@@ -8,7 +8,9 @@ tags:
   - self-hosting:Self-hosting
   - host-tips:Host tips
   - infrastructure:Infrastructure
-ogImageUrl: null
+ogImageUrl: /blog-covers/self-hosting-property-manager-droplet.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # Self-hosting your property manager on a $4 droplet

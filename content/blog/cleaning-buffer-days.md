@@ -8,7 +8,9 @@ tags:
   - cleaning:Cleaning
   - host-tips:Host tips
   - calendar-sync:Calendar sync
-ogImageUrl: null
+ogImageUrl: /blog-covers/cleaning-buffer-days.webp
+ogImageWidth: 1600
+ogImageHeight: 900
 ---
 
 # Setting buffer days right: stop back-to-back cleaning chaos
