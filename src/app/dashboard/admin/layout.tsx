@@ -72,7 +72,7 @@ const NAV: NavGroup[] = [
   {
     label: { en: "Content", ru: "Контент" },
     items: [
-      { label: { en: "Blog posts", ru: "Статьи блога" }, requiresSuperadmin: true },
+      { label: { en: "Blog posts", ru: "Статьи блога" }, href: "/dashboard/admin/content/blog-posts", requiresSuperadmin: true },
       { label: { en: "Blog comments", ru: "Комментарии блога" }, href: "/dashboard/admin/content/blog-comments", requiresSuperadmin: true },
       { label: { en: "Blog tags", ru: "Теги блога" }, href: "/dashboard/admin/content/blog-tags", requiresSuperadmin: true },
       { label: { en: "Blog media", ru: "Медиа блога" }, href: "/dashboard/admin/content/blog-media", requiresSuperadmin: true },

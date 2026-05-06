@@ -157,6 +157,15 @@ const TILES: ReadonlyArray<{
     group: { en: "Content", ru: "Контент" },
     items: [
       {
+        href: "/dashboard/admin/content/blog-posts",
+        label: { en: "Blog posts", ru: "Статьи блога" },
+        desc: {
+          en: "List, filter, sort, bulk publish or archive. Edit body in the post editor.",
+          ru: "Список, фильтры, сортировка, массовая публикация или архив. Тело редактируется в редакторе статьи.",
+        },
+        requiresSuperadmin: true,
+      },
+      {
         href: "/dashboard/admin/content/blog-comments",
         label: { en: "Blog comments", ru: "Комментарии блога" },
         desc: {
