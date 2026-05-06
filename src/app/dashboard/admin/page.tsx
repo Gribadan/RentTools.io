@@ -57,6 +57,11 @@ const TILES: ReadonlyArray<{
         desc: { en: "Admins and managers of this instance.", ru: "Администраторы и менеджеры." },
       },
       {
+        href: "/dashboard/admin/workspace/site-settings",
+        label: { en: "Site settings", ru: "Настройки сайта" },
+        desc: { en: "Public signup, quotas, landing announcement.", ru: "Регистрация, квоты, объявление." },
+      },
+      {
         href: "/dashboard/admin/workspace/audit",
         label: { en: "Audit log", ru: "Журнал действий" },
         desc: { en: "Recent actions tied to your session.", ru: "Последние действия в вашей сессии." },

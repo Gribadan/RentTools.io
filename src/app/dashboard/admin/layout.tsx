@@ -38,6 +38,7 @@ const NAV: NavGroup[] = [
     label: { en: "Workspace", ru: "Рабочее пространство" },
     items: [
       { label: { en: "Users & roles", ru: "Пользователи и роли" }, href: "/dashboard/admin/workspace/users" },
+      { label: { en: "Site settings", ru: "Настройки сайта" }, href: "/dashboard/admin/workspace/site-settings" },
       { label: { en: "Properties", ru: "Объекты" } },
       { label: { en: "Cleaner assignments", ru: "Уборщики" } },
       { label: { en: "Message templates", ru: "Шаблоны сообщений" } },
