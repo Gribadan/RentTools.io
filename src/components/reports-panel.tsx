@@ -2,15 +2,24 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import {
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  ReferenceLine,
+} from "recharts";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property } from "@/lib/types";
 
 // Bundled platform presets — kept inline rather than imported from
 // @/lib/platforms because that module's lazy `import("@/lib/prisma")`
 // gets traced into the client bundle by Turbopack and breaks the
-// build (prisma uses node:module). The reports panel only needs
-// slug → label/color, no DB access required.
+// build (prisma uses node:module).
 const FALLBACK_PLATFORM_COLOR = "#6B7280";
 
 const PLATFORM_PRESETS: ReadonlyArray<{ slug: string; displayName: string; color: string }> = [
@@ -35,13 +44,7 @@ function resolvePlatformColor(color: string | null | undefined): string {
 }
 
 interface ReportsPanelProps {
-  /** Selected property from the dashboard header. When set, the panel
-   *  scopes everything (KPIs, chart, export) to this property. When
-   *  null, the panel renders a portfolio-wide aggregate across all
-   *  properties the user can access. */
   property: Property | null;
-  /** Full list of accessible properties. Drives the multi-property
-   *  aggregate when `property` is null. */
   properties: Property[];
 }
 
@@ -61,12 +64,14 @@ interface MonthBucket {
   year: number;
   monthIndex: number;
   totalDays: number;
+  isPast: boolean;
+  isCurrent: boolean;
   /** Per-platform occupancy: platform slug -> nights occupied in this month. */
   perPlatform: Record<string, number>;
 }
 
-const FORWARD_MIN_MONTHS = 3;
-const FORWARD_MAX_MONTHS = 6;
+const PAST_MONTHS = 6;   // how many completed months back to plot + count toward occupancy
+const FUTURE_MONTHS = 6; // forward window for upcoming nights
 
 function ymKey(year: number, monthIndex: number): string {
   return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
@@ -87,47 +92,70 @@ interface NormalizedStay {
 }
 
 /**
- * Build forward-looking month buckets starting at the current calendar
- * month. 3 months by default; expand up to 6 months if any stay reaches
- * further out. Past months are not included — Reports is forward-only.
+ * Build a [past 6 months · current · next 6 months] window of buckets,
+ * trimmed at the edges to whatever data actually exists. If no past
+ * stays exist, the window starts at the current month. If future stays
+ * reach further than 6 months out, the window expands up to a hard
+ * 12-future cap so the chart stays readable.
  */
-function buildForwardMonths(stays: NormalizedStay[]): MonthBucket[] {
+function buildMonthRange(stays: NormalizedStay[]): MonthBucket[] {
   const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  let monthsNeeded = FORWARD_MIN_MONTHS;
+  // Start: the earliest stay's month, clamped to PAST_MONTHS back.
+  const startCap = new Date(currentMonthStart);
+  startCap.setMonth(startCap.getMonth() - PAST_MONTHS);
+  let earliestMonth = currentMonthStart;
   for (const s of stays) {
-    const end = new Date(s.end + "T00:00:00");
-    if (end <= start) continue;
-    const diffMonths =
-      (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
-    if (diffMonths > monthsNeeded) monthsNeeded = diffMonths;
+    const d = new Date(s.start + "T00:00:00");
+    if (d < earliestMonth) earliestMonth = new Date(d.getFullYear(), d.getMonth(), 1);
   }
-  if (monthsNeeded > FORWARD_MAX_MONTHS) monthsNeeded = FORWARD_MAX_MONTHS;
+  const start = earliestMonth < startCap ? startCap : earliestMonth;
+
+  // End: latest stay's month + 1, clamped to FUTURE_MONTHS forward
+  // (with a hard 12-month forward cap so an outlier doesn't blow up).
+  const endCap = new Date(currentMonthStart);
+  endCap.setMonth(endCap.getMonth() + FUTURE_MONTHS);
+  let latestMonth = endCap;
+  for (const s of stays) {
+    const d = new Date(s.end + "T00:00:00");
+    if (d > latestMonth) latestMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+  const hardCap = new Date(currentMonthStart);
+  hardCap.setMonth(hardCap.getMonth() + 12);
+  const end = latestMonth > hardCap ? hardCap : latestMonth;
 
   const buckets: MonthBucket[] = [];
-  for (let i = 0; i < monthsNeeded; i++) {
-    const d = new Date(start.getFullYear(), start.getMonth() + i, 1);
-    const year = d.getFullYear();
-    const monthIndex = d.getMonth();
-    const totalDays = new Date(year, monthIndex + 1, 0).getDate();
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  while (cursor <= end) {
+    const year = cursor.getFullYear();
+    const monthIndex = cursor.getMonth();
+    const monthEnd = new Date(year, monthIndex + 1, 0); // last day of month
+    const totalDays = monthEnd.getDate();
+    const isPast = monthEnd < today;
+    const isCurrent =
+      year === currentMonthStart.getFullYear() && monthIndex === currentMonthStart.getMonth();
     buckets.push({
       key: ymKey(year, monthIndex),
-      label: d.toLocaleDateString("en-GB", { month: "short" }),
+      label: cursor.toLocaleDateString("en-GB", {
+        month: "short",
+        // Show year on Jan and on the very first bucket so cross-year context is visible.
+        year: monthIndex === 0 || buckets.length === 0 ? "2-digit" : undefined,
+      }),
       year,
       monthIndex,
       totalDays,
+      isPast,
+      isCurrent,
       perPlatform: {},
     });
+    cursor.setMonth(monthIndex + 1, 1);
   }
   return buckets;
 }
 
-/**
- * Distribute each stay's occupied days across the month buckets, keyed
- * by platform slug. Days are counted on [start, end) (checkout day not
- * occupied) so consecutive stays don't double-count the turnover day.
- */
+/** Distribute each stay's occupied days across the month buckets. */
 function fillBuckets(buckets: MonthBucket[], stays: NormalizedStay[]): void {
   const byKey = new Map(buckets.map((b) => [b.key, b]));
   const firstBucket = buckets[0];
@@ -169,8 +197,7 @@ function platformMeta(slug: string): PlatformMeta {
 
 /** Build the deduped list of stays for one property. iCal events whose
  *  uid matches a Reservation.linkedEventUid are dropped — the Reservation
- *  side wins because it carries the host-chosen platform + name and
- *  represents the "claimed" version of the bar. */
+ *  side wins because it carries the host-chosen platform + name. */
 function buildStaysForProperty(prop: Property, events: CalendarEventRow[]): NormalizedStay[] {
   const linkedUids = new Set(
     prop.reservations.map((r) => r.linkedEventUid).filter((u): u is string => !!u)
@@ -183,7 +210,7 @@ function buildStaysForProperty(prop: Property, events: CalendarEventRow[]): Norm
       platform === "airbnb" &&
       (ev.summary?.includes("Not available") || ev.summary?.includes("Blocked"));
     if (isAirbnbBlock) continue;
-    if (ev.uid && linkedUids.has(ev.uid)) continue; // dedup against linked Reservation
+    if (ev.uid && linkedUids.has(ev.uid)) continue;
     stays.push({ start: ev.startDate, end: ev.endDate, platform, propertyId: prop.id });
   }
   for (const r of prop.reservations) {
@@ -197,56 +224,111 @@ function buildStaysForProperty(prop: Property, events: CalendarEventRow[]): Norm
   return stays;
 }
 
-/** Per-property KPIs computed against the report horizon. */
+/**
+ * Per-property KPIs split into past + upcoming. Past occupancy is the
+ * only honest "occupancy %" because future months still have bookable
+ * days — counting those toward occupancy makes it look artificially
+ * low for properties that get last-minute bookings.
+ */
 interface PropertyKpis {
   property: Property;
-  nights: number;
-  bookings: number;
-  cleanings: number; // currently == bookings; one cleaning per checkout
-  occupancy: number; // percent, rounded
+  pastNights: number;
+  pastDays: number;
+  pastOccupancy: number;     // % of completed past months that were occupied
+  upcomingNights: number;    // raw nights booked in next FUTURE_MONTHS months
+  totalBookings: number;     // count of stays touching the displayed window
+  pastBookings: number;      // count of stays that ended in the past window
+  avgStayNights: number;
   topPlatform: PlatformMeta | null;
-  perPlatformNights: Map<string, number>;
+  cleaningsUpcoming: number;
 }
 
 function computePropertyKpis(
   prop: Property,
   stays: NormalizedStay[],
-  horizonStart: Date,
-  horizonEnd: Date,
-  horizonDays: number,
+  buckets: MonthBucket[],
 ): PropertyKpis {
-  let nights = 0;
-  let bookings = 0;
-  const perPlatformNights = new Map<string, number>();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const futureEndCap = new Date(now.getFullYear(), now.getMonth() + FUTURE_MONTHS + 1, 1);
+
+  // Past horizon = first past bucket → end of the month before this one.
+  const pastBuckets = buckets.filter((b) => b.isPast && stays.some((s) => s.propertyId === prop.id));
+  // Past day total = sum of days in past months that are fully done.
+  const pastStart = pastBuckets[0]
+    ? new Date(pastBuckets[0].year, pastBuckets[0].monthIndex, 1)
+    : currentMonthStart;
+  const pastEnd = currentMonthStart; // exclusive (today's month is "current", not past)
+  const pastDays = Math.round((pastEnd.getTime() - pastStart.getTime()) / 86_400_000);
+
+  let pastNights = 0;
+  let upcomingNights = 0;
+  let totalBookings = 0;
+  let pastBookings = 0;
+  let totalNightsAllTime = 0;
+  let cleaningsUpcoming = 0;
+  const perPlatform = new Map<string, number>();
 
   for (const s of stays) {
     if (s.propertyId !== prop.id) continue;
     const sStart = new Date(s.start + "T00:00:00");
     const sEnd = new Date(s.end + "T00:00:00");
-    const clipStart = new Date(Math.max(sStart.getTime(), horizonStart.getTime()));
-    const clipEnd = new Date(Math.min(sEnd.getTime(), horizonEnd.getTime()));
-    if (clipStart >= clipEnd) continue;
-    const stayNights = Math.round((clipEnd.getTime() - clipStart.getTime()) / 86_400_000);
-    nights += stayNights;
-    bookings += 1;
-    perPlatformNights.set(s.platform, (perPlatformNights.get(s.platform) ?? 0) + stayNights);
+
+    // Past portion of stay: clipped to [pastStart, pastEnd)
+    const pStart = new Date(Math.max(sStart.getTime(), pastStart.getTime()));
+    const pStop = new Date(Math.min(sEnd.getTime(), pastEnd.getTime()));
+    if (pStop > pStart) {
+      pastNights += Math.round((pStop.getTime() - pStart.getTime()) / 86_400_000);
+    }
+
+    // Upcoming portion: clipped to [today, futureEndCap)
+    const uStart = new Date(Math.max(sStart.getTime(), today.getTime()));
+    const uStop = new Date(Math.min(sEnd.getTime(), futureEndCap.getTime()));
+    if (uStop > uStart) {
+      upcomingNights += Math.round((uStop.getTime() - uStart.getTime()) / 86_400_000);
+    }
+
+    // Total stay length toward avg-stay calculation (uses the WHOLE stay,
+    // not just the part that fits the report window — a stay either is
+    // a stay or it isn't).
+    const stayNights = Math.max(0, Math.round((sEnd.getTime() - sStart.getTime()) / 86_400_000));
+    if (stayNights > 0) {
+      totalBookings += 1;
+      totalNightsAllTime += stayNights;
+      perPlatform.set(s.platform, (perPlatform.get(s.platform) ?? 0) + stayNights);
+      if (sEnd <= today) pastBookings += 1;
+      // Cleanings upcoming = stays whose checkout falls inside the
+      // forward window. One cleaning per checkout.
+      if (sEnd > today && sEnd <= futureEndCap) cleaningsUpcoming += 1;
+    }
   }
 
-  const occupancy = horizonDays > 0 ? Math.round((100 * nights) / horizonDays) : 0;
+  const pastOccupancy = pastDays > 0 ? Math.round((100 * pastNights) / pastDays) : 0;
+  const avgStayNights =
+    totalBookings > 0 ? Math.round((totalNightsAllTime / totalBookings) * 10) / 10 : 0;
+
   let topPlatform: PlatformMeta | null = null;
   let topNights = 0;
-  for (const [slug, n] of perPlatformNights) {
+  for (const [slug, n] of perPlatform) {
     if (n > topNights) {
       topNights = n;
       topPlatform = platformMeta(slug);
     }
   }
-  // Cleanings: one per checkout falling inside the horizon. A simple
-  // proxy that doesn't require running the full cleaning-schedule
-  // engine; matches what the host actually pays out for in this window.
-  const cleanings = bookings;
 
-  return { property: prop, nights, bookings, cleanings, occupancy, topPlatform, perPlatformNights };
+  return {
+    property: prop,
+    pastNights,
+    pastDays,
+    pastOccupancy,
+    upcomingNights,
+    totalBookings,
+    pastBookings,
+    avgStayNights,
+    topPlatform,
+    cleaningsUpcoming,
+  };
 }
 
 interface KpiCardProps {
@@ -282,8 +364,6 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
     [property, properties],
   );
   const isMulti = !property;
-  // Stable key so the fetch effect re-runs only on property-set changes,
-  // not on every parent render that may rebuild the array.
   const targetIdsKey = useMemo(
     () => targetProperties.map((p) => p.id).sort((a, b) => a - b).join(","),
     [targetProperties],
@@ -294,12 +374,8 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate fetch-on-prop-change pattern; loading state must flip on the same render that kicks off the request
     setLoading(true);
-    // For single-property mode the existing endpoint already filters by
-    // propertyId; for multi-property we omit propertyId and the API
-    // returns events scoped to the user's accessible set. allStays is
-    // derived per-target-property so any stale events from a previous
-    // mode get filtered out on render — no need to clear here.
     const url = property
       ? `/api/calendar/sync?propertyId=${property.id}&limit=2000`
       : `/api/calendar/sync?limit=5000`;
@@ -309,14 +385,11 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
         if (!data) return;
         setEvents(Array.isArray(data.events) ? data.events : []);
       })
-      .catch(() => {
-        // ignore aborts and network errors
-      })
+      .catch(() => {})
       .finally(() => setLoading(false));
     return () => ac.abort();
   }, [property, targetIdsKey, targetProperties.length]);
 
-  // Build deduped stays for every target property at once.
   const allStays: NormalizedStay[] = useMemo(() => {
     const out: NormalizedStay[] = [];
     for (const p of targetProperties) {
@@ -326,48 +399,46 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
   }, [targetProperties, events]);
 
   const buckets = useMemo(() => {
-    const b = buildForwardMonths(allStays);
+    const b = buildMonthRange(allStays);
     fillBuckets(b, allStays);
     return b;
   }, [allStays]);
 
-  // Horizon window — derived from the bucket list so KPI math agrees
-  // with the chart math.
-  const horizonInfo = useMemo(() => {
-    if (buckets.length === 0) {
-      return { start: new Date(), end: new Date(), days: 0 };
-    }
-    const first = buckets[0];
-    const last = buckets[buckets.length - 1];
-    const start = new Date(first.year, first.monthIndex, 1);
-    const end = new Date(last.year, last.monthIndex + 1, 1);
-    const days = Math.round((end.getTime() - start.getTime()) / 86_400_000);
-    return { start, end, days };
-  }, [buckets]);
-
-  // Per-property KPIs.
   const propertyKpis: PropertyKpis[] = useMemo(() => {
-    return targetProperties.map((p) =>
-      computePropertyKpis(p, allStays, horizonInfo.start, horizonInfo.end, horizonInfo.days),
-    );
-  }, [targetProperties, allStays, horizonInfo]);
+    return targetProperties.map((p) => computePropertyKpis(p, allStays, buckets));
+  }, [targetProperties, allStays, buckets]);
 
-  // Aggregate KPIs (single mode = the one row; multi mode = sum).
   const aggregate = useMemo(() => {
-    let nights = 0;
-    let bookings = 0;
-    let cleanings = 0;
+    let pastNights = 0;
+    let pastDays = 0;
+    let upcomingNights = 0;
+    let totalBookings = 0;
+    let pastBookings = 0;
+    let cleaningsUpcoming = 0;
+    let totalNightsAllTime = 0;
     const perPlatform = new Map<string, number>();
     for (const k of propertyKpis) {
-      nights += k.nights;
-      bookings += k.bookings;
-      cleanings += k.cleanings;
-      for (const [slug, n] of k.perPlatformNights) {
-        perPlatform.set(slug, (perPlatform.get(slug) ?? 0) + n);
+      pastNights += k.pastNights;
+      pastDays += k.pastDays;
+      upcomingNights += k.upcomingNights;
+      totalBookings += k.totalBookings;
+      pastBookings += k.pastBookings;
+      cleaningsUpcoming += k.cleaningsUpcoming;
+      totalNightsAllTime += k.avgStayNights * k.totalBookings;
+    }
+    // Re-build per-platform totals from raw stays (avgStay * count loses
+    // precision and per-platform info).
+    for (const s of allStays) {
+      const sStart = new Date(s.start + "T00:00:00");
+      const sEnd = new Date(s.end + "T00:00:00");
+      const stayNights = Math.max(0, Math.round((sEnd.getTime() - sStart.getTime()) / 86_400_000));
+      if (stayNights > 0) {
+        perPlatform.set(s.platform, (perPlatform.get(s.platform) ?? 0) + stayNights);
       }
     }
-    const totalCapacity = horizonInfo.days * targetProperties.length;
-    const occupancy = totalCapacity > 0 ? Math.round((100 * nights) / totalCapacity) : 0;
+    const pastOccupancy = pastDays > 0 ? Math.round((100 * pastNights) / pastDays) : 0;
+    const avgStayNights =
+      totalBookings > 0 ? Math.round((totalNightsAllTime / totalBookings) * 10) / 10 : 0;
     let topPlatform: PlatformMeta | null = null;
     let topNights = 0;
     for (const [slug, n] of perPlatform) {
@@ -376,11 +447,19 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
         topPlatform = platformMeta(slug);
       }
     }
-    const avgStay = bookings > 0 ? Math.round((nights / bookings) * 10) / 10 : 0;
-    return { nights, bookings, cleanings, occupancy, topPlatform, avgStay };
-  }, [propertyKpis, horizonInfo.days, targetProperties.length]);
+    return {
+      pastNights,
+      pastDays,
+      pastOccupancy,
+      upcomingNights,
+      totalBookings,
+      pastBookings,
+      cleaningsUpcoming,
+      avgStayNights,
+      topPlatform,
+    };
+  }, [propertyKpis, allStays]);
 
-  // Active platforms (ordered by total nights desc) drive the chart legend.
   const activePlatforms = useMemo(() => {
     const totals = new Map<string, number>();
     for (const b of buckets) {
@@ -395,7 +474,12 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
   const chartData = useMemo(
     () =>
       buckets.map((b) => {
-        const row: Record<string, string | number> = { label: b.label };
+        const row: Record<string, string | number | boolean> = {
+          label: b.label,
+          isPast: b.isPast,
+          isCurrent: b.isCurrent,
+          totalDays: b.totalDays,
+        };
         for (const platform of activePlatforms) {
           row[platform.slug] = b.perPlatform[platform.slug] ?? 0;
         }
@@ -404,283 +488,390 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
     [buckets, activePlatforms],
   );
 
+  // Auto y-axis: round up to next multiple of 5 above the busiest month
+  // OR cap at typical max-month-days for visual stability.
+  const yAxisMax = useMemo(() => {
+    let maxNights = 0;
+    for (const b of buckets) {
+      const sum = Object.values(b.perPlatform).reduce((a, n) => a + n, 0);
+      if (sum > maxNights) maxNights = sum;
+    }
+    const baseline = isMulti ? targetProperties.length * 31 : 31;
+    // Don't shrink below the natural single-property month length so
+    // the visual scale stays comparable across months. Round up to the
+    // nearest 5 above the actual peak so labels read cleanly.
+    return Math.max(baseline, Math.ceil((maxNights + 2) / 5) * 5);
+  }, [buckets, isMulti, targetProperties.length]);
+
   const downloadCsv = () => {
     const params = new URLSearchParams();
     if (exportFrom) params.set("from", exportFrom);
     if (exportTo) params.set("to", exportTo);
-    // Auto-scope: if a property is selected, export only that one;
-    // otherwise the endpoint already scopes to the user's accessible set.
     if (property) params.set("propertyId", String(property.id));
     const qs = params.toString();
     window.location.href = `/api/reservations/export${qs ? `?${qs}` : ""}`;
   };
 
+  // Today's column — used by ReferenceLine to show the "now" boundary.
+  const currentBucketLabel = useMemo(() => {
+    const now = new Date();
+    const key = ymKey(now.getFullYear(), now.getMonth());
+    return buckets.find((b) => b.key === key)?.label ?? null;
+  }, [buckets]);
+
   const headerSubtitle = isMulti
     ? (locale === "ru"
-        ? `Сводка по всем объектам (${properties.length}) на ближайшие ${horizonInfo.days > 0 ? Math.ceil(horizonInfo.days / 30) : 3} мес.`
-        : `Portfolio-wide across ${properties.length} ${properties.length === 1 ? "property" : "properties"}, next ${horizonInfo.days > 0 ? Math.ceil(horizonInfo.days / 30) : 3} mo.`)
+        ? `Сводка по ${properties.length} объектам — прошлое + ближайшие месяцы`
+        : `Portfolio across ${properties.length} ${properties.length === 1 ? "property" : "properties"} — history + upcoming`)
     : (locale === "ru"
-        ? `${property!.name} — прогноз на ближайшие ${horizonInfo.days > 0 ? Math.ceil(horizonInfo.days / 30) : 3} мес.`
-        : `${property!.name} — pipeline for the next ${horizonInfo.days > 0 ? Math.ceil(horizonInfo.days / 30) : 3} mo.`);
+        ? `${property!.name} — история и план`
+        : `${property!.name} — history & pipeline`);
 
-  const noData = !loading && targetProperties.length > 0 && aggregate.bookings === 0;
+  const pastWindowLabel = useMemo(() => {
+    const pastBuckets = buckets.filter((b) => b.isPast);
+    if (pastBuckets.length === 0) return locale === "ru" ? "нет данных" : "no data yet";
+    const months = pastBuckets.length;
+    return locale === "ru"
+      ? `${months} ${months === 1 ? "мес." : "мес."} назад`
+      : `last ${months} ${months === 1 ? "month" : "months"}`;
+  }, [buckets, locale]);
+
+  const noData = !loading && targetProperties.length > 0 && aggregate.totalBookings === 0;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
-          {locale === "ru" ? "Отчёты" : "Reports"}
-        </h1>
-        <p className="mt-1 text-xs text-[var(--ink-3)]">{headerSubtitle}</p>
-      </div>
-
-      {targetProperties.length === 0 ? (
-        <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 text-center text-xs text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Нет объектов для отчёта."
-            : "No properties to report on yet."}
-        </div>
-      ) : (
-        <>
-          {/* KPI strip — same shape for single and multi; subtitles change
-              to reflect the scope so a multi user understands "across
-              N properties" while a single user sees "next 3 months". */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <KpiCard
-              label={locale === "ru" ? "Ночей забронировано" : "Nights booked"}
-              value={aggregate.nights}
-              subtitle={isMulti
-                ? (locale === "ru" ? `на ${properties.length} объект.` : `across ${properties.length}`)
-                : (locale === "ru" ? "в горизонте отчёта" : "in horizon")}
-              accent
-            />
-            <KpiCard
-              label={locale === "ru" ? "Заполняемость" : "Occupancy"}
-              value={`${aggregate.occupancy}%`}
-              subtitle={isMulti
-                ? (locale === "ru" ? "взвешенная по объектам" : "weighted across portfolio")
-                : (locale === "ru" ? "ночей / дней горизонта" : "nights / horizon days")}
-            />
-            <KpiCard
-              label={locale === "ru" ? "Бронирований" : "Bookings"}
-              value={aggregate.bookings}
-              subtitle={
-                aggregate.avgStay > 0
-                  ? (locale === "ru" ? `средн. ${aggregate.avgStay} ноч.` : `avg ${aggregate.avgStay} nights`)
-                  : undefined
-              }
-            />
-            <KpiCard
-              label={locale === "ru" ? "Уборок" : "Cleanings"}
-              value={aggregate.cleanings}
-              subtitle={locale === "ru" ? "после выезда гостей" : "one per checkout"}
-            />
+    /* Calendar / cleaning-style two-column shell. Negative side margins
+       escape the dashboard's <main> padding so the content lines up
+       1:1 with the header; the inner max-w-[1760px] mx-auto matches
+       the calendar exactly. */
+    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
+      <div className="mx-auto max-w-[1760px] px-3 sm:px-5 flex flex-col lg:flex-row gap-6">
+        <div className="min-w-0 lg:flex-1 space-y-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
+              {locale === "ru" ? "Отчёты" : "Reports"}
+            </h1>
+            <p className="mt-1 text-xs text-[var(--ink-3)]">{headerSubtitle}</p>
           </div>
 
-          {/* Top-platform chip — readable hint above the chart. */}
-          {aggregate.topPlatform && aggregate.nights > 0 && (
-            <div className="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-              <span>{locale === "ru" ? "Главный источник:" : "Top source:"}</span>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
-                style={{ backgroundColor: aggregate.topPlatform.color }}
-              >
-                {aggregate.topPlatform.label}
-              </span>
+          {targetProperties.length === 0 ? (
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 text-center text-xs text-[var(--ink-4)]">
+              {locale === "ru" ? "Нет объектов для отчёта." : "No properties to report on yet."}
             </div>
-          )}
-
-          {/* Chart — stacked bars, theme-aware. CartesianGrid + axis
-              text use `currentColor` so the parent text color sets the
-              tone for both light and dark themes. */}
-          <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4 text-[var(--ink-3)]">
-            <div className="h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
-                  <CartesianGrid stroke="currentColor" strokeOpacity={0.16} strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fill: "currentColor", fontSize: 11 }}
-                    axisLine={{ stroke: "currentColor", strokeOpacity: 0.18 }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fill: "currentColor", fontSize: 11 }}
-                    axisLine={{ stroke: "currentColor", strokeOpacity: 0.18 }}
-                    tickLine={false}
-                    unit={locale === "ru" ? "д" : "d"}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "var(--m-accent)", fillOpacity: 0.06 }}
-                    contentStyle={{
-                      background: "var(--bg)",
-                      border: "1px solid var(--line-2)",
-                      borderRadius: 10,
-                      color: "var(--ink)",
-                      fontSize: 12,
-                      boxShadow: "0 4px 16px -8px rgba(0,0,0,0.18)",
-                    }}
-                    itemStyle={{ color: "var(--ink)" }}
-                    labelStyle={{ color: "var(--ink-3)", fontWeight: 500 }}
-                    formatter={(value, name) => {
-                      const meta = activePlatforms.find((p) => p.slug === name);
-                      const label = meta?.label ?? String(name);
-                      const unit = locale === "ru" ? "ноч." : "nights";
-                      return [`${value} ${unit}`, label];
-                    }}
-                  />
-                  <Legend
-                    verticalAlign="bottom"
-                    height={28}
-                    iconType="square"
-                    wrapperStyle={{ fontSize: 11, color: "var(--ink-3)" }}
-                    formatter={(slug) => {
-                      const meta = activePlatforms.find((p) => p.slug === slug);
-                      return meta?.label ?? slug;
-                    }}
-                  />
-                  {activePlatforms.map((p, idx) => (
-                    <Bar
-                      key={p.slug}
-                      dataKey={p.slug}
-                      stackId="src"
-                      fill={p.color}
-                      radius={idx === activePlatforms.length - 1 ? [4, 4, 0, 0] : 0}
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            {noData && (
-              <p className="mt-2 text-center text-xs text-[var(--ink-4)]">
-                {locale === "ru"
-                  ? "Нет бронирований в ближайшие месяцы."
-                  : "No bookings in the upcoming months."}
-              </p>
-            )}
-            {loading && (
-              <p className="mt-2 text-center text-xs text-[var(--ink-4)]">
-                {locale === "ru" ? "Загрузка…" : "Loading…"}
-              </p>
-            )}
-          </div>
-
-          {/* Per-property summary — only meaningful in multi-property
-              mode. Sortable would be nice, default sort is nights desc
-              so the busiest property surfaces first. */}
-          {isMulti && propertyKpis.length > 0 && (
-            <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] overflow-hidden">
-              <div className="border-b border-[var(--line)] px-4 py-3">
-                <h2 className="text-sm font-semibold text-[var(--ink)]">
-                  {locale === "ru" ? "По объектам" : "By property"}
-                </h2>
-                <p className="mt-0.5 text-[11px] text-[var(--ink-4)]">
-                  {locale === "ru"
-                    ? "Кликните по объекту, чтобы открыть его отчёт."
-                    : "Click a property to open its scoped report."}
-                </p>
+          ) : (
+            <>
+              {/* KPI strip — past-based occupancy is the only honest %;
+                  upcoming is shown as raw nights so it doesn't get
+                  conflated with "we're 30% full forever" anxiety. */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <KpiCard
+                  label={locale === "ru" ? "Заполняемость" : "Past occupancy"}
+                  value={`${aggregate.pastOccupancy}%`}
+                  subtitle={pastWindowLabel}
+                  accent
+                />
+                <KpiCard
+                  label={locale === "ru" ? "Ночей вперёд" : "Upcoming nights"}
+                  value={aggregate.upcomingNights}
+                  subtitle={locale === "ru" ? `на ${FUTURE_MONTHS} мес.` : `next ${FUTURE_MONTHS} mo.`}
+                />
+                <KpiCard
+                  label={locale === "ru" ? "Бронирований" : "Bookings"}
+                  value={aggregate.totalBookings}
+                  subtitle={
+                    aggregate.avgStayNights > 0
+                      ? (locale === "ru" ? `средн. ${aggregate.avgStayNights} ноч.` : `avg ${aggregate.avgStayNights} nights`)
+                      : (locale === "ru" ? "за весь период" : "all time")
+                  }
+                />
+                <KpiCard
+                  label={locale === "ru" ? "Уборок впереди" : "Cleanings ahead"}
+                  value={aggregate.cleaningsUpcoming}
+                  subtitle={locale === "ru" ? "после выезда гостей" : "one per upcoming checkout"}
+                />
               </div>
-              <table className="w-full text-sm">
-                <thead className="border-b border-[var(--line)] text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-                  <tr>
-                    <th className="px-4 py-2 text-left font-medium">{locale === "ru" ? "Объект" : "Property"}</th>
-                    <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Ночей" : "Nights"}</th>
-                    <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Заполн." : "Occ."}</th>
-                    <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Брон." : "Bookings"}</th>
-                    <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Уборок" : "Cleanings"}</th>
-                    <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">{locale === "ru" ? "Источник" : "Top source"}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...propertyKpis]
-                    .sort((a, b) => b.nights - a.nights)
-                    .map((k) => (
-                      <tr key={k.property.id} className="border-b border-[var(--line)]/50 last:border-0 hover:bg-[var(--bg-3)]">
-                        <td className="px-4 py-2.5 text-[var(--ink)] font-medium">
-                          <Link href={`/dashboard?property=${k.property.id}&view=reports`} className="hover:underline">
-                            {k.property.name}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.nights}</td>
-                        <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.occupancy}%</td>
-                        <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.bookings}</td>
-                        <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.cleanings}</td>
-                        <td className="px-4 py-2.5 hidden sm:table-cell">
-                          {k.topPlatform ? (
-                            <span
-                              className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
-                              style={{ backgroundColor: k.topPlatform.color }}
-                            >
-                              {k.topPlatform.label}
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-[var(--ink-4)]">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
 
-      {/* Reservations CSV export — auto-scoped to the header selection.
-          When a property is picked, only its reservations export; on
-          dashboard view (no property), all accessible reservations
-          export. The old "All / Selected" dropdown was confusing
-          because it conflicted with the header selector. */}
-      <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4">
-        <h2 className="mb-1 text-sm font-semibold text-[var(--ink)]">
-          {locale === "ru" ? "Экспорт броней (CSV)" : "Export reservations (CSV)"}
-        </h2>
-        <p className="mb-3 text-[11px] text-[var(--ink-4)]">
-          {property
-            ? (locale === "ru"
-                ? `Будет выгружен ${property.name}.`
-                : `Exporting ${property.name}.`)
-            : (locale === "ru"
-                ? `Будут выгружены все ${properties.length} объекта.`
-                : `Exporting all ${properties.length} ${properties.length === 1 ? "property" : "properties"}.`)}
-        </p>
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-              {locale === "ru" ? "С" : "From"}
-            </label>
-            <input
-              type="date"
-              value={exportFrom}
-              onChange={(e) => setExportFrom(e.target.value)}
-              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-              {locale === "ru" ? "По" : "To"}
-            </label>
-            <input
-              type="date"
-              value={exportTo}
-              onChange={(e) => setExportTo(e.target.value)}
-              className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
-          </div>
-          <button
-            onClick={downloadCsv}
-            disabled={targetProperties.length === 0}
-            className="ml-auto h-8 rounded-md bg-[var(--m-accent)] px-3 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40"
-          >
-            {locale === "ru" ? "Скачать CSV" : "Download CSV"}
-          </button>
+              {/* Top-platform readout — colored pill matches calendar bars. */}
+              {aggregate.topPlatform && (
+                <div className="flex items-center gap-2 text-xs text-[var(--ink-3)]">
+                  <span>{locale === "ru" ? "Главный источник:" : "Top source:"}</span>
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
+                    style={{ backgroundColor: aggregate.topPlatform.color }}
+                  >
+                    {aggregate.topPlatform.label}
+                  </span>
+                </div>
+              )}
+
+              {/* Chart — past months muted via opacity so the eye lands
+                  on the actionable upcoming window. ReferenceLine marks
+                  "now". Custom legend renders colored pills (the default
+                  Recharts legend's "Booking #003580" text was illegible
+                  on dark theme). */}
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4 text-[var(--ink-3)]">
+                <div className="mb-3 flex items-center justify-between gap-3 text-xs">
+                  <span className="text-[var(--ink-3)]">
+                    {locale === "ru"
+                      ? `Ночи занятости по месяцам (макс. ${isMulti ? `${targetProperties.length} × 31` : 31})`
+                      : `Nights occupied per month (max ${isMulti ? `${targetProperties.length} × 31` : 31})`}
+                  </span>
+                </div>
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+                      <CartesianGrid stroke="currentColor" strokeOpacity={0.16} strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fill: "currentColor", fontSize: 11 }}
+                        axisLine={{ stroke: "currentColor", strokeOpacity: 0.18 }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: "currentColor", fontSize: 11 }}
+                        axisLine={{ stroke: "currentColor", strokeOpacity: 0.18 }}
+                        tickLine={false}
+                        domain={[0, yAxisMax]}
+                        unit={locale === "ru" ? "д" : "d"}
+                        allowDecimals={false}
+                      />
+                      <Tooltip
+                        cursor={{ fill: "var(--m-accent)", fillOpacity: 0.06 }}
+                        contentStyle={{
+                          background: "var(--bg)",
+                          border: "1px solid var(--line-2)",
+                          borderRadius: 10,
+                          color: "var(--ink)",
+                          fontSize: 12,
+                          boxShadow: "0 4px 16px -8px rgba(0,0,0,0.18)",
+                        }}
+                        itemStyle={{ color: "var(--ink)" }}
+                        labelStyle={{ color: "var(--ink-3)", fontWeight: 500 }}
+                        formatter={(value, name) => {
+                          const meta = activePlatforms.find((p) => p.slug === name);
+                          const label = meta?.label ?? String(name);
+                          const unit = locale === "ru" ? "ноч." : "nights";
+                          return [`${value} ${unit}`, label];
+                        }}
+                      />
+                      {currentBucketLabel && (
+                        <ReferenceLine
+                          x={currentBucketLabel}
+                          stroke="var(--m-accent)"
+                          strokeOpacity={0.5}
+                          strokeDasharray="4 4"
+                          label={{
+                            value: locale === "ru" ? "сейчас" : "now",
+                            position: "top",
+                            fill: "var(--m-accent)",
+                            fontSize: 10,
+                            fontWeight: 600,
+                          }}
+                        />
+                      )}
+                      {activePlatforms.map((p, idx) => (
+                        <Bar
+                          key={p.slug}
+                          dataKey={p.slug}
+                          stackId="src"
+                          fill={p.color}
+                          radius={idx === activePlatforms.length - 1 ? [4, 4, 0, 0] : 0}
+                        >
+                          {chartData.map((row, i) => (
+                            <Cell
+                              key={`c-${i}-${p.slug}`}
+                              fillOpacity={row.isPast ? 0.55 : 1}
+                            />
+                          ))}
+                        </Bar>
+                      ))}
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Custom legend — colored pills with white text, padded
+                    enough to read against any theme. Replaces Recharts'
+                    default tiny-square + neutral-text legend that hid
+                    Booking's #003580 against dark backgrounds. */}
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {activePlatforms.map((p) => (
+                    <span
+                      key={p.slug}
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: p.color }}
+                    >
+                      {p.label}
+                    </span>
+                  ))}
+                  {/* Past/upcoming legend swatch */}
+                  {buckets.some((b) => b.isPast) && (
+                    <>
+                      <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-3)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
+                        <span className="inline-block h-2 w-3 rounded-sm bg-[var(--ink-3)]/55" />
+                        {locale === "ru" ? "прошедшие" : "past"}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-3)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
+                        <span className="inline-block h-2 w-3 rounded-sm bg-[var(--ink-3)]" />
+                        {locale === "ru" ? "впереди" : "upcoming"}
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                {noData && (
+                  <p className="mt-3 text-center text-xs text-[var(--ink-4)]">
+                    {locale === "ru" ? "Бронирований пока нет." : "No bookings yet."}
+                  </p>
+                )}
+                {loading && (
+                  <p className="mt-3 text-center text-xs text-[var(--ink-4)]">
+                    {locale === "ru" ? "Загрузка…" : "Loading…"}
+                  </p>
+                )}
+              </div>
+
+              {/* Per-property summary — only meaningful in multi-property
+                  mode. Sorted by past occupancy desc so the busiest
+                  property surfaces first; click-through scopes to that
+                  property's report. */}
+              {isMulti && propertyKpis.length > 0 && (
+                <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] overflow-hidden">
+                  <div className="border-b border-[var(--line)] px-4 py-3">
+                    <h2 className="text-sm font-semibold text-[var(--ink)]">
+                      {locale === "ru" ? "По объектам" : "By property"}
+                    </h2>
+                    <p className="mt-0.5 text-[11px] text-[var(--ink-4)]">
+                      {locale === "ru"
+                        ? "Кликните по объекту, чтобы открыть его отчёт."
+                        : "Click a property to open its scoped report."}
+                    </p>
+                  </div>
+                  <table className="w-full text-sm">
+                    <thead className="border-b border-[var(--line)] text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium">{locale === "ru" ? "Объект" : "Property"}</th>
+                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Заполн." : "Past occ."}</th>
+                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Впереди" : "Upcoming"}</th>
+                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Брон." : "Bookings"}</th>
+                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Уборок" : "Cleanings"}</th>
+                        <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">{locale === "ru" ? "Источник" : "Top source"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...propertyKpis]
+                        .sort((a, b) => b.pastOccupancy - a.pastOccupancy)
+                        .map((k) => (
+                          <tr key={k.property.id} className="border-b border-[var(--line)]/50 last:border-0 hover:bg-[var(--bg-3)]">
+                            <td className="px-4 py-2.5 text-[var(--ink)] font-medium">
+                              <Link href={`/dashboard?property=${k.property.id}&view=reports`} className="hover:underline">
+                                {k.property.name}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.pastOccupancy}%</td>
+                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.upcomingNights}</td>
+                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.totalBookings}</td>
+                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.cleaningsUpcoming}</td>
+                            <td className="px-4 py-2.5 hidden sm:table-cell">
+                              {k.topPlatform ? (
+                                <span
+                                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+                                  style={{ backgroundColor: k.topPlatform.color }}
+                                >
+                                  {k.topPlatform.label}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-[var(--ink-4)]">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
-        <p className="mt-2 text-[11px] text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Пустые поля = выгрузить все. Файл с UTF-8 BOM, открывается в Excel с кириллицей."
-            : "Leave dates blank to export everything. UTF-8 BOM ensures Excel opens Cyrillic correctly."}
-        </p>
+
+        {/* Sidebar — same shape as the calendar / cleaning sidebars.
+            Borderless rounded panel with a soft shadow; lg:top-3 for
+            breathing room from the global header. */}
+        <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
+          <div className="border-b border-[var(--line)] px-5 py-4">
+            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
+              {locale === "ru" ? "Отчёты" : "Reports"}
+            </div>
+            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
+              {property
+                ? property.name
+                : (locale === "ru"
+                    ? `Все объекты (${properties.length})`
+                    : `All properties (${properties.length})`)}
+            </div>
+          </div>
+
+          <div className="px-5 py-4 space-y-3">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
+              {locale === "ru" ? "Экспорт броней" : "Export reservations"}
+            </div>
+            <p className="text-[11px] text-[var(--ink-3)] leading-relaxed">
+              {property
+                ? (locale === "ru" ? `Будет выгружен ${property.name}.` : `Exporting ${property.name}.`)
+                : (locale === "ru"
+                    ? `Все ${properties.length} объекта.`
+                    : `All ${properties.length} ${properties.length === 1 ? "property" : "properties"}.`)}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
+                  {locale === "ru" ? "С" : "From"}
+                </label>
+                <input
+                  type="date"
+                  value={exportFrom}
+                  onChange={(e) => setExportFrom(e.target.value)}
+                  className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
+                  {locale === "ru" ? "По" : "To"}
+                </label>
+                <input
+                  type="date"
+                  value={exportTo}
+                  onChange={(e) => setExportTo(e.target.value)}
+                  className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
+                />
+              </div>
+            </div>
+            <button
+              onClick={downloadCsv}
+              disabled={targetProperties.length === 0}
+              className="h-9 w-full rounded-md bg-[var(--m-accent)] px-3 text-sm font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40 transition-colors"
+            >
+              {locale === "ru" ? "Скачать CSV" : "Download CSV"}
+            </button>
+            <p className="text-[11px] text-[var(--ink-4)] leading-relaxed">
+              {locale === "ru"
+                ? "Пустые поля = выгрузить все. UTF-8 BOM для Excel."
+                : "Leave dates blank to export everything. UTF-8 BOM for Excel."}
+            </p>
+          </div>
+
+          {/* Notes about data sources — surfaces the reality that iCal
+              feeds prune past stays, so historical numbers improve over
+              time as the DB accumulates its own snapshot. */}
+          <div className="border-t border-[var(--line)] px-5 py-4">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
+              {locale === "ru" ? "Источники данных" : "Data sources"}
+            </div>
+            <p className="text-[11px] text-[var(--ink-3)] leading-relaxed">
+              {locale === "ru"
+                ? "Цифры считаются из ваших броней + iCal событий, дедуплицированных по uid. Прошлые брони сохраняются в нашей БД, даже если платформы убрали их из своих фидов."
+                : "Numbers are computed from your reservations + iCal events, deduped by uid. Past stays are preserved in our DB even after platforms drop them from their feeds."}
+            </p>
+          </div>
+        </aside>
       </div>
     </div>
   );

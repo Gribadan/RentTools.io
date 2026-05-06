@@ -189,11 +189,26 @@ export async function syncAllCalendars(): Promise<{
           });
         }
 
-        // Remove events no longer in the feed
+        // Remove events no longer in the feed — but ONLY if they're
+        // still upcoming. Most platforms (Airbnb, Booking.com) trim
+        // past stays from their iCal feeds after some rolling window
+        // (a few months); without this guard our DB silently loses
+        // every historical booking, which kills the Reports page's
+        // ability to show year-over-year history. Past stays get
+        // preserved forever; cancellations of upcoming stays still
+        // get pruned on schedule.
         if (removedUIDs.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayIso = today.toISOString().substring(0, 10);
           for (const uid of removedUIDs) {
             await prisma.calendarEvent.deleteMany({
-              where: { propertyId, platform: link.platform, uid },
+              where: {
+                propertyId,
+                platform: link.platform,
+                uid,
+                endDate: { gte: todayIso },
+              },
             });
           }
         }
