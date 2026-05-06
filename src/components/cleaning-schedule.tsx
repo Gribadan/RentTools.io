@@ -1,10 +1,21 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
+
+/** RT-25.10 tick 3 — single cleaner assignment slot for a property.
+ *  Sorted priority-asc within a property's list, so element [0] is the
+ *  default and [1] is the first backup. `identityKey` is the stable
+ *  key used to group conflicts across properties (a profile assigned
+ *  to two properties shares one key). */
+export interface CleanerAssignmentInfo {
+  identityKey: string;
+  name: string;
+  priority: number;
+}
 
 /** Imperative API exposed via ref. Lets parents (e.g. PropertyCleaningView)
  *  drive Copy / Print from a sidebar that lives outside this component
@@ -49,6 +60,10 @@ interface CleaningDay {
   // the row markup and appended to the copy/print line. Undefined when
   // no cleaner is assigned (or when the caller does not pass a map).
   cleanerName?: string;
+  // RT-25.10 tick 3 — stable identity key of the priority-0 cleaner.
+  // Used to detect cleaner conflicts (same key on the same date across
+  // multiple properties). Undefined when no cleaner assigned.
+  cleanerKey?: string;
 }
 
 interface CleaningScheduleProps {
@@ -68,10 +83,19 @@ interface CleaningScheduleProps {
    *  the internal state is bypassed. Pair with onIncludePotentialChange. */
   includePotential?: boolean;
   onIncludePotentialChange?: (value: boolean) => void;
-  /** RT-25.10 tick 2 — map of propertyId → priority-0 cleaner name.
-   *  When provided, each row in the corresponding property surfaces the
-   *  name as a small chip and appends it to the copy/print line. */
-  cleanerNames?: Record<number, string | undefined>;
+  /** RT-25.10 tick 3 — map of propertyId → ordered cleaner assignments
+   *  (priority asc; element [0] is the default cleaner, [1] is the first
+   *  backup). Used to (a) surface the priority-0 cleaner name on each row,
+   *  same as the old cleanerNames prop, and (b) detect cleaner conflicts
+   *  when one cleaner is the default for multiple properties on the same
+   *  cleaning date. Undefined entry → no cleaner data for that property. */
+  cleanerAssignments?: Record<number, CleanerAssignmentInfo[] | undefined>;
+  /** RT-25.10 tick 3 — fired with the sorted set of dates that contain a
+   *  cleaner conflict (one cleaner is the priority-0 across 2+ properties
+   *  whose cleanings fall on the same day). The dashboard uses this to
+   *  render a "Cleaner conflict" badge on the Today strip and Next 7
+   *  days header. */
+  onCleanerConflictDatesChange?: (dates: string[]) => void;
 }
 
 function addDaysStr(dateStr: string, days: number): string {
@@ -340,7 +364,8 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
   hideControls = false,
   includePotential: controlledIncludePotential,
   onIncludePotentialChange,
-  cleanerNames,
+  cleanerAssignments,
+  onCleanerConflictDatesChange,
 }, ref) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -365,19 +390,23 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
       const propEvents = syncedEvents[prop.id] || [];
       const propLinks = links[prop.id] || [];
       const propOverrides = overrides?.[prop.id] || [];
-      const propCleaner = cleanerNames?.[prop.id];
+      const propAssignments = cleanerAssignments?.[prop.id];
+      const propDefault = propAssignments && propAssignments.length > 0 ? propAssignments[0] : undefined;
       const days = computeCleaningDays(prop, propEvents, propLinks, propOverrides);
-      if (propCleaner) {
+      if (propDefault) {
         // Stamp the priority-0 cleaner onto each row for this property.
         // Pure attach step — keeps computeCleaningDays free of cleaner I/O.
-        for (const d of days) d.cleanerName = propCleaner;
+        for (const d of days) {
+          d.cleanerName = propDefault.name;
+          d.cleanerKey = propDefault.identityKey;
+        }
       }
       allDays.push(...days);
     }
 
     allDays.sort((a, b) => a.date.localeCompare(b.date));
     return allDays;
-  }, [properties, syncedEvents, links, overrides, mode, selectedPropertyId, cleanerNames]);
+  }, [properties, syncedEvents, links, overrides, mode, selectedPropertyId, cleanerAssignments]);
 
   const overlaps = useMemo(() => {
     const dateMap = new Map<string, CleaningDay[]>();
@@ -413,9 +442,126 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     return result;
   }, [cleaningDays, properties, syncedEvents, t]);
 
+  // RT-25.10 tick 3 — cleaner conflicts. Group cleaning rows by
+  // (date, priority-0 cleaner identity). When the same cleaner is the
+  // default for multiple properties on the same cleaning date, that's
+  // a conflict regardless of whether the properties' cleaning days
+  // already overlap (they always do here, by construction). For each
+  // conflicting property, look at its priority-1 backup and check
+  // whether that backup is busy (= is anyone else's priority-0 on the
+  // SAME date among the day's cleaning rows). The host decides what
+  // to do; we just flag and suggest.
+  const cleanerConflicts = useMemo(() => {
+    if (!cleanerAssignments) return [] as Array<{
+      date: string;
+      cleanerName: string;
+      cleanerKey: string;
+      propertyIds: number[];
+      properties: Array<{
+        id: number;
+        name: string;
+        backup: { name: string; busy: boolean } | null;
+      }>;
+    }>;
+
+    // For each date, the set of identityKeys that are priority-0 for at
+    // least one property whose cleaning lands on that date. Used to
+    // check whether a proposed backup is busy on the conflict date.
+    const busyByDate = new Map<string, Set<string>>();
+    for (const day of cleaningDays) {
+      if (day.type !== "cleaning") continue;
+      if (!day.cleanerKey) continue;
+      const set = busyByDate.get(day.date) ?? new Set<string>();
+      set.add(day.cleanerKey);
+      busyByDate.set(day.date, set);
+    }
+
+    type Bucket = { name: string; properties: Map<number, string> };
+    // date -> identityKey -> bucket
+    const grouped = new Map<string, Map<string, Bucket>>();
+    for (const day of cleaningDays) {
+      if (day.type !== "cleaning") continue;
+      if (!day.cleanerKey || !day.cleanerName) continue;
+      const byKey = grouped.get(day.date) ?? new Map<string, Bucket>();
+      const bucket = byKey.get(day.cleanerKey) ?? { name: day.cleanerName, properties: new Map<number, string>() };
+      bucket.properties.set(day.propertyId, day.property);
+      byKey.set(day.cleanerKey, bucket);
+      grouped.set(day.date, byKey);
+    }
+
+    const out: Array<{
+      date: string;
+      cleanerName: string;
+      cleanerKey: string;
+      propertyIds: number[];
+      properties: Array<{
+        id: number;
+        name: string;
+        backup: { name: string; busy: boolean } | null;
+      }>;
+    }> = [];
+    for (const [date, byKey] of grouped) {
+      for (const [cleanerKey, bucket] of byKey) {
+        if (bucket.properties.size < 2) continue;
+        const busySet = busyByDate.get(date) ?? new Set<string>();
+        const propertyIds: number[] = [];
+        const propertiesOut: Array<{ id: number; name: string; backup: { name: string; busy: boolean } | null }> = [];
+        for (const [propertyId, propertyName] of bucket.properties) {
+          propertyIds.push(propertyId);
+          const list = cleanerAssignments[propertyId] ?? [];
+          // Priority-1 = first non-default cleaner. If the default
+          // happens to not be the priority-0 in `list` (data drift),
+          // fall back to the second list entry.
+          const backupEntry = list.find((a) => a.identityKey !== cleanerKey && a.priority > (list[0]?.priority ?? 0))
+            ?? (list.length > 1 ? list[1] : undefined);
+          let backup: { name: string; busy: boolean } | null = null;
+          if (backupEntry && backupEntry.identityKey !== cleanerKey) {
+            backup = { name: backupEntry.name, busy: busySet.has(backupEntry.identityKey) };
+          }
+          propertiesOut.push({ id: propertyId, name: propertyName, backup });
+        }
+        out.push({ date, cleanerName: bucket.name, cleanerKey, propertyIds, properties: propertiesOut });
+      }
+    }
+    out.sort((a, b) => a.date.localeCompare(b.date) || a.cleanerName.localeCompare(b.cleanerName));
+    return out;
+  }, [cleaningDays, cleanerAssignments]);
+
   const todayStr = toDateStr(new Date());
   const futureDays = cleaningDays.filter(d => d.date >= todayStr);
   const futureOverlaps = overlaps.filter(o => o.date >= todayStr);
+  const futureCleanerConflicts = useMemo(
+    () => cleanerConflicts.filter((c) => c.date >= todayStr),
+    [cleanerConflicts, todayStr]
+  );
+
+  // (date, cleanerKey) → backup hint, indexed for fast row-level lookup
+  // when rendering the table and building copy/print lines.
+  const conflictByDateAndKey = useMemo(() => {
+    const map = new Map<string, Map<string, { backupByPropertyId: Map<number, { name: string; busy: boolean } | null> }>>();
+    for (const c of futureCleanerConflicts) {
+      const byKey = map.get(c.date) ?? new Map<string, { backupByPropertyId: Map<number, { name: string; busy: boolean } | null> }>();
+      const backupMap = new Map<number, { name: string; busy: boolean } | null>();
+      for (const p of c.properties) backupMap.set(p.id, p.backup);
+      byKey.set(c.cleanerKey, { backupByPropertyId: backupMap });
+      map.set(c.date, byKey);
+    }
+    return map;
+  }, [futureCleanerConflicts]);
+
+  // Surface conflict dates to the parent (dashboard) so it can decorate
+  // the Today strip + Next-7-days header. Effect uses a ref-tracked
+  // signature so we don't fire on every render when the dates haven't
+  // actually changed.
+  const lastConflictDatesRef = useRef<string>("");
+  useEffect(() => {
+    if (!onCleanerConflictDatesChange) return;
+    const dates = Array.from(new Set(futureCleanerConflicts.map((c) => c.date))).sort();
+    const signature = dates.join(",");
+    if (signature === lastConflictDatesRef.current) return;
+    lastConflictDatesRef.current = signature;
+    onCleanerConflictDatesChange(dates);
+  }, [futureCleanerConflicts, onCleanerConflictDatesChange]);
 
   // Days that the user-facing list / copy / print actually show — gated
   // by the "Include potential" toggle.
@@ -559,7 +705,24 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
       const cleanerLabel = day.cleanerName
         ? (locale === "ru" ? ` — уборщик: ${day.cleanerName}` : ` — cleaner: ${day.cleanerName}`)
         : "";
-      lines.push(`${dateStr}${propLabel} — ${prefix}${detail}${cleanerLabel}`);
+      // RT-25.10 tick 3 — cleaner-conflict suffix. Mirrors the in-app
+      // warning so a pasted/printed schedule still surfaces the clash.
+      const conflictForCleaner = day.cleanerKey ? conflictByDateAndKey.get(day.date)?.get(day.cleanerKey) : undefined;
+      const isConflict = Boolean(conflictForCleaner);
+      const conflictSuffix = (() => {
+        if (!conflictForCleaner) return "";
+        const backup = conflictForCleaner.backupByPropertyId.get(day.propertyId) ?? null;
+        if (locale === "ru") {
+          if (!backup) return " (конфликт — резерв не настроен)";
+          if (backup.busy) return ` (конфликт — резерв ${backup.name} тоже занят)`;
+          return ` (конфликт — резерв: ${backup.name})`;
+        }
+        if (!backup) return " (conflict — no backup configured)";
+        if (backup.busy) return ` (conflict — backup ${backup.name} also busy)`;
+        return ` (conflict — backup: ${backup.name})`;
+      })();
+      const conflictPrefix = isConflict ? "⚠ " : "";
+      lines.push(`${conflictPrefix}${dateStr}${propLabel} — ${prefix}${detail}${cleanerLabel}${conflictSuffix}`);
     }
     return lines;
   };
@@ -637,6 +800,48 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
         </div>
       )}
 
+      {/* Cleaner conflicts (RT-25.10 tick 3) — same cleaner is the
+          priority-0 across two or more properties on the same cleaning
+          date. Hint at backups but do not auto-reassign. */}
+      {futureCleanerConflicts.length > 0 && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <span className="text-sm font-semibold text-amber-300">
+              {t("cleaning.cleanerConflict")} ({futureCleanerConflicts.length} {locale === "ru" ? (futureCleanerConflicts.length === 1 ? "день" : "дней") : (futureCleanerConflicts.length === 1 ? "day" : "days")})
+            </span>
+          </div>
+          <p className="text-xs text-amber-300/80">
+            {t("cleaning.cleanerConflictDesc")}
+          </p>
+          {futureCleanerConflicts.map((c) => (
+            <div key={`${c.date}-${c.cleanerKey}`} className="text-xs space-y-0.5">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="font-medium text-[var(--ink)]">{formatDate(c.date)}</span>
+                <span className="text-[var(--ink-3)]">
+                  {t("cleaning.cleanerConflictLine", {
+                    name: c.cleanerName,
+                    count: String(c.properties.length),
+                    properties: c.properties.map((p) => p.name).join(" + "),
+                  })}
+                </span>
+              </div>
+              {c.properties.map((p) => (
+                <div key={`hint-${c.date}-${c.cleanerKey}-${p.id}`} className="pl-4 text-[11px] text-[var(--ink-3)]">
+                  {(() => {
+                    if (!p.backup) return t("cleaning.backupNone", { property: p.name });
+                    if (p.backup.busy) return t("cleaning.backupBusy", { property: p.name, name: p.backup.name });
+                    return t("cleaning.backupSet", { property: p.name, name: p.backup.name });
+                  })()}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Schedule table */}
       <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
         <div className="border-b border-[var(--line)] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
@@ -700,6 +905,9 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
             <div className="sm:hidden">
               {visibleDays.map((day, i) => {
                 const isOverlap = futureOverlaps.some(o => o.date === day.date);
+                const isCleanerConflict = Boolean(
+                  day.cleanerKey && conflictByDateAndKey.get(day.date)?.has(day.cleanerKey)
+                );
                 const prevYear = i > 0 ? visibleDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
                 const thisYear = day.date.substring(0, 4);
                 const showYearDivider = thisYear !== prevYear;
@@ -710,13 +918,18 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                         {thisYear}
                       </div>
                     )}
-                    <div className={`flex flex-col gap-2 border-b border-[var(--line)]/50 px-4 py-3 ${isOverlap ? "bg-[var(--cleaning-cell-bg)]" : ""}`}>
+                    <div className={`flex flex-col gap-2 border-b border-[var(--line)]/50 px-4 py-3 ${isOverlap ? "bg-[var(--cleaning-cell-bg)]" : isCleanerConflict ? "bg-amber-500/10" : ""}`}>
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-[var(--ink)] whitespace-nowrap">
                           {formatDate(day.date)}
                           {isOverlap && (
                             <span className="ml-1.5 text-[10px] font-medium text-[var(--cleaning-fg)]">
                               {t("cleaning.overlap")}
+                            </span>
+                          )}
+                          {!isOverlap && isCleanerConflict && (
+                            <span className="ml-1.5 text-[10px] font-medium text-amber-300">
+                              ⚠ {t("cleaning.cleanerConflictShort")}
                             </span>
                           )}
                         </span>
@@ -780,6 +993,9 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
               <tbody>
                 {visibleDays.map((day, i) => {
                   const isOverlap = futureOverlaps.some(o => o.date === day.date);
+                  const isCleanerConflict = Boolean(
+                    day.cleanerKey && conflictByDateAndKey.get(day.date)?.has(day.cleanerKey)
+                  );
                   const prevYear = i > 0 ? visibleDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
                   const thisYear = day.date.substring(0, 4);
                   const showYearDivider = thisYear !== prevYear;
@@ -789,10 +1005,13 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                         <td colSpan={10} className="px-4 py-2 text-xs font-semibold text-[var(--ink-3)] bg-[var(--bg-3)]">{thisYear}</td>
                       </tr>
                     )}
-                    <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[var(--line)]/50 ${isOverlap ? "bg-[var(--cleaning-cell-bg)]" : "hover:bg-[var(--bg-3)]"}`}>
+                    <tr key={`${day.date}-${day.propertyId}-${i}`} className={`border-b border-[var(--line)]/50 ${isOverlap ? "bg-[var(--cleaning-cell-bg)]" : isCleanerConflict ? "bg-amber-500/10" : "hover:bg-[var(--bg-3)]"}`}>
                       <td className="px-4 py-2 text-sm text-[var(--ink)] whitespace-nowrap">
                         {formatDate(day.date)}
                         {isOverlap && <span className="ml-1.5 text-[10px] text-[var(--cleaning-fg)] font-medium">{t("cleaning.overlap")}</span>}
+                        {!isOverlap && isCleanerConflict && (
+                          <span className="ml-1.5 text-[10px] text-amber-300 font-medium">⚠ {t("cleaning.cleanerConflictShort")}</span>
+                        )}
                       </td>
                       <td className="px-4 py-2">
                         <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${

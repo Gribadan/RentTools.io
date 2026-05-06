@@ -122,6 +122,8 @@ export const translations = {
   "dashboard.today": { en: "Today", ru: "Сегодня" },
   "dashboard.todayCheckIn": { en: "Check-in", ru: "Заезд" },
   "dashboard.todayCheckOut": { en: "Check-out", ru: "Выезд" },
+  "dashboard.cleanerConflictBadge": { en: "Cleaner conflict", ru: "Конфликт уборщика" },
+  "dashboard.cleanerConflictHint": { en: "Same cleaner is the default for two or more properties on the same day.", ru: "Один уборщик назначен по умолчанию на двух или более объектах в один день." },
   "dashboard.formConflict": { en: "Conflicts with existing booking", ru: "Конфликт с существующим бронированием" },
   "dashboard.formConflicts": { en: "Conflicts with {n} existing bookings", ru: "Конфликт с {n} бронированиями" },
 
@@ -221,6 +223,16 @@ export const translations = {
   "cleaning.hoursShort": { en: "{h}h", ru: "{h}ч" },
   "cleaning.daysShort": { en: "~{d} day(s)", ru: "~{d} дн." },
   "cleaning.dateFullyBooked": { en: "This date is fully booked by a guest — no cleaning window available.", ru: "Эта дата полностью занята гостем — нет окна для уборки." },
+  // RT-25.10 tick 3 — cleaner-conflict warning surfaces when the same
+  // cleaner is the priority-0 default for multiple properties on the
+  // same cleaning date.
+  "cleaning.cleanerConflict": { en: "Cleaner conflict", ru: "Конфликт уборщика" },
+  "cleaning.cleanerConflictShort": { en: "cleaner conflict", ru: "конфликт уборщика" },
+  "cleaning.cleanerConflictDesc": { en: "One cleaner is the default for multiple properties on the same day. Decide whether to swap to a backup or move one of the cleanings.", ru: "Один уборщик назначен по умолчанию на нескольких объектах в один день. Решите, заменить ли его на резерв или перенести одну из уборок." },
+  "cleaning.cleanerConflictLine": { en: "{name} has {count} cleanings — {properties}", ru: "У {name} {count} уборок — {properties}" },
+  "cleaning.backupSet": { en: "Backup for {property}: {name}", ru: "Резерв для {property}: {name}" },
+  "cleaning.backupBusy": { en: "Backup for {property}: {name} (also booked)", ru: "Резерв для {property}: {name} (тоже занят)" },
+  "cleaning.backupNone": { en: "No backup configured for {property}", ru: "Резерв не настроен для {property}" },
 
   // Reservation view
   "reservation.dropPassport": { en: "Drop passport documents", ru: "Перетащите документы с паспортами" },

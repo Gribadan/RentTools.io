@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { DateSlider } from "@/components/date-slider";
-import { CleaningSchedule } from "@/components/cleaning-schedule";
+import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { WelcomeModal } from "@/components/welcome-modal";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
@@ -91,6 +91,11 @@ export function Dashboard({
   // Populated regardless of selectedProperty so the form pills always reflect
   // the user's real platform set (Airbnb + Booking + any custom platforms).
   const [linkedPlatformSlugs, setLinkedPlatformSlugs] = useState<string[]>([]);
+  // RT-25.10 tick 3 — per-property cleaner-assignment data, threaded
+  // into <CleaningSchedule> for cleaner-conflict detection. Populated
+  // from /api/cleaners?withAssignments=1 in dashboard mode only.
+  const [cleanerAssignments, setCleanerAssignments] = useState<Record<number, CleanerAssignmentInfo[]>>({});
+  const [cleanerConflictDates, setCleanerConflictDates] = useState<string[]>([]);
 
   // Fetch synced events, links, and overrides for all properties (for cleaning schedule)
   const fetchAllCalendarData = useCallback(async () => {
@@ -143,6 +148,35 @@ export function Dashboard({
       .catch(() => {});
     return () => { cancelled = true; };
   }, []);
+
+  // RT-25.10 tick 3 — fetch the host's cleaner pool with assignments so
+  // CleaningSchedule can detect cleaner conflicts across properties.
+  // Only meaningful in dashboard mode (multi-property); per-property
+  // mode has its own fetch in PropertyCleaningView. Skip until at least
+  // one property exists.
+  useEffect(() => {
+    if (selectedProperty || properties.length === 0) {
+      setCleanerAssignments({});
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/cleaners?withAssignments=1`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows: Array<{ id: number; name: string; assignments?: Array<{ propertyId: number; priority: number }> }>) => {
+        if (cancelled || !Array.isArray(rows)) return;
+        const map: Record<number, CleanerAssignmentInfo[]> = {};
+        for (const c of rows) {
+          for (const a of c.assignments ?? []) {
+            const list = map[a.propertyId] ?? (map[a.propertyId] = []);
+            list.push({ identityKey: `p:${c.id}`, name: c.name, priority: a.priority });
+          }
+        }
+        for (const list of Object.values(map)) list.sort((a, b) => a.priority - b.priority);
+        setCleanerAssignments(map);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [selectedProperty, properties.length]);
 
   // Platform pills shown in the Add-Reservation form. Order:
   //   1. Slugs the user has linked (in PLATFORM_PRESETS sort order, then alpha)
@@ -261,6 +295,17 @@ export function Dashboard({
     pastBucket.sort((a, b) => b.checkOut.localeCompare(a.checkOut));
     return { next7: next7Bucket, later: laterBucket, past: pastBucket };
   }, [allReservations, selectedProperty, todayStr, sevenDaysOutStr]);
+
+  // RT-25.10 tick 3 — derive whether each visible bucket overlaps any
+  // cleaner-conflict date so the badge only shows when relevant.
+  const hasCleanerConflictToday = useMemo(
+    () => cleanerConflictDates.includes(todayStr),
+    [cleanerConflictDates, todayStr]
+  );
+  const hasCleanerConflictNext7 = useMemo(
+    () => cleanerConflictDates.some((d) => d >= todayStr && d < sevenDaysOutStr),
+    [cleanerConflictDates, todayStr, sevenDaysOutStr]
+  );
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
 
@@ -491,13 +536,26 @@ export function Dashboard({
           calm when nothing is happening. RT-25.6 tick 5. */}
       {!selectedProperty && properties.length > 0 && (todayCheckIns.length > 0 || todayCheckOuts.length > 0) && (
         <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
-          <div className="mb-3 flex items-baseline gap-2">
+          <div className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
               {t("dashboard.today")}
             </h2>
             <span className="text-xs text-[var(--ink-4)]">
               {new Date().toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { weekday: "short", day: "2-digit", month: "short" })}
             </span>
+            {hasCleanerConflictToday && (
+              <a
+                href="#cleaning-schedule"
+                className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/15"
+                style={{ backgroundColor: "rgba(217,119,6,0.18)" }}
+                title={t("dashboard.cleanerConflictHint")}
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                </svg>
+                {t("dashboard.cleanerConflictBadge")}
+              </a>
+            )}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {todayCheckIns.length > 0 && (
@@ -804,7 +862,22 @@ export function Dashboard({
               {next7.length > 0 && (
                 <>
                   {(later.length > 0 || past.length > 0) && (
-                    <ReservationSectionHeader label={t("calendar.next7Days")} />
+                    <ReservationSectionHeader
+                      label={t("calendar.next7Days")}
+                      badge={hasCleanerConflictNext7 ? (
+                        <a
+                          href="#cleaning-schedule"
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/15"
+                          style={{ backgroundColor: "rgba(217,119,6,0.18)" }}
+                          title={t("dashboard.cleanerConflictHint")}
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                          </svg>
+                          {t("dashboard.cleanerConflictBadge")}
+                        </a>
+                      ) : undefined}
+                    />
                   )}
                   {next7.map((res, i) => (
                     <ReservationRow
@@ -907,25 +980,30 @@ export function Dashboard({
 
       {/* Cleaning Schedule — separate section on global dashboard */}
       {!selectedProperty && properties.length > 0 && Object.keys(allSyncedEvents).length > 0 && (
-        <CleaningSchedule
-          properties={properties}
-          syncedEvents={allSyncedEvents}
-          links={allLinks}
-          overrides={allOverrides}
-          mode="dashboard"
-          onOverrideChanged={fetchAllCalendarData}
-        />
+        <div id="cleaning-schedule" className="scroll-mt-4">
+          <CleaningSchedule
+            properties={properties}
+            syncedEvents={allSyncedEvents}
+            links={allLinks}
+            overrides={allOverrides}
+            mode="dashboard"
+            onOverrideChanged={fetchAllCalendarData}
+            cleanerAssignments={cleanerAssignments}
+            onCleanerConflictDatesChange={setCleanerConflictDates}
+          />
+        </div>
       )}
     </div>
   );
 }
 
-function ReservationSectionHeader({ label }: { label: string }) {
+function ReservationSectionHeader({ label, badge }: { label: string; badge?: React.ReactNode }) {
   return (
-    <div className="border-b border-[var(--line)]/50 bg-[var(--bg-3)]/40 px-4 py-1.5">
+    <div className="flex items-center justify-between border-b border-[var(--line)]/50 bg-[var(--bg-3)]/40 px-4 py-1.5">
       <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
         {label}
       </span>
+      {badge}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { CleaningSchedule, type CleaningScheduleHandle } from "@/components/cleaning-schedule";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { CleaningSchedule, type CleaningScheduleHandle, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { CleanersPanel } from "@/components/cleaners-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
@@ -27,7 +27,7 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
-  const [defaultCleanerName, setDefaultCleanerName] = useState<string | undefined>(undefined);
+  const [assignments, setAssignments] = useState<CleanerAssignmentInfo[]>([]);
   const [cleaningEnabled, setCleaningEnabled] = useState<boolean>(property.cleaningEnabled !== false);
   const [toggling, setToggling] = useState(false);
   const [includePotential, setIncludePotential] = useState(true);
@@ -49,15 +49,47 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
     setLinks(linksRes || []);
     setOverrides(ovRes || []);
     // RT-25.10 tick 2 — surface the priority-0 cleaner on each schedule row.
-    // Assignments come back priority-asc; the first one is the default.
-    const list = Array.isArray(asgRes) ? asgRes : [];
-    const top = list[0];
-    setDefaultCleanerName(top?.cleanerName ?? top?.username ?? undefined);
+    // Assignments come back priority-asc; tick 3 also threads the full
+    // list so the schedule can detect cleaner conflicts and recommend
+    // the priority-1 backup.
+    type AssignmentRow = {
+      cleanerProfileId: number | null;
+      cleanerId: number | null;
+      cleanerName: string | null;
+      username: string | null;
+      priority: number;
+    };
+    const list: AssignmentRow[] = Array.isArray(asgRes) ? asgRes : [];
+    setAssignments(
+      list
+        .map((a): CleanerAssignmentInfo | null => {
+          const name = a.cleanerName ?? a.username;
+          if (!name) return null;
+          // identityKey distinguishes profile-based vs legacy user-based
+          // assignments so a cleaner who exists as both is grouped under
+          // one stable key per the RT-25.10 backfill.
+          const identityKey = a.cleanerProfileId != null
+            ? `p:${a.cleanerProfileId}`
+            : a.cleanerId != null
+              ? `u:${a.cleanerId}`
+              : `n:${name}`;
+          return { identityKey, name, priority: a.priority ?? 0 };
+        })
+        .filter((x): x is CleanerAssignmentInfo => x !== null)
+        .sort((a, b) => a.priority - b.priority)
+    );
   }, [property.id]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Memoise the per-property assignments map so CleaningSchedule's
+  // useMemo dependencies don't churn on each render.
+  const assignmentsByProperty = useMemo<Record<number, CleanerAssignmentInfo[]> | undefined>(
+    () => (assignments.length > 0 ? { [property.id]: assignments } : undefined),
+    [assignments, property.id]
+  );
 
   const handleToggle = async (next: boolean) => {
     if (toggling) return;
@@ -115,7 +147,7 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
               hideControls
               includePotential={includePotential}
               onIncludePotentialChange={setIncludePotential}
-              cleanerNames={defaultCleanerName ? { [property.id]: defaultCleanerName } : undefined}
+              cleanerAssignments={assignmentsByProperty}
             />
           ) : (
             <div className="rounded-lg border border-dashed border-[var(--line-2)] bg-[var(--bg-2)] p-8 text-center">
