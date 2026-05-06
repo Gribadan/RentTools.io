@@ -157,6 +157,15 @@ const TILES: ReadonlyArray<{
     group: { en: "Content", ru: "Контент" },
     items: [
       {
+        href: "/dashboard/admin/content/blog-comments",
+        label: { en: "Blog comments", ru: "Комментарии блога" },
+        desc: {
+          en: "Moderate reader comments — hide, restore, soft-delete.",
+          ru: "Модерация комментариев — скрыть, восстановить, удалить.",
+        },
+        requiresSuperadmin: true,
+      },
+      {
         href: "/dashboard/admin/content/blog-media",
         label: { en: "Blog media", ru: "Медиа блога" },
         desc: {
