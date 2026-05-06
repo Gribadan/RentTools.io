@@ -784,8 +784,14 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
 
   return (
     <div className="space-y-4">
-      {/* Overlap warnings */}
-      {futureOverlaps.length > 0 && (
+      {/* Overlap warnings — gated on !loading. Without this gate the
+          banner flashed during the events / overrides fetch: the
+          schedule was computed from whatever partial data had landed,
+          which sometimes detected a phantom multi-property overlap
+          on the same day that disappeared once the rest of the data
+          caught up. Same false-positive pattern as the dashboard
+          alerts strip; same fix. */}
+      {!loading && futureOverlaps.length > 0 && (
         <div className="rounded-lg border border-[var(--cleaning-border)] bg-[var(--cleaning-bg)] p-4 space-y-2">
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5 text-[var(--cleaning-fg)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -812,8 +818,10 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
 
       {/* Cleaner conflicts (RT-25.10 tick 3) — same cleaner is the
           priority-0 across two or more properties on the same cleaning
-          date. Hint at backups but do not auto-reassign. */}
-      {futureCleanerConflicts.length > 0 && (
+          date. Hint at backups but do not auto-reassign. Also gated
+          on !loading so a phantom conflict on partial data doesn't
+          flash before the rest of the events / assignments fetch in. */}
+      {!loading && futureCleanerConflicts.length > 0 && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
