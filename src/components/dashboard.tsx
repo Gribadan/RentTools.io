@@ -45,9 +45,83 @@ function platformColor(slug: string): string {
 interface CalendarEvent {
   id: number;
   platform: string;
+  uid?: string;
   summary: string;
   startDate: string;
   endDate: string;
+}
+
+interface UnifiedStay {
+  start: Date;
+  end: Date;
+  name: string;
+  platform: string;
+  reservationId?: number;
+}
+
+/** Build a deduped list of stays for one property from Reservation rows
+ *  + iCal-synced events. iCal events whose uid matches a Reservation's
+ *  linkedEventUid are dropped (the Reservation side wins because it
+ *  carries the host-chosen platform + name). Airbnb host blocks are
+ *  filtered out — they're not real guests. Sorted by start asc. */
+function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] {
+  const linkedUids = new Set(
+    p.reservations.map((r) => r.linkedEventUid).filter((u): u is string => !!u)
+  );
+  const stays: UnifiedStay[] = [];
+  for (const r of p.reservations) {
+    const start = new Date(r.checkIn);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(r.checkOut);
+    end.setHours(0, 0, 0, 0);
+    stays.push({
+      start,
+      end,
+      name: r.name,
+      platform: r.platform || "direct",
+      reservationId: r.id,
+    });
+  }
+  for (const ev of events) {
+    if (ev.uid && linkedUids.has(ev.uid)) continue;
+    if (ev.platform === "airbnb" && (ev.summary?.includes("Not available") || ev.summary?.includes("Blocked"))) continue;
+    const start = new Date(ev.startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(ev.endDate);
+    end.setHours(0, 0, 0, 0);
+    stays.push({ start, end, name: ev.summary, platform: ev.platform });
+  }
+  stays.sort((a, b) => a.start.getTime() - b.start.getTime());
+  return stays;
+}
+
+/** Per-property double-booking detection. Returns the list of overlapping
+ *  pairs whose overlap range still touches today-or-future, so a stale
+ *  past conflict doesn't show as an active alert on the dashboard. */
+function detectDoubleBookings(stays: UnifiedStay[], today: Date): Array<{
+  aName: string;
+  bName: string;
+  overlapStart: Date;
+  overlapEnd: Date;
+}> {
+  const out: Array<{ aName: string; bName: string; overlapStart: Date; overlapEnd: Date }> = [];
+  for (let i = 0; i < stays.length; i++) {
+    for (let j = i + 1; j < stays.length; j++) {
+      const a = stays[i];
+      const b = stays[j];
+      // Strict overlap: a.start < b.end AND b.start < a.end. Touching
+      // dates (a.end === b.start) are NOT a conflict — that's a normal
+      // turnover (one guest checks out, next checks in same day).
+      if (a.start < b.end && b.start < a.end) {
+        const overlapStart = a.start > b.start ? a.start : b.start;
+        const overlapEnd = a.end < b.end ? a.end : b.end;
+        if (overlapEnd > today) {
+          out.push({ aName: a.name, bName: b.name, overlapStart, overlapEnd });
+        }
+      }
+    }
+  }
+  return out;
 }
 
 interface DashboardProps {
@@ -306,6 +380,56 @@ export function Dashboard({
     () => cleanerConflictDates.some((d) => d >= todayStr && d < sevenDaysOutStr),
     [cleanerConflictDates, todayStr, sevenDaysOutStr]
   );
+
+  // Per-property "now / next" data drives the property cards: who is
+  // currently in the property and how many nights they have left, plus
+  // the next arriving guest. Computed once per render against the
+  // unified stay list so reservations + iCal events stay in lockstep.
+  const propertyOccupancy = useMemo(() => {
+    if (selectedProperty) return new Map<number, { current: UnifiedStay | null; next: UnifiedStay | null }>();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const map = new Map<number, { current: UnifiedStay | null; next: UnifiedStay | null }>();
+    for (const p of properties) {
+      const stays = buildUnifiedStays(p, allSyncedEvents[p.id] || []);
+      const current = stays.find((s) => s.start <= today && s.end > today) ?? null;
+      const next = stays.find((s) => s.start > today) ?? null;
+      map.set(p.id, { current, next });
+    }
+    return map;
+  }, [properties, allSyncedEvents, selectedProperty]);
+
+  // Double-booking + no-cleaner alerts. Surfaced in the Alerts strip
+  // above the property cards so the host sees structural problems
+  // before scanning individual properties. Only computed in dashboard
+  // mode (where the strip renders).
+  const dashboardAlerts = useMemo(() => {
+    if (selectedProperty) {
+      return { doubleBookings: [] as Array<{ propertyName: string; aName: string; bName: string; overlapStart: Date; overlapEnd: Date }>, propertiesWithoutCleaner: [] as string[] };
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const doubleBookings: Array<{ propertyName: string; aName: string; bName: string; overlapStart: Date; overlapEnd: Date }> = [];
+    const propertiesWithoutCleaner: string[] = [];
+    for (const p of properties) {
+      const stays = buildUnifiedStays(p, allSyncedEvents[p.id] || []);
+      const overlaps = detectDoubleBookings(stays, today);
+      for (const o of overlaps) {
+        doubleBookings.push({ propertyName: p.name, ...o });
+      }
+      // Only flag missing cleaner if the property has cleaning enabled
+      // AND has at least one upcoming stay (no point warning about an
+      // empty property).
+      const cleaningOn = p.cleaningEnabled !== false;
+      const hasUpcoming = stays.some((s) => s.end > today);
+      const assigns = cleanerAssignments[p.id];
+      const hasCleaner = Array.isArray(assigns) && assigns.length > 0;
+      if (cleaningOn && hasUpcoming && !hasCleaner) {
+        propertiesWithoutCleaner.push(p.name);
+      }
+    }
+    return { doubleBookings, propertiesWithoutCleaner };
+  }, [properties, allSyncedEvents, cleanerAssignments, selectedProperty]);
 
   const trimmedQuery = searchQuery.trim().toLowerCase();
 
@@ -612,17 +736,83 @@ export function Dashboard({
         </div>
       )}
 
-      {/* Property cards (dashboard mode only) */}
+      {/* Alerts strip — only renders when there's at least one
+          structural problem worth surfacing on the dashboard root.
+          Three categories: double-booked stays (per-property overlap),
+          cleaner conflicts (one cleaner across multiple properties on
+          the same day, computed by the hidden CleaningSchedule), and
+          properties with cleaning enabled but no cleaner assigned. */}
+      {!selectedProperty && (dashboardAlerts.doubleBookings.length > 0 || cleanerConflictDates.length > 0 || dashboardAlerts.propertiesWithoutCleaner.length > 0) && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <span className="text-sm font-semibold text-amber-300">
+              {locale === "ru" ? "Требует внимания" : "Needs attention"}
+            </span>
+          </div>
+          {dashboardAlerts.doubleBookings.length > 0 && (
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
+              <span className="font-medium text-rose-400">
+                {locale === "ru" ? "Двойное бронирование:" : "Double booking:"}
+              </span>
+              {dashboardAlerts.doubleBookings.slice(0, 3).map((d, i) => (
+                <span key={i} className="text-[var(--ink-2)]">
+                  {d.propertyName} — {d.aName} & {d.bName} ({formatDate(d.overlapStart.toISOString().substring(0, 10))} → {formatDate(d.overlapEnd.toISOString().substring(0, 10))})
+                  {i < Math.min(dashboardAlerts.doubleBookings.length, 3) - 1 ? "," : ""}
+                </span>
+              ))}
+              {dashboardAlerts.doubleBookings.length > 3 && (
+                <span className="text-[var(--ink-3)]">
+                  {locale === "ru" ? `+ ещё ${dashboardAlerts.doubleBookings.length - 3}` : `+ ${dashboardAlerts.doubleBookings.length - 3} more`}
+                </span>
+              )}
+            </div>
+          )}
+          {cleanerConflictDates.length > 0 && (
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
+              <span className="font-medium text-amber-300">
+                {locale === "ru" ? "Конфликт уборщиков:" : "Cleaner conflict:"}
+              </span>
+              <span>
+                {cleanerConflictDates.slice(0, 3).map((d) => formatDate(d)).join(", ")}
+                {cleanerConflictDates.length > 3 && (locale === "ru" ? ` + ещё ${cleanerConflictDates.length - 3}` : ` + ${cleanerConflictDates.length - 3} more`)}
+              </span>
+              <a
+                href="?view=cleaning"
+                className="text-[11px] text-amber-400 hover:text-amber-300 underline"
+              >
+                {locale === "ru" ? "Открыть уборки →" : "Open cleaning →"}
+              </a>
+            </div>
+          )}
+          {dashboardAlerts.propertiesWithoutCleaner.length > 0 && (
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
+              <span className="font-medium text-amber-300">
+                {locale === "ru" ? "Уборщик не назначен:" : "No cleaner assigned:"}
+              </span>
+              <span>{dashboardAlerts.propertiesWithoutCleaner.join(", ")}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Property cards (dashboard mode only). Each card surfaces the
+          three things a host actually scans the dashboard for: who is
+          IN the property right now (with nights remaining), who is
+          coming NEXT (with arrival date), and any sync-error flag. */}
       {!selectedProperty && properties.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {properties.map(p => {
+            const occ = propertyOccupancy.get(p.id);
+            const current = occ?.current ?? null;
+            const next = occ?.next ?? null;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const nightsLeft = current ? Math.round((current.end.getTime() - today.getTime()) / 86400000) : 0;
+            const daysUntilNext = next ? Math.round((next.start.getTime() - today.getTime()) / 86400000) : 0;
             const futureRes = p.reservations.filter(r => new Date(r.checkOut) >= new Date());
-            const nextRes = futureRes.sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())[0];
-            // RT-25.6 tick 6 — sync-error chip. Surface a calendar link
-            // that's failing to fetch so the host notices without having
-            // to drill into Sync settings. allLinks is populated by
-            // fetchAllCalendarData; while it's still loading the chip is
-            // hidden (avoid flash-of-warning during initial load).
             const links = allLinks[p.id];
             const failingLinks = Array.isArray(links)
               ? links.filter((l) => Boolean(l.lastError))
@@ -640,35 +830,69 @@ export function Dashboard({
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </div>
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ink-4)]">
+                <div className="space-y-2">
+                  {/* Current guest — strongest line, accent color so the
+                      eye lands on "who's in here right now" first. */}
+                  {current ? (
+                    <div className="flex items-baseline gap-2 text-sm">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: platformColor(current.platform) }}
+                      />
+                      <span className="font-semibold text-[var(--ink)] truncate">{current.name}</span>
+                      <span className="text-[11px] text-[var(--ink-3)] whitespace-nowrap">
+                        {locale === "ru"
+                          ? `до ${formatDate(current.end.toISOString().substring(0, 10))} · ${nightsLeft} ${nightsLeft === 1 ? "ночь" : nightsLeft < 5 ? "ночи" : "ноч."}`
+                          : `until ${formatDate(current.end.toISOString().substring(0, 10))} · ${nightsLeft} ${nightsLeft === 1 ? "night" : "nights"} left`}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-[var(--ink-3)]">
+                      {locale === "ru" ? "Свободно" : "Available"}
+                    </div>
+                  )}
+                  {/* Next guest — secondary line. Hidden when no upcoming
+                      stay so the card stays visually quiet. */}
+                  {next ? (
+                    <div className="flex items-baseline gap-2 text-xs text-[var(--ink-3)]">
+                      <span className="text-[var(--ink-4)]">{locale === "ru" ? "Далее:" : "Next:"}</span>
+                      <span
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: platformColor(next.platform) }}
+                      />
+                      <span className="font-medium text-[var(--ink-2)] truncate">{next.name}</span>
+                      <span className="text-[var(--ink-4)] whitespace-nowrap">
+                        {locale === "ru"
+                          ? `${formatDate(next.start.toISOString().substring(0, 10))} (через ${daysUntilNext} д.)`
+                          : `${formatDate(next.start.toISOString().substring(0, 10))} (in ${daysUntilNext}d)`}
+                      </span>
+                    </div>
+                  ) : !current ? (
+                    <div className="text-xs text-[var(--ink-4)]">
+                      {locale === "ru" ? "Нет предстоящих броней" : "No upcoming bookings"}
+                    </div>
+                  ) : null}
+                  {/* Footer meta — booking count, min nights, sync chip. */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--ink-4)] pt-1">
                     <span>{futureRes.length} {locale === "ru" ? "бронир." : "bookings"}</span>
-                    <span className="text-[var(--ink-4)]">·</span>
-                    <span>{locale === "ru" ? "мин." : "min"} {p.minNights} {locale === "ru" ? "ноч." : "n"}</span>
+                    <span>·</span>
+                    <span>{locale === "ru" ? "мин." : "min"} {p.minNights}{locale === "ru" ? "н." : "n"}</span>
                     {hasSyncError && (
                       <>
-                        <span className="text-[var(--ink-4)]">·</span>
+                        <span>·</span>
                         <span
-                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300"
+                          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium text-amber-300"
                           style={{ backgroundColor: "rgba(217,119,6,0.18)" }}
                           title={failingLinks.map((l) => `${platformDisplayName(l.platform)}: ${l.lastError}`).join("\n")}
                         >
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                           </svg>
-                          {locale === "ru" ? "Ошибка синхр." : "Sync issue"}
+                          {locale === "ru" ? "Синхр." : "Sync"}
                         </span>
                       </>
                     )}
                   </div>
-                  {nextRes && (
-                    <div className="text-xs text-[var(--ink-3)]">
-                      <span className="text-[var(--ink-4)]">{locale === "ru" ? "Далее:" : "Next:"} </span>
-                      <span className="font-medium text-[var(--ink-2)]">{nextRes.name}</span>
-                      {" "}
-                      <span>{formatDate(nextRes.checkIn)}</span>
-                    </div>
-                  )}
                 </div>
               </button>
             );
@@ -978,16 +1202,28 @@ export function Dashboard({
         </div>
       ) : null}
 
-      {/* Cleaning lives on its own tab now — the inline schedule
-          section was removed so the dashboard root reads as a
-          portfolio-overview only. We still mount a hidden
-          CleaningSchedule purely so the cleaner-conflict detection
-          logic runs and feeds the Today / Next-7-days conflict
-          badges via onCleanerConflictDatesChange. The visible
-          schedule lives at activeView === "cleaning" (Cleaning tab,
-          no property selected) inside GlobalCleaningView. */}
+      {/* Cleaning Schedule — visible cross-property section so hosts
+          can quickly copy and forward to their cleaners without
+          navigating to the Cleaning tab. The full sidebar layout
+          lives on the Cleaning tab (GlobalCleaningView); this inline
+          version uses the schedule's built-in inline header controls
+          (Copy / Print / Include-potential toggle) so the export is
+          one tap away from the dashboard root. The schedule also
+          emits onCleanerConflictDatesChange which feeds the alerts
+          strip + Today/Next-7-days conflict badges. */}
       {!selectedProperty && properties.length > 0 && Object.keys(allSyncedEvents).length > 0 && (
-        <div className="hidden" aria-hidden="true">
+        <div id="cleaning-schedule" className="scroll-mt-4 space-y-2">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-3)]">
+              {locale === "ru" ? "Уборки" : "Cleaning"}
+            </h2>
+            <a
+              href="?view=cleaning"
+              className="text-[11px] text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors"
+            >
+              {locale === "ru" ? "Открыть полностью →" : "Open full schedule →"}
+            </a>
+          </div>
           <CleaningSchedule
             properties={properties}
             syncedEvents={allSyncedEvents}
