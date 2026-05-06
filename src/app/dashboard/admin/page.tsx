@@ -95,6 +95,14 @@ const TILES: ReadonlyArray<{
         },
       },
       {
+        href: "/dashboard/admin/integrations/feed-tokens",
+        label: { en: "Feed access tokens", ru: "Токены доступа к фиду" },
+        desc: {
+          en: "Per-property: public or token-gated iCal feed URL.",
+          ru: "По объектам: публичный или закрытый токеном URL фида.",
+        },
+      },
+      {
         href: "/dashboard/admin/integrations/gemini",
         label: { en: "Gemini AI key", ru: "Gemini AI ключ" },
         desc: { en: "API key for guest passport extraction.", ru: "API ключ для извлечения паспортов." },
