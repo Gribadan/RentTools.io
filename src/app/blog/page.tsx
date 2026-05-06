@@ -4,6 +4,7 @@ import { MarketingHeader } from "@/components/marketing-header";
 import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
+import { getLocale } from "@/lib/i18n/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
@@ -63,6 +64,7 @@ export default async function BlogIndexPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
+  const locale = await getLocale();
   const page = parsePage(sp.page);
   const tagFilter = (sp.tag ?? "").trim().toLowerCase().slice(0, 60) || undefined;
 
@@ -163,21 +165,32 @@ export default async function BlogIndexPage({
           />
           <div className="relative">
             <p className="mono mb-4 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-              The RentTools blog
+              {locale === "ru" ? "Блог RentTools" : "The RentTools blog"}
             </p>
             <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl md:text-[2.75rem]">
-              Field notes for short-term rental hosts
+              {locale === "ru"
+                ? "Полевые заметки для хостов краткосрочной аренды"
+                : "Field notes for short-term rental hosts"}
             </h1>
             <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-[var(--ink-3)] sm:text-lg">
-              Calendar sync that actually works, cleaning automation that doesn&rsquo;t
-              double-book the cleaner, and a host&rsquo;s GDPR checklist that fits on
-              one page. Written by people who run listings, not affiliate sites.
+              {locale === "ru"
+                ? "Синхронизация календарей, которая правда работает, автоматизация уборок без двойных назначений и чек-лист GDPR на одну страницу. Писали те, кто сами сдают, а не те, кто пишет для трафика."
+                : "Calendar sync that actually works, cleaning automation that doesn't double-book the cleaner, and a host's GDPR checklist that fits on one page. Written by people who run listings, not affiliate sites."}
+              {/* English-only blog body note: existing posts ship in EN. */}
+              {locale === "ru" && (
+                <span className="mt-2 block text-[12px] text-[var(--ink-4)]">
+                  Тексты статей пока только на английском.
+                </span>
+              )}
             </p>
           </div>
         </section>
 
         {tagRows.length > 0 && (
-          <nav aria-label="Filter by tag" className="mt-8 flex flex-wrap gap-2 text-xs">
+          <nav
+            aria-label={locale === "ru" ? "Фильтр по тегам" : "Filter by tag"}
+            className="mt-8 flex flex-wrap gap-2 text-xs"
+          >
             <Link
               href="/blog"
               className={`rounded-full border px-3 py-1 transition-colors ${
@@ -186,7 +199,7 @@ export default async function BlogIndexPage({
                   : "border-[var(--m-accent)] text-[var(--m-accent)]"
               }`}
             >
-              All
+              {locale === "ru" ? "Все" : "All"}
             </Link>
             {tagRows.map((t) => {
               const active = tagFilter === t.slug;
@@ -210,7 +223,9 @@ export default async function BlogIndexPage({
         <section className="mt-10 sm:mt-12">
           {posts.length === 0 ? (
             <p className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-12 text-center text-sm text-[var(--ink-3)]">
-              No posts yet{tagFilter ? ` for tag "${tagFilter}"` : ""}.
+              {locale === "ru"
+                ? `Пока нет статей${tagFilter ? ` по тегу "${tagFilter}"` : ""}.`
+                : `No posts yet${tagFilter ? ` for tag "${tagFilter}"` : ""}.`}
             </p>
           ) : (
             <>
@@ -237,7 +252,7 @@ export default async function BlogIndexPage({
                   </div>
                   <div className="flex flex-col justify-center p-6 sm:p-8">
                     <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[var(--m-accent)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-                      Featured
+                      {locale === "ru" ? "Главное" : "Featured"}
                     </span>
                     <h2 className="text-balance text-2xl font-bold leading-snug tracking-tight text-[var(--ink)] sm:text-[1.75rem] group-hover:text-white">
                       {featured.title}
@@ -329,13 +344,15 @@ export default async function BlogIndexPage({
                 className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="prev"
               >
-                ← Previous
+                {locale === "ru" ? "← Назад" : "← Previous"}
               </Link>
             ) : (
               <span aria-hidden className="opacity-0">prev</span>
             )}
             <span className="text-[var(--ink-4)]">
-              Page {page} of {totalPages}
+              {locale === "ru"
+                ? `Страница ${page} из ${totalPages}`
+                : `Page ${page} of ${totalPages}`}
             </span>
             {hasNext ? (
               <Link
@@ -343,7 +360,7 @@ export default async function BlogIndexPage({
                 className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="next"
               >
-                Next →
+                {locale === "ru" ? "Дальше →" : "Next →"}
               </Link>
             ) : (
               <span aria-hidden className="opacity-0">next</span>
@@ -356,9 +373,15 @@ export default async function BlogIndexPage({
         <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
-            <Link href="/privacy" className="hover:text-[var(--ink)]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
+            <Link href="/" className="hover:text-[var(--ink)]">
+              {locale === "ru" ? "Главная" : "Home"}
+            </Link>
+            <Link href="/privacy" className="hover:text-[var(--ink)]">
+              {locale === "ru" ? "Конфиденциальность" : "Privacy"}
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--ink)]">
+              {locale === "ru" ? "Условия" : "Terms"}
+            </Link>
           </nav>
         </div>
       </footer>

@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useI18n } from "@/lib/i18n/context";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
@@ -9,6 +12,11 @@ interface MarketingHeaderProps {
    *  default so the home page and onboarding wizard match. */
   sticky?: boolean;
 }
+
+const NAV_LABELS = {
+  en: { blog: "Blog", signIn: "Sign in", getStarted: "Get started" },
+  ru: { blog: "Блог", signIn: "Войти", getStarted: "Начать" },
+};
 
 /**
  * Public-marketing header — used on the home page, /onboard, /blog, and
@@ -23,6 +31,8 @@ interface MarketingHeaderProps {
  * to a single readable row.
  */
 export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
+  const { locale } = useI18n();
+  const t = NAV_LABELS[locale];
   return (
     <header
       className={
@@ -76,7 +86,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
             href="/blog"
             className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
           >
-            Blog
+            {t.blog}
           </Link>
           <a
             href={REPO_URL}
@@ -93,13 +103,13 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
             href="/login"
             className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
           >
-            Sign in
+            {t.signIn}
           </Link>
           <Link
             href="/onboard"
             className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:inline-flex"
           >
-            Get started
+            {t.getStarted}
           </Link>
           <span className="mx-1 h-4 w-px bg-[var(--line)]" />
           <ThemeToggle />

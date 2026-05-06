@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "@/lib/i18n/context";
+
 /**
  * Render the FAQ section as a native <details>/<summary> accordion.
  *
@@ -20,6 +22,7 @@ interface Props {
 const FAQ_HEADING_ID = "faq";
 
 export function BlogFaq({ items }: Props) {
+  const { locale } = useI18n();
   if (items.length === 0) return null;
 
   return (
@@ -31,7 +34,7 @@ export function BlogFaq({ items }: Props) {
         id={FAQ_HEADING_ID}
         className="scroll-mt-24 text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]"
       >
-        Frequently asked questions
+        {locale === "ru" ? "Частые вопросы" : "Frequently asked questions"}
       </h2>
       <ul className="mt-6 space-y-3">
         {items.map((item, idx) => (

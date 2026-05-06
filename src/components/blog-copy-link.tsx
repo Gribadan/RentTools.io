@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Props {
   url: string;
@@ -12,6 +13,7 @@ interface Props {
  * previews, etc.) so the affordance never breaks silently.
  */
 export function BlogCopyLink({ url }: Props) {
+  const { locale } = useI18n();
   const [copied, setCopied] = useState(false);
 
   const onClick = async () => {
@@ -44,7 +46,13 @@ export function BlogCopyLink({ url }: Props) {
       onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-2.5 py-1 text-xs font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--line-2)] hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
     >
-      {copied ? "Copied!" : "Copy link"}
+      {copied
+        ? locale === "ru"
+          ? "Скопировано!"
+          : "Copied!"
+        : locale === "ru"
+          ? "Скопировать ссылку"
+          : "Copy link"}
     </button>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { TocEntry } from "@/lib/markdown";
+import { useI18n } from "@/lib/i18n/context";
 
 interface Props {
   entries: TocEntry[];
@@ -21,6 +22,7 @@ interface Props {
  * and the markdown body still includes natural `## H2` waypoints.
  */
 export function BlogToc({ entries }: Props) {
+  const { locale } = useI18n();
   const [activeId, setActiveId] = useState<string>(entries[0]?.id ?? "");
 
   useEffect(() => {
@@ -83,9 +85,12 @@ export function BlogToc({ entries }: Props) {
   };
 
   return (
-    <nav aria-label="Table of contents" className="text-sm">
+    <nav
+      aria-label={locale === "ru" ? "Содержание" : "Table of contents"}
+      className="text-sm"
+    >
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-        On this page
+        {locale === "ru" ? "На этой странице" : "On this page"}
       </p>
       <ul className="space-y-1.5 border-l border-[var(--line)]">
         {entries.map((entry) => {

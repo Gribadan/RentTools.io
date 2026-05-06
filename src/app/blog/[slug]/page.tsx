@@ -12,6 +12,7 @@ import { prisma } from "@/lib/prisma";
 import { extractToc, readingMinutes, renderMarkdown, stripLeadingH1 } from "@/lib/markdown";
 import { getSession } from "@/lib/auth";
 import { applySeoOverrides } from "@/lib/seo";
+import { getLocale } from "@/lib/i18n/server";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
@@ -148,6 +149,7 @@ export default async function BlogPostPage({
     : undefined;
 
   const session = await getSession();
+  const locale = await getLocale();
   const isSuperadmin = session?.role === "superadmin";
 
   // Related posts: same primary tag (first tag), newest first, exclude current.
@@ -321,7 +323,9 @@ export default async function BlogPostPage({
                     </>
                   )}
                   <span aria-hidden className="text-[var(--ink-4)]">·</span>
-                  <span>{minutes} min read</span>
+                  <span>
+                    {locale === "ru" ? `${minutes} мин чтения` : `${minutes} min read`}
+                  </span>
                 </div>
               </div>
             </header>
@@ -352,7 +356,7 @@ export default async function BlogPostPage({
 
             <BlogFaq items={faq} />
 
-            <BlogShareRow url={postUrl} title={post.title} excerpt={post.excerpt} />
+            <BlogShareRow url={postUrl} title={post.title} excerpt={post.excerpt} locale={locale} />
 
             {related.length > 0 && (
               <section
@@ -363,7 +367,7 @@ export default async function BlogPostPage({
                   id="related-heading"
                   className="text-xl font-semibold tracking-tight text-[var(--ink)]"
                 >
-                  Keep reading
+                  {locale === "ru" ? "Читать дальше" : "Keep reading"}
                 </h2>
                 <ul className="mt-5 grid gap-4 sm:grid-cols-2">
                   {related.map((r) => (
@@ -405,7 +409,7 @@ export default async function BlogPostPage({
 
             <nav className="mt-12 border-t border-[var(--line)] pt-6 text-sm">
               <Link href="/blog" className="text-[var(--ink-3)] hover:text-[var(--ink)]">
-                ← All posts
+                {locale === "ru" ? "← Все статьи" : "← All posts"}
               </Link>
             </nav>
           </article>
@@ -424,9 +428,15 @@ export default async function BlogPostPage({
         <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
-            <Link href="/privacy" className="hover:text-[var(--ink)]">Privacy</Link>
-            <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
+            <Link href="/" className="hover:text-[var(--ink)]">
+              {locale === "ru" ? "Главная" : "Home"}
+            </Link>
+            <Link href="/privacy" className="hover:text-[var(--ink)]">
+              {locale === "ru" ? "Конфиденциальность" : "Privacy"}
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--ink)]">
+              {locale === "ru" ? "Условия" : "Terms"}
+            </Link>
           </nav>
         </div>
       </footer>
@@ -450,10 +460,25 @@ function ShareLink({ href, label }: { href: string; label: string }) {
 // Server-rendered share row + the client-only copy-link button. Splitting
 // them keeps the heavy server tree out of a client bundle while still
 // giving the reader a one-tap copy affordance.
-function BlogShareRow({ url, title, excerpt }: { url: string; title: string; excerpt: string }) {
+function BlogShareRow({
+  url,
+  title,
+  excerpt,
+  locale,
+}: {
+  url: string;
+  title: string;
+  excerpt: string;
+  locale: "en" | "ru";
+}) {
+  // Brand names (X, LinkedIn, etc.) stay un-translated — they're proper
+  // nouns and the share buttons send to the same domains regardless of
+  // visitor locale. Only "Share" + "Email" need a Russian variant.
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-6">
-      <span className="text-xs uppercase tracking-wider text-[var(--ink-4)]">Share</span>
+      <span className="text-xs uppercase tracking-wider text-[var(--ink-4)]">
+        {locale === "ru" ? "Поделиться" : "Share"}
+      </span>
       <ShareLink
         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`}
         label="X / Twitter"
@@ -472,7 +497,7 @@ function BlogShareRow({ url, title, excerpt }: { url: string; title: string; exc
       />
       <ShareLink
         href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${excerpt}\n\n${url}`)}`}
-        label="Email"
+        label={locale === "ru" ? "Почта" : "Email"}
       />
       <BlogCopyLink url={url} />
     </div>

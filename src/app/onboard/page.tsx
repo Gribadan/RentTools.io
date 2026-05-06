@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PlatformInstructions } from "@/components/platform-instructions";
 import { MarketingHeader } from "@/components/marketing-header";
+import { useI18n } from "@/lib/i18n/context";
 
 /* ────────────────────────────────────────────────────────────────────
    Types
@@ -130,6 +131,7 @@ function presetRow(preset: Preset): DraftRow {
 
 export default function OnboardPage() {
   const router = useRouter();
+  const { locale } = useI18n();
   const [propertyName, setPropertyName] = useState("");
   const [feedSlug, setFeedSlug] = useState<string | null>(null);
   const [rows, setRows] = useState<DraftRow[]>(() => PRESETS.map(presetRow));
@@ -315,27 +317,51 @@ export default function OnboardPage() {
               wording replaces the old "1 property" line that read like
               a tier limit. */}
           <div className="hidden text-center sm:block">
-            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">Onboarding · Free for every property — forever</p>
+            <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
+              {locale === "ru"
+                ? "Онбординг · Бесплатно за каждый объект — навсегда"
+                : "Onboarding · Free for every property — forever"}
+            </p>
             <h1 className="display mt-3 text-[32px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[44px]">
-              Set up your <span className="italic font-normal">first property</span>.
+              {locale === "ru" ? (
+                <>
+                  Настройте свой <span className="italic font-normal">первый объект</span>.
+                </>
+              ) : (
+                <>
+                  Set up your <span className="italic font-normal">first property</span>.
+                </>
+              )}
             </h1>
             <p className="mx-auto mt-5 max-w-[560px] text-[15px] leading-relaxed text-[var(--ink-2)]">
-              Pick the platforms you list on, paste each one&apos;s iCal export URL, and copy the URLs we generate back into them. You can do this without an account first — sign up at the end to keep your data.
+              {locale === "ru"
+                ? "Выберите платформы, на которых вы размещаетесь, вставьте URL экспорта iCal каждой, и скопируйте обратно те URL, которые сгенерируем мы. Делать это можно без аккаунта — зарегистрируйтесь в конце, чтобы сохранить данные."
+                : "Pick the platforms you list on, paste each one's iCal export URL, and copy the URLs we generate back into them. You can do this without an account first — sign up at the end to keep your data."}
             </p>
           </div>
 
           {!hydrated ? (
             <div className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-8 text-center text-sm text-[var(--ink-3)] sm:mt-10">
-              Loading…
+              {locale === "ru" ? "Загрузка…" : "Loading…"}
             </div>
           ) : (
             <div className="mt-6 space-y-6 sm:mt-10">
               {/* Step 1 — Property name */}
-              <Card stepNumber={1} title="Name your property" subtitle="Just a label for you. You can rename it later.">
+              <Card
+                stepNumber={1}
+                title={locale === "ru" ? "Назовите объект" : "Name your property"}
+                subtitle={
+                  locale === "ru"
+                    ? "Просто метка для вас. Можно переименовать позже."
+                    : "Just a label for you. You can rename it later."
+                }
+              >
                 <input
                   value={propertyName}
                   onChange={(e) => setPropertyName(e.target.value)}
-                  placeholder="My first property"
+                  placeholder={
+                    locale === "ru" ? "Мой первый объект" : "My first property"
+                  }
                   className="h-11 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[14px] text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)] transition-colors"
                   autoFocus
                 />
@@ -344,8 +370,12 @@ export default function OnboardPage() {
               {/* Step 2 — Platform rows */}
               <Card
                 stepNumber={2}
-                title="Add calendar feeds"
-                subtitle="Tick each platform you use — paste their iCal URL, copy ours back. Anything not on this list, add as Custom."
+                title={locale === "ru" ? "Подключите календари" : "Add calendar feeds"}
+                subtitle={
+                  locale === "ru"
+                    ? "Отметьте платформы, которыми пользуетесь — вставьте их URL iCal, скопируйте наш обратно. Чего нет в списке — добавьте как «Своя платформа»."
+                    : "Tick each platform you use — paste their iCal URL, copy ours back. Anything not on this list, add as Custom."
+                }
               >
                 <div className="space-y-3">
                   {rows.map((row) => (
@@ -374,7 +404,7 @@ export default function OnboardPage() {
                   <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                     <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  Add another platform
+                  {locale === "ru" ? "Добавить ещё платформу" : "Add another platform"}
                 </button>
               </Card>
 
@@ -383,24 +413,43 @@ export default function OnboardPage() {
                   account) reads at a glance on a 1280px laptop. */}
               <Card
                 stepNumber={3}
-                title="Create your account"
+                title={locale === "ru" ? "Создайте аккаунт" : "Create your account"}
                 subtitle={
                   enabledCount === 0
-                    ? "You can sign up without picking a platform — add them later from the dashboard."
-                    : `${validCount} of ${enabledCount} platform${enabledCount === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`
+                    ? locale === "ru"
+                      ? "Можно зарегистрироваться без подключения платформ — добавите их позже из панели."
+                      : "You can sign up without picking a platform — add them later from the dashboard."
+                    : locale === "ru"
+                      ? `Проверено ${validCount} из ${enabledCount}. Невалидные можно поправить после регистрации.`
+                      : `${validCount} of ${enabledCount} platform${enabledCount === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`
                 }
               >
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[13px] text-[var(--ink-3)]">
-                    Forever free, no credit card. Already have an account?{" "}
-                    <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
+                    {locale === "ru" ? (
+                      <>
+                        Бесплатно навсегда, без карты. Уже есть аккаунт?{" "}
+                        <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Войти</Link>.
+                      </>
+                    ) : (
+                      <>
+                        Forever free, no credit card. Already have an account?{" "}
+                        <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
+                      </>
+                    )}
                   </p>
                   <button
                     onClick={handleSaveAndSignup}
                     disabled={saving}
                     className="inline-flex h-11 items-center gap-2 rounded-md bg-[var(--m-accent)] px-6 text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(255,56,92,0.2)] transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] disabled:opacity-50"
                   >
-                    {saving ? "Saving…" : "Save and create account"}
+                    {saving
+                      ? locale === "ru"
+                        ? "Сохраняем…"
+                        : "Saving…"
+                      : locale === "ru"
+                        ? "Сохранить и создать аккаунт"
+                        : "Save and create account"}
                     <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -483,8 +532,10 @@ function PlatformRow({
   onTest,
   onCopy,
 }: PlatformRowProps) {
+  const { locale } = useI18n();
   const isCustom = !preset;
-  const display = preset?.displayName ?? (row.customName?.trim() || "Custom platform");
+  const customFallback = locale === "ru" ? "Своя платформа" : "Custom platform";
+  const display = preset?.displayName ?? (row.customName?.trim() || customFallback);
   const ourFeedUrl = feedSlug ? feedUrl(feedSlug, row.platform) : null;
   const copyKey = `our-${row.rowId}`;
 
@@ -496,7 +547,9 @@ function PlatformRow({
           type="checkbox"
           checked={row.enabled}
           onChange={onToggle}
-          aria-label={`Enable ${display}`}
+          aria-label={
+            locale === "ru" ? `Включить ${display}` : `Enable ${display}`
+          }
           className="h-4 w-4 cursor-pointer accent-[var(--m-accent)]"
         />
         <span
@@ -508,7 +561,9 @@ function PlatformRow({
           <input
             value={row.customName ?? ""}
             onChange={(e) => onCustomNameChange(e.target.value)}
-            placeholder="Custom platform name"
+            placeholder={
+              locale === "ru" ? "Название платформы" : "Custom platform name"
+            }
             className="flex-1 bg-transparent text-[14px] font-medium text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
           />
         ) : (
@@ -522,7 +577,9 @@ function PlatformRow({
             type="button"
             onClick={onRemove}
             className="text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors"
-            aria-label="Remove this platform"
+            aria-label={
+              locale === "ru" ? "Удалить эту платформу" : "Remove this platform"
+            }
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -543,7 +600,9 @@ function PlatformRow({
               <svg className={`h-3 w-3 transition-transform ${row.instructionsOpen ? "rotate-90" : ""}`} viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              {row.instructionsOpen ? "Hide" : "Show"} instructions for {display}
+              {locale === "ru"
+                ? `${row.instructionsOpen ? "Скрыть" : "Показать"} инструкции для ${display}`
+                : `${row.instructionsOpen ? "Hide" : "Show"} instructions for ${display}`}
             </button>
           )}
           {row.instructionsOpen && preset?.hasInstructions && (preset.platform === "airbnb" || preset.platform === "booking") && (
@@ -555,7 +614,9 @@ function PlatformRow({
           {/* URL input + test button */}
           <div>
             <label className="block text-[12px] font-medium text-[var(--ink-2)] mb-1.5">
-              {display} iCal export URL
+              {locale === "ru"
+                ? `URL экспорта iCal · ${display}`
+                : `${display} iCal export URL`}
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
@@ -569,17 +630,27 @@ function PlatformRow({
             {row.testStatus === "invalid" && (
               <p className="mt-1.5 text-[11.5px] text-rose-700">
                 {row.testReason === "bad_url"
-                  ? "URL doesn't look right — check for missing https://"
+                  ? locale === "ru"
+                    ? "URL выглядит странно — проверьте, что там есть https://"
+                    : "URL doesn't look right — check for missing https://"
                   : row.testReason === "unreachable"
-                    ? "Couldn't reach that URL. The platform may be slow — try again in a minute."
+                    ? locale === "ru"
+                      ? "Не удалось достучаться до URL. Платформа может тормозить — попробуйте через минуту."
+                      : "Couldn't reach that URL. The platform may be slow — try again in a minute."
                     : row.testReason === "not_ical"
-                      ? "URL responded but doesn't return a calendar. Double-check you copied the iCal export, not the listing page."
-                      : "Couldn't verify this URL — you can still save and we'll keep trying after signup."}
+                      ? locale === "ru"
+                        ? "URL отвечает, но это не календарь. Перепроверьте — нужен именно iCal-экспорт, а не страница объявления."
+                        : "URL responded but doesn't return a calendar. Double-check you copied the iCal export, not the listing page."
+                      : locale === "ru"
+                        ? "Не получилось проверить URL — можно сохранить, мы продолжим попытки после регистрации."
+                        : "Couldn't verify this URL — you can still save and we'll keep trying after signup."}
               </p>
             )}
             {row.testStatus === "valid" && (
               <p className="mt-1.5 text-[11.5px] text-emerald-700">
-                Looks good — we&apos;ll start syncing every 10 minutes after you sign up.
+                {locale === "ru"
+                  ? "Всё ок — начнём синхронизацию каждые 10 минут после регистрации."
+                  : "Looks good — we'll start syncing every 10 minutes after you sign up."}
               </p>
             )}
           </div>
@@ -587,11 +658,15 @@ function PlatformRow({
           {/* RentTools feed URL for this platform */}
           <div>
             <label className="block text-[12px] font-medium text-[var(--ink-2)] mb-1.5">
-              Paste this RentTools URL back into {display}
+              {locale === "ru"
+                ? `Вставьте этот URL обратно в ${display}`
+                : `Paste this RentTools URL back into ${display}`}
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <code className="h-10 w-full min-w-0 select-all rounded-md border border-[var(--line)] bg-[var(--bg-2)] px-3 text-[12px] text-[var(--ink-2)] flex items-center overflow-x-auto whitespace-nowrap sm:flex-1">
-                {ourFeedUrl ?? "URL appears once you save the property name above"}
+                {ourFeedUrl ?? (locale === "ru"
+                  ? "URL появится после того, как вы зададите название объекта выше"
+                  : "URL appears once you save the property name above")}
               </code>
               <button
                 type="button"
@@ -599,11 +674,19 @@ function PlatformRow({
                 disabled={!ourFeedUrl}
                 className="h-10 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[12.5px] text-[var(--ink)] hover:bg-[var(--bg-2)] transition-colors disabled:opacity-40 sm:w-auto"
               >
-                {copied === copyKey ? "Copied!" : "Copy"}
+                {copied === copyKey
+                  ? locale === "ru"
+                    ? "Скопировано!"
+                    : "Copied!"
+                  : locale === "ru"
+                    ? "Копировать"
+                    : "Copy"}
               </button>
             </div>
             <p className="mt-1.5 text-[11.5px] text-[var(--ink-3)]">
-              This URL is yours forever — even after signup. It&apos;ll start serving live data once you complete signup.
+              {locale === "ru"
+                ? "Этот URL — ваш навсегда, даже после регистрации. Начнёт отдавать живые данные сразу после регистрации."
+                : "This URL is yours forever — even after signup. It'll start serving live data once you complete signup."}
             </p>
           </div>
         </div>
@@ -613,7 +696,15 @@ function PlatformRow({
 }
 
 function TestButton({ status, onClick, disabled }: { status: DraftRow["testStatus"]; onClick: () => void; disabled?: boolean }) {
-  const label = status === "testing" ? "Testing…" : status === "valid" ? "Verified" : status === "invalid" || status === "error" ? "Retry" : "Test fetch";
+  const { locale } = useI18n();
+  const label =
+    status === "testing"
+      ? locale === "ru" ? "Проверяем…" : "Testing…"
+      : status === "valid"
+        ? locale === "ru" ? "Проверено" : "Verified"
+        : status === "invalid" || status === "error"
+          ? locale === "ru" ? "Ещё раз" : "Retry"
+          : locale === "ru" ? "Проверить" : "Test fetch";
   const tone =
     status === "valid"
       ? "border-transparent bg-emerald-700 text-white"
@@ -644,6 +735,7 @@ function TestButton({ status, onClick, disabled }: { status: DraftRow["testStatu
 }
 
 function ColorSwatchButton({ color, onChange }: { color: string; onChange: (v: string) => void }) {
+  const { locale } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -652,7 +744,7 @@ function ColorSwatchButton({ color, onChange }: { color: string; onChange: (v: s
         onClick={() => setOpen((o) => !o)}
         className="h-5 w-5 rounded-md border border-[var(--line-2)] hover:border-[var(--ink-3)] transition-colors"
         style={{ backgroundColor: color }}
-        aria-label="Change color"
+        aria-label={locale === "ru" ? "Сменить цвет" : "Change color"}
       />
       {open && (
         <div className="absolute right-0 top-7 z-10 flex gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-2 shadow-lg">
