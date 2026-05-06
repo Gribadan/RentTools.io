@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CleaningSchedule } from "@/components/cleaning-schedule";
-import { CleaningSummary } from "@/components/cleaning-summary";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -23,11 +22,10 @@ interface PropertyCleaningViewProps {
 }
 
 export function PropertyCleaningView({ property, onCleaningEnabledChanged }: PropertyCleaningViewProps) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
-  const [summaryOpen, setSummaryOpen] = useState(false);
   const [cleaningEnabled, setCleaningEnabled] = useState<boolean>(property.cleaningEnabled !== false);
   const [toggling, setToggling] = useState(false);
 
@@ -107,33 +105,15 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
       </div>
 
       {cleaningEnabled ? (
-        <>
-          <div className="flex justify-end">
-            <button
-              onClick={() => setSummaryOpen(true)}
-              className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-1.5 text-xs text-[var(--ink)] transition-colors hover:bg-[var(--line-2)]"
-            >
-              {locale === "ru" ? "Краткий план / печать" : "Summary / print"}
-            </button>
-          </div>
-          <CleaningSchedule
-            properties={[property]}
-            syncedEvents={{ [property.id]: syncedEvents }}
-            links={{ [property.id]: links }}
-            overrides={{ [property.id]: overrides }}
-            mode="property"
-            selectedPropertyId={property.id}
-            onOverrideChanged={fetchData}
-          />
-          <CleaningSummary
-            open={summaryOpen}
-            onClose={() => setSummaryOpen(false)}
-            properties={[property]}
-            syncedEvents={{ [property.id]: syncedEvents }}
-            links={{ [property.id]: links }}
-            overrides={{ [property.id]: overrides }}
-          />
-        </>
+        <CleaningSchedule
+          properties={[property]}
+          syncedEvents={{ [property.id]: syncedEvents }}
+          links={{ [property.id]: links }}
+          overrides={{ [property.id]: overrides }}
+          mode="property"
+          selectedPropertyId={property.id}
+          onOverrideChanged={fetchData}
+        />
       ) : (
         <div className="rounded-lg border border-dashed border-[var(--line-2)] bg-[var(--bg-2)] p-8 text-center">
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--line-2)]/40 text-[var(--ink-3)]">

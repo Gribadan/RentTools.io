@@ -1,19 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
-
-interface CleaningRecord {
-  id: number;
-  propertyId: number;
-  date: string;
-  status: "pending" | "done" | "skipped";
-  doneAt?: string | null;
-  notes?: string;
-}
 
 interface CalendarEvent {
   id: number;
@@ -37,8 +28,14 @@ interface CleaningDay {
   nextGuest?: string;
   manualNote?: string;
   movableTo?: string;
-  hoursAvailable?: number; // for buffer=0 turnovers, hours between checkout and next checkin
+  hoursAvailable?: number; // only when meaningful (< 24h, true same-day turnover)
   isManual?: boolean; // true if created via a "closed" date override
+  // Context dates that drive the date-specific reason text. Keeping them
+  // on the row means formatReason can be a pure function.
+  prevEndDate?: string;     // checkout date of prev booking
+  nextStartDate?: string;   // checkin date of next booking
+  gapStartDate?: string;    // first day of bookable gap (gap-potential only)
+  gapEndDate?: string;      // last day of bookable gap (gap-potential only)
 }
 
 interface CleaningScheduleProps {
@@ -48,7 +45,9 @@ interface CleaningScheduleProps {
   overrides?: Record<number, DateOverride[]>;
   mode: "property" | "dashboard";
   selectedPropertyId?: number;
-  onOverrideChanged?: () => void; // called after add/remove to refresh parent data
+  // Kept on the prop signature so existing call sites compile, but the
+  // page is now informational — no add/remove/done/skip actions live here.
+  onOverrideChanged?: () => void;
 }
 
 function addDaysStr(dateStr: string, days: number): string {
@@ -83,13 +82,9 @@ function computeCleaningDays(
   const allBookings: Booking[] = [];
 
   for (const ev of events) {
-    if (ev.startDate >= cutoff) continue; // beyond booking window
+    if (ev.startDate >= cutoff) continue;
     let d = ev.startDate;
     while (d <= ev.endDate) { allBooked.add(d); d = addDaysStr(d, 1); }
-    // Include ALL events in cleaning computation — host blocks ("Not available"),
-    // maintenance blocks, and real bookings all need cleaning after they end.
-    // The distinction only matters for iCal FEED export (where host blocks don't
-    // generate extra buffer days), not for the cleaning schedule.
     const isAirbnbBlock = ev.platform === "airbnb" && (
       ev.summary.includes("Not available") || ev.summary.includes("Blocked")
     );
@@ -109,9 +104,6 @@ function computeCleaningDays(
   const deduped: Booking[] = [];
   for (const b of allBookings) {
     const last = deduped[deduped.length - 1];
-    // Strict overlap: b.start < last.end (they share at least one stay day)
-    // Back-to-back bookings (b.start === last.end, checkout = next checkin) are NOT merged —
-    // they are different guests and we need a cleaning turnover between them.
     if (last && b.start < last.end) {
       if (b.end > last.end) last.end = b.end;
       if (b.name !== "Reserved" && b.name !== "CLOSED - Not available") last.name = b.name;
@@ -143,7 +135,16 @@ function computeCleaningDays(
         for (let i = 1; i <= maxBefore; i++) {
           const d = addDaysStr(b.start, -i);
           if (!allBooked.has(d)) {
-            result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "before", bufferMode: "full", nextGuest: displayName });
+            result.push({
+              date: d,
+              type: "cleaning",
+              property: property.name,
+              propertyId: property.id,
+              kind: "before",
+              bufferMode: "full",
+              nextGuest: displayName,
+              nextStartDate: b.start,
+            });
           }
         }
       } else {
@@ -154,6 +155,10 @@ function computeCleaningDays(
           if (allBooked.has(d)) { gapHasBooking = true; break; }
           d = addDaysStr(d, 1);
         }
+        // Bookable gap window for the "if a gap guest landed here" note —
+        // exclude buffer days on either side.
+        const gapBookableStart = addDaysStr(prev.end, maxAfter + 1);
+        const gapBookableEnd = addDaysStr(b.start, -(maxBefore + 1));
         for (let i = 1; i <= maxBefore; i++) {
           const dd = addDaysStr(b.start, -i);
           if (!allBooked.has(dd)) {
@@ -165,6 +170,9 @@ function computeCleaningDays(
               kind: gapHasBooking ? "before" : "gap-potential",
               bufferMode: "full",
               nextGuest: displayName,
+              nextStartDate: b.start,
+              gapStartDate: gapHasBooking ? undefined : gapBookableStart,
+              gapEndDate: gapHasBooking ? undefined : gapBookableEnd,
             });
           }
         }
@@ -174,14 +182,21 @@ function computeCleaningDays(
     for (let i = 1; i <= maxAfter; i++) {
       const d = addDaysStr(b.end, i);
       if (!allBooked.has(d)) {
-        result.push({ date: d, type: "cleaning", property: property.name, propertyId: property.id, kind: "after", bufferMode: "full", prevGuest: displayName });
+        result.push({
+          date: d,
+          type: "cleaning",
+          property: property.name,
+          propertyId: property.id,
+          kind: "after",
+          bufferMode: "full",
+          prevGuest: displayName,
+          prevEndDate: b.end,
+        });
       }
     }
   }
 
-  // Buffer=0 means cleaning happens on the checkout day itself (not a separate day).
-  // Always generate a cleaning entry on each checkout day, and if the next guest
-  // arrives the same or next day, show the exact hours available.
+  // Buffer=0 means cleaning happens on the checkout day itself.
   if (maxBefore === 0 && maxAfter === 0) {
     const parseTime = (t: string) => {
       const [h, m] = (t || "12:00").split(":").map(Number);
@@ -200,21 +215,24 @@ function computeCleaningDays(
       let hoursAvailable: number | undefined = undefined;
       let kind: CleaningKind = "after";
       let nextGuest: string | undefined = undefined;
+      let nextStartDate: string | undefined = undefined;
 
       if (next) {
-        // Compute hours between checkout (b.end + checkOutTime) and next checkin (next.start + checkInTime)
-        const checkoutDate = new Date(b.end + "T00:00:00Z");
-        const checkinDate = new Date(next.start + "T00:00:00Z");
-        const diffMs = checkinDate.getTime() - checkoutDate.getTime();
-        const diffMinutes = diffMs / 60000 + (checkInMin - checkOutMin);
-        const hours = diffMinutes / 60;
+        nextGuest = next.name.includes("CLOSED") || next.name.includes("Reserved")
+          ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
+          : next.name;
+        nextStartDate = next.start;
 
-        if (hours > 0) {
-          nextGuest = next.name.includes("CLOSED") || next.name.includes("Reserved")
-            ? (next.platform === "airbnb" ? "Airbnb" : "Booking") + " guest"
-            : next.name;
-          hoursAvailable = hours;
+        // True turnover only when the next guest checks in on the same
+        // calendar day the previous one checked out — otherwise it's an
+        // "after" cleaning that just happens to know about a future
+        // arrival (no need to call it a turnover or surface a "97 days"
+        // chip that confuses readers).
+        if (next.start === b.end) {
           kind = "turnover";
+          const diffMinutes = checkInMin - checkOutMin;
+          const hours = diffMinutes > 0 ? diffMinutes / 60 : 24 + diffMinutes / 60;
+          if (hours > 0 && hours < 24) hoursAvailable = hours;
         }
       }
 
@@ -226,20 +244,18 @@ function computeCleaningDays(
         kind,
         bufferMode: "quick",
         prevGuest: displayName,
+        prevEndDate: b.end,
         nextGuest,
+        nextStartDate,
         hoursAvailable,
       });
 
-      // Potential cleaning: if the gap between this booking and the next is
-      // large enough to fit another guest (≥ minNights), a hypothetical gap
-      // guest would check out on next.start to make room for the next confirmed guest.
       if (next) {
         const gapStart = addDaysStr(b.end, 1);
         const gapDays = Math.max(0, Math.ceil(
           (new Date(next.start + "T12:00:00Z").getTime() - new Date(gapStart + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
         ));
         if (gapDays >= minStay) {
-          // Skip if there's already a definite cleaning at next.start
           const alreadyHasCleaning = result.some(r => r.date === next.start && r.type === "cleaning");
           if (!alreadyHasCleaning) {
             const nextDisplayName = next.name.includes("CLOSED") || next.name.includes("Reserved")
@@ -255,7 +271,10 @@ function computeCleaningDays(
               kind: "gap-potential",
               bufferMode: "quick",
               nextGuest: nextDisplayName,
-              hoursAvailable: hours > 0 ? hours : undefined,
+              nextStartDate: next.start,
+              gapStartDate: gapStart,
+              gapEndDate: addDaysStr(next.start, -1),
+              hoursAvailable: hours > 0 && hours < 24 ? hours : undefined,
             });
           }
         }
@@ -294,121 +313,10 @@ export function CleaningSchedule({
   overrides,
   mode,
   selectedPropertyId,
-  onOverrideChanged,
 }: CleaningScheduleProps) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
-  const [records, setRecords] = useState<Record<string, CleaningRecord>>({});
-
-  const propertyIdsKey = useMemo(
-    () => properties.map((p) => p.id).sort((a, b) => a - b).join(","),
-    [properties]
-  );
-
-  const fetchRecords = useCallback(async () => {
-    if (!propertyIdsKey) {
-      setRecords({});
-      return;
-    }
-    try {
-      const res = await fetch(`/api/cleaning-records?propertyIds=${propertyIdsKey}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const map: Record<string, CleaningRecord> = {};
-      for (const r of (data.records || []) as CleaningRecord[]) {
-        map[`${r.propertyId}-${r.date}`] = r;
-      }
-      setRecords(map);
-    } catch {
-      // best-effort
-    }
-  }, [propertyIdsKey]);
-
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
-
-  const handleMarkStatus = async (
-    propertyId: number,
-    date: string,
-    status: "done" | "skipped" | "pending"
-  ) => {
-    await fetch("/api/cleaning-records", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ propertyId, date, status }),
-    });
-    fetchRecords();
-  };
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addDate, setAddDate] = useState("");
-  const [addNote, setAddNote] = useState("");
-  const [addError, setAddError] = useState<string | null>(null);
-  const [addPropertyId, setAddPropertyId] = useState<number | null>(
-    mode === "property" && selectedPropertyId ? selectedPropertyId : (properties[0]?.id ?? null)
-  );
-
-  // Build a set of dates that are held by a real booking (middle of stay — no cleaning window)
-  const isDateFullyBooked = (propertyId: number, date: string): boolean => {
-    const prop = properties.find(p => p.id === propertyId);
-    if (!prop) return false;
-    // Synced events
-    const events = syncedEvents[propertyId] || [];
-    for (const ev of events) {
-      // Skip Airbnb "Not available"/"Blocked" — those are host blocks, can be cleaned over
-      const isBlock = ev.platform === "airbnb" && (ev.summary.includes("Not available") || ev.summary.includes("Blocked"));
-      if (isBlock) continue;
-      // date is fully booked if it's strictly inside the stay (not the checkout day, which allows turnover cleaning)
-      if (date >= ev.startDate && date < ev.endDate) return true;
-    }
-    // Internal reservations
-    for (const res of prop.reservations) {
-      const rStart = new Date(res.checkIn).toISOString().substring(0, 10);
-      const rEnd = new Date(res.checkOut).toISOString().substring(0, 10);
-      if (date >= rStart && date < rEnd) return true;
-    }
-    return false;
-  };
-
-  const handleSkip = async (propertyId: number, date: string, isManual: boolean) => {
-    if (isManual) {
-      // Manual cleaning = DELETE the "closed" override
-      await fetch(`/api/date-overrides?propertyId=${propertyId}&date=${date}`, {
-        method: "DELETE",
-      });
-    } else {
-      // Auto cleaning = create an "open" override to suppress it
-      await fetch("/api/date-overrides", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ propertyId, date, type: "open" }),
-      });
-    }
-    onOverrideChanged?.();
-  };
-
-  const handleAddManual = async () => {
-    setAddError(null);
-    if (!addDate || !addPropertyId) return;
-    if (isDateFullyBooked(addPropertyId, addDate)) {
-      setAddError(t("cleaning.dateFullyBooked"));
-      return;
-    }
-    await fetch("/api/date-overrides", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        propertyId: addPropertyId,
-        date: addDate,
-        type: "closed",
-        note: addNote.trim() || "Manual cleaning",
-      }),
-    });
-    setAddDate("");
-    setAddNote("");
-    setShowAddForm(false);
-    onOverrideChanged?.();
-  };
+  const [includePotential, setIncludePotential] = useState(true);
 
   const cleaningDays = useMemo(() => {
     const targetProperties = mode === "property" && selectedPropertyId
@@ -417,9 +325,7 @@ export function CleaningSchedule({
 
     const allDays: CleaningDay[] = [];
     for (const prop of targetProperties) {
-      // RT-25.3 — properties with the cleaning toggle off contribute
-      // no rows. Conflict detection lives elsewhere; skipping here is
-      // purely about hiding cleaning surfaces.
+      // RT-25.3 — properties with the cleaning toggle off contribute no rows.
       if (prop.cleaningEnabled === false) continue;
       const propEvents = syncedEvents[prop.id] || [];
       const propLinks = links[prop.id] || [];
@@ -469,6 +375,13 @@ export function CleaningSchedule({
   const futureDays = cleaningDays.filter(d => d.date >= todayStr);
   const futureOverlaps = overlaps.filter(o => o.date >= todayStr);
 
+  // Days that the user-facing list / copy / print actually show — gated
+  // by the "Include potential" toggle.
+  const visibleDays = useMemo(
+    () => (includePotential ? futureDays : futureDays.filter(d => d.type !== "potential")),
+    [futureDays, includePotential]
+  );
+
   const formatDate = (d: string) => {
     const date = new Date(d + "T12:00:00");
     const currentYear = new Date().getFullYear();
@@ -478,20 +391,69 @@ export function CleaningSchedule({
     return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", opts);
   };
 
+  // Compact "May 14" / "14 May" for inline date references inside notes.
+  const formatShortDate = (d: string) => {
+    const date = new Date(d + "T12:00:00");
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+    const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" };
+    if (dateYear !== currentYear) opts.year = "numeric";
+    return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", opts);
+  };
+
   const formatReason = (day: CleaningDay): string => {
     if (day.isManual) return day.manualNote?.trim() || t("cleaning.manualCleaning");
+
     switch (day.kind) {
-      case "after":
-        // bufferMode="quick" = same-day; "full" = dedicated day after checkout
-        return day.bufferMode === "quick"
-          ? t("cleaning.afterGuestQuick", { name: day.prevGuest || "—" })
-          : t("cleaning.afterGuest", { name: day.prevGuest || "—" });
-      case "before":
+      case "after": {
+        // bufferMode="quick" = cleaning on the checkout day itself; the
+        // row date already shows the checkout, so we only add the
+        // "next guest arrives DATE" hint when one is coming.
+        if (day.bufferMode === "quick") {
+          if (day.nextGuest && day.nextStartDate) {
+            return t("cleaning.afterGuestQuickWithNext", {
+              name: day.prevGuest || "—",
+              next: day.nextGuest,
+              date: formatShortDate(day.nextStartDate),
+            });
+          }
+          return t("cleaning.afterGuestQuick", { name: day.prevGuest || "—" });
+        }
+        // Full-day after — the cleaning is N days past checkout, so call
+        // out the actual checkout date so "after WHO and WHEN" is clear.
+        if (day.prevEndDate) {
+          return t("cleaning.afterGuestFull", {
+            name: day.prevGuest || "—",
+            date: formatShortDate(day.prevEndDate),
+          });
+        }
+        return t("cleaning.afterGuest", { name: day.prevGuest || "—" });
+      }
+      case "before": {
+        if (day.nextStartDate) {
+          return t("cleaning.beforeGuestFull", {
+            name: day.nextGuest || "—",
+            date: formatShortDate(day.nextStartDate),
+          });
+        }
         return t("cleaning.beforeGuest", { name: day.nextGuest || "—" });
+      }
       case "turnover":
         return t("cleaning.turnover", { from: day.prevGuest || "—", to: day.nextGuest || "—" });
-      case "gap-potential":
+      case "gap-potential": {
+        if (day.gapStartDate && day.gapEndDate && day.nextStartDate && day.nextGuest) {
+          // Single-day gap — drop the dash so the note reads naturally.
+          const gapText = day.gapStartDate === day.gapEndDate
+            ? formatShortDate(day.gapStartDate)
+            : `${formatShortDate(day.gapStartDate)} – ${formatShortDate(day.gapEndDate)}`;
+          return t("cleaning.gapPotentialSpecific", {
+            gap: gapText,
+            name: day.nextGuest,
+            date: formatShortDate(day.nextStartDate),
+          });
+        }
         return t("cleaning.gapPotential", { name: day.nextGuest || "—" });
+      }
       default:
         return "";
     }
@@ -506,11 +468,12 @@ export function CleaningSchedule({
     return t("cleaning.daysShort", { d: days });
   };
 
-  const handleCopySchedule = () => {
+  // Build the line-per-day plain-text schedule that copy AND print share.
+  const buildScheduleLines = (): string[] => {
     const lines: string[] = [];
     lines.push(locale === "ru" ? "📋 График уборок:" : "📋 Cleaning Schedule:");
     lines.push("");
-    for (const day of futureDays) {
+    for (const day of visibleDays) {
       const dateStr = formatDate(day.date);
       const typeLabel = day.type === "cleaning"
         ? (locale === "ru" ? "🧹 Уборка" : "🧹 Cleaning")
@@ -522,9 +485,45 @@ export function CleaningSchedule({
       const reasonText = formatReason(day);
       lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel}${reasonText ? " — " + reasonText : ""}`);
     }
-    navigator.clipboard.writeText(lines.join("\n"));
+    return lines;
+  };
+
+  const handleCopySchedule = () => {
+    navigator.clipboard.writeText(buildScheduleLines().join("\n"));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handlePrintSchedule = () => {
+    const lines = buildScheduleLines();
+    // Render in a separate window so the rest of the dashboard chrome
+    // doesn't pollute the printout. Same plain-text format the copy
+    // produces; just wrapped in a <pre> so the printer respects line
+    // breaks.
+    const w = window.open("", "_blank", "width=720,height=900");
+    if (!w) return;
+    const escapeHtml = (s: string) =>
+      s.replace(/[&<>"']/g, (c) =>
+        c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === '"' ? "&quot;" : "&#39;"
+      );
+    const titleText = t("cleaning.title");
+    w.document.write(`<!doctype html>
+<html lang="${locale}">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(titleText)}</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 12px; color: #111; margin: 24px; }
+  pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; font-size: 12px; line-height: 1.55; margin: 0; }
+  @media print { body { margin: 12mm; } }
+</style>
+</head>
+<body>
+<pre>${escapeHtml(lines.join("\n"))}</pre>
+<script>window.onload = function () { setTimeout(function () { window.print(); }, 100); };</script>
+</body>
+</html>`);
+    w.document.close();
   };
 
   return (
@@ -557,82 +556,48 @@ export function CleaningSchedule({
 
       {/* Schedule table */}
       <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
-        <div className="border-b border-[var(--line)] px-4 py-3 flex items-center justify-between">
+        <div className="border-b border-[var(--line)] px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-medium text-[var(--ink-3)]">
-            {t("cleaning.title")} ({futureDays.length} {t("cleaning.upcoming")})
+            {t("cleaning.title")} ({visibleDays.length} {t("cleaning.upcoming")})
           </h2>
-          <div className="flex items-center gap-2">
-            {onOverrideChanged && (
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {t("cleaning.addManual")}
-              </button>
-            )}
-            {futureDays.length > 0 && (
-              <button
-                onClick={handleCopySchedule}
-                className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
-              >
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-                </svg>
-                {copied ? t("common.copied") : t("cleaning.copySchedule")}
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Include-potential toggle. Default ON; gates the visible
+                list, the copy output, and the print output uniformly. */}
+            <label className="flex items-center gap-1.5 text-xs text-[var(--ink-2)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includePotential}
+                onChange={(e) => setIncludePotential(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-[var(--line-2)] accent-[var(--m-accent)] cursor-pointer"
+              />
+              {t("cleaning.includePotential")}
+            </label>
+            {visibleDays.length > 0 && (
+              <>
+                <button
+                  onClick={handleCopySchedule}
+                  className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+                  </svg>
+                  {copied ? t("common.copied") : t("cleaning.copySchedule")}
+                </button>
+                <button
+                  onClick={handlePrintSchedule}
+                  className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z" />
+                  </svg>
+                  {t("cleaning.printSchedule")}
+                </button>
+              </>
             )}
           </div>
         </div>
 
-        {/* Add manual cleaning form */}
-        {showAddForm && (
-          <div className="border-b border-[var(--line)] bg-[var(--bg)] px-4 py-3 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {mode === "dashboard" && (
-                <select
-                  value={addPropertyId ?? ""}
-                  onChange={(e) => { setAddPropertyId(Number(e.target.value)); setAddError(null); }}
-                  className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-                >
-                  {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              )}
-              <input
-                type="date"
-                value={addDate}
-                onChange={(e) => { setAddDate(e.target.value); setAddError(null); }}
-                className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-              />
-              <input
-                type="text"
-                value={addNote}
-                onChange={(e) => setAddNote(e.target.value)}
-                placeholder={t("cleaning.addManualNote")}
-                className="h-8 flex-1 min-w-[200px] rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
-              />
-              <button
-                onClick={handleAddManual}
-                disabled={!addDate || !addPropertyId}
-                className="h-8 rounded-md bg-[var(--m-accent)] px-3 text-xs font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-40"
-              >
-                {t("common.add")}
-              </button>
-              <button
-                onClick={() => { setShowAddForm(false); setAddDate(""); setAddNote(""); setAddError(null); }}
-                className="h-8 rounded-md px-2 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]"
-              >
-                {t("common.cancel")}
-              </button>
-            </div>
-            {addError && (
-              <p className="text-xs text-rose-500">{addError}</p>
-            )}
-          </div>
-        )}
-        {futureDays.length === 0 ? (
+        {visibleDays.length === 0 ? (
           <div className="p-4">
             <EmptyState
               icon={
@@ -646,15 +611,13 @@ export function CleaningSchedule({
           </div>
         ) : (
           <div className="max-h-[400px] overflow-y-auto">
-            {/* Mobile card list — stacks within 375px without horizontal scroll */}
+            {/* Mobile card list */}
             <div className="sm:hidden">
-              {futureDays.map((day, i) => {
+              {visibleDays.map((day, i) => {
                 const isOverlap = futureOverlaps.some(o => o.date === day.date);
-                const prevYear = i > 0 ? futureDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
+                const prevYear = i > 0 ? visibleDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
                 const thisYear = day.date.substring(0, 4);
                 const showYearDivider = thisYear !== prevYear;
-                const rec = records[`${day.propertyId}-${day.date}`];
-                const isDone = rec?.status === "done";
                 return (
                   <div key={`m-${day.date}-${day.propertyId}-${i}`}>
                     {showYearDivider && (
@@ -672,35 +635,6 @@ export function CleaningSchedule({
                             </span>
                           )}
                         </span>
-                        {onOverrideChanged && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() =>
-                                handleMarkStatus(day.propertyId, day.date, isDone ? "pending" : "done")
-                              }
-                              title={isDone ? (locale === "ru" ? "Отменить" : "Undo") : (locale === "ru" ? "Сделано" : "Done")}
-                              className={
-                                "rounded p-1.5 transition-colors " +
-                                (isDone
-                                  ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25"
-                                  : "text-[var(--ink-4)] hover:bg-emerald-500/10 hover:text-emerald-500")
-                              }
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
-                              title={t("cleaning.skip")}
-                              className="rounded p-1.5 text-[var(--ink-4)] transition-colors hover:bg-rose-500/10 hover:text-rose-500"
-                            >
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
                         <span className={`inline-block rounded px-1.5 py-0.5 font-medium ${
@@ -710,16 +644,6 @@ export function CleaningSchedule({
                         }`}>
                           {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
                         </span>
-                        {rec?.status === "done" && (
-                          <span className="inline-block rounded bg-emerald-500/15 px-1.5 py-0.5 font-medium text-emerald-500">
-                            {locale === "ru" ? "Сделано" : "Done"}
-                          </span>
-                        )}
-                        {rec?.status === "skipped" && (
-                          <span className="inline-block rounded bg-[var(--ink-4)]/20 px-1.5 py-0.5 font-medium text-[var(--ink-3)]">
-                            {locale === "ru" ? "Пропущено" : "Skipped"}
-                          </span>
-                        )}
                         {mode === "dashboard" && (
                           <span className="text-[var(--ink-3)]">{day.property}</span>
                         )}
@@ -761,15 +685,12 @@ export function CleaningSchedule({
                     <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)]">{t("cleaning.property")}</th>
                   )}
                   <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)]">{t("cleaning.notes")}</th>
-                  {onOverrideChanged && (
-                    <th className="px-4 py-2 text-xs font-medium text-[var(--ink-4)] w-[60px]"></th>
-                  )}
                 </tr>
               </thead>
               <tbody>
-                {futureDays.map((day, i) => {
+                {visibleDays.map((day, i) => {
                   const isOverlap = futureOverlaps.some(o => o.date === day.date);
-                  const prevYear = i > 0 ? futureDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
+                  const prevYear = i > 0 ? visibleDays[i - 1].date.substring(0, 4) : day.date.substring(0, 4);
                   const thisYear = day.date.substring(0, 4);
                   const showYearDivider = thisYear !== prevYear;
                   return (
@@ -784,33 +705,13 @@ export function CleaningSchedule({
                         {isOverlap && <span className="ml-1.5 text-[10px] text-amber-400 font-medium">{t("cleaning.overlap")}</span>}
                       </td>
                       <td className="px-4 py-2">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
-                            day.type === "cleaning"
-                              ? "bg-amber-400/10 text-amber-400"
-                              : "bg-[var(--ink)]/10 text-[var(--ink)]"
-                          }`}>
-                            {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
-                          </span>
-                          {(() => {
-                            const rec = records[`${day.propertyId}-${day.date}`];
-                            if (rec?.status === "done") {
-                              return (
-                                <span className="inline-block rounded bg-emerald-500/15 px-1.5 py-0.5 text-xs font-medium text-emerald-500">
-                                  {locale === "ru" ? "Сделано" : "Done"}
-                                </span>
-                              );
-                            }
-                            if (rec?.status === "skipped") {
-                              return (
-                                <span className="inline-block rounded bg-[var(--ink-4)]/20 px-1.5 py-0.5 text-xs font-medium text-[var(--ink-3)]">
-                                  {locale === "ru" ? "Пропущено" : "Skipped"}
-                                </span>
-                              );
-                            }
-                            return null;
-                          })()}
-                        </div>
+                        <span className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
+                          day.type === "cleaning"
+                            ? "bg-amber-400/10 text-amber-400"
+                            : "bg-[var(--ink)]/10 text-[var(--ink)]"
+                        }`}>
+                          {day.type === "cleaning" ? t("cleaning.typeClean") : t("cleaning.typePotential")}
+                        </span>
                       </td>
                       {mode === "dashboard" && (
                         <td className="px-4 py-2 text-sm text-[var(--ink-3)]">{day.property}</td>
@@ -839,47 +740,6 @@ export function CleaningSchedule({
                           <span className="text-[var(--ink-2)]">{formatReason(day)}</span>
                         </div>
                       </td>
-                      {onOverrideChanged && (
-                        <td className="px-4 py-2 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {(() => {
-                              const rec = records[`${day.propertyId}-${day.date}`];
-                              const isDone = rec?.status === "done";
-                              return (
-                                <button
-                                  onClick={() =>
-                                    handleMarkStatus(
-                                      day.propertyId,
-                                      day.date,
-                                      isDone ? "pending" : "done"
-                                    )
-                                  }
-                                  title={isDone ? (locale === "ru" ? "Отменить" : "Undo") : (locale === "ru" ? "Сделано" : "Done")}
-                                  className={
-                                    "rounded p-1 transition-colors " +
-                                    (isDone
-                                      ? "bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25"
-                                      : "text-[var(--ink-4)] hover:bg-emerald-500/10 hover:text-emerald-500")
-                                  }
-                                >
-                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                  </svg>
-                                </button>
-                              );
-                            })()}
-                            <button
-                              onClick={() => handleSkip(day.propertyId, day.date, !!day.isManual)}
-                              title={t("cleaning.skip")}
-                              className="rounded p-1 text-[var(--ink-4)] hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
-                            >
-                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      )}
                     </tr>
                     </>
                   );
