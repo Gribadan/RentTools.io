@@ -527,22 +527,21 @@ export function TopBar({
                   {t("profile.title")}
                 </button>
 
-                {/* Admin — was "Account settings", but the page is the
-                    superadmin user-management + Gemini-key + AdminPanel
-                    surface, so we hide it from non-admins entirely and
-                    rename it to match what it actually is. */}
+                {/* Admin — points at the new CMS-style admin shell at
+                    /dashboard/admin (RT-25.9). The legacy ?view=settings
+                    SettingsPanel surface is still reachable via direct
+                    URL until the removal sweep ships. */}
                 {isSuperAdmin && (
-                  <button
-                    onClick={() => { onChangeView("settings"); setUserDropdown(false); }}
-                    className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${
-                      activeView === "settings" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
-                    }`}
+                  <Link
+                    href="/dashboard/admin"
+                    onClick={() => setUserDropdown(false)}
+                    className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--ink-2)] transition-colors hover:bg-[var(--bg-3)]"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 1.5l9 4.5v6c0 5-3.5 9.5-9 11-5.5-1.5-9-6-9-11v-6l9-4.5z" />
                     </svg>
                     {locale === "ru" ? "Админ" : "Admin"}
-                  </button>
+                  </Link>
                 )}
 
                 {/* Sync tasks — now also superadmin-only since the page
