@@ -40,7 +40,7 @@ const NAV: NavGroup[] = [
       { label: { en: "Properties", ru: "Объекты" } },
       { label: { en: "Cleaner assignments", ru: "Уборщики" } },
       { label: { en: "Message templates", ru: "Шаблоны сообщений" } },
-      { label: { en: "Audit log", ru: "Журнал" } },
+      { label: { en: "Audit log", ru: "Журнал" }, href: "/dashboard/admin/workspace/audit" },
     ],
   },
   {
