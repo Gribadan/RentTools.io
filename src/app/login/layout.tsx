@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { applySeoOverrides } from "@/lib/seo";
 
-const TITLE = "Sign in — RentTools";
+// See signup/layout.tsx — title template appends "· RentTools" automatically.
+const TITLE = "Sign in";
 const DESCRIPTION =
   "Sign in to RentTools to manage your short-term rental calendars, cleaning schedules, and guest data.";
 

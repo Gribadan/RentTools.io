@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { applySeoOverrides } from "@/lib/seo";
 
-const TITLE = "Sign up — RentTools";
+// "RentTools" is appended automatically by the root layout's title template
+// (`%s · RentTools`) — keeping the brand off the per-page title avoids the
+// duplicated "Sign up — RentTools · RentTools" we shipped briefly.
+const TITLE = "Sign up";
 const DESCRIPTION =
   "Create a free RentTools account. Sync Airbnb + Booking.com calendars, automate cleaning, manage multiple properties from one dashboard.";
 
