@@ -40,6 +40,12 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   const { t, locale } = useI18n();
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
+  // First-load gate. Without this the page renders the empty-state for
+  // the first paint (links=[] before fetch), then snaps back when the
+  // links arrive — visible CLS. We hold the conditional sections off
+  // until the first fetchData resolves so the layout settles in one
+  // step, not two.
+  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
@@ -121,6 +127,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
       const data = await tokenRes.json();
       setFeedToken(typeof data.feedToken === "string" ? data.feedToken : null);
     }
+    setLoading(false);
   };
 
   const handleRotateToken = async () => {
@@ -445,7 +452,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         </button>
       </div>
 
-      {links.length === 0 && (
+      {!loading && links.length === 0 && (
         <EmptyState
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -658,8 +665,10 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         {locale === "ru" ? "Добавить другую платформу" : "Add another platform"}
       </button>
 
-      {/* Buffer Settings */}
-      {links.length > 0 && (
+      {/* Buffer Settings — gated on `!loading` so it doesn't pop in
+          after the first paint. Pre-load links is empty, so without
+          the gate the section vanishes for a beat then appears. */}
+      {!loading && links.length > 0 && (
         <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
           <button
             type="button"
@@ -828,8 +837,9 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
       {/* Property Managers */}
       <PropertyManagersPanel propertyId={propertyId} ownerUserId={ownerUserId} />
 
-      {/* Sync Log */}
-      {logs.length > 0 && (
+      {/* Sync Log — `!loading` gate prevents the section from popping
+          in after the first fetchData resolves. */}
+      {!loading && logs.length > 0 && (
         <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)]">
           <button
             onClick={() => setShowLogs(!showLogs)}
@@ -872,8 +882,9 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           page. The card explains what the feed URL is for and lets the
           user opt into a private token. Rendered last so first-time
           users see the iCal export / cleaner / message pieces before
-          the advanced opt-in. */}
-      {links.length > 0 && (
+          the advanced opt-in. Gated on `!loading` so the card doesn't
+          flash after first paint. */}
+      {!loading && links.length > 0 && (
         <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

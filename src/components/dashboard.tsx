@@ -775,18 +775,22 @@ export function Dashboard({
           and ghost no-cleaner alerts that disappeared once the
           fetches caught up — visible CLS. */}
       {!selectedProperty && !loadingCalendarData && assignmentsFetched && (dashboardAlerts.doubleBookings.length > 0 || cleanerConflictDates.length > 0 || dashboardAlerts.propertiesWithoutCalendar.length > 0) && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
+        // Light-theme palette (amber-50 / amber-300 / amber-700) sits next
+        // to the dark-theme palette (amber-500/5 + amber-300) via `dark:`
+        // overrides. The previous all-dark amber-300 tokens were nearly
+        // invisible against amber-500/5 in light mode.
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 space-y-2.5 dark:border-amber-500/30 dark:bg-amber-500/5">
           <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-5 w-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
-            <span className="text-sm font-semibold text-amber-300">
+            <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
               {locale === "ru" ? "Требует внимания" : "Needs attention"}
             </span>
           </div>
           {dashboardAlerts.doubleBookings.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
-              <span className="font-medium text-rose-400">
+              <span className="font-medium text-rose-700 dark:text-rose-400">
                 {locale === "ru" ? "Двойное бронирование:" : "Double booking:"}
               </span>
               {dashboardAlerts.doubleBookings.slice(0, 3).map((d, i) => (
@@ -804,7 +808,7 @@ export function Dashboard({
           )}
           {cleanerConflictDates.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
-              <span className="font-medium text-amber-300">
+              <span className="font-medium text-amber-800 dark:text-amber-300">
                 {locale === "ru" ? "Конфликт уборщиков:" : "Cleaner conflict:"}
               </span>
               <span>
@@ -813,7 +817,7 @@ export function Dashboard({
               </span>
               <a
                 href="?view=cleaning"
-                className="text-[11px] text-amber-400 hover:text-amber-300 underline"
+                className="text-[11px] text-amber-700 underline hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300"
               >
                 {locale === "ru" ? "Открыть уборки →" : "Open cleaning →"}
               </a>
@@ -821,7 +825,7 @@ export function Dashboard({
           )}
           {dashboardAlerts.propertiesWithoutCalendar.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
-              <span className="font-medium text-amber-300">
+              <span className="font-medium text-amber-800 dark:text-amber-300">
                 {locale === "ru" ? "Календари не подключены:" : "No calendars connected:"}
               </span>
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -829,7 +833,7 @@ export function Dashboard({
                   <span key={p.id} className="inline-flex items-center gap-1.5">
                     <Link
                       href={`/dashboard?property=${p.id}&view=sync`}
-                      className="font-medium text-amber-300 underline-offset-2 hover:text-amber-200 hover:underline"
+                      className="font-medium text-amber-800 underline-offset-2 hover:text-amber-900 hover:underline dark:text-amber-300 dark:hover:text-amber-200"
                     >
                       {p.name}
                     </Link>
@@ -840,7 +844,7 @@ export function Dashboard({
                 ))}
                 <Link
                   href={`/dashboard?property=${dashboardAlerts.propertiesWithoutCalendar[0].id}&view=sync`}
-                  className="ml-1 inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/25"
+                  className="ml-1 inline-flex items-center gap-1 rounded-md bg-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-900 transition-colors hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
                 >
                   {locale === "ru" ? "Подключить" : "Connect calendars"}
                   <span aria-hidden>→</span>
