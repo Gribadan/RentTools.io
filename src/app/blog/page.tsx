@@ -147,7 +147,7 @@ export default async function BlogIndexPage({
       {blogJsonLd && <JsonLd data={blogJsonLd} />}
       <MarketingHeader sticky />
 
-      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
+      <main className="mx-auto max-w-[1180px] px-6">
         {/* Index hero — same accent gradient as the post pages so the
             shell reads as one product. Headline + intro pitch the section
             in copy that has actual keywords (Google reads this for the
@@ -353,7 +353,7 @@ export default async function BlogIndexPage({
       </main>
 
       <footer className="mt-16 border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>

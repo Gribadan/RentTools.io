@@ -269,7 +269,7 @@ export default async function BlogPostPage({
           sidebar. The two-column grid inside lets the hero + article live
           in the same column (the right TOC sidebar floats alongside them on
           lg+), so the hero is always exactly as wide as the prose. */}
-      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
+      <main className="mx-auto max-w-[1180px] px-6">
         <div className="grid gap-10 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12">
           <article className="min-w-0">
             <header className="relative mb-10 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-8 pt-9 sm:px-10 sm:pb-10 sm:pt-12">
@@ -421,7 +421,7 @@ export default async function BlogPostPage({
       </main>
 
       <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>

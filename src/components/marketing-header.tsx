@@ -31,7 +31,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
           : "border-b border-[var(--line)]"
       }
     >
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
         <Link href="/" className="group flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
             <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">

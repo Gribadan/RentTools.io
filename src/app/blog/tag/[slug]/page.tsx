@@ -152,7 +152,7 @@ export default async function BlogTagPage({
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <MarketingHeader sticky />
 
-      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
+      <main className="mx-auto max-w-[1180px] px-6">
         {/* Tag hero — same shape as the /blog index hero so the surface
             stays visually consistent across the section. The hero
             is intentionally smaller than the blog-index one because a
@@ -285,7 +285,7 @@ export default async function BlogTagPage({
       </main>
 
       <footer className="mt-16 border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
