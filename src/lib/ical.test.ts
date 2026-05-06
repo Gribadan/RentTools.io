@@ -144,7 +144,11 @@ describe("generateBufferedEvents", () => {
     expect(buffered[0].endDate).toBe("2026-05-17");   // +1 checkout +1 buffer after
   });
 
-  it("merges adjacent events into a single block", () => {
+  it("emits separate blocks for adjacent stays under 0-buffer (same-day turnover)", () => {
+    // 0-buffer = checkout day stays OPEN for a same-day check-in, so
+    // a back-to-back pair stays as two distinct events. Each event's
+    // end is the iCal-exclusive checkout date; the checkout day
+    // itself is bookable by the receiving platform.
     const buffered = generateBufferedEvents(
       [
         { uid: "a", summary: "S", startDate: "2026-06-01", endDate: "2026-06-05" },
@@ -154,9 +158,11 @@ describe("generateBufferedEvents", () => {
       0,
       "booking"
     );
-    expect(buffered).toHaveLength(1);
+    expect(buffered).toHaveLength(2);
     expect(buffered[0].startDate).toBe("2026-06-01");
-    expect(buffered[0].endDate).toBe("2026-06-11"); // merged through both checkouts
+    expect(buffered[0].endDate).toBe("2026-06-05"); // checkout day open
+    expect(buffered[1].startDate).toBe("2026-06-06");
+    expect(buffered[1].endDate).toBe("2026-06-10"); // checkout day open
   });
 
   it("does not merge non-overlapping events with no buffer", () => {

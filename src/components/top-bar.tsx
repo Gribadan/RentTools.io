@@ -136,6 +136,13 @@ export function TopBar({
   // sense in a property context. If user clicks one with no property
   // selected, auto-pick the first one in the same nav.
   const goToTab = (view: AppView) => {
+    // Dashboard is the portfolio-wide view; clicking it always drops
+    // the property scope so the user lands on the home/overview no
+    // matter which property they were inside.
+    if (view === "dashboard") {
+      onNavigate({ property: null, reservation: null, view: "dashboard" });
+      return;
+    }
     // Calendar is the only tab that strictly requires a property —
     // there is no cross-property calendar view (a single grid can't
     // show 5 properties' bars meaningfully). Cleaning and Reports
@@ -151,13 +158,15 @@ export function TopBar({
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
 
-  // Tabs are scope-aware. Without a property selected the top bar
-  // only shows the dual-mode tabs (Cleaning + Reports) so the user is
-  // never offered a tab that auto-bounces them into picking a
-  // property; selecting a property surfaces Calendar + Property next
-  // to them. Logo click always returns to Dashboard (no-property home).
+  // Tabs are scope-aware. Dashboard is always present so the user has
+  // an obvious "Home" entry next to the rest of the tabs (the logo
+  // also navigates there but several users missed that affordance).
+  // Without a property selected the rest of the strip is just the
+  // dual-mode tabs (Cleaning + Reports). Selecting a property
+  // surfaces Calendar + Property next to them.
   const hasProperty = !!selectedPropertyId;
   const tabs: { key: AppView; label: string; show: boolean }[] = [
+    { key: "dashboard", label: locale === "ru" ? "Обзор" : "Dashboard", show: true },
     { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: hasProperty },
     { key: "cleaning", label: locale === "ru" ? "Уборки" : "Cleaning", show: true },
     { key: "reports", label: locale === "ru" ? "Отчёты" : "Reports", show: true },

@@ -150,11 +150,20 @@ export function generateBufferedEvents(
 
   // Only export cleaning buffer days to platforms, NOT unbookable gap days.
   // Platforms handle their own min-night rules.
-  // endDate is iCal exclusive (checkout day). Checkout day is guest's day.
-  // Buffer after starts the day AFTER checkout.
+  // endDate is iCal exclusive (checkout day). Two cases:
+  //   bufferAfter > 0 — the cleaner needs the checkout day plus N days
+  //     of cleaning, so the block extends through (checkout + 1 + N).
+  //     A new check-in is only possible after the cleaning window.
+  //   bufferAfter === 0 — same-day turnover is the entire point of
+  //     0-buffer mode: the previous guest leaves by checkOutTime and
+  //     the new guest arrives at checkInTime on the SAME calendar
+  //     day. Leave the checkout day OPEN in the outgoing iCal so the
+  //     other platform can accept a check-in on that date.
   const buffered = events.map((event) => ({
     start: addDays(event.startDate, -bufferBefore),
-    end: addDays(event.endDate, 1 + bufferAfter), // +1 for checkout day, +bufferAfter for cleaning
+    end: bufferAfter > 0
+      ? addDays(event.endDate, 1 + bufferAfter)
+      : event.endDate,
     count: 1,
   }));
 
