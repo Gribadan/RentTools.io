@@ -218,6 +218,7 @@ export function Dashboard({
   // into <CleaningSchedule> for cleaner-conflict detection. Populated
   // from /api/cleaners?withAssignments=1 in dashboard mode only.
   const [cleanerAssignments, setCleanerAssignments] = useState<Record<number, CleanerAssignmentInfo[]>>({});
+  const [assignmentsFetched, setAssignmentsFetched] = useState(false);
   const [cleanerConflictDates, setCleanerConflictDates] = useState<string[]>([]);
 
   // Fetch synced events, links, and overrides for all properties (for cleaning schedule)
@@ -297,7 +298,10 @@ export function Dashboard({
         for (const list of Object.values(map)) list.sort((a, b) => a.priority - b.priority);
         setCleanerAssignments(map);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setAssignmentsFetched(true);
+      });
     return () => { cancelled = true; };
   }, [selectedProperty, properties.length]);
 
@@ -796,13 +800,15 @@ export function Dashboard({
         </div>
       )}
 
-      {/* Alerts strip — only renders when there's at least one
-          structural problem worth surfacing on the dashboard root.
-          Three categories: double-booked stays (per-property overlap),
-          cleaner conflicts (one cleaner across multiple properties on
-          the same day, computed by the hidden CleaningSchedule), and
-          properties with cleaning enabled but no cleaner assigned. */}
-      {!selectedProperty && (dashboardAlerts.doubleBookings.length > 0 || cleanerConflictDates.length > 0 || dashboardAlerts.propertiesWithoutCleaner.length > 0) && (
+      {/* Alerts strip — only renders after BOTH events fetch and
+          cleaner-assignments fetch complete so a partial-data state
+          can't flash false positives (the dedup heuristic needs
+          full event data to merge same-dates iCal twins; the
+          no-cleaner-assigned check needs the assignments map).
+          Running on partial data produced ghost "double bookings"
+          and ghost no-cleaner alerts that disappeared once the
+          fetches caught up — visible CLS. */}
+      {!selectedProperty && !loadingCalendarData && assignmentsFetched && (dashboardAlerts.doubleBookings.length > 0 || cleanerConflictDates.length > 0 || dashboardAlerts.propertiesWithoutCleaner.length > 0) && (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2.5">
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -912,47 +918,61 @@ export function Dashboard({
                   </Link>
                 </div>
                 <div className="space-y-2">
-                  {/* Current guest — strongest line, accent color so the
-                      eye lands on "who's in here right now" first. */}
-                  {current ? (
-                    <div className="flex items-baseline gap-2 text-sm">
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: platformColor(current.platform) }}
-                      />
-                      <span className="font-semibold text-[var(--ink)] truncate">{current.name}</span>
-                      <span className="text-[11px] text-[var(--ink-3)] whitespace-nowrap">
-                        {locale === "ru"
-                          ? `до ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "ночь" : nightsLeft < 5 ? "ночи" : "ноч."}`
-                          : `until ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "night" : "nights"} left`}
+                  {/* Current guest line — ALWAYS rendered so the card
+                      height stays stable regardless of whether the
+                      property is currently occupied. While the events
+                      fetch is in flight the line shows a muted
+                      placeholder; once data arrives it swaps in
+                      place without nudging anything below. */}
+                  <div className="flex items-baseline gap-2 text-sm min-h-[20px]">
+                    {loadingCalendarData ? (
+                      <div className="h-3 w-32 rounded bg-[var(--line-2)]/60 animate-pulse" />
+                    ) : current ? (
+                      <>
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: platformColor(current.platform) }}
+                        />
+                        <span className="font-semibold text-[var(--ink)] truncate">{current.name}</span>
+                        <span className="text-[11px] text-[var(--ink-3)] whitespace-nowrap">
+                          {locale === "ru"
+                            ? `до ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "ночь" : nightsLeft < 5 ? "ночи" : "ноч."}`
+                            : `until ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "night" : "nights"} left`}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[var(--ink-3)]">
+                        {locale === "ru" ? "Свободно" : "Available"}
                       </span>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-[var(--ink-3)]">
-                      {locale === "ru" ? "Свободно" : "Available"}
-                    </div>
-                  )}
-                  {/* Next guest — secondary line. Hidden when no upcoming
-                      stay so the card stays visually quiet. */}
-                  {next ? (
-                    <div className="flex items-baseline gap-2 text-xs text-[var(--ink-3)]">
-                      <span className="text-[var(--ink-4)]">{locale === "ru" ? "Далее:" : "Next:"}</span>
-                      <span
-                        className="h-1.5 w-1.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: platformColor(next.platform) }}
-                      />
-                      <span className="font-medium text-[var(--ink-2)] truncate">{next.name}</span>
-                      <span className="text-[var(--ink-4)] whitespace-nowrap">
-                        {locale === "ru"
-                          ? `${formatDate(toLocalDateStr(next.start))} (через ${daysUntilNext} д.)`
-                          : `${formatDate(toLocalDateStr(next.start))} (in ${daysUntilNext}d)`}
+                    )}
+                  </div>
+                  {/* Next guest line — ALSO always rendered (with a
+                      placeholder when no upcoming stay) so the card
+                      doesn't grow / shrink as data lands. Same min-h
+                      as the line above keeps the row group stable. */}
+                  <div className="flex items-baseline gap-2 text-xs min-h-[16px]">
+                    {loadingCalendarData ? (
+                      <div className="h-2.5 w-24 rounded bg-[var(--line-2)]/40 animate-pulse" />
+                    ) : next ? (
+                      <>
+                        <span className="text-[var(--ink-4)]">{locale === "ru" ? "Далее:" : "Next:"}</span>
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: platformColor(next.platform) }}
+                        />
+                        <span className="font-medium text-[var(--ink-2)] truncate">{next.name}</span>
+                        <span className="text-[var(--ink-4)] whitespace-nowrap">
+                          {locale === "ru"
+                            ? `${formatDate(toLocalDateStr(next.start))} (через ${daysUntilNext} д.)`
+                            : `${formatDate(toLocalDateStr(next.start))} (in ${daysUntilNext}d)`}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[var(--ink-4)]">
+                        {locale === "ru" ? "Нет предстоящих броней" : "No upcoming bookings"}
                       </span>
-                    </div>
-                  ) : !current ? (
-                    <div className="text-xs text-[var(--ink-4)]">
-                      {locale === "ru" ? "Нет предстоящих броней" : "No upcoming bookings"}
-                    </div>
-                  ) : null}
+                    )}
+                  </div>
                   {/* Footer meta — booking count, min nights, sync chip. */}
                   <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--ink-4)] pt-1">
                     <span>{futureRes.length} {locale === "ru" ? "бронир." : "bookings"}</span>
