@@ -33,6 +33,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
   ];
 
+  // Below this many posts a tag page is "thin content" — Google ranks it
+  // as low-value duplicate-of-the-blog-index and that drag spreads to the
+  // sitemap. Below the threshold the tag still works as navigation, but
+  // we keep it off the sitemap and emit a `noindex` meta on the page
+  // (see app/blog/tag/[slug]/page.tsx). 3 is the line every major
+  // SEO post-mortem (Moz, Ahrefs) settles on for blog taxonomies.
+  const TAG_INDEX_MIN_POSTS = 3;
+
   let postEntries: MetadataRoute.Sitemap = [];
   let tagEntries: MetadataRoute.Sitemap = [];
   try {
@@ -42,7 +50,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         status: "published",
         publishedAt: { lte: now },
       },
-      select: { slug: true, publishedAt: true, updatedAt: true },
+      select: { slug: true, tagsJson: true, publishedAt: true, updatedAt: true },
       orderBy: { publishedAt: "desc" },
     });
     postEntries = posts.map((p) => ({
@@ -52,16 +60,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
+    // Count posts-per-tag in code rather than running N+1 queries — the
+    // post list is already in memory and tag-counts on a small blog
+    // (<200 posts) are well under any cardinality concern.
+    const tagPostCount = new Map<string, number>();
+    const tagLastMod = new Map<string, Date>();
+    for (const p of posts) {
+      let tagSlugs: string[] = [];
+      try {
+        const arr = JSON.parse(p.tagsJson) as unknown;
+        if (Array.isArray(arr)) tagSlugs = arr.filter((t): t is string => typeof t === "string");
+      } catch {
+        /* malformed row — skip its tags rather than crash */
+      }
+      const lastMod = p.updatedAt ?? p.publishedAt ?? now;
+      for (const slug of tagSlugs) {
+        tagPostCount.set(slug, (tagPostCount.get(slug) ?? 0) + 1);
+        const prev = tagLastMod.get(slug);
+        if (!prev || lastMod > prev) tagLastMod.set(slug, lastMod);
+      }
+    }
+
     const tags = await prisma.blogTag.findMany({
       where: { locale: "en" },
       select: { slug: true, createdAt: true },
     });
-    tagEntries = tags.map((t) => ({
-      url: `${SITE_URL}/blog/tag/${encodeURIComponent(t.slug)}`,
-      lastModified: t.createdAt,
-      changeFrequency: "weekly" as const,
-      priority: 0.5,
-    }));
+    tagEntries = tags
+      .filter((t) => (tagPostCount.get(t.slug) ?? 0) >= TAG_INDEX_MIN_POSTS)
+      .map((t) => ({
+        url: `${SITE_URL}/blog/tag/${encodeURIComponent(t.slug)}`,
+        lastModified: tagLastMod.get(t.slug) ?? t.createdAt,
+        changeFrequency: "weekly" as const,
+        priority: 0.5,
+      }));
   } catch (err) {
     // DB unavailable at build time? Ship the static entries and let the
     // next regeneration pick the dynamic ones up. Better than 500-ing the

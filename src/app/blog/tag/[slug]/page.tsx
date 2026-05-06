@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LocaleSwitcher } from "@/components/locale-switcher";
+import { BlogHeader } from "@/components/blog-header";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 
 const PAGE_SIZE = 12;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
+
+// Tag pages with fewer than this many posts get `noindex` and are kept
+// off the sitemap. Thin tag pages are an SEO liability — Google flags
+// them as low-value duplicates of /blog. Threshold is shared with
+// app/sitemap.ts. Update both if you change it.
+const TAG_INDEX_MIN_POSTS = 3;
 
 interface SearchParams {
   page?: string;
@@ -42,6 +48,17 @@ async function findTag(slug: string) {
   });
 }
 
+async function countPostsForTag(slug: string): Promise<number> {
+  return prisma.blogPost.count({
+    where: {
+      locale: "en",
+      status: "published",
+      publishedAt: { lte: new Date() },
+      tagsJson: { contains: `"${slug}"` },
+    },
+  });
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -53,12 +70,21 @@ export async function generateMetadata({
   if (!tag) {
     return { title: "Tag not found", robots: { index: false, follow: false } };
   }
+  const postCount = await countPostsForTag(cleanSlug);
+  const indexable = postCount >= TAG_INDEX_MIN_POSTS;
+
   const title = `${tag.displayName} — RentTools blog`;
   const description = `Posts tagged ${tag.displayName} on the RentTools blog.`;
   const base: Metadata = {
     title,
     description,
     alternates: { canonical: `/blog/tag/${tag.slug}` },
+    // follow:true even when noindex — we want Google to keep crawling
+    // OUT to the linked posts; we just don't want this aggregator page
+    // ranking on its own merit until it has substance.
+    robots: indexable
+      ? undefined
+      : { index: false, follow: true, googleBot: { index: false, follow: true } },
     openGraph: {
       type: "website",
       title,
@@ -108,6 +134,9 @@ export default async function BlogTagPage({
         title: true,
         excerpt: true,
         tagsJson: true,
+        ogImageUrl: true,
+        ogImageWidth: true,
+        ogImageHeight: true,
         publishedAt: true,
       },
     }),
@@ -121,69 +150,102 @@ export default async function BlogTagPage({
 
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
-      <header className="border-b border-[var(--line)]">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/blog" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
-            ← Blog
-          </Link>
-          <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
-            <Link href="/login" className="hover:text-[var(--ink)]">Sign in</Link>
-            <LocaleSwitcher />
-          </nav>
-        </div>
-      </header>
+      <BlogHeader />
 
-      <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6 sm:py-14">
-        <p className="text-xs uppercase tracking-wide text-[var(--ink-4)]">Tag</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{tag.displayName}</h1>
-        <p className="mt-2 text-sm text-[var(--ink-3)]">
-          {total === 0
-            ? "No posts yet under this tag."
-            : `${total} ${total === 1 ? "post" : "posts"} under this tag.`}
-        </p>
+      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
+        {/* Tag hero — same shape as the /blog index hero so the surface
+            stays visually consistent across the section. The hero
+            is intentionally smaller than the blog-index one because a
+            tag landing is a sub-page, not the section root. */}
+        <section className="relative mt-6 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-8 pt-8 sm:px-10 sm:pb-10 sm:pt-10">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{
+              background:
+                "radial-gradient(60% 60% at 50% 0%, color-mix(in oklab, var(--m-accent) 22%, transparent) 0%, transparent 70%)",
+            }}
+          />
+          <div className="relative">
+            <p className="text-xs uppercase tracking-[0.14em] text-[var(--ink-4)]">Tag</p>
+            <h1 className="mt-2 text-balance text-3xl font-bold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl md:text-[2.5rem]">
+              {tag.displayName}
+            </h1>
+            <p className="mt-3 text-sm text-[var(--ink-3)]">
+              {total === 0
+                ? "No posts yet under this tag."
+                : `${total} ${total === 1 ? "post" : "posts"} on the RentTools blog tagged ${tag.displayName}.`}
+            </p>
+          </div>
+        </section>
 
-        <section className="mt-8">
+        <section className="mt-10">
           {posts.length === 0 ? (
-            <p className="rounded-lg border border-[var(--line)] bg-[var(--bg)] px-4 py-8 text-center text-sm text-[var(--ink-3)]">
-              Nothing here yet — <Link href="/blog" className="text-[var(--m-accent)] hover:underline">browse all posts</Link>.
+            <p className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-12 text-center text-sm text-[var(--ink-3)]">
+              Nothing here yet —{" "}
+              <Link href="/blog" className="text-[var(--m-accent)] hover:underline">
+                browse all posts
+              </Link>
+              .
             </p>
           ) : (
-            <ul className="space-y-4">
+            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {posts.map((p) => {
                 const tags = parseTags(p.tagsJson);
                 return (
-                  <li
-                    key={p.id}
-                    className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-5 transition-colors hover:border-[var(--line-2)]"
-                  >
-                    <Link href={`/blog/${p.slug}`} className="block">
-                      <h2 className="text-xl font-semibold text-[var(--ink)] hover:text-white sm:text-2xl">
-                        {p.title}
-                      </h2>
-                      {p.excerpt && (
-                        <p className="mt-2 text-sm text-[var(--ink-3)] sm:text-base">{p.excerpt}</p>
-                      )}
-                    </Link>
-                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
-                      {p.publishedAt && (
-                        <time dateTime={p.publishedAt.toISOString()}>
-                          {formatDate(p.publishedAt)}
-                        </time>
-                      )}
-                      {tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {tags.map((t) => (
-                            <Link
+                  <li key={p.id}>
+                    <Link
+                      href={`/blog/${p.slug}`}
+                      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-2)]/30 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
+                    >
+                      <div className="aspect-[1.91/1] overflow-hidden bg-[var(--bg-3)]">
+                        {p.ogImageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={p.ogImageUrl}
+                            alt={p.title}
+                            width={p.ogImageWidth ?? undefined}
+                            height={p.ogImageHeight ?? undefined}
+                            className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div
+                            aria-hidden
+                            className="size-full"
+                            style={{
+                              background:
+                                "radial-gradient(80% 80% at 50% 50%, color-mix(in oklab, var(--m-accent) 18%, transparent) 0%, transparent 70%)",
+                            }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col p-5">
+                        <h2 className="text-balance text-[17px] font-semibold leading-snug tracking-tight text-[var(--ink)] group-hover:text-white">
+                          {p.title}
+                        </h2>
+                        {p.excerpt && (
+                          <p className="mt-2 line-clamp-3 text-[13.5px] leading-relaxed text-[var(--ink-3)]">
+                            {p.excerpt}
+                          </p>
+                        )}
+                        <div className="mt-auto flex flex-wrap items-center gap-2 pt-4 text-[11px] text-[var(--ink-4)]">
+                          {p.publishedAt && (
+                            <time dateTime={p.publishedAt.toISOString()}>
+                              {formatDate(p.publishedAt)}
+                            </time>
+                          )}
+                          {tags.slice(0, 2).map((t) => (
+                            <span
                               key={t}
-                              href={`/blog/tag/${encodeURIComponent(t)}`}
-                              className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] hover:border-[var(--line-2)] hover:text-[var(--ink-3)]"
+                              className="rounded-full border border-[var(--line)] px-2 py-0.5 uppercase tracking-wider"
                             >
                               {t}
-                            </Link>
+                            </span>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    </Link>
                   </li>
                 );
               })}
@@ -192,11 +254,11 @@ export default async function BlogTagPage({
         </section>
 
         {totalPages > 1 && (
-          <nav className="mt-10 flex items-center justify-between text-sm">
+          <nav className="mt-12 flex items-center justify-between text-sm">
             {hasPrev ? (
               <Link
                 href={prevHref}
-                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="prev"
               >
                 ← Previous
@@ -210,7 +272,7 @@ export default async function BlogTagPage({
             {hasNext ? (
               <Link
                 href={nextHref}
-                className="rounded-md border border-[var(--line)] bg-[var(--bg)] px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
+                className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="next"
               >
                 Next →
@@ -222,8 +284,8 @@ export default async function BlogTagPage({
         )}
       </main>
 
-      <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-4xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
+      <footer className="mt-16 border-t border-[var(--line)]">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
