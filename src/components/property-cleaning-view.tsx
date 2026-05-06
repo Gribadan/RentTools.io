@@ -41,21 +41,23 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
   const [cleaningEnabled, setCleaningEnabled] = useState<boolean>(property.cleaningEnabled !== false);
   const [toggling, setToggling] = useState(false);
   const [includePotential, setIncludePotential] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setCleaningEnabled(property.cleaningEnabled !== false);
   }, [property.cleaningEnabled, property.id]);
 
   const fetchData = useCallback(async () => {
-    const [syncRes, linksRes, ovRes, asgRes] = await Promise.all([
-      fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
-      fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
-      fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
-      fetch(`/api/cleaner-assignments?propertyId=${property.id}`).then(r => r.ok ? r.json() : []),
-    ]);
-    setSyncedEvents(syncRes.events || []);
-    setLinks(linksRes || []);
-    setOverrides(ovRes || []);
+    try {
+      const [syncRes, linksRes, ovRes, asgRes] = await Promise.all([
+        fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
+        fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
+        fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
+        fetch(`/api/cleaner-assignments?propertyId=${property.id}`).then(r => r.ok ? r.json() : []),
+      ]);
+      setSyncedEvents(syncRes.events || []);
+      setLinks(linksRes || []);
+      setOverrides(ovRes || []);
     type AssignmentRow = {
       cleanerProfileId: number | null;
       cleanerId: number | null;
@@ -63,22 +65,25 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
       username: string | null;
       priority: number;
     };
-    const list: AssignmentRow[] = Array.isArray(asgRes) ? asgRes : [];
-    setAssignments(
-      list
-        .map((a): CleanerAssignmentInfo | null => {
-          const name = a.cleanerName ?? a.username;
-          if (!name) return null;
-          const identityKey = a.cleanerProfileId != null
-            ? `p:${a.cleanerProfileId}`
-            : a.cleanerId != null
-              ? `u:${a.cleanerId}`
-              : `n:${name}`;
-          return { identityKey, name, priority: a.priority ?? 0 };
-        })
-        .filter((x): x is CleanerAssignmentInfo => x !== null)
-        .sort((a, b) => a.priority - b.priority)
-    );
+      const list: AssignmentRow[] = Array.isArray(asgRes) ? asgRes : [];
+      setAssignments(
+        list
+          .map((a): CleanerAssignmentInfo | null => {
+            const name = a.cleanerName ?? a.username;
+            if (!name) return null;
+            const identityKey = a.cleanerProfileId != null
+              ? `p:${a.cleanerProfileId}`
+              : a.cleanerId != null
+                ? `u:${a.cleanerId}`
+                : `n:${name}`;
+            return { identityKey, name, priority: a.priority ?? 0 };
+          })
+          .filter((x): x is CleanerAssignmentInfo => x !== null)
+          .sort((a, b) => a.priority - b.priority)
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [property.id]);
 
   useEffect(() => {
@@ -132,6 +137,7 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
               includePotential={includePotential}
               onIncludePotentialChange={setIncludePotential}
               cleanerAssignments={assignmentsByProperty}
+              loading={loading}
             />
           ) : (
             <div className="rounded-lg border border-dashed border-[var(--line-2)] bg-[var(--bg-2)] p-8 text-center">

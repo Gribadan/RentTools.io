@@ -38,6 +38,7 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
   const [overrides, setOverrides] = useState<Record<number, DateOverride[]>>({});
   const [assignmentsByProperty, setAssignmentsByProperty] = useState<Record<number, CleanerAssignmentInfo[]>>({});
   const [includePotential, setIncludePotential] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (properties.length === 0) {
@@ -99,6 +100,7 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
     setLinks(lnMap);
     setOverrides(ovMap);
     setAssignmentsByProperty(asgMap);
+    setLoading(false);
   }, [properties]);
 
   useEffect(() => {
@@ -144,6 +146,7 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
             includePotential={includePotential}
             onIncludePotentialChange={setIncludePotential}
             cleanerAssignments={assignmentsByProperty}
+            loading={loading}
           />
         </div>
 

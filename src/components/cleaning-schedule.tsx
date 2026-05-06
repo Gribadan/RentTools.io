@@ -97,6 +97,12 @@ interface CleaningScheduleProps {
    *  render a "Cleaner conflict" badge on the Today strip and Next 7
    *  days header. */
   onCleanerConflictDatesChange?: (dates: string[]) => void;
+  /** When true, the table area renders skeleton rows instead of the
+   *  real list. Lets the parent (PropertyCleaningView /
+   *  GlobalCleaningView) show a stable-height table while the
+   *  events / links / overrides fetches are still in flight, so
+   *  the page doesn't grow as data lands. */
+  loading?: boolean;
 }
 
 function addDaysStr(dateStr: string, days: number): string {
@@ -367,6 +373,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
   onIncludePotentialChange,
   cleanerAssignments,
   onCleanerConflictDatesChange,
+  loading = false,
 }, ref) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -905,7 +912,21 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
           )}
         </div>
 
-        {visibleDays.length === 0 ? (
+        {loading ? (
+          /* Skeleton rows during the events / links / overrides fetch
+              — five placeholder rows match the ~typical height of a
+              real schedule (5 cleanings in the upcoming window) so
+              the table doesn't grow under the user as data lands. */
+          <div className="divide-y divide-[var(--line)]/50">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className="h-3 w-24 rounded bg-[var(--line-2)]/60 animate-pulse" />
+                <div className="h-3 w-16 rounded bg-[var(--line-2)]/40 animate-pulse" />
+                <div className="h-3 flex-1 max-w-[280px] rounded bg-[var(--line-2)]/30 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : visibleDays.length === 0 ? (
           <div className="p-4">
             <EmptyState
               icon={
