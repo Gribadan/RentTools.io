@@ -6,6 +6,48 @@ const JWT_SECRET_RAW = process.env.JWT_SECRET || "fallback-secret-change-me";
 const SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
 const IS_DEFAULT_SECRET = JWT_SECRET_RAW === "fallback-secret-change-me";
 
+// ─────────────────────────── i18n routing ───────────────────────────
+// Each non-default locale has its own URL prefix (`/ru/...`, `/de/...`,
+// etc.). This is what makes the site Google-indexable per language —
+// see .routines/I18N-SEO-AUDIT.md for the full rationale.
+//
+// To keep all the page files in their existing locations (no `[locale]`
+// route refactor), the middleware does an internal rewrite: a hit to
+// `/ru/blog/foo` is served by `app/blog/[slug]/page.tsx` after rewriting
+// to `/blog/foo`. The locale travels via two request headers the page
+// reads via `next/headers`:
+//   - x-locale: the resolved locale ('en' for default-no-prefix, or the
+//     prefix for everything else).
+//   - x-pathname: the user-visible URL path (with the prefix), so
+//     generateMetadata can build correct canonicals + hreflang
+//     alternates without reconstructing it.
+//
+// Adding a new language:
+//   1. Append its code to SUPPORTED_LOCALES below.
+//   2. Add the COPY block in each marketing page.
+//   3. Done — no new route files, no middleware changes.
+const SUPPORTED_LOCALES = ["en", "ru"] as const;
+const DEFAULT_LOCALE = "en";
+const LOCALE_PREFIXES = SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE); // ['ru'] today
+
+// Only public marketing surfaces are localised. Dashboard / admin /
+// API / token-gated routes (g, invite) stay language-agnostic — the
+// dashboard already runs through the client-side useI18n hook and
+// doesn't need URL-distinct versions for SEO.
+const LOCALIZABLE_PATHS = ["/", "/onboard", "/blog", "/login", "/signup", "/privacy", "/terms"];
+
+function detectLocaleFromPath(pathname: string): { locale: string; rest: string } | null {
+  for (const loc of LOCALE_PREFIXES) {
+    if (pathname === `/${loc}`) return { locale: loc, rest: "/" };
+    if (pathname.startsWith(`/${loc}/`)) return { locale: loc, rest: pathname.slice(loc.length + 1) };
+  }
+  return null;
+}
+
+function isLocalizable(rest: string): boolean {
+  return LOCALIZABLE_PATHS.some((p) => rest === p || rest.startsWith(p === "/" ? "/" : `${p}/`));
+}
+
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
@@ -82,6 +124,49 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const startedAt = Date.now();
 
+  // ── i18n routing ──
+  // If the path begins with a known non-default locale prefix
+  // (e.g. /ru, /de), strip it and rewrite internally. The page files
+  // live at their default-locale paths; the locale travels via
+  // request headers so getLocale() can read it server-side.
+  //
+  // /ru/<non-localizable> (e.g. /ru/dashboard) gets redirected to
+  // /<non-localizable> — the dashboard isn't localised at the URL
+  // level (it runs through useI18n + cookie). This way the URL bar
+  // never shows a /ru/ prefix on a page that doesn't have a real
+  // RU version.
+  const localeMatch = detectLocaleFromPath(pathname);
+  if (localeMatch) {
+    if (!isLocalizable(localeMatch.rest)) {
+      const url = request.nextUrl.clone();
+      url.pathname = localeMatch.rest;
+      const r = NextResponse.redirect(url);
+      logRequest(request, r, startedAt);
+      return r;
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = localeMatch.rest;
+    const headers = new Headers(request.headers);
+    headers.set("x-locale", localeMatch.locale);
+    headers.set("x-pathname", pathname);
+    const r = withSecurityHeaders(NextResponse.rewrite(url, { request: { headers } }));
+    logRequest(request, r, startedAt);
+    return r;
+  }
+  // For default-locale URLs we still set x-pathname + x-locale so
+  // pages can read them uniformly. Locale defaults to the rt-locale
+  // cookie if set, otherwise DEFAULT_LOCALE. A cookie picking a
+  // non-default locale on a default-prefix URL is honoured for
+  // backward compat — but the canonical URL Google sees stays the
+  // default-locale URL because that's what `pathname` is here.
+  const cookieLocale = request.cookies.get("rt-locale")?.value;
+  const resolvedLocale = SUPPORTED_LOCALES.includes(cookieLocale as typeof SUPPORTED_LOCALES[number])
+    ? (cookieLocale as string)
+    : DEFAULT_LOCALE;
+  const i18nHeaders = new Headers(request.headers);
+  i18nHeaders.set("x-locale", resolvedLocale);
+  i18nHeaders.set("x-pathname", pathname);
+
   // Refuse to authenticate against the default secret in production
   if (IS_DEFAULT_SECRET && process.env.NODE_ENV === "production" && !PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     const r = new NextResponse("JWT_SECRET not configured. Set the JWT_SECRET env var to a strong random string.", { status: 500 });
@@ -94,7 +179,9 @@ export async function middleware(request: NextRequest) {
   // and "/" would match every path). The landing page itself redirects to
   // /dashboard for logged-in visitors via getSession().
   if (pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    const r = withSecurityHeaders(NextResponse.next());
+    const r = withSecurityHeaders(
+      NextResponse.next({ request: { headers: i18nHeaders } }),
+    );
     logRequest(request, r, startedAt);
     return r;
   }
@@ -146,7 +233,7 @@ export async function middleware(request: NextRequest) {
       return r;
     }
 
-    const r = withSecurityHeaders(NextResponse.next());
+    const r = withSecurityHeaders(NextResponse.next({ request: { headers: i18nHeaders } }));
     logRequest(request, r, startedAt, userId);
     return r;
   } catch {

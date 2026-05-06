@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { LOCALE_COOKIE_NAME } from "@/lib/i18n/cookie";
 import type { Locale } from "@/lib/i18n/translations";
 
@@ -27,7 +27,44 @@ import type { Locale } from "@/lib/i18n/translations";
  * client-side and lose the SSR/SEO benefits).
  */
 export async function getLocale(): Promise<Locale> {
-  const store = await cookies();
-  const value = store.get(LOCALE_COOKIE_NAME)?.value;
-  return value === "ru" ? "ru" : "en";
+  // Middleware (src/middleware.ts) sets `x-locale` to the resolved
+  // locale based on URL prefix → cookie → default. Reading from the
+  // header keeps marketing pages aligned with what the URL actually
+  // says (a cookie picking RU on a / URL is a shadow of the old
+  // single-URL world; URL is now authoritative). Header is missing
+  // for static-render bypass / direct page rendering during build —
+  // fall through to cookie + default in that case.
+  try {
+    const h = await headers();
+    const fromHeader = h.get("x-locale");
+    if (fromHeader === "ru") return "ru";
+    if (fromHeader === "en") return "en";
+  } catch {
+    // headers() throws when called outside a request scope (e.g. during
+    // static asset generation). Fall through to cookie.
+  }
+  try {
+    const store = await cookies();
+    const value = store.get(LOCALE_COOKIE_NAME)?.value;
+    return value === "ru" ? "ru" : "en";
+  } catch {
+    return "en";
+  }
+}
+
+/**
+ * Read the user-visible URL path the request hit, with locale prefix
+ * still attached. Set by middleware via `x-pathname`. Used by
+ * `generateMetadata` to build correct canonical + hreflang URLs that
+ * match what the address bar shows, not the rewritten internal path.
+ *
+ * Returns null when the header isn't set (during static generation).
+ */
+export async function getCanonicalPath(): Promise<string | null> {
+  try {
+    const h = await headers();
+    return h.get("x-pathname");
+  } catch {
+    return null;
+  }
 }

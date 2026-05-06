@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, SITE_URL } from "@/lib/i18n/alternates";
+import type { Locale } from "@/lib/i18n/translations";
 
 // Force per-request rendering. ISR (revalidate=N) wasn't enough — the
 // build still pre-renders sitemap() once on the GH Actions runner where
@@ -12,11 +12,39 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 // running one Prisma query each is fine.
 export const dynamic = "force-dynamic";
 
+// Build a per-locale URL for a given default-locale path.
+//   "/" + "ru" → "/ru"
+//   "/blog/foo" + "ru" → "/ru/blog/foo"
+//   "/blog/foo" + "en" → "/blog/foo"  (default-no-prefix)
+function localizedUrl(defaultPath: string, locale: Locale): string {
+  if (locale === DEFAULT_LOCALE) return `${SITE_URL}${defaultPath}`;
+  if (defaultPath === "/") return `${SITE_URL}/${locale}`;
+  return `${SITE_URL}/${locale}${defaultPath}`;
+}
+
+// Build the alternates.languages map for a given default-locale path.
+// Used as the per-row `alternates: { languages: ... }` so Google sees
+// each entry's hreflang siblings inside the sitemap itself
+// (matches `<xhtml:link rel="alternate" hreflang="…">` in raw XML).
+function altLanguages(defaultPath: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const loc of SUPPORTED_LOCALES) {
+    result[loc] = localizedUrl(defaultPath, loc);
+  }
+  return result;
+}
+
 /**
- * Sitemap. Static marketing pages + per-post + per-tag entries pulled
- * live from the DB. `lastModified` = `updatedAt` when set, otherwise
- * `publishedAt` — Google uses this signal to decide whether to recrawl,
- * so we want it to actually move when an editor saves a post.
+ * Sitemap. Per-locale entries for every public marketing page + every
+ * published blog post + every qualifying tag page. Each entry carries
+ * `alternates.languages` pointing at every language version of the
+ * same logical page — Next.js renders these as
+ * `<xhtml:link rel="alternate" hreflang="…">` so Google can pair the
+ * versions and rank each in its own market.
+ *
+ * `lastModified` = `updatedAt` when set, otherwise `publishedAt` —
+ * Google uses this signal to decide whether to recrawl, so we want it
+ * to actually move when an editor saves a post.
  *
  * Drafts and future-scheduled posts are filtered out so the public
  * sitemap matches what /blog actually surfaces.
@@ -24,48 +52,96 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  const staticEntries: MetadataRoute.Sitemap = [
-    { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
-    { url: `${SITE_URL}/signup`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
-    { url: `${SITE_URL}/login`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
-    { url: `${SITE_URL}/blog`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
-    { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
-    { url: `${SITE_URL}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+  // Static marketing surfaces. Each generates one entry per locale.
+  const staticPaths: Array<{
+    path: string;
+    changeFrequency: "weekly" | "monthly" | "yearly" | "daily";
+    priority: number;
+  }> = [
+    { path: "/", changeFrequency: "weekly", priority: 1.0 },
+    { path: "/onboard", changeFrequency: "monthly", priority: 0.9 },
+    { path: "/blog", changeFrequency: "daily", priority: 0.9 },
+    { path: "/signup", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/login", changeFrequency: "monthly", priority: 0.6 },
+    { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
+    { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
   ];
 
+  const staticEntries: MetadataRoute.Sitemap = [];
+  for (const entry of staticPaths) {
+    const languages = altLanguages(entry.path);
+    for (const loc of SUPPORTED_LOCALES) {
+      staticEntries.push({
+        url: localizedUrl(entry.path, loc),
+        lastModified: now,
+        changeFrequency: entry.changeFrequency,
+        priority: entry.priority,
+        alternates: { languages },
+      });
+    }
+  }
+
   // Below this many posts a tag page is "thin content" — Google ranks it
-  // as low-value duplicate-of-the-blog-index and that drag spreads to the
-  // sitemap. Below the threshold the tag still works as navigation, but
-  // we keep it off the sitemap and emit a `noindex` meta on the page
-  // (see app/blog/tag/[slug]/page.tsx). 3 is the line every major
-  // SEO post-mortem (Moz, Ahrefs) settles on for blog taxonomies.
+  // as low-value duplicate-of-the-blog-index and that drag spreads to
+  // the sitemap. 3 is the line every major SEO post-mortem (Moz,
+  // Ahrefs) settles on for blog taxonomies.
   const TAG_INDEX_MIN_POSTS = 3;
 
   let postEntries: MetadataRoute.Sitemap = [];
   let tagEntries: MetadataRoute.Sitemap = [];
   try {
+    // Blog posts are stored per-locale in the DB (BlogPost.locale).
+    // For now only EN posts exist — the post URL exists at `/blog/<slug>`
+    // (default locale) only. We still emit hreflang alternates for
+    // potential future RU translations, but with a caveat: an alternate
+    // pointing at a 404'd URL hurts. Until the BlogPost row for that
+    // (slug, ru) pair exists, the alternate must be omitted.
     const posts = await prisma.blogPost.findMany({
-      where: {
-        locale: "en",
-        status: "published",
-        publishedAt: { lte: now },
+      where: { status: "published", publishedAt: { lte: now } },
+      select: {
+        slug: true,
+        locale: true,
+        tagsJson: true,
+        publishedAt: true,
+        updatedAt: true,
       },
-      select: { slug: true, tagsJson: true, publishedAt: true, updatedAt: true },
       orderBy: { publishedAt: "desc" },
     });
-    postEntries = posts.map((p) => ({
-      url: `${SITE_URL}/blog/${p.slug}`,
-      lastModified: p.updatedAt ?? p.publishedAt ?? now,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    }));
 
-    // Count posts-per-tag in code rather than running N+1 queries — the
-    // post list is already in memory and tag-counts on a small blog
-    // (<200 posts) are well under any cardinality concern.
+    // Group posts by slug to find translation pairs.
+    const slugLocales = new Map<string, Set<string>>();
+    for (const p of posts) {
+      const set = slugLocales.get(p.slug) ?? new Set<string>();
+      set.add(p.locale);
+      slugLocales.set(p.slug, set);
+    }
+
+    postEntries = posts.map((p) => {
+      const path = `/blog/${p.slug}`;
+      const availableLocales = slugLocales.get(p.slug) ?? new Set<string>();
+      const languages: Record<string, string> = {};
+      for (const loc of SUPPORTED_LOCALES) {
+        if (availableLocales.has(loc)) {
+          languages[loc] = localizedUrl(path, loc);
+        }
+      }
+      return {
+        url: localizedUrl(path, p.locale as Locale),
+        lastModified: p.updatedAt ?? p.publishedAt ?? now,
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+        alternates: { languages },
+      };
+    });
+
+    // Count EN-locale posts per tag for the indexability threshold.
+    // (Tag pages are emitted only for the default locale today —
+    // each language gets its own tag page surface when it has its own
+    // post library.)
     const tagPostCount = new Map<string, number>();
     const tagLastMod = new Map<string, Date>();
     for (const p of posts) {
+      if (p.locale !== DEFAULT_LOCALE) continue;
       let tagSlugs: string[] = [];
       try {
         const arr = JSON.parse(p.tagsJson) as unknown;
@@ -82,7 +158,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     const tags = await prisma.blogTag.findMany({
-      where: { locale: "en" },
+      where: { locale: DEFAULT_LOCALE },
       select: { slug: true, createdAt: true },
     });
     tagEntries = tags
@@ -94,9 +170,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.5,
       }));
   } catch (err) {
-    // DB unavailable at build time? Ship the static entries and let the
-    // next regeneration pick the dynamic ones up. Better than 500-ing the
-    // /sitemap.xml endpoint and hurting crawl frequency.
     console.warn("sitemap: failed to load blog rows", err);
   }
 
