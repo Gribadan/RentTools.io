@@ -166,6 +166,15 @@ const TILES: ReadonlyArray<{
         requiresSuperadmin: true,
       },
       {
+        href: "/dashboard/admin/content/blog-tags",
+        label: { en: "Blog tags", ru: "Теги блога" },
+        desc: {
+          en: "Rename, delete, or merge tags. Slug edits rewrite all referencing posts.",
+          ru: "Переименование, удаление и объединение тегов. Изменение слага переписывает все статьи.",
+        },
+        requiresSuperadmin: true,
+      },
+      {
         href: "/dashboard/admin/content/blog-media",
         label: { en: "Blog media", ru: "Медиа блога" },
         desc: {
