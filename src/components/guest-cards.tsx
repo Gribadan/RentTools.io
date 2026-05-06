@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useI18n } from "@/lib/i18n/context";
 import type { Guest } from "@/lib/types";
 
 // Age computed dynamically from DOB so it doesn't go stale across years.
@@ -171,10 +172,31 @@ function GuestCard({
   onDragStart: (e: React.DragEvent, childId: number) => void;
   onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
 }) {
+  const { t, locale } = useI18n();
   const [dragOver, setDragOver] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Guest>(guest);
+  // RT-25.12 — per-guest notes auto-save. Local draft mirrors the
+  // saved value so concurrent passport-extraction PATCHes don't wipe
+  // an in-flight typing session; we only push to the server on blur
+  // and only when the value actually changed.
+  const [notesDraft, setNotesDraft] = useState<string>(guest.notes ?? "");
+  const [notesSavedValue, setNotesSavedValue] = useState<string>(guest.notes ?? "");
+  const [notesState, setNotesState] = useState<"idle" | "saving" | "saved">("idle");
+
+  useEffect(() => {
+    // External update of guest.notes (e.g. parent refetch) — only
+    // resync when the user isn't mid-edit. The check tolerates the
+    // case where notesDraft was edited since the last save: keep the
+    // user's draft and let blur reconcile.
+    if (notesDraft === notesSavedValue) {
+      setNotesDraft(guest.notes ?? "");
+      setNotesSavedValue(guest.notes ?? "");
+    } else {
+      setNotesSavedValue(guest.notes ?? "");
+    }
+  }, [guest.notes]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -237,6 +259,19 @@ function GuestCard({
 
   const setField = <K extends keyof Guest>(key: K, value: Guest[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
+  };
+
+  const handleNotesBlur = async () => {
+    if (notesDraft === notesSavedValue) return;
+    setNotesState("saving");
+    try {
+      await onUpdateGuest(guest.id, { notes: notesDraft });
+      setNotesSavedValue(notesDraft);
+      setNotesState("saved");
+      setTimeout(() => setNotesState("idle"), 1600);
+    } catch {
+      setNotesState("idle");
+    }
   };
 
   return (
@@ -426,6 +461,31 @@ function GuestCard({
             )}
           </>
         )}
+        {/* RT-25.12 — per-guest notes. Always visible (not gated by
+            edit mode); auto-saves on blur via the same PATCH path
+            used for passport edits. Empty notes still render the
+            section so the host has an obvious place to start typing. */}
+        <div className="p-1.5">
+          <div className="mb-1 flex items-center justify-between px-2 pt-1">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-primary/60">
+              {t("guest.notes")}
+            </span>
+            <span className={`text-[10px] transition-opacity ${notesState === "idle" ? "opacity-0" : "opacity-100"} ${notesState === "saved" ? "text-emerald-500" : "text-muted-foreground/60"}`}>
+              {notesState === "saving" ? (locale === "ru" ? "Сохранение…" : "Saving…") : notesState === "saved" ? (locale === "ru" ? "Сохранено" : "Saved") : ""}
+            </span>
+          </div>
+          <textarea
+            value={notesDraft}
+            onChange={(e) => {
+              setNotesDraft(e.target.value);
+              if (notesState === "saved") setNotesState("idle");
+            }}
+            onBlur={handleNotesBlur}
+            placeholder={t("guest.notesPlaceholder")}
+            className="block w-full whitespace-pre-wrap rounded-md border border-border/40 bg-background/50 px-2 py-1.5 text-sm text-[var(--ink)] placeholder-muted-foreground/30 focus:border-primary/60 focus:outline-none"
+            rows={2}
+          />
+        </div>
       </div>
     </div>
   );

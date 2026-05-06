@@ -17,6 +17,7 @@ export interface Guest {
   visaTo: string;
   hasVisa: boolean;
   parentId: number | null;
+  notes: string;
   reservationId: number;
   createdAt: string;
 }

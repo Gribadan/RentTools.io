@@ -202,6 +202,9 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // unbookable computation and the cleaning schedule hides the
     // property; conflict detection still runs.
     `ALTER TABLE "Property" ADD COLUMN "cleaningEnabled" INTEGER NOT NULL DEFAULT 1`,
+    // RT-25.12 — per-guest free-text notes. Empty default so existing
+    // rows surface as no-note rather than NULL in the UI.
+    `ALTER TABLE "Guest" ADD COLUMN "notes" TEXT NOT NULL DEFAULT ''`,
   ];
   for (const sql of migrations) {
     try {

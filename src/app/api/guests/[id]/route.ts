@@ -20,6 +20,9 @@ const ALLOWED_STRING_FIELDS = [
   "visaNumber",
   "visaFrom",
   "visaTo",
+  // RT-25.12 — per-guest free-text notes; preserves whitespace and
+  // newlines so a paragraph from the host's clipboard round-trips.
+  "notes",
 ] as const;
 
 async function loadManageableGuest(guestId: number, userId: number, role: string) {

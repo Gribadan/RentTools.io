@@ -243,6 +243,9 @@ export const translations = {
   "reservation.extractionLog": { en: "Extraction Log", ru: "Лог извлечения" },
   "reservation.guests": { en: "guest", ru: "гость" },
   "reservation.guestsPlural": { en: "guests", ru: "гостей" },
+  // RT-25.12 — per-guest free-text notes
+  "guest.notes": { en: "Notes", ru: "Заметки" },
+  "guest.notesPlaceholder": { en: "Allergic to nuts, requested late check-in…", ru: "Аллергия на орехи, поздний заезд…" },
 
   // Settings
   "settings.title": { en: "Settings", ru: "Настройки" },
