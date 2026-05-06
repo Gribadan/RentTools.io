@@ -98,6 +98,18 @@ if [ "$SCHEMA_BEFORE" != "$SCHEMA_AFTER" ]; then
   npx tsx prisma/push-schema.ts
 fi
 
+# 4b. Seed BlogPost rows from content/blog/*.md (RT-25.14). The seed
+#     is idempotent — upserts on (slug, locale) — so it's safe to run
+#     on every deploy. Without this step the public /blog and the
+#     admin "Blog posts" sub-route both render empty even though the
+#     7 source articles ship in the repo. Source-of-truth for the
+#     post body is the markdown file, so this also picks up edits.
+log "seeding blog posts from content/blog/"
+set -a
+. .env.production
+set +a
+npx tsx prisma/seed-blog-posts.ts || log "blog seed failed (non-fatal — deploy continues)"
+
 # 5. If the systemd unit changed, reload its definition before restart.
 if [ "$SYSTEMD_BEFORE" != "$SYSTEMD_AFTER" ]; then
   log "systemd unit changed — installing + reloading daemon"
