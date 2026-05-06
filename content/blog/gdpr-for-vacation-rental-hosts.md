@@ -25,16 +25,6 @@ This is a practical guide for hosts who are not lawyers and do not want to becom
 - Pick a retention period. Write it down. Stick to it. "Until I delete it" is not a period.
 - A guest can ask you to delete their data. You need a flow for that. Not a perfect tool, but a flow.
 
-## Table of contents
-
-1. Does GDPR even apply to me?
-2. The privacy notice (one sentence, then a page)
-3. Lawful basis: contract, legal obligation, almost never consent
-4. Retention period: pick a number
-5. Sub-processors: who else sees the data
-6. The deletion-request flow
-7. FAQ
-
 ## Does GDPR even apply to me?
 
 If your apartment is in the EU and you rent it out: yes.

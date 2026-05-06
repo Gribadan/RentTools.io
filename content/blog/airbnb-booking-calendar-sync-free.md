@@ -26,16 +26,6 @@ This guide is the result. Free tools, real refresh-interval numbers, an honest a
 - A free middle layer (the open-source [RentTools](/onboard), or a hand-rolled cron) refreshes faster, but it can't speed up the destination platform's own poll.
 - For 1 to 3 listings, iCal handles 99% of cases. For 20+ listings or 90%+ occupancy, look at a paid channel manager.
 
-## Table of contents
-
-1. The actual problem
-2. Step 1: Get Airbnb's iCal URL
-3. Step 2: Get Booking.com's iCal URL
-4. Step 3: Wire your Airbnb and Booking.com calendars together
-5. The refresh-interval gotcha nobody warns you about
-6. FAQ
-7. One opinionated take
-
 ## The actual problem
 
 Two listing sites. One physical apartment. The minute someone books on Airbnb, every other site needs to know within minutes, not hours.

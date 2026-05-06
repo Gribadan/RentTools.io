@@ -387,31 +387,104 @@ select option:hover {
 }
 
 /* Blog post body — rendered from markdown via src/lib/markdown.ts.
-   Kept minimal; the renderer emits a small whitelisted set of tags.
-   Uses editorial CSS variables so it switches with the theme toggle.
-   `overflow-wrap: anywhere` so long URLs in body text don't force the
-   page wider than the viewport on mobile. */
+   The renderer emits a small whitelisted set of tags; this stylesheet
+   gives them a magazine-grade default look so editors don't need to
+   ship per-post CSS. Uses editorial CSS variables so it switches with
+   the theme toggle. `overflow-wrap: anywhere` keeps long URLs from
+   forcing the article wider than the viewport on mobile.
+
+   Scroll-margin on headings: the post page has a sticky 64-72px header,
+   so anchor jumps need to land below it. 96px = header + breathing room. */
 .prose-blog { overflow-wrap: anywhere; }
-.prose-blog h2 { font-size: 1.5rem; font-weight: 600; color: var(--ink); margin-top: 2rem; margin-bottom: 0.75rem; }
-.prose-blog h3 { font-size: 1.25rem; font-weight: 600; color: var(--ink); margin-top: 1.5rem; margin-bottom: 0.5rem; }
-.prose-blog h4 { font-size: 1.05rem; font-weight: 600; color: var(--ink); margin-top: 1.25rem; margin-bottom: 0.5rem; }
-.prose-blog p { margin-bottom: 1rem; color: var(--ink-2); }
-.prose-blog ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1rem; color: var(--ink-2); }
-.prose-blog ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1rem; color: var(--ink-2); }
-.prose-blog li { margin-bottom: 0.25rem; }
-.prose-blog a { color: var(--m-accent); text-decoration: underline; text-underline-offset: 2px; }
-.prose-blog a:hover { color: var(--m-accent-2); }
-.prose-blog code { background: var(--bg-3); color: var(--ink); padding: 0.1em 0.35em; border-radius: 0.25rem; font-size: 0.9em; }
-.prose-blog pre { background: var(--bg-2); border: 1px solid var(--line-2); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; }
-.prose-blog pre code { background: transparent; padding: 0; }
-.prose-blog blockquote { border-left: 3px solid var(--line-2); padding-left: 1rem; color: var(--ink-3); font-style: italic; margin: 1rem 0; }
-.prose-blog hr { border-color: var(--line); margin: 2rem 0; }
-.prose-blog strong { color: var(--ink); }
+.prose-blog > * + * { margin-top: 1.1em; }
+.prose-blog h2,
+.prose-blog h3,
+.prose-blog h4 { color: var(--ink); letter-spacing: -0.01em; scroll-margin-top: 96px; }
+.prose-blog h2 { font-size: 1.75rem; line-height: 1.25; font-weight: 700; margin-top: 2.5rem; margin-bottom: 0.6em; }
+.prose-blog h3 { font-size: 1.35rem; line-height: 1.3; font-weight: 600; margin-top: 2rem; margin-bottom: 0.5em; }
+.prose-blog h4 { font-size: 1.1rem; line-height: 1.35; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.4em; }
+/* First child needs no top margin — hero already supplies the gap. */
+.prose-blog > :first-child { margin-top: 0; }
+.prose-blog p { color: var(--ink-2); }
+/* Lead paragraph: first paragraph of the article is rendered slightly larger
+   so the reader has a smooth ramp from hero/excerpt down to body. */
+.prose-blog > p:first-of-type { font-size: 1.1em; color: var(--ink); }
+.prose-blog ul,
+.prose-blog ol { padding-left: 1.5rem; color: var(--ink-2); }
+.prose-blog ul { list-style: disc; }
+.prose-blog ol { list-style: decimal; }
+.prose-blog li { margin-bottom: 0.4em; }
+.prose-blog li > p { margin: 0; }
+.prose-blog a {
+  color: var(--m-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+.prose-blog a:hover { color: var(--m-accent-2); text-decoration-thickness: 2px; }
+.prose-blog code {
+  background: color-mix(in oklab, var(--m-accent) 12%, var(--bg-3));
+  color: var(--ink);
+  padding: 0.15em 0.4em;
+  border-radius: 0.3rem;
+  font-size: 0.88em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.prose-blog pre {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  padding: 1.1rem 1.25rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.92em;
+  line-height: 1.6;
+}
+.prose-blog pre code { background: transparent; padding: 0; font-size: inherit; border-radius: 0; }
+/* Blockquote: oversized opening quote glyph + accent rule. The mark sits
+   absolutely so it doesn't disturb the text rhythm. */
+.prose-blog blockquote {
+  position: relative;
+  padding: 0.4rem 1.25rem 0.4rem 1.5rem;
+  border-left: 3px solid var(--m-accent);
+  color: var(--ink-2);
+  font-style: italic;
+  font-size: 1.05em;
+}
+.prose-blog blockquote p { color: var(--ink-2); }
+.prose-blog hr {
+  border: 0;
+  height: 1px;
+  background: var(--line);
+  margin: 2.5rem 0;
+}
+.prose-blog strong { color: var(--ink); font-weight: 600; }
+.prose-blog em { color: var(--ink); }
+/* Inline images: full-width within the prose column, rounded card with
+   subtle border so they read as figures rather than naked PNGs. */
+.prose-blog img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1.75rem auto;
+  border-radius: 0.875rem;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+}
 /* Tables: wrap in their own scroll container so a wide table doesn't
    force the whole article to scroll horizontally. `display: block` on
    the table sacrifices some semantic purity but lets `overflow-x: auto`
    actually take effect; the cells inside still render in a tabular
    layout because their default UA display values cascade independently. */
-.prose-blog table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin-bottom: 1rem; font-size: 0.95em; }
-.prose-blog th, .prose-blog td { border: 1px solid var(--line); padding: 0.45em 0.75em; text-align: left; vertical-align: top; }
+.prose-blog table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.95em;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+.prose-blog th, .prose-blog td { border-bottom: 1px solid var(--line); padding: 0.55em 0.85em; text-align: left; vertical-align: top; }
+.prose-blog tr:last-child td { border-bottom: 0; }
 .prose-blog th { background: var(--bg-2); font-weight: 600; color: var(--ink); }

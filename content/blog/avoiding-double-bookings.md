@@ -25,15 +25,6 @@ That story matters because most "how to prevent double bookings" articles obsess
 - Run a **24-hour pre-arrival audit** for every booking: open both platforms, confirm the dates still match.
 - One double booking out of hundreds is a math fact, not a moral failure. Keep an apology template ready.
 
-## Table of contents
-
-1. The cheat sheet
-2. Sync interval: set the dial right
-3. Buffer days: when to insert one (and when not)
-4. Manual entry rules: the offline-calendar trap
-5. The 24-hour pre-arrival audit
-6. FAQ
-
 ## The cheat sheet
 
 Five rules. In order of how often each one will save you.

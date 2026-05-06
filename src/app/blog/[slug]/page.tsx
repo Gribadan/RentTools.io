@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { BlogComments, type BlogCommentItem } from "@/components/blog-comments";
+import { BlogToc } from "@/components/blog-toc";
 import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
-import { renderMarkdown } from "@/lib/markdown";
+import { extractToc, readingMinutes, renderMarkdown } from "@/lib/markdown";
 import { getSession } from "@/lib/auth";
 import { applySeoOverrides } from "@/lib/seo";
 
@@ -22,6 +23,10 @@ function parseTags(json: string): string[] {
 
 function formatDate(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+function formatLongDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 async function findPublishedPost(slug: string) {
@@ -87,6 +92,8 @@ export default async function BlogPostPage({
 
   const tags = parseTags(post.tagsJson);
   const html = renderMarkdown(post.body);
+  const toc = extractToc(post.body);
+  const minutes = readingMinutes(post.body);
   const postUrl = `${SITE_URL}/blog/${slug}`;
   const blogPostingJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -157,14 +164,19 @@ export default async function BlogPostPage({
     username: c.user?.username ?? "deleted user",
   }));
 
+  const authorInitial = (post.author?.username ?? "R").slice(0, 1).toUpperCase();
+
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <JsonLd data={blogPostingJsonLd} />
       <JsonLd data={breadcrumbJsonLd} />
-      <header className="border-b border-[var(--line)]">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/blog" className="text-sm font-semibold text-[var(--ink)] hover:text-white">
-            ← Blog
+      <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--bg)]/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--ink)] hover:text-white"
+          >
+            <span aria-hidden>←</span> Blog
           </Link>
           <nav className="flex items-center gap-4 text-sm text-[var(--ink-3)]">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
@@ -174,94 +186,170 @@ export default async function BlogPostPage({
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
-        <article>
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{post.title}</h1>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[var(--ink-4)]">
-              {post.publishedAt && (
-                <time dateTime={post.publishedAt.toISOString()}>
-                  {formatDate(post.publishedAt)}
-                </time>
-              )}
-              {post.author?.username && (
-                <span>by {post.author.username}</span>
-              )}
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {tags.map((t) => (
-                    <Link
-                      key={t}
-                      href={`/blog/tag/${encodeURIComponent(t)}`}
-                      className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[11px] hover:border-[var(--line-2)] hover:text-[var(--ink-3)]"
-                    >
-                      {t}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-            {post.excerpt && (
-              <p className="mt-5 text-base leading-relaxed text-[var(--ink-3)]">{post.excerpt}</p>
-            )}
-          </header>
-
-          <div
-            className="prose-blog text-base leading-relaxed text-[var(--ink-2)]"
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
-        </article>
-
-        {related.length > 0 && (
-          <section aria-labelledby="related-heading" className="mt-12 border-t border-[var(--line)] pt-8">
-            <h2 id="related-heading" className="text-lg font-semibold text-[var(--ink)]">
-              Related posts
-            </h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {related.map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-lg border border-[var(--line)] bg-[var(--bg)] p-4 transition-colors hover:border-[var(--line-2)]"
-                >
-                  <Link href={`/blog/${r.slug}`} className="block">
-                    <h3 className="text-sm font-semibold text-[var(--ink)] hover:text-white">
-                      {r.title}
-                    </h3>
-                    {r.excerpt && (
-                      <p className="mt-1 text-xs text-[var(--ink-3)] line-clamp-2">{r.excerpt}</p>
-                    )}
-                    {r.publishedAt && (
-                      <time
-                        dateTime={r.publishedAt.toISOString()}
-                        className="mt-2 block text-[11px] text-[var(--ink-4)]"
-                      >
-                        {formatDate(r.publishedAt)}
-                      </time>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        <BlogComments
-          postId={post.id}
-          comments={comments}
-          isSignedIn={!!session}
-          isSuperadmin={isSuperadmin}
-          loginHref={`/login?next=${encodeURIComponent(`/blog/${slug}`)}`}
+      {/* Hero — full-bleed gradient band, larger headline, key meta inline.
+          Title scales aggressively on desktop so the post feels like a
+          magazine feature rather than a wiki page. */}
+      <section className="relative overflow-hidden border-b border-[var(--line)] bg-[var(--bg)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-60"
+          style={{
+            background:
+              "radial-gradient(60% 60% at 50% 0%, color-mix(in oklab, var(--m-accent) 22%, transparent) 0%, transparent 70%)",
+          }}
         />
+        <div className="relative mx-auto max-w-[820px] px-4 pb-10 pt-12 sm:px-6 sm:pb-14 sm:pt-16">
+          {tags.length > 0 && (
+            <div className="mb-5 flex flex-wrap gap-1.5">
+              {tags.slice(0, 4).map((t) => (
+                <Link
+                  key={t}
+                  href={`/blog/tag/${encodeURIComponent(t)}`}
+                  className="rounded-full border border-[var(--line)] bg-[var(--bg-2)]/60 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-[var(--ink-3)] transition-colors hover:border-[var(--line-2)] hover:text-[var(--ink)]"
+                >
+                  {t}
+                </Link>
+              ))}
+            </div>
+          )}
+          <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl md:text-5xl lg:text-[3.25rem]">
+            {post.title}
+          </h1>
+          {post.excerpt && (
+            <p className="mt-5 text-pretty text-base leading-relaxed text-[var(--ink-3)] sm:text-lg sm:leading-relaxed">
+              {post.excerpt}
+            </p>
+          )}
+          <div className="mt-7 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[var(--ink-3)]">
+            {post.author?.username && (
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[var(--m-accent)] to-[var(--m-accent-2)] text-[11px] font-semibold text-white">
+                  {authorInitial}
+                </span>
+                <span className="text-[var(--ink-2)]">{post.author.username}</span>
+              </span>
+            )}
+            {post.publishedAt && (
+              <>
+                <span aria-hidden className="text-[var(--ink-4)]">·</span>
+                <time dateTime={post.publishedAt.toISOString()}>
+                  {formatLongDate(post.publishedAt)}
+                </time>
+              </>
+            )}
+            <span aria-hidden className="text-[var(--ink-4)]">·</span>
+            <span>{minutes} min read</span>
+          </div>
+        </div>
+      </section>
 
-        <nav className="mt-12 border-t border-[var(--line)] pt-6 text-sm">
-          <Link href="/blog" className="text-[var(--ink-3)] hover:text-[var(--ink)]">
-            ← All posts
-          </Link>
-        </nav>
+      <main className="mx-auto max-w-[1200px] px-4 sm:px-6">
+        <div className="grid gap-10 py-10 sm:py-14 lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12">
+          <article className="min-w-0">
+            {post.ogImageUrl && (
+              // Hero image — only shown when the editor set an OG image. Sits
+              // between hero and body so the eye lands on a visual after the
+              // headline.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={post.ogImageUrl}
+                alt=""
+                className="mb-8 aspect-[1.91/1] w-full rounded-2xl border border-[var(--line)] object-cover"
+                loading="eager"
+              />
+            )}
+
+            <div
+              className="prose-blog text-[17px] leading-[1.75] text-[var(--ink-2)]"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+
+            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-6">
+              <span className="text-xs uppercase tracking-wider text-[var(--ink-4)]">
+                Share
+              </span>
+              <ShareLink
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(postUrl)}`}
+                label="Twitter"
+              />
+              <ShareLink
+                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(postUrl)}`}
+                label="LinkedIn"
+              />
+              <ShareLink
+                href={`mailto:?subject=${encodeURIComponent(post.title)}&body=${encodeURIComponent(`${post.excerpt}\n\n${postUrl}`)}`}
+                label="Email"
+              />
+            </div>
+
+            {related.length > 0 && (
+              <section
+                aria-labelledby="related-heading"
+                className="mt-14 border-t border-[var(--line)] pt-10"
+              >
+                <h2
+                  id="related-heading"
+                  className="text-xl font-semibold tracking-tight text-[var(--ink)]"
+                >
+                  Keep reading
+                </h2>
+                <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+                  {related.map((r) => (
+                    <li key={r.id}>
+                      <Link
+                        href={`/blog/${r.slug}`}
+                        className="group block rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/30 p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
+                      >
+                        <h3 className="text-[15px] font-semibold leading-snug text-[var(--ink)] group-hover:text-white">
+                          {r.title}
+                        </h3>
+                        {r.excerpt && (
+                          <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[var(--ink-3)]">
+                            {r.excerpt}
+                          </p>
+                        )}
+                        {r.publishedAt && (
+                          <time
+                            dateTime={r.publishedAt.toISOString()}
+                            className="mt-3 block text-[11px] uppercase tracking-wider text-[var(--ink-4)]"
+                          >
+                            {formatDate(r.publishedAt)}
+                          </time>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            <BlogComments
+              postId={post.id}
+              comments={comments}
+              isSignedIn={!!session}
+              isSuperadmin={isSuperadmin}
+              loginHref={`/login?next=${encodeURIComponent(`/blog/${slug}`)}`}
+            />
+
+            <nav className="mt-12 border-t border-[var(--line)] pt-6 text-sm">
+              <Link href="/blog" className="text-[var(--ink-3)] hover:text-[var(--ink)]">
+                ← All posts
+              </Link>
+            </nav>
+          </article>
+
+          {/* TOC sidebar — only on lg+. Hidden when there are fewer than two
+              headings; the BlogToc client guards that internally too. */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pb-8">
+              <BlogToc entries={toc} />
+            </div>
+          </aside>
+        </div>
       </main>
 
       <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-3xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
+        <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
@@ -271,5 +359,18 @@ export default async function BlogPostPage({
         </div>
       </footer>
     </div>
+  );
+}
+
+function ShareLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-2.5 py-1 text-xs font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--line-2)] hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
+    >
+      {label}
+    </a>
   );
 }

@@ -23,17 +23,6 @@ A friend with three apartments asked me last month if there was anything free th
 - A DIY combo (Google Calendar plus an iCal stitcher) covers basic sync but nothing else. It is the right answer for a single property and the wrong one above two.
 - Free tools cost time, not money. Budget the time before you commit.
 
-## Table of contents
-
-1. What "free" actually means here
-2. Managed-free tools
-3. Self-host-free tools
-4. DIY combos using general-purpose software
-5. What every free tool does poorly
-6. When free is the wrong answer
-7. How to pick
-8. FAQ
-
 ## What "free" actually means here
 
 The "free property management software" search results page is misleading. Most listed tools have a "free trial" that lasts 14 days, a "free plan" that bars the features hosts actually need, or a "free for one property" gate that turns paid the moment you grow. Worth separating the categories before going shopping.

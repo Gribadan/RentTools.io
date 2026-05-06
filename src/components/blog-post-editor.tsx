@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -79,6 +79,9 @@ export function BlogPostEditor({ post, candidates }: Props) {
   const [linkBusy, setLinkBusy] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [showPreview, setShowPreview] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const tags = useMemo(
     () =>
@@ -109,6 +112,92 @@ export function BlogPostEditor({ post, candidates }: Props) {
   const setStatusMessage = (text: string, ok: boolean) => {
     setMessage({ text, ok });
     setTimeout(() => setMessage(null), 4000);
+  };
+
+  /**
+   * Apply a markdown transform to the current selection (or caret).
+   *
+   * `wrap` and `linePrefix` cover every toolbar action we ship:
+   *   - wrap: surround the selection with `before`/`after` (bold, italic, code, link)
+   *   - linePrefix: prepend a token to each line in the selection (h2, list, quote)
+   *
+   * Both modes update the textarea synchronously via setBody and then re-focus
+   * the input, restoring the selection so chained edits stay natural.
+   */
+  const applyEdit = (
+    mode: "wrap" | "linePrefix" | "insert",
+    args: { before?: string; after?: string; prefix?: string; placeholder?: string; insert?: string },
+  ) => {
+    const ta = bodyRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const before = body.slice(0, start);
+    const selected = body.slice(start, end);
+    const after = body.slice(end);
+    let nextBody = body;
+    let nextStart = start;
+    let nextEnd = end;
+
+    if (mode === "wrap") {
+      const inner = selected.length > 0 ? selected : (args.placeholder ?? "");
+      const piece = `${args.before ?? ""}${inner}${args.after ?? ""}`;
+      nextBody = `${before}${piece}${after}`;
+      nextStart = start + (args.before?.length ?? 0);
+      nextEnd = nextStart + inner.length;
+    } else if (mode === "linePrefix") {
+      // Find the start of the first selected line; rewrite each line.
+      const lineStart = before.lastIndexOf("\n") + 1;
+      const block = body.slice(lineStart, end);
+      const lines = block.split("\n");
+      const rewritten = lines
+        .map((ln) => `${args.prefix}${ln.length === 0 ? (args.placeholder ?? "") : ln}`)
+        .join("\n");
+      nextBody = `${body.slice(0, lineStart)}${rewritten}${after}`;
+      nextStart = lineStart;
+      nextEnd = lineStart + rewritten.length;
+    } else if (mode === "insert") {
+      const piece = args.insert ?? "";
+      nextBody = `${before}${piece}${after}`;
+      nextStart = start + piece.length;
+      nextEnd = nextStart;
+    }
+
+    setBody(nextBody);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(nextStart, nextEnd);
+    });
+  };
+
+  const insertLink = () => {
+    const url = prompt("URL (https://… or /relative/path):");
+    if (!url) return;
+    applyEdit("wrap", { before: "[", after: `](${url})`, placeholder: "link text" });
+  };
+
+  const handleImageFile = async (file: File) => {
+    setUploading(true);
+    setMessage(null);
+    try {
+      const fd = new FormData();
+      fd.append("image", file);
+      const res = await fetch("/api/admin/blog-images", { method: "POST", body: fd });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        setStatusMessage(data.error ?? "Upload failed", false);
+        return;
+      }
+      const data = (await res.json()) as { url: string };
+      const alt = file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+      applyEdit("insert", { insert: `\n\n![${alt}](${data.url})\n\n` });
+      setStatusMessage("Image uploaded.", true);
+    } catch (err) {
+      setStatusMessage(err instanceof Error ? err.message : "Upload failed", false);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   const save = async () => {
@@ -369,10 +458,95 @@ export function BlogPostEditor({ post, candidates }: Props) {
           </div>
 
           <div className="rounded-xl border border-border/60 bg-card/50">
-            <div className="flex items-center justify-between border-b border-border/40 px-4 py-2">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Body (markdown)
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-1">
+                <ToolbarButton
+                  title="Heading 2 (##)"
+                  onClick={() => applyEdit("linePrefix", { prefix: "## ", placeholder: "Heading" })}
+                >
+                  H2
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Heading 3 (###)"
+                  onClick={() => applyEdit("linePrefix", { prefix: "### ", placeholder: "Heading" })}
+                >
+                  H3
+                </ToolbarButton>
+                <ToolbarSeparator />
+                <ToolbarButton
+                  title="Bold (Ctrl+B)"
+                  onClick={() => applyEdit("wrap", { before: "**", after: "**", placeholder: "bold" })}
+                >
+                  <span className="font-bold">B</span>
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Italic (Ctrl+I)"
+                  onClick={() => applyEdit("wrap", { before: "*", after: "*", placeholder: "italic" })}
+                >
+                  <span className="italic">I</span>
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Inline code"
+                  onClick={() => applyEdit("wrap", { before: "`", after: "`", placeholder: "code" })}
+                >
+                  <span className="font-mono">{`</>`}</span>
+                </ToolbarButton>
+                <ToolbarSeparator />
+                <ToolbarButton
+                  title="Bullet list"
+                  onClick={() => applyEdit("linePrefix", { prefix: "- ", placeholder: "list item" })}
+                >
+                  • List
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Numbered list"
+                  onClick={() => applyEdit("linePrefix", { prefix: "1. ", placeholder: "list item" })}
+                >
+                  1. List
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Quote"
+                  onClick={() => applyEdit("linePrefix", { prefix: "> ", placeholder: "quote" })}
+                >
+                  &ldquo; Quote
+                </ToolbarButton>
+                <ToolbarSeparator />
+                <ToolbarButton title="Link" onClick={insertLink}>
+                  Link
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Code block"
+                  onClick={() =>
+                    applyEdit("wrap", { before: "\n```\n", after: "\n```\n", placeholder: "code" })
+                  }
+                >
+                  Code block
+                </ToolbarButton>
+                <ToolbarButton
+                  title="Horizontal rule"
+                  onClick={() => applyEdit("insert", { insert: "\n\n---\n\n" })}
+                >
+                  ―
+                </ToolbarButton>
+                <ToolbarSeparator />
+                <ToolbarButton
+                  title="Upload image"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {uploading ? "Uploading…" : "🖼 Image"}
+                </ToolbarButton>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleImageFile(file);
+                  }}
+                />
+              </div>
               <div className="flex items-center gap-3">
                 <span className="text-[10px] text-muted-foreground">{wordCount} words</span>
                 <Button
@@ -387,12 +561,48 @@ export function BlogPostEditor({ post, candidates }: Props) {
             </div>
             <div className={`grid gap-0 ${showPreview ? "md:grid-cols-2" : ""}`}>
               <textarea
+                ref={bodyRef}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+                    e.preventDefault();
+                    applyEdit("wrap", { before: "**", after: "**", placeholder: "bold" });
+                  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+                    e.preventDefault();
+                    applyEdit("wrap", { before: "*", after: "*", placeholder: "italic" });
+                  } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                    e.preventDefault();
+                    insertLink();
+                  }
+                }}
+                onPaste={(e) => {
+                  const file = Array.from(e.clipboardData.files).find((f) =>
+                    f.type.startsWith("image/")
+                  );
+                  if (file) {
+                    e.preventDefault();
+                    void handleImageFile(file);
+                  }
+                }}
+                onDragOver={(e) => {
+                  if (Array.from(e.dataTransfer.items).some((it) => it.kind === "file")) {
+                    e.preventDefault();
+                  }
+                }}
+                onDrop={(e) => {
+                  const file = Array.from(e.dataTransfer.files).find((f) =>
+                    f.type.startsWith("image/")
+                  );
+                  if (file) {
+                    e.preventDefault();
+                    void handleImageFile(file);
+                  }
+                }}
                 rows={28}
                 spellCheck={false}
                 className="w-full bg-transparent p-4 font-mono text-sm leading-relaxed outline-none"
-                placeholder="# Heading&#10;&#10;Write the post body in markdown."
+                placeholder="# Heading&#10;&#10;Write the post body in markdown.&#10;&#10;Tip: paste or drag an image to upload it."
               />
               {showPreview && (
                 <div
@@ -546,4 +756,30 @@ export function BlogPostEditor({ post, candidates }: Props) {
       </div>
     </div>
   );
+}
+
+interface ToolbarButtonProps {
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}
+
+function ToolbarButton({ title, onClick, disabled, children }: ToolbarButtonProps) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex h-7 min-w-[28px] items-center justify-center rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {children}
+    </button>
+  );
+}
+
+function ToolbarSeparator() {
+  return <span aria-hidden className="mx-0.5 h-4 w-px bg-border/60" />;
 }

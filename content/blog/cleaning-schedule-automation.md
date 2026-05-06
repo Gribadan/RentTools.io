@@ -27,15 +27,6 @@ This is the post on what to actually automate, what to leave manual, and the cle
 - Track three things per turnover: status (pending / in progress / done), notes (issues found), photos (proof + memory).
 - Stop using WhatsApp as the system of record. Use it for chat, not for "did you clean apartment 3?".
 
-## Table of contents
-
-1. The actual problem with a shared spreadsheet
-2. What a cleaning schedule needs to track
-3. The cleaner-role flow (no host login required)
-4. Photos and notes: when to ask and what to capture
-5. WhatsApp is a chat tool, not a system of record
-6. FAQ
-
 ## The actual problem with a shared spreadsheet
 
 A shared Sheet works because it is a list. The trouble is that the list has no view-by-cleaner mode without filters, and filters in Sheets are the kind of thing that breaks the moment your cleaner taps the wrong cell.

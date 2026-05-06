@@ -25,16 +25,6 @@ This is the post on how to do that, what breaks at the small end, and the honest
 - Cloudflare in front of the droplet gives you free TLS, free DDoS protection, and free static caching. Use it.
 - Total monthly cost for a 1-property to 50-property host: $4 to $6 droplet, $0 Cloudflare, $0 GitHub Actions free tier. $4 to $10 a month is the realistic floor.
 
-## Table of contents
-
-1. The case for self-hosting (and against)
-2. The droplet sizing question
-3. Building elsewhere, running on the box
-4. SQLite is enough
-5. Cloudflare, TLS, and the boring infra
-6. What breaks on the cheap end
-7. FAQ
-
 ## The case for self-hosting (and against)
 
 Self-hosting a property manager is not for everyone. Be honest about which side you are on before reading further.

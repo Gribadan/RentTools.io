@@ -116,3 +116,8 @@ authorized_keys
 
 # === Vercel ===
 .vercel
+
+# === Runtime uploads (blog images, etc.) ===
+# Written by /api/admin/blog-images at runtime. Excluded from git so
+# `git reset --hard` on deploys does not wipe author uploads.
+/public/uploads/

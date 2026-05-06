@@ -25,15 +25,6 @@ This post is the math I should have done in month one. When buffer days earn the
 - Two buffer days are a luxury, not a strategy. Skip them unless the property has special turnover needs (large group cleanups, deep maintenance cycles).
 - Set the buffer once on the canonical platform, let iCal propagate. Never set it on both platforms manually.
 
-## Table of contents
-
-1. The buffer-day decision
-2. The revenue math
-3. Cleaning quality is the hidden cost of zero buffer
-4. Buffer days and double-booking risk
-5. How to set buffer days on Airbnb and Booking.com
-6. FAQ
-
 ## The buffer-day decision
 
 The standard host advice is "one day buffer". Pick a property, click the setting, walk away. It is the safest default but it is rarely the right one. Buffer days have a real cost and the cost depends on the property.
