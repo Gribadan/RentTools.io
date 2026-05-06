@@ -10,6 +10,7 @@ import { SettingsPanel } from "@/components/settings-panel";
 import { Dashboard } from "@/components/dashboard";
 import { PropertyCalendar } from "@/components/property-calendar";
 import { PropertyCleaningView } from "@/components/property-cleaning-view";
+import { GlobalCleaningView } from "@/components/global-cleaning-view";
 import { SyncSettings } from "@/components/sync-settings";
 import { TasksPanel } from "@/components/tasks-panel";
 import { ReportsPanel } from "@/components/reports-panel";
@@ -282,6 +283,15 @@ function AppContent({
       // property selected, the panel shows a meaningful aggregate
       // across every property in `properties`.
       return <ReportsPanel property={selectedProperty ?? null} properties={properties} />;
+    }
+
+    // Cleaning is dual-mode like Reports: cross-property when no
+    // property selected, per-property when one is. The per-property
+    // branch lives below in the property switch — this top-level
+    // check only handles the global case so the Cleaning tab never
+    // bounces the user into a forced-property selection.
+    if (activeView === "cleaning" && !selectedProperty) {
+      return <GlobalCleaningView properties={properties} />;
     }
 
     // Property views

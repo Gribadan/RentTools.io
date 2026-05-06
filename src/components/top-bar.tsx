@@ -136,7 +136,12 @@ export function TopBar({
   // sense in a property context. If user clicks one with no property
   // selected, auto-pick the first one in the same nav.
   const goToTab = (view: AppView) => {
-    const requiresProperty = view === "calendar" || view === "cleaning" || view === "sync";
+    // Calendar is the only tab that strictly requires a property —
+    // there is no cross-property calendar view (a single grid can't
+    // show 5 properties' bars meaningfully). Cleaning and Reports
+    // are dual-mode: routing them with no property lands on the
+    // global aggregate view, not a forced first-property pick.
+    const requiresProperty = view === "calendar" || view === "sync";
     if (requiresProperty && !selectedPropertyId && properties.length > 0) {
       onNavigate({ property: properties[0].id, view });
     } else {
@@ -146,11 +151,17 @@ export function TopBar({
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
 
+  // Tabs are scope-aware. Without a property selected the top bar
+  // only shows the dual-mode tabs (Cleaning + Reports) so the user is
+  // never offered a tab that auto-bounces them into picking a
+  // property; selecting a property surfaces Calendar + Property next
+  // to them. Logo click always returns to Dashboard (no-property home).
+  const hasProperty = !!selectedPropertyId;
   const tabs: { key: AppView; label: string; show: boolean }[] = [
-    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: true },
+    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: hasProperty },
     { key: "cleaning", label: locale === "ru" ? "Уборки" : "Cleaning", show: true },
     { key: "reports", label: locale === "ru" ? "Отчёты" : "Reports", show: true },
-    { key: "sync", label: locale === "ru" ? "Объект" : "Property", show: !!selectedPropertyId },
+    { key: "sync", label: locale === "ru" ? "Объект" : "Property", show: hasProperty },
   ];
 
   return (

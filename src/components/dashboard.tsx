@@ -978,9 +978,16 @@ export function Dashboard({
         </div>
       ) : null}
 
-      {/* Cleaning Schedule — separate section on global dashboard */}
+      {/* Cleaning lives on its own tab now — the inline schedule
+          section was removed so the dashboard root reads as a
+          portfolio-overview only. We still mount a hidden
+          CleaningSchedule purely so the cleaner-conflict detection
+          logic runs and feeds the Today / Next-7-days conflict
+          badges via onCleanerConflictDatesChange. The visible
+          schedule lives at activeView === "cleaning" (Cleaning tab,
+          no property selected) inside GlobalCleaningView. */}
       {!selectedProperty && properties.length > 0 && Object.keys(allSyncedEvents).length > 0 && (
-        <div id="cleaning-schedule" className="scroll-mt-4">
+        <div className="hidden" aria-hidden="true">
           <CleaningSchedule
             properties={properties}
             syncedEvents={allSyncedEvents}
