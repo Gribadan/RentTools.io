@@ -11,19 +11,41 @@ export async function GET(request: NextRequest) {
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const propertyIdParam = request.nextUrl.searchParams.get("propertyId");
-    if (!propertyIdParam) {
-      return NextResponse.json({ error: "propertyId required" }, { status: 400 });
-    }
-    const propertyId = parseInt(propertyIdParam);
-    if (isNaN(propertyId)) return NextResponse.json({ error: "Invalid propertyId" }, { status: 400 });
 
-    if (!(await canManageProperty(propertyId, session.userId, session.role))) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // Cleaners have no message-templates access; only owners and managers do.
+    if (session.role === "cleaner") {
+      return NextResponse.json({ templates: [] });
     }
 
+    if (propertyIdParam !== null) {
+      const propertyId = parseInt(propertyIdParam);
+      if (isNaN(propertyId)) {
+        return NextResponse.json({ error: "Invalid propertyId" }, { status: 400 });
+      }
+      if (!(await canManageProperty(propertyId, session.userId, session.role))) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      const templates = await prisma.messageTemplate.findMany({
+        where: { propertyId },
+        orderBy: { createdAt: "asc" },
+      });
+      return NextResponse.json({ templates });
+    }
+
+    // Aggregate mode (no propertyId) — return every template the user can
+    // manage, with property metadata included for grouping. Used by the
+    // /dashboard/admin/workspace/message-templates overview surface.
     const templates = await prisma.messageTemplate.findMany({
-      where: { propertyId },
-      orderBy: { createdAt: "asc" },
+      where: {
+        property: {
+          OR: [
+            { userId: session.userId },
+            { managers: { some: { managerId: session.userId } } },
+          ],
+        },
+      },
+      include: { property: { select: { id: true, name: true } } },
+      orderBy: [{ propertyId: "asc" }, { createdAt: "asc" }],
     });
     return NextResponse.json({ templates });
   } catch (err) {

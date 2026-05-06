@@ -85,6 +85,14 @@ const TILES: ReadonlyArray<{
         requiresSuperadmin: true,
       },
       {
+        href: "/dashboard/admin/workspace/message-templates",
+        label: { en: "Message templates", ru: "Шаблоны сообщений" },
+        desc: {
+          en: "Cross-property overview of guest-message templates.",
+          ru: "Сводка шаблонов сообщений по всем объектам.",
+        },
+      },
+      {
         href: "/dashboard/admin/workspace/audit",
         label: { en: "Audit log", ru: "Журнал действий" },
         desc: { en: "Recent actions tied to your session.", ru: "Последние действия в вашей сессии." },

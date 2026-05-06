@@ -47,7 +47,7 @@ const NAV: NavGroup[] = [
       { label: { en: "Site settings", ru: "Настройки сайта" }, href: "/dashboard/admin/workspace/site-settings", requiresSuperadmin: true },
       { label: { en: "Properties", ru: "Объекты" }, href: "/dashboard/admin/workspace/properties" },
       { label: { en: "Cleaner assignments", ru: "Уборщики" } },
-      { label: { en: "Message templates", ru: "Шаблоны сообщений" } },
+      { label: { en: "Message templates", ru: "Шаблоны сообщений" }, href: "/dashboard/admin/workspace/message-templates" },
       { label: { en: "Audit log", ru: "Журнал" }, href: "/dashboard/admin/workspace/audit" },
     ],
   },
