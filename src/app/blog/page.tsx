@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BlogHeader } from "@/components/blog-header";
+import { MarketingHeader } from "@/components/marketing-header";
 import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
@@ -145,7 +145,7 @@ export default async function BlogIndexPage({
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       {blogJsonLd && <JsonLd data={blogJsonLd} />}
-      <BlogHeader />
+      <MarketingHeader sticky />
 
       <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
         {/* Index hero — same accent gradient as the post pages so the

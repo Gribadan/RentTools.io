@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BlogHeader } from "@/components/blog-header";
+import { MarketingHeader } from "@/components/marketing-header";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 
@@ -150,7 +150,7 @@ export default async function BlogTagPage({
 
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
-      <BlogHeader />
+      <MarketingHeader sticky />
 
       <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
         {/* Tag hero — same shape as the /blog index hero so the surface

@@ -4,25 +4,35 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const REPO_URL = "https://github.com/Gribadan/RentTools.io";
 
+interface MarketingHeaderProps {
+  /** Sticky variant for long-content pages (blog post + index). Off by
+   *  default so the home page and onboarding wizard match. */
+  sticky?: boolean;
+}
+
 /**
- * Marketing-shell header reused across /blog and /blog/[slug].
+ * Public-marketing header — used on the home page, /onboard, /blog, and
+ * /blog/[slug]. Identical brand mark + nav across all four so a visitor
+ * never sees the chrome change while bouncing between them.
  *
- * Mirrors the home page header (src/app/page.tsx) so a reader bouncing
- * between `/`, `/blog`, and `/blog/<post>` never sees the chrome change.
- * Same brand mark, same nav order, same theme + locale controls. Sticky
- * with a translucent backdrop so the article body keeps a stable frame
- * as the reader scrolls.
+ * Brand mark: animated coral pill + house silhouette + three SMIL smoke
+ * puffs from the chimney. Same SVG that ships in the home-page header.
+ *
+ * Nav: Blog · GitHub · Sign in · Get started · ThemeToggle · LocaleSwitcher.
+ * GitHub + Get started both hide on <sm to keep the small-screen header
+ * to a single readable row.
  */
-export function BlogHeader() {
+export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--bg)]/85 backdrop-blur-md">
+    <header
+      className={
+        sticky
+          ? "sticky top-0 z-30 border-b border-[var(--line)] bg-[var(--bg)]/85 backdrop-blur-md"
+          : "border-b border-[var(--line)]"
+      }
+    >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-4 py-4 sm:px-6">
         <Link href="/" className="group flex items-center gap-2">
-          {/* Identical brand mark to the home page header — coral pill,
-              white house silhouette, three SMIL-animated smoke puffs.
-              Single source of truth for this would be a shared component;
-              keeping it inline here matches the home page until we
-              refactor both at once. */}
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
             <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
               <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">

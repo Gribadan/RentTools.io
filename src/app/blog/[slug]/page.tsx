@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { BlogComments, type BlogCommentItem } from "@/components/blog-comments";
 import { BlogCopyLink } from "@/components/blog-copy-link";
 import { BlogFaq } from "@/components/blog-faq";
-import { BlogHeader } from "@/components/blog-header";
+import { MarketingHeader } from "@/components/marketing-header";
 import { BlogTldr } from "@/components/blog-tldr";
 import { BlogToc } from "@/components/blog-toc";
 import { JsonLd } from "@/components/json-ld";
@@ -263,7 +263,7 @@ export default async function BlogPostPage({
       <JsonLd data={blogPostingJsonLd} />
       {faqJsonLd && <JsonLd data={faqJsonLd} />}
       <JsonLd data={breadcrumbJsonLd} />
-      <BlogHeader />
+      <MarketingHeader sticky />
 
       {/* Single outer container shared by the hero, the article, and the TOC
           sidebar. The two-column grid inside lets the hero + article live

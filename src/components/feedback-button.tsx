@@ -7,11 +7,13 @@ const BODY_MAX = 2000;
 const EMAIL_MAX = 200;
 
 // Routes where the floating Feedback button should NOT render. Each entry
-// is a prefix match (`startsWith`).
-//   - /dashboard, /admin: signed-in users have direct support channels.
-//   - /g/, /invite/: guest-form / invite-token surfaces; the button would
-//     distract from the one-shot task the visitor came to do.
-const HIDE_ON_PREFIXES = ["/dashboard", "/admin", "/g/", "/invite/"];
+// is a prefix match (`startsWith`). Hidden on:
+//   - /g/, /invite/ — guest-form / invite-token surfaces; one-shot tasks
+//     where a feedback CTA would be noise.
+//   - /admin — superadmin shouldn't be sending feedback to themselves.
+// Dashboard intentionally INCLUDED — signed-in hosts are the people whose
+// feedback we most want to capture (they hit real product friction).
+const HIDE_ON_PREFIXES = ["/g/", "/invite/", "/dashboard/admin", "/admin/"];
 
 type SubmitState =
   | { kind: "idle" }
