@@ -478,25 +478,31 @@ export function DateActionsPopover({
                     ? (locale === "ru" ? "однодневная бронь" : "single-day stay")
                     : (locale === "ru" ? "проживает" : "staying");
               return (
+                /* Two-column grid: a fixed 64px badge column + a flexible
+                   description column. Badges stay their natural width
+                   (left-aligned in column 1 via the inner span); the
+                   title + sub-line in column 2 always start at the same
+                   x-coord regardless of badge text length, so the rhythm
+                   reads as a clean two-column timeline. */
                 <div key={`bar-${i}`} className="space-y-3">
-                  <div className="flex items-start gap-3">
+                  <div className="grid grid-cols-[64px_1fr] items-start gap-x-3">
                     <span
-                      className="shrink-0 mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+                      className="justify-self-start mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
                       style={{ backgroundColor: platformColor }}
                     >
                       {platformLabel}
                     </span>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0">
                       <div className="truncate text-sm font-medium leading-tight text-[var(--ink)]">{b.name}</div>
                       <div className="mt-0.5 text-[11px] leading-tight text-[var(--ink-3)]">{roleLabel}</div>
                     </div>
                   </div>
                   {i === cleaningBetweenIndex && (
-                    <div className="flex items-start gap-3">
-                      <span className="shrink-0 mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]">
+                    <div className="grid grid-cols-[64px_1fr] items-start gap-x-3">
+                      <span className="justify-self-start mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]">
                         {locale === "ru" ? "Уборка" : "Clean"}
                       </span>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0">
                         <div className="truncate text-sm font-medium leading-tight text-[var(--ink)]">
                           {singleStatus?.isManualCleaning
                             ? (locale === "ru" ? "Уборка подтверждена" : "Cleaning scheduled")
