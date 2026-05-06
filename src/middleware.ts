@@ -52,7 +52,16 @@ function detectLocaleFromPath(pathname: string): { locale: string; rest: string 
 }
 
 function isLocalizable(rest: string): boolean {
-  return LOCALIZABLE_PATHS.some((p) => rest === p || rest.startsWith(p === "/" ? "/" : `${p}/`));
+  // Each entry in LOCALIZABLE_PATHS matches either the exact path or
+  // any sub-path under it. The "/" entry matches ONLY the exact home
+  // path — not every path that starts with "/" (which is every path).
+  // Without this guard, /ru/privacy would pass the "starts with /"
+  // check and end up rewritten to /privacy with x-locale=ru, when it
+  // should be 308-redirected to /privacy (privacy is EN-only).
+  return LOCALIZABLE_PATHS.some((p) => {
+    if (p === "/") return rest === "/";
+    return rest === p || rest.startsWith(`${p}/`);
+  });
 }
 
 const PUBLIC_PATHS = [
