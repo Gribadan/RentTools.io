@@ -200,6 +200,14 @@ const TILES: ReadonlyArray<{
         },
         requiresSuperadmin: true,
       },
+      {
+        href: "/dashboard/admin/content/guest-forms",
+        label: { en: "Guest form templates", ru: "Шаблоны анкет гостей" },
+        desc: {
+          en: "Pre-arrival forms across properties — field count + submission count.",
+          ru: "Анкеты заезда по объектам — количество полей и ответов.",
+        },
+      },
     ],
   },
 ];

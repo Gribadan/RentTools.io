@@ -76,7 +76,7 @@ const NAV: NavGroup[] = [
       { label: { en: "Blog comments", ru: "Комментарии блога" }, href: "/dashboard/admin/content/blog-comments", requiresSuperadmin: true },
       { label: { en: "Blog tags", ru: "Теги блога" }, href: "/dashboard/admin/content/blog-tags", requiresSuperadmin: true },
       { label: { en: "Blog media", ru: "Медиа блога" }, href: "/dashboard/admin/content/blog-media", requiresSuperadmin: true },
-      { label: { en: "Guest form templates", ru: "Шаблоны анкет" } },
+      { label: { en: "Guest form templates", ru: "Шаблоны анкет" }, href: "/dashboard/admin/content/guest-forms" },
     ],
   },
 ];
