@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { DateSlider } from "@/components/date-slider";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
-import { WelcomeModal } from "@/components/welcome-modal";
+import { DashboardOnboarding } from "@/components/dashboard-onboarding";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -186,6 +186,11 @@ interface DashboardProps {
     propertyId: number;
   }) => void;
   onAddProperty?: (name: string) => Promise<void> | void;
+  /** Re-fetch properties on the parent. The new in-dashboard
+   *  onboarding wizard calls /api/properties and /api/calendar/links
+   *  directly, so the parent has no idea anything changed until this
+   *  fires. Optional so existing callers don't need to pass it. */
+  onRefresh?: () => Promise<void> | void;
 }
 
 export function Dashboard({
@@ -195,6 +200,7 @@ export function Dashboard({
   onSelectReservation,
   onAddReservation,
   onAddProperty,
+  onRefresh,
 }: DashboardProps) {
   const { t, locale } = useI18n();
   const [showForm, setShowForm] = useState(false);
@@ -341,16 +347,9 @@ export function Dashboard({
     }
   }, [selectedProperty]);
 
-  const [showWelcome, setShowWelcome] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!selectedProperty && properties.length === 0 && onAddProperty) {
-      const dismissed = localStorage.getItem("welcome-modal-dismissed") === "1";
-      setShowWelcome(!dismissed);
-    } else {
-      setShowWelcome(false);
-    }
-  }, [selectedProperty, properties.length, onAddProperty]);
+  // The old WelcomeModal is replaced by DashboardOnboarding (an
+  // in-place empty-state takeover). Modal state hooks intentionally
+  // removed.
 
   // Per-property mode: keep the original "newest booking first" sort
   // (the per-property reservation list is more about audit-trail than
@@ -633,32 +632,14 @@ export function Dashboard({
     ? `${resCount} ${locale === "ru" ? (resCount === 1 ? "бронирование" : resCount < 5 ? "бронирования" : "бронирований") : (resCount === 1 ? "reservation" : "reservations")}`
     : `${resCount} ${locale === "ru" ? "бронирований" : "reservations"} ${locale === "ru" ? "в" : "across"} ${properties.length} ${locale === "ru" ? (properties.length === 1 ? "объекте" : "объектах") : (properties.length === 1 ? "property" : "properties")}`;
 
-  // RT-25.6 tick 4 — zero-properties first-screen. The Welcome modal
-  // can be dismissed; once it is, the user previously landed on a
-  // header + broken "+ New Reservation" button + "create a property"
-  // empty list. Render a focused empty-state hero instead so the path
-  // forward is unambiguous regardless of modal state.
+  // Zero-property first-screen — the dashboard's main column becomes
+  // the onboarding wizard until the user has named one property AND
+  // saved at least one calendar feed (or used the sample-property
+  // escape, or chose to add reservations manually).
   const isZeroProperties = !selectedProperty && properties.length === 0;
-  const handleSampleProperty = useCallback(async () => {
-    try {
-      const res = await fetch("/api/properties/sample", { method: "POST" });
-      if (res.ok) {
-        window.location.reload();
-        return;
-      }
-    } catch {}
-    if (onAddProperty) await onAddProperty("Sample Apartment");
-  }, [onAddProperty]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      {onAddProperty && (
-        <WelcomeModal
-          open={showWelcome}
-          onClose={() => setShowWelcome(false)}
-          onAddProperty={onAddProperty}
-        />
-      )}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -689,38 +670,19 @@ export function Dashboard({
         )}
       </div>
 
-      {/* Zero-properties first-screen — short-circuits the rest of the
-          dashboard so the user lands on a focused getting-started panel
-          rather than a broken "+ New Reservation" button + an empty list.
-          RT-25.6 tick 4. */}
-      {isZeroProperties && onAddProperty && (
-        <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-8 text-center sm:p-12">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--m-accent)]/15 text-[var(--m-accent)]">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10.5l9-7.5 9 7.5M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-semibold text-[var(--ink)]">
-            {t("dashboard.emptyTitle")}
-          </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--ink-3)]">
-            {t("dashboard.emptyBody")}
-          </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
-            <button
-              onClick={() => setShowWelcome(true)}
-              className="h-10 w-full rounded-md bg-[var(--m-accent)] px-5 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] sm:w-auto"
-            >
-              {t("dashboard.emptyAdd")}
-            </button>
-            <button
-              onClick={handleSampleProperty}
-              className="h-10 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-5 text-sm font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-3)] sm:w-auto"
-            >
-              {t("dashboard.emptySample")}
-            </button>
-          </div>
-        </div>
+      {/* Zero-property onboarding — empty-state hijack. Replaces the
+          earlier "Welcome modal + add-property hero" with an inline
+          two-step wizard (property name → connect calendar) so the
+          path forward is one focused surface. Auto-exits on first
+          calendar save / sample-property creation / manual-reservation
+          escape — onComplete refetches the parent's property list. */}
+      {isZeroProperties && (
+        <DashboardOnboarding
+          onComplete={async () => {
+            if (onRefresh) await onRefresh();
+            else if (typeof window !== "undefined") window.location.reload();
+          }}
+        />
       )}
 
       {/* Today strip — check-ins + check-outs scheduled for today across
