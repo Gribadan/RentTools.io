@@ -85,6 +85,14 @@ const TILES: ReadonlyArray<{
         requiresSuperadmin: true,
       },
       {
+        href: "/dashboard/admin/workspace/cleaners",
+        label: { en: "Cleaners", ru: "Уборщики" },
+        desc: {
+          en: "Account-level cleaner pool. Per-property assignment lives on each property's Cleaning tab.",
+          ru: "Пул уборщиков аккаунта. Назначение по объектам — на вкладке «Уборки» объекта.",
+        },
+      },
+      {
         href: "/dashboard/admin/workspace/message-templates",
         label: { en: "Message templates", ru: "Шаблоны сообщений" },
         desc: {

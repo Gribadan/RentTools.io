@@ -44,6 +44,11 @@ interface CleaningDay {
   nextStartDate?: string;   // checkin date of next booking
   gapStartDate?: string;    // first day of bookable gap (gap-potential only)
   gapEndDate?: string;      // last day of bookable gap (gap-potential only)
+  // RT-25.10 tick 2 — name of the priority-0 cleaner assigned to the
+  // property at the time the schedule is built. Surfaced as a chip in
+  // the row markup and appended to the copy/print line. Undefined when
+  // no cleaner is assigned (or when the caller does not pass a map).
+  cleanerName?: string;
 }
 
 interface CleaningScheduleProps {
@@ -63,6 +68,10 @@ interface CleaningScheduleProps {
    *  the internal state is bypassed. Pair with onIncludePotentialChange. */
   includePotential?: boolean;
   onIncludePotentialChange?: (value: boolean) => void;
+  /** RT-25.10 tick 2 — map of propertyId → priority-0 cleaner name.
+   *  When provided, each row in the corresponding property surfaces the
+   *  name as a small chip and appends it to the copy/print line. */
+  cleanerNames?: Record<number, string | undefined>;
 }
 
 function addDaysStr(dateStr: string, days: number): string {
@@ -331,6 +340,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
   hideControls = false,
   includePotential: controlledIncludePotential,
   onIncludePotentialChange,
+  cleanerNames,
 }, ref) {
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
@@ -355,12 +365,19 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
       const propEvents = syncedEvents[prop.id] || [];
       const propLinks = links[prop.id] || [];
       const propOverrides = overrides?.[prop.id] || [];
-      allDays.push(...computeCleaningDays(prop, propEvents, propLinks, propOverrides));
+      const propCleaner = cleanerNames?.[prop.id];
+      const days = computeCleaningDays(prop, propEvents, propLinks, propOverrides);
+      if (propCleaner) {
+        // Stamp the priority-0 cleaner onto each row for this property.
+        // Pure attach step — keeps computeCleaningDays free of cleaner I/O.
+        for (const d of days) d.cleanerName = propCleaner;
+      }
+      allDays.push(...days);
     }
 
     allDays.sort((a, b) => a.date.localeCompare(b.date));
     return allDays;
-  }, [properties, syncedEvents, links, overrides, mode, selectedPropertyId]);
+  }, [properties, syncedEvents, links, overrides, mode, selectedPropertyId, cleanerNames]);
 
   const overlaps = useMemo(() => {
     const dateMap = new Map<string, CleaningDay[]>();
@@ -522,7 +539,10 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
         ? ` ⏱ ${formatHours(day.hoursAvailable)}`
         : "";
       const reasonText = formatReason(day);
-      lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel}${reasonText ? " — " + reasonText : ""}`);
+      // RT-25.10 tick 2 — append the assigned default cleaner so the
+      // pasted message tells the recipient who's coming.
+      const cleanerLabel = day.cleanerName ? ` · 🧹 ${day.cleanerName}` : "";
+      lines.push(`${dateStr}${propLabel} — ${typeLabel}${hoursLabel}${reasonText ? " — " + reasonText : ""}${cleanerLabel}`);
     }
     return lines;
   };
@@ -717,6 +737,11 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                           </span>
                         )}
                         <span className="text-[var(--ink-2)]">{formatReason(day)}</span>
+                        {day.cleanerName && (
+                          <span className="ml-auto inline-flex items-center gap-1 rounded bg-[var(--bg-3)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-2)]">
+                            🧹 {day.cleanerName}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -786,6 +811,11 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                             </span>
                           )}
                           <span className="text-[var(--ink-2)]">{formatReason(day)}</span>
+                          {day.cleanerName && (
+                            <span className="ml-auto inline-flex items-center gap-1 rounded bg-[var(--bg-3)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-2)]">
+                              🧹 {day.cleanerName}
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>

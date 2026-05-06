@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { CleaningSchedule, type CleaningScheduleHandle } from "@/components/cleaning-schedule";
+import { CleanersPanel } from "@/components/cleaners-panel";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
+  const [defaultCleanerName, setDefaultCleanerName] = useState<string | undefined>(undefined);
   const [cleaningEnabled, setCleaningEnabled] = useState<boolean>(property.cleaningEnabled !== false);
   const [toggling, setToggling] = useState(false);
   const [includePotential, setIncludePotential] = useState(true);
@@ -37,14 +39,20 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
   }, [property.cleaningEnabled, property.id]);
 
   const fetchData = useCallback(async () => {
-    const [syncRes, linksRes, ovRes] = await Promise.all([
+    const [syncRes, linksRes, ovRes, asgRes] = await Promise.all([
       fetch(`/api/calendar/sync?propertyId=${property.id}&limit=200`).then(r => r.json()),
       fetch(`/api/calendar/links?propertyId=${property.id}`).then(r => r.json()),
       fetch(`/api/date-overrides?propertyId=${property.id}`).then(r => r.json()),
+      fetch(`/api/cleaner-assignments?propertyId=${property.id}`).then(r => r.ok ? r.json() : []),
     ]);
     setSyncedEvents(syncRes.events || []);
     setLinks(linksRes || []);
     setOverrides(ovRes || []);
+    // RT-25.10 tick 2 — surface the priority-0 cleaner on each schedule row.
+    // Assignments come back priority-asc; the first one is the default.
+    const list = Array.isArray(asgRes) ? asgRes : [];
+    const top = list[0];
+    setDefaultCleanerName(top?.cleanerName ?? top?.username ?? undefined);
   }, [property.id]);
 
   useEffect(() => {
@@ -107,6 +115,7 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
               hideControls
               includePotential={includePotential}
               onIncludePotentialChange={setIncludePotential}
+              cleanerNames={defaultCleanerName ? { [property.id]: defaultCleanerName } : undefined}
             />
           ) : (
             <div className="rounded-lg border border-dashed border-[var(--line-2)] bg-[var(--bg-2)] p-8 text-center">
@@ -170,6 +179,11 @@ export function PropertyCleaningView({ property, onCleaningEnabledChanged }: Pro
               </button>
             </div>
           </div>
+
+          {/* Cleaners assignment (RT-25.10 tick 2) — sidebar entry that
+              replaces the old SyncSettings CleanerAssignmentSection. Only
+              meaningful when the cleaning surface is on. */}
+          {cleaningEnabled && <CleanersPanel propertyId={property.id} />}
 
           {/* View options + actions — only meaningful when cleaning logic is on */}
           {cleaningEnabled && (

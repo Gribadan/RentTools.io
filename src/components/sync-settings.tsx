@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { OnboardingTooltip } from "@/components/onboarding-tooltip";
-import { CleanerAssignmentSection } from "@/components/cleaner-assignment-section";
 import { MessageTemplatesPanel } from "@/components/message-templates-panel";
 import { PropertyManagersPanel } from "@/components/property-managers-panel";
 import { GuestFormBuilder } from "@/components/guest-form-builder";
@@ -611,7 +610,9 @@ export function SyncSettings({ propertyId, propertyName, minNights, checkInTime,
         </div>
       )}
 
-      <CleanerAssignmentSection propertyId={propertyId} />
+      {/* RT-25.10 tick 2 — CleanerAssignmentSection moved to the
+          PropertyCleaningView sidebar. The cleaning tab is the sole
+          assignment UI now. */}
       <MessageTemplatesPanel propertyId={propertyId} />
       <GuestFormBuilder propertyId={propertyId} />
 
