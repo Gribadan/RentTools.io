@@ -48,7 +48,7 @@ const NAV: NavGroup[] = [
   {
     label: { en: "Integrations", ru: "Интеграции" },
     items: [
-      { label: { en: "Calendar platforms", ru: "Платформы" } },
+      { label: { en: "Calendar platforms", ru: "Платформы" }, href: "/dashboard/admin/integrations/platforms" },
       { label: { en: "iCal links", ru: "iCal ссылки" } },
       { label: { en: "Feed access tokens", ru: "Токены доступа" } },
       { label: { en: "Gemini AI key", ru: "Gemini AI ключ" }, href: "/dashboard/admin/integrations/gemini" },

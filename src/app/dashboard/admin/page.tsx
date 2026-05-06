@@ -84,6 +84,14 @@ const TILES: ReadonlyArray<{
           ru: "Переопределить title, description, OG-картинку и canonical для страницы.",
         },
       },
+      {
+        href: "/dashboard/admin/integrations/platforms",
+        label: { en: "Calendar platforms", ru: "Платформы (календарь)" },
+        desc: {
+          en: "Edit colors, sort order, enable/disable. Add custom platforms.",
+          ru: "Цвета, порядок, включение/отключение. Добавить пользовательские платформы.",
+        },
+      },
     ],
   },
   {
