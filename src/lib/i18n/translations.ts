@@ -246,6 +246,14 @@ export const translations = {
   // RT-25.12 — per-guest free-text notes
   "guest.notes": { en: "Notes", ru: "Заметки" },
   "guest.notesPlaceholder": { en: "Allergic to nuts, requested late check-in…", ru: "Аллергия на орехи, поздний заезд…" },
+  // RT-25.13 — per-guest phone for WhatsApp / Telegram quick-message buttons
+  "guest.phone": { en: "Phone", ru: "Телефон" },
+  "guest.phonePlaceholder": { en: "+998901234567", ru: "+998901234567" },
+  "guest.phoneHelp": { en: "Used for the WhatsApp / Telegram quick-message buttons.", ru: "Используется для кнопок быстрого сообщения в WhatsApp и Telegram." },
+  "guest.phoneInvalid": { en: "Phone must start with + and contain 7-15 digits.", ru: "Телефон должен начинаться с + и содержать 7-15 цифр." },
+  "guest.messageOnWhatsApp": { en: "Message on WhatsApp", ru: "Написать в WhatsApp" },
+  "guest.messageOnTelegram": { en: "Message on Telegram", ru: "Написать в Telegram" },
+  "guest.messengerPrefill": { en: "Hi {name} — this is {property}, your check-in is on {checkIn}.", ru: "Здравствуйте, {name}! Это {property}, ваш заезд {checkIn}." },
 
   // Settings
   "settings.title": { en: "Settings", ru: "Настройки" },

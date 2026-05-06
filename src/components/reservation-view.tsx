@@ -777,6 +777,7 @@ export function ReservationView({
         guests={guests}
         checkIn={reservation.checkIn}
         checkOut={reservation.checkOut}
+        propertyName={propertyName}
         onDeleteGuest={onDeleteGuest}
         onUpdateParent={onUpdateParent}
         onUpdateGuest={onUpdateGuest}

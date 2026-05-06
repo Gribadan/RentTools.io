@@ -205,11 +205,18 @@ function AppContent({
   };
 
   const handleUpdateGuest = async (id: number, fields: Partial<Guest>) => {
-    await fetch(`/api/guests/${id}`, {
+    const res = await fetch(`/api/guests/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(fields),
     });
+    if (!res.ok) {
+      // Surfaces 400 (validation) so per-guest UI states like the
+      // RT-25.13 phone-error indicator can react. Existing call sites
+      // already wrap calls in try/catch — see notes / phone blur
+      // handlers in guest-cards.tsx.
+      throw new Error(`Update failed: ${res.status}`);
+    }
     if (selectedReservationId) {
       await fetchGuests(selectedReservationId);
     }

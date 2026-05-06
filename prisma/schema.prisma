@@ -276,6 +276,7 @@ model Guest {
   hasVisa          Boolean     @default(false)
   parentId         Int?
   notes            String      @default("")
+  phone            String      @default("")
   reservationId    Int
   reservation      Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   createdAt        DateTime    @default(now())

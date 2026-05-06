@@ -5,6 +5,7 @@ import {
   sanitizeText,
   sanitizeAlphanumeric,
   stripSpaces,
+  normalizePhone,
 } from "./sanitize";
 
 describe("transliterate", () => {
@@ -118,5 +119,43 @@ describe("stripSpaces", () => {
 
   it("handles empty string", () => {
     expect(stripSpaces("")).toBe("");
+  });
+});
+
+describe("normalizePhone", () => {
+  it("strips spaces, dashes and parens but keeps leading +", () => {
+    expect(normalizePhone("+998 (90) 123-45-67")).toBe("+998901234567");
+  });
+
+  it("preserves a leading + when present", () => {
+    expect(normalizePhone("+12025550143")).toBe("+12025550143");
+  });
+
+  it("accepts a digits-only phone without + prefix", () => {
+    expect(normalizePhone("12025550143")).toBe("12025550143");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(normalizePhone("")).toBe("");
+  });
+
+  it("returns empty string for whitespace-only input", () => {
+    expect(normalizePhone("   ")).toBe("");
+  });
+
+  it("throws on a too-short number", () => {
+    expect(() => normalizePhone("+12345")).toThrow();
+  });
+
+  it("throws on a too-long number", () => {
+    expect(() => normalizePhone("+1234567890123456")).toThrow();
+  });
+
+  it("throws on a number containing letters", () => {
+    expect(() => normalizePhone("call-me-maybe")).toThrow();
+  });
+
+  it("only respects a + at the start, not elsewhere", () => {
+    expect(normalizePhone("998+901234567")).toBe("998901234567");
   });
 });

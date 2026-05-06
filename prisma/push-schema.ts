@@ -205,6 +205,10 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // RT-25.12 — per-guest free-text notes. Empty default so existing
     // rows surface as no-note rather than NULL in the UI.
     `ALTER TABLE "Guest" ADD COLUMN "notes" TEXT NOT NULL DEFAULT ''`,
+    // RT-25.13 — per-guest phone for WhatsApp / Telegram deeplinks.
+    // Stored as E.164 (`+CCNNNNNN…`) but we accept any leading `+` followed
+    // by 7-15 digits, or empty.
+    `ALTER TABLE "Guest" ADD COLUMN "phone" TEXT NOT NULL DEFAULT ''`,
   ];
   for (const sql of migrations) {
     try {

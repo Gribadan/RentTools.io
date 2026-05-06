@@ -48,3 +48,22 @@ export function sanitizeAlphanumeric(text: string): string {
 export function stripSpaces(text: string): string {
   return stripDiacritics(transliterate(text)).replace(/\s+/g, "").trim();
 }
+
+/**
+ * Normalise a phone number for storage. Strips every non-digit character
+ * except a single leading `+`, then checks the result against a loose
+ * E.164-ish shape: optional `+` followed by 7-15 digits. Empty input
+ * returns an empty string. Throws on anything that doesn't match — the
+ * caller is expected to surface a 400 with a helpful message.
+ */
+export function normalizePhone(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed === "") return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/\D/g, "");
+  const result = (hasPlus ? "+" : "") + digits;
+  if (!/^\+?\d{7,15}$/.test(result)) {
+    throw new Error("Invalid phone number");
+  }
+  return result;
+}

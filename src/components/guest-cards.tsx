@@ -39,6 +39,10 @@ interface GuestCardsProps {
   guests: Guest[];
   checkIn: string;
   checkOut: string;
+  // RT-25.13 — used to build the WhatsApp prefill ("…this is {property},
+  // your check-in is on {checkIn}…"). Optional because some legacy callers
+  // don't have it in scope; falls back to a generic prefill in that case.
+  propertyName?: string;
   onDeleteGuest: (id: number) => void;
   onUpdateParent: (childId: number, parentId: number | null) => void;
   onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
@@ -159,6 +163,8 @@ function GuestCard({
   guest,
   children,
   stayDays,
+  checkIn,
+  propertyName,
   onDelete,
   onDrop,
   onDragStart,
@@ -167,6 +173,8 @@ function GuestCard({
   guest: Guest;
   children: Guest[];
   stayDays: number;
+  checkIn: string;
+  propertyName: string;
   onDelete: (id: number) => void;
   onDrop: (childId: number, parentId: number) => void;
   onDragStart: (e: React.DragEvent, childId: number) => void;
@@ -197,6 +205,23 @@ function GuestCard({
       setNotesSavedValue(guest.notes ?? "");
     }
   }, [guest.notes]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // RT-25.13 — phone auto-save. Same draft/saved/state pattern as notes
+  // so a concurrent passport-extraction PATCH can't wipe an in-flight
+  // typing session. Validation errors from the API surface inline rather
+  // than alerting; the saved value reverts to whatever the server holds.
+  const [phoneDraft, setPhoneDraft] = useState<string>(guest.phone ?? "");
+  const [phoneSavedValue, setPhoneSavedValue] = useState<string>(guest.phone ?? "");
+  const [phoneState, setPhoneState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  useEffect(() => {
+    if (phoneDraft === phoneSavedValue) {
+      setPhoneDraft(guest.phone ?? "");
+      setPhoneSavedValue(guest.phone ?? "");
+    } else {
+      setPhoneSavedValue(guest.phone ?? "");
+    }
+  }, [guest.phone]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -274,6 +299,46 @@ function GuestCard({
     }
   };
 
+  const handlePhoneBlur = async () => {
+    if (phoneDraft === phoneSavedValue) return;
+    setPhoneState("saving");
+    try {
+      await onUpdateGuest(guest.id, { phone: phoneDraft });
+      // The server normalises the phone, so the next render via
+      // guest.phone will reconcile our draft to the canonical form.
+      setPhoneSavedValue(phoneDraft);
+      setPhoneState("saved");
+      setTimeout(() => setPhoneState((s) => (s === "saved" ? "idle" : s)), 1600);
+    } catch {
+      // 400 from the server (invalid format) — flag inline and let the
+      // user edit. Don't clobber the draft so they can fix the typo.
+      setPhoneState("error");
+    }
+  };
+
+  // wa.me requires plain digits with no `+`; t.me/+phone requires the
+  // leading `+` so the deeplink resolves. The saved phone is already
+  // normalised, but we cover both shapes (user just typed but hasn't
+  // blurred yet) for the disabled/enabled gating.
+  const phoneForLinks = (phoneDraft || guest.phone || "").trim();
+  const phoneEnabled =
+    phoneForLinks.length > 0 && /^\+?\d{7,15}$/.test(phoneForLinks);
+  const waDigits = phoneForLinks.replace(/^\+/, "");
+  const tmePath = phoneForLinks.startsWith("+")
+    ? phoneForLinks
+    : `+${phoneForLinks}`;
+  const checkInDate = (() => {
+    if (!checkIn) return "";
+    const d = new Date(checkIn);
+    return isNaN(d.getTime()) ? checkIn : d.toISOString().split("T")[0];
+  })();
+  const guestFirstName = (guest.firstName || guest.fullName || "").trim();
+  const messengerPrefill = t("guest.messengerPrefill", {
+    name: guestFirstName,
+    property: propertyName || "",
+    checkIn: checkInDate,
+  });
+
   return (
     <div
       className={`rounded-xl border transition-all ${
@@ -334,6 +399,81 @@ function GuestCard({
       </div>
 
       <div className="divide-y divide-border/15">
+        {/* RT-25.13 — phone input + WhatsApp / Telegram quick-message buttons.
+            Always visible (not gated by edit mode); auto-saves on blur via the
+            same PATCH path used for passport edits. Server normalises the
+            value, so the saved phone is canonical E.164-ish ("+...digits..."). */}
+        <div className="p-1.5">
+          <div className="mb-1 flex items-center justify-between px-2 pt-1">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-primary/60">
+              {t("guest.phone")}
+            </span>
+            <span className={`text-[10px] transition-opacity ${phoneState === "idle" ? "opacity-0" : "opacity-100"} ${phoneState === "saved" ? "text-emerald-500" : phoneState === "error" ? "text-destructive" : "text-muted-foreground/60"}`}>
+              {phoneState === "saving"
+                ? (locale === "ru" ? "Сохранение…" : "Saving…")
+                : phoneState === "saved"
+                ? (locale === "ru" ? "Сохранено" : "Saved")
+                : phoneState === "error"
+                ? t("guest.phoneInvalid")
+                : ""}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 px-2">
+            <input
+              type="tel"
+              inputMode="tel"
+              value={phoneDraft}
+              onChange={(e) => {
+                setPhoneDraft(e.target.value);
+                if (phoneState === "saved" || phoneState === "error") setPhoneState("idle");
+              }}
+              onBlur={handlePhoneBlur}
+              placeholder={t("guest.phonePlaceholder")}
+              className="min-w-0 flex-1 rounded-md border border-border/40 bg-background/50 px-2 py-1 text-sm text-[var(--ink)] placeholder-muted-foreground/30 focus:border-primary/60 focus:outline-none"
+            />
+            <a
+              href={phoneEnabled ? `https://wa.me/${waDigits}?text=${encodeURIComponent(messengerPrefill)}` : undefined}
+              target={phoneEnabled ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              aria-disabled={!phoneEnabled}
+              tabIndex={phoneEnabled ? 0 : -1}
+              onClick={(e) => { if (!phoneEnabled) e.preventDefault(); }}
+              title={t("guest.messageOnWhatsApp")}
+              className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all ${
+                phoneEnabled
+                  ? "bg-[#25D366]/15 text-[#25D366] hover:bg-[#25D366]/25"
+                  : "bg-white/5 text-muted-foreground/30 cursor-not-allowed"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                <path d="M20.52 3.48A11.78 11.78 0 0012.05 0C5.5 0 .2 5.3.2 11.85c0 2.09.55 4.13 1.6 5.93L0 24l6.39-1.67a11.85 11.85 0 005.66 1.44h.01c6.55 0 11.85-5.3 11.85-11.85 0-3.16-1.23-6.13-3.39-8.44zM12.06 21.7h-.01a9.84 9.84 0 01-5.02-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.83 9.83 0 01-1.5-5.19c0-5.44 4.42-9.86 9.87-9.86 2.63 0 5.11 1.03 6.97 2.89a9.79 9.79 0 012.89 6.97c-.01 5.45-4.43 9.85-9.83 9.85zm5.4-7.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.07-.3-.15-1.25-.46-2.38-1.46a8.92 8.92 0 01-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.66-1.6-.91-2.18-.24-.58-.49-.5-.66-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.07 4.47.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.75-.71 2-1.4.25-.69.25-1.27.17-1.4-.07-.13-.27-.2-.57-.35z" />
+              </svg>
+            </a>
+            <a
+              href={phoneEnabled ? `https://t.me/${tmePath}` : undefined}
+              target={phoneEnabled ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              aria-disabled={!phoneEnabled}
+              tabIndex={phoneEnabled ? 0 : -1}
+              onClick={(e) => { if (!phoneEnabled) e.preventDefault(); }}
+              title={t("guest.messageOnTelegram")}
+              className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all ${
+                phoneEnabled
+                  ? "bg-[#229ED9]/15 text-[#229ED9] hover:bg-[#229ED9]/25"
+                  : "bg-white/5 text-muted-foreground/30 cursor-not-allowed"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                <path d="M11.94.5C5.62.5.5 5.62.5 11.94s5.12 11.44 11.44 11.44 11.44-5.12 11.44-11.44S18.26.5 11.94.5zm5.31 7.86l-1.78 8.4c-.13.6-.49.74-.99.46l-2.74-2.02-1.32 1.27c-.15.15-.27.27-.55.27l.2-2.79 5.07-4.58c.22-.2-.05-.31-.34-.11l-6.27 3.95-2.7-.84c-.59-.18-.6-.59.12-.87l10.55-4.07c.49-.18.92.12.75.93z" />
+              </svg>
+            </a>
+          </div>
+          {phoneState === "idle" && phoneSavedValue === "" && (
+            <p className="mt-1 px-2 text-[10px] text-muted-foreground/40">
+              {t("guest.phoneHelp")}
+            </p>
+          )}
+        </div>
         {editing ? (
           <>
             <div className="p-1.5">
@@ -495,6 +635,7 @@ export function GuestCards({
   guests,
   checkIn,
   checkOut,
+  propertyName,
   onDeleteGuest,
   onUpdateParent,
   onUpdateGuest,
@@ -557,6 +698,8 @@ export function GuestCards({
             guest={guest}
             children={getChildrenFor(guest.id)}
             stayDays={stayDays}
+            checkIn={checkIn}
+            propertyName={propertyName ?? ""}
             onDelete={onDeleteGuest}
             onDrop={handleDrop}
             onDragStart={handleDragStart}

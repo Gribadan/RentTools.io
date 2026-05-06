@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { stripSpaces, sanitizeAlphanumeric } from "@/lib/sanitize";
+import { stripSpaces, sanitizeAlphanumeric, normalizePhone } from "@/lib/sanitize";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
@@ -64,6 +64,16 @@ export async function PATCH(
         if (key === "passportNumber") value = stripSpaces(value);
         else if (key === "issuedBy") value = sanitizeAlphanumeric(value);
         data[key] = value;
+      }
+    }
+
+    // RT-25.13 — phone is sanitised separately so we can return a 400 on
+    // malformed input rather than silently storing garbage.
+    if ("phone" in body && typeof body.phone === "string") {
+      try {
+        data.phone = normalizePhone(body.phone);
+      } catch {
+        return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
       }
     }
 
