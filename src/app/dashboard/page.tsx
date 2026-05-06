@@ -394,7 +394,12 @@ function AppContent({
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-2)] border-t-sky-400" />
           </div>
         ) : (
-          renderContent()
+          /* The calendar's frozen header pins to top:0 of <main>, so
+             <main> must have NO top padding for that view. Every other
+             view gets the standard top breathing room here. */
+          <div className={activeView === "calendar" ? "" : "pt-3 sm:pt-6 lg:pt-8"}>
+            {renderContent()}
+          </div>
         )}
       </main>
       <SupportFooter />
