@@ -158,19 +158,19 @@ export function TopBar({
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
 
-  // Tabs are scope-aware. Dashboard is always present so the user has
-  // an obvious "Home" entry next to the rest of the tabs (the logo
-  // also navigates there but several users missed that affordance).
-  // Without a property selected the rest of the strip is just the
-  // dual-mode tabs (Cleaning + Reports). Selecting a property
-  // surfaces Calendar + Property next to them.
-  const hasProperty = !!selectedPropertyId;
+  // All five tabs render at every scope so the header stays put.
+  // Property-required tabs (Calendar, Property) auto-pick the first
+  // property when clicked without a selection — see goToTab above.
+  // The property selector to the left of the strip is the
+  // canonical scope switcher; the tabs only switch *view* within
+  // that scope, so they don't need to vanish based on selection.
+  // Stripe / Linear / GitHub all use the same stable-header pattern.
   const tabs: { key: AppView; label: string; show: boolean }[] = [
     { key: "dashboard", label: locale === "ru" ? "Обзор" : "Dashboard", show: true },
-    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: hasProperty },
+    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: true },
     { key: "cleaning", label: locale === "ru" ? "Уборки" : "Cleaning", show: true },
     { key: "reports", label: locale === "ru" ? "Отчёты" : "Reports", show: true },
-    { key: "sync", label: locale === "ru" ? "Объект" : "Property", show: hasProperty },
+    { key: "sync", label: locale === "ru" ? "Объект" : "Property", show: true },
   ];
 
   return (
