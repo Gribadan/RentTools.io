@@ -59,6 +59,18 @@ interface UnifiedStay {
   reservationId?: number;
 }
 
+/** Local-date YYYY-MM-DD formatter. Crucial: do NOT use
+ *  d.toISOString().substring(0, 10) here — that converts to UTC and
+ *  shifts the date by ±1 day in non-UTC timezones, which broke both
+ *  the dashboard's "until DATE" text and the dedup heuristic that
+ *  compares iCal date strings against Reservation date keys. */
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** True for iCal summaries that almost always indicate "this is a
  *  generic blocked booking, not a guest name" — Airbnb's "Reserved",
  *  Booking.com's "CLOSED - Not available", host-blocks, etc. Used to
@@ -98,8 +110,8 @@ function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] 
   // iCal events with the host's manual entry on identical dates.
   const reservationDateKeys = new Set<string>();
   for (const r of p.reservations) {
-    const start = new Date(r.checkIn).toISOString().substring(0, 10);
-    const end = new Date(r.checkOut).toISOString().substring(0, 10);
+    const start = toLocalDateStr(new Date(r.checkIn));
+    const end = toLocalDateStr(new Date(r.checkOut));
     reservationDateKeys.add(`${start}|${end}`);
   }
   const stays: UnifiedStay[] = [];
@@ -382,29 +394,36 @@ export function Dashboard({
     return { todayCheckIns: ins, todayCheckOuts: outs };
   }, [allReservations, selectedProperty, todayStr]);
 
-  // Bucket the global-mode list. A reservation counts as "upcoming this
-  // week" if today falls between checkIn and checkOut (active now) OR
-  // checkIn is within the next 7 days. Past = already checked out.
-  const { next7, later, past } = useMemo(() => {
+  // Four buckets so the host scans the list top-down by urgency:
+  //   active    — currently staying (checkIn ≤ today < checkOut)
+  //   next7     — arriving within the next 7 days
+  //   later     — arriving more than 7 days out
+  //   past      — already checked out (collapsed, click to expand)
+  const { active, next7, later, past } = useMemo(() => {
     if (selectedProperty) {
-      return { next7: [], later: [], past: [] as typeof allReservations };
+      return { active: [], next7: [], later: [], past: [] as typeof allReservations };
     }
+    const activeBucket: typeof allReservations = [];
     const next7Bucket: typeof allReservations = [];
     const laterBucket: typeof allReservations = [];
     const pastBucket: typeof allReservations = [];
     for (const r of allReservations) {
-      if (r.checkOut < todayStr) {
+      if (r.checkOut <= todayStr) {
         pastBucket.push(r);
+      } else if (r.checkIn <= todayStr) {
+        // checkIn already happened AND checkOut still ahead → active.
+        activeBucket.push(r);
       } else if (r.checkIn < sevenDaysOutStr) {
         next7Bucket.push(r);
       } else {
         laterBucket.push(r);
       }
     }
+    activeBucket.sort((a, b) => a.checkOut.localeCompare(b.checkOut)); // earliest-leave first
     next7Bucket.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
     laterBucket.sort((a, b) => a.checkIn.localeCompare(b.checkIn));
     pastBucket.sort((a, b) => b.checkOut.localeCompare(a.checkOut));
-    return { next7: next7Bucket, later: laterBucket, past: pastBucket };
+    return { active: activeBucket, next7: next7Bucket, later: laterBucket, past: pastBucket };
   }, [allReservations, selectedProperty, todayStr, sevenDaysOutStr]);
 
   // RT-25.10 tick 3 — derive whether each visible bucket overlaps any
@@ -483,7 +502,7 @@ export function Dashboard({
     : sortedFlat;
 
   const [showPast, setShowPast] = useState(false);
-  const useSections = !selectedProperty && !trimmedQuery && (next7.length + later.length + past.length) > 0;
+  const useSections = !selectedProperty && !trimmedQuery && (active.length + next7.length + later.length + past.length) > 0;
 
   // RT-25.6 tick 7 — in-form conflict warning. Surfaces overlapping
   // reservations + synced calendar events on the picked property/date
@@ -623,39 +642,8 @@ export function Dashboard({
     if (onAddProperty) await onAddProperty("Sample Apartment");
   }, [onAddProperty]);
 
-  // Stats for the dashboard sidebar — light-weight portfolio
-  // summary so the right column has actionable signal next to the
-  // quick-add CTA. Computed only in dashboard mode (per-property
-  // mode renders a different reservation list, no stats sidebar).
-  const portfolioStats = useMemo(() => {
-    if (selectedProperty) return null;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    let upcoming = 0;
-    let active = 0;
-    for (const r of allReservations) {
-      const ci = new Date(r.checkIn);
-      ci.setHours(0, 0, 0, 0);
-      const co = new Date(r.checkOut);
-      co.setHours(0, 0, 0, 0);
-      if (ci <= today && co > today) active += 1;
-      else if (ci > today) upcoming += 1;
-    }
-    return { properties: properties.length, active, upcoming, total: allReservations.length };
-  }, [selectedProperty, properties.length, allReservations]);
-
   return (
-    /* Two-column shell — matches the calendar / cleaning / reports
-       pages so navigation feels uniform. Outer escapes <main>'s
-       side padding (1:1 alignment with the dashboard header); inner
-       max-w-1760 caps the content rectangle on ultra-wide. The
-       sidebar sticks (lg:sticky lg:top-3) so a long reservations
-       list keeps the quick-add CTA in view. Per-property mode
-       (selectedProperty != null) renders only the main column —
-       the stats sidebar is portfolio-scoped and would be empty. */
-    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
-    <div className="mx-auto max-w-[1760px] px-3 sm:px-5 flex flex-col lg:flex-row gap-6">
-    <div className="min-w-0 lg:flex-1 space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
       {onAddProperty && (
         <WelcomeModal
           open={showWelcome}
@@ -676,20 +664,13 @@ export function Dashboard({
             <p className="mt-1 text-sm text-[var(--ink-4)]">{subtitle}</p>
           )}
         </div>
-        {!isZeroProperties && (
-          /* "+ New Reservation" routes to the calendar instead of
-              opening an inline form. The calendar's date popover
-              already owns the create-reservation flow (click date →
-              Create reservation), so a separate form is duplication.
-              In dashboard mode we land on the first property; in
-              per-property mode we route to the current property's
-              calendar tab. */
+        {/* Per-property "+ Reservation" CTAs live inside each
+            property card now, so the global header CTA is gone. In
+            per-property mode the user is already on the property and
+            can use the Calendar tab. */}
+        {selectedProperty && (
           <Link
-            href={
-              selectedProperty
-                ? `/dashboard?property=${selectedProperty.id}&view=calendar`
-                : `/dashboard?property=${properties[0]?.id ?? ""}&view=calendar`
-            }
+            href={`/dashboard?property=${selectedProperty.id}&view=calendar`}
             className="flex items-center gap-1.5 rounded-lg bg-[var(--m-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -838,7 +819,7 @@ export function Dashboard({
               </span>
               {dashboardAlerts.doubleBookings.slice(0, 3).map((d, i) => (
                 <span key={i} className="text-[var(--ink-2)]">
-                  {d.propertyName} — {d.aName} & {d.bName} ({formatDate(d.overlapStart.toISOString().substring(0, 10))} → {formatDate(d.overlapEnd.toISOString().substring(0, 10))})
+                  {d.propertyName} — {d.aName} & {d.bName} ({formatDate(toLocalDateStr(d.overlapStart))} → {formatDate(toLocalDateStr(d.overlapEnd))})
                   {i < Math.min(dashboardAlerts.doubleBookings.length, 3) - 1 ? "," : ""}
                 </span>
               ))}
@@ -898,16 +879,37 @@ export function Dashboard({
               : [];
             const hasSyncError = failingLinks.length > 0;
             return (
-              <button
+              /* Card converted from <button> to <div> so the inner
+                 "+ Reservation" Link is valid HTML (no nested
+                 interactive elements). The outer click handler
+                 still routes to the property's calendar. */
+              <div
                 key={p.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelectProperty(p.id)}
-                className="group rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-left transition-all hover:border-[var(--line-2)] hover:bg-[var(--bg-3)]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectProperty(p.id);
+                  }
+                }}
+                className="group rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-left transition-all hover:border-[var(--line-2)] hover:bg-[var(--bg-3)] cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors">{p.name}</h3>
-                  <svg className="h-4 w-4 text-[var(--ink-4)] group-hover:text-[var(--ink-4)] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                  </svg>
+                  <h3 className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors truncate">{p.name}</h3>
+                  <Link
+                    href={`/dashboard?property=${p.id}&view=calendar`}
+                    onClick={(e) => e.stopPropagation()}
+                    title={t("dashboard.newReservation")}
+                    aria-label={t("dashboard.newReservation")}
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-[var(--m-accent)] px-2 py-1 text-[11px] font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
+                  >
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    <span className="hidden sm:inline">{locale === "ru" ? "Бронь" : "Reservation"}</span>
+                  </Link>
                 </div>
                 <div className="space-y-2">
                   {/* Current guest — strongest line, accent color so the
@@ -921,8 +923,8 @@ export function Dashboard({
                       <span className="font-semibold text-[var(--ink)] truncate">{current.name}</span>
                       <span className="text-[11px] text-[var(--ink-3)] whitespace-nowrap">
                         {locale === "ru"
-                          ? `до ${formatDate(current.end.toISOString().substring(0, 10))} · ${nightsLeft} ${nightsLeft === 1 ? "ночь" : nightsLeft < 5 ? "ночи" : "ноч."}`
-                          : `until ${formatDate(current.end.toISOString().substring(0, 10))} · ${nightsLeft} ${nightsLeft === 1 ? "night" : "nights"} left`}
+                          ? `до ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "ночь" : nightsLeft < 5 ? "ночи" : "ноч."}`
+                          : `until ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "night" : "nights"} left`}
                       </span>
                     </div>
                   ) : (
@@ -942,8 +944,8 @@ export function Dashboard({
                       <span className="font-medium text-[var(--ink-2)] truncate">{next.name}</span>
                       <span className="text-[var(--ink-4)] whitespace-nowrap">
                         {locale === "ru"
-                          ? `${formatDate(next.start.toISOString().substring(0, 10))} (через ${daysUntilNext} д.)`
-                          : `${formatDate(next.start.toISOString().substring(0, 10))} (in ${daysUntilNext}d)`}
+                          ? `${formatDate(toLocalDateStr(next.start))} (через ${daysUntilNext} д.)`
+                          : `${formatDate(toLocalDateStr(next.start))} (in ${daysUntilNext}d)`}
                       </span>
                     </div>
                   ) : !current ? (
@@ -973,7 +975,7 @@ export function Dashboard({
                     )}
                   </div>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -1024,14 +1026,38 @@ export function Dashboard({
           </div>
           {useSections ? (
             <div>
+              {/* Currently staying — shows active stays sorted by
+                  earliest checkout, so the host can see who's about
+                  to leave first. Always-shown header (even if it's
+                  the only section) so the bucket is recognisable. */}
+              {active.length > 0 && (
+                <>
+                  <ReservationSectionHeader
+                    label={locale === "ru" ? "Сейчас в гостях" : "Currently staying"}
+                  />
+                  {active.map((res, i) => (
+                    <ReservationRow
+                      key={res.id}
+                      res={res}
+                      isLast={i === active.length - 1 && next7.length === 0 && later.length === 0 && (!showPast || past.length === 0)}
+                      hideProperty={false}
+                      formatDate={formatDate}
+                      dayCount={dayCount}
+                      locale={locale}
+                      onClick={() => handleRowClick(res.propertyId, res.id)}
+                      muted={false}
+                    />
+                  ))}
+                </>
+              )}
               {next7.length > 0 && (
                 <>
-                  {(later.length > 0 || past.length > 0) && (
+                  {(active.length > 0 || later.length > 0 || past.length > 0) && (
                     <ReservationSectionHeader
                       label={t("calendar.next7Days")}
                       badge={hasCleanerConflictNext7 ? (
                         <a
-                          href="#cleaning-schedule"
+                          href="?view=cleaning"
                           className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-amber-300 transition-colors hover:bg-amber-500/15"
                           style={{ backgroundColor: "rgba(217,119,6,0.18)" }}
                           title={t("dashboard.cleanerConflictHint")}
@@ -1165,91 +1191,6 @@ export function Dashboard({
         </div>
       )}
     </div>
-
-      {/* Sidebar — portfolio summary + quick-add CTA. Mirrors the
-          calendar / cleaning / reports sidebars so the dashboard
-          feels like the same app. Hidden in per-property mode
-          because the stats are inherently cross-property. */}
-      {!selectedProperty && portfolioStats && (
-        <aside className="w-full lg:w-[360px] lg:shrink-0 lg:sticky lg:top-3 lg:self-start lg:max-h-[calc(100vh-84px)] rounded-2xl bg-[var(--bg)] shadow-[0_1px_3px_-1px_rgba(0,0,0,0.04),0_4px_16px_-8px_rgba(0,0,0,0.06)] [overflow:clip]">
-          <div className="border-b border-[var(--line)] px-5 py-4">
-            <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-              {locale === "ru" ? "Обзор" : "Dashboard"}
-            </div>
-            <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
-              {locale === "ru"
-                ? `${portfolioStats.properties} ${portfolioStats.properties === 1 ? "объект" : portfolioStats.properties < 5 ? "объекта" : "объектов"}`
-                : `${portfolioStats.properties} ${portfolioStats.properties === 1 ? "property" : "properties"}`}
-            </div>
-          </div>
-
-          {/* Portfolio stats */}
-          <div className="border-b border-[var(--line)] px-5 py-4 space-y-2.5">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[11px] text-[var(--ink-3)]">
-                {locale === "ru" ? "Сейчас в гостях" : "Currently staying"}
-              </span>
-              <span className="text-base font-semibold tabular-nums text-[var(--ink)]">{portfolioStats.active}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[11px] text-[var(--ink-3)]">
-                {locale === "ru" ? "Впереди" : "Upcoming"}
-              </span>
-              <span className="text-base font-semibold tabular-nums text-[var(--ink)]">{portfolioStats.upcoming}</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="text-[11px] text-[var(--ink-3)]">
-                {locale === "ru" ? "Всего броней" : "Total bookings"}
-              </span>
-              <span className="text-base font-semibold tabular-nums text-[var(--ink-2)]">{portfolioStats.total}</span>
-            </div>
-          </div>
-
-          {/* Quick-add CTA — routes to the first property's calendar
-              where the date popover handles the create flow. Same
-              behaviour as the header button so the two CTAs stay in
-              sync mentally. */}
-          {!isZeroProperties && properties[0] && (
-            <div className="border-b border-[var(--line)] px-5 py-4">
-              <Link
-                href={`/dashboard?property=${properties[0].id}&view=calendar`}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-[var(--m-accent)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)]"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                </svg>
-                {t("dashboard.newReservation")}
-              </Link>
-              <p className="mt-2 text-[11px] text-[var(--ink-4)] leading-relaxed">
-                {locale === "ru"
-                  ? "Откроется календарь — кликните по дате, чтобы создать бронь."
-                  : "Opens the calendar — click a date to create a reservation."}
-              </p>
-            </div>
-          )}
-
-          {/* Quick links */}
-          <div className="px-5 py-4 space-y-1">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
-              {locale === "ru" ? "Перейти" : "Jump to"}
-            </div>
-            <a
-              href="?view=cleaning"
-              className="block rounded-md px-2 py-1.5 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
-            >
-              {locale === "ru" ? "Уборки →" : "Cleaning →"}
-            </a>
-            <a
-              href="?view=reports"
-              className="block rounded-md px-2 py-1.5 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
-            >
-              {locale === "ru" ? "Отчёты →" : "Reports →"}
-            </a>
-          </div>
-        </aside>
-      )}
-    </div>
-    </div>
   );
 }
 
@@ -1307,9 +1248,12 @@ function ReservationRow({ res, isLast, hideProperty, formatDate, dayCount, local
         </span>
       )}
 
+      {/* Brand pill — solid platform color + white text, matches the
+          date-actions popover and Reports's Top-source pill so the
+          chromatic language stays uniform across surfaces. */}
       <span
-        className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-[var(--ink-2)]"
-        style={{ backgroundColor: `${platformColor(res.platform)}26` }}
+        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+        style={{ backgroundColor: platformColor(res.platform) }}
       >
         {platformDisplayName(res.platform)}
       </span>
