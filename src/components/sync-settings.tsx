@@ -129,6 +129,36 @@ const COPY: Record<Locale, CopyShape> = {
     deleteProperty: "Unterkunft löschen",
     dateLocale: "de-DE",
   },
+  fr: {
+    save: "Enregistrer",
+    cancel: "Annuler",
+    rename: "Renommer",
+    platformName: "Nom de la plateforme",
+    custom: "personnalisée",
+    remove: "Retirer",
+    draftImportHint: "Nommez d’abord la plateforme pour obtenir son URL d’import.",
+    addAnother: "Ajouter une autre plateforme",
+    daysShort: () => "j",
+    nightsShort: (n) => (n !== 1 ? "nuits" : "nuit"),
+    monthsShort: "mois",
+    feedTokenTitle: "Token d’accès au feed",
+    feedTokenDesc:
+      "L’URL du feed permet à des services externes qui ne prennent pas en charge l’import iCal (outils de tarification, channel managers ou vos propres scripts) de lire le calendrier combiné Airbnb + Booking de ce logement au format iCal. La plupart des hôtes n’en ont pas besoin — laissez le token vide pour garder le feed public, ou générez un token pour rendre l’URL privée.",
+    feedTokenActiveNote:
+      "Vos URL de feed contiennent actuellement un token privé. La rotation invalide l’ancienne URL — recollez la nouvelle URL partout où elle est utilisée.",
+    feedTokenPublicNote:
+      "Vos URL de feed sont actuellement publiques. Ajoutez un token pour qu’elles ne soient pas devinables.",
+    makePublic: "Rendre public",
+    rotate: "Renouveler",
+    generateToken: "Générer un token",
+    dangerZone: "Zone sensible",
+    dangerZoneDesc:
+      "La suppression de ce logement efface toutes ses réservations, voyageurs, documents de passeport, journaux de synchronisation et liens iCal. Action irréversible.",
+    confirmDelete: (name) =>
+      `Supprimer le logement « ${name} » ? Cela effacera toutes les réservations et données associées. Action irréversible.`,
+    deleteProperty: "Supprimer le logement",
+    dateLocale: "fr-FR",
+  },
 };
 
 interface TestResult {

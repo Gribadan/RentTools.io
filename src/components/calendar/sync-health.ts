@@ -40,6 +40,14 @@ const COPY: Record<Locale, SyncHealthCopyShape> = {
     daysAgo: (d) => `vor ${d} ${d === 1 ? "Tag" : "Tagen"}`,
     syncedPrefix: (label) => `Synchronisiert ${label}`,
   },
+  fr: {
+    neverSynced: "Jamais synchronisé",
+    justNow: "à l’instant",
+    minutesAgo: (m) => `il y a ${m} min`,
+    hoursAgo: (h) => `il y a ${h} h`,
+    daysAgo: (d) => `il y a ${d} j`,
+    syncedPrefix: (label) => `Synchronisé ${label}`,
+  },
 };
 
 export function computeSyncHealth(links: CalendarLink[], locale: Locale): SyncHealth | null {

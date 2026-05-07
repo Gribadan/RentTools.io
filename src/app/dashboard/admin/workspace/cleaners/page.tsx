@@ -108,6 +108,26 @@ const COPY: Record<Locale, CopyShape> = {
     edit: "Bearbeiten",
     delete: "Löschen",
   },
+  fr: {
+    failed: "Échec",
+    deleteConfirm: "Supprimer cet agent d'entretien ? Toutes les affectations aux logements seront aussi supprimées.",
+    defaultRank: "principal",
+    backupRank: (rank) => `remplaçant ${rank}`,
+    title: "Agents d'entretien",
+    subtitle: "Pool d'agents d'entretien au niveau du compte. L'affectation à un logement précis se fait dans l'onglet Ménage du logement.",
+    addCleaner: "Ajouter un agent",
+    namePlaceholder: "Nom",
+    phoneOptionalPlaceholder: "Téléphone (optionnel)",
+    add: "Ajouter",
+    loading: "Chargement…",
+    empty: "Aucun agent pour l'instant. Ajoutez le premier ci-dessus.",
+    phonePlaceholder: "Téléphone",
+    cancel: "Annuler",
+    save: "Enregistrer",
+    notAssigned: "Affecté à aucun logement",
+    edit: "Modifier",
+    delete: "Supprimer",
+  },
 };
 
 export default function AdminCleanersPage() {

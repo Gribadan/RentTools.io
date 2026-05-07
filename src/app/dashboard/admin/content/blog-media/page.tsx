@@ -65,6 +65,21 @@ const COPY: Record<Locale, CopyShape> = {
     imagesHeader: "Bilder",
     usedBy: (n) => `Verwendet in ${n} Beitrag${n === 1 ? "" : "en"}`,
   },
+  fr: {
+    title: "Médias du blog",
+    description:
+      "Toutes les URL d'images OG externes référencées par les articles du blog. L'upload direct arrivera une fois R2 / S3 branché (RT-21.x) ; pour l'instant cette page n'expose que ce qui est déjà rattaché à post.ogImageUrl.",
+    loading: "Chargement...",
+    notSuperadmin: "Seuls les superadmins peuvent voir les médias du blog.",
+    imagesLabel: "Images",
+    refreshing: "Actualisation...",
+    refresh: "Actualiser",
+    loadFailed: (status) => `Échec du chargement des articles (${status})`,
+    loadFailedShort: "Échec du chargement des articles",
+    emptyMedia: "Aucun article ne référence d'image OG pour l'instant. Définissez-en une depuis l'éditeur d'article.",
+    imagesHeader: "Images",
+    usedBy: (n) => `Utilisée dans ${n} article${n === 1 ? "" : "s"}`,
+  },
 };
 
 // RT-25.9 tick 20 — Blog media sub-route at

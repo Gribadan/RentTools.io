@@ -104,6 +104,30 @@ const COPY: Record<Locale, CopyShape> = {
     admin: "Admin",
     syncTasks: "Sync-Aufgaben",
   },
+  fr: {
+    tabDashboard: "Tableau de bord",
+    tabCalendar: "Calendrier",
+    tabCleaning: "Ménage",
+    tabReports: "Rapports",
+    tabProperty: "Logement",
+    allProperties: "Tous les logements",
+    dashboardAll: "Tableau de bord (tous les logements)",
+    countLabel: (resCount, guestCount) =>
+      `${resCount} ${resCount === 1 ? "réservation" : "réservations"}, ${guestCount} ${guestCount === 1 ? "voyageur" : "voyageurs"}`,
+    addProperty: "Ajouter un logement",
+    searchGuests: "Rechercher des voyageurs",
+    searchGuestsTitle: "Rechercher des voyageurs (⌘K)",
+    searchPlaceholder: "Nom, passeport, pays…",
+    closeSearch: "Fermer la recherche",
+    searching: "Recherche…",
+    noMatches: "Aucun résultat",
+    userMenu: "Menu utilisateur",
+    personalAccount: "Compte personnel",
+    theme: "Thème",
+    language: "Langue",
+    admin: "Admin",
+    syncTasks: "Tâches de synchronisation",
+  },
 };
 
 export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks" | "reports" | "profile";

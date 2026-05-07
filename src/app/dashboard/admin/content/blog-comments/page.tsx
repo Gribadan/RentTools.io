@@ -93,6 +93,28 @@ const COPY: Record<Locale, CopyShape> = {
     hide: "Ausblenden",
     delete: "Löschen",
   },
+  fr: {
+    title: "Commentaires du blog",
+    description:
+      "Modération : masquer, restaurer ou suppression douce. Les commentaires en suppression douce restent en base pour audit.",
+    loading: "Chargement...",
+    notSuperadmin: "Seuls les superadmins peuvent modérer les commentaires.",
+    statusLabel: "Statut",
+    filterAll: "Tous",
+    filterVisible: "Visibles",
+    filterHidden: "Masqués",
+    filterDeleted: "Supprimés",
+    refreshing: "Actualisation...",
+    refresh: "Actualiser",
+    loadFailed: (status) => `Échec du chargement des commentaires (${status})`,
+    loadFailedShort: "Échec du chargement des commentaires",
+    commentsCount: (n) => `${n} commentaire${n === 1 ? "" : "s"}`,
+    empty: "Aucun commentaire à modérer.",
+    confirmDelete: "Supprimer ce commentaire (suppression douce) ? Il sera masqué mais conservé pour audit.",
+    restore: "Restaurer",
+    hide: "Masquer",
+    delete: "Supprimer",
+  },
 };
 
 // RT-25.9 tick 21 — Blog comments sub-route at

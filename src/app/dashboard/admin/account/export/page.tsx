@@ -41,6 +41,13 @@ const COPY: Record<Locale, CopyShape> = {
     preparing: "Wird vorbereitet...",
     download: "JSON herunterladen",
   },
+  fr: {
+    failedToPrepare: "Impossible de préparer l'export",
+    title: "Export des données",
+    subtitle: "Téléchargez un dump JSON de vos logements, réservations, voyageurs, liens iCal, modèles de messages et historiques de ménage. Pratique comme sauvegarde personnelle.",
+    preparing: "Préparation...",
+    download: "Télécharger le JSON",
+  },
 };
 
 export default function AdminExportPage() {

@@ -23,6 +23,10 @@ const COPY: Record<Locale, CopyShape> = {
     dateLocale: "de-DE",
     subtitle: "Persönliche Daten, Passwort und Aktivität.",
   },
+  fr: {
+    dateLocale: "fr-FR",
+    subtitle: "Informations personnelles, mot de passe et activité.",
+  },
 };
 
 interface ProfileUser {

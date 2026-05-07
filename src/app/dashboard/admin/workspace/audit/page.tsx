@@ -54,6 +54,13 @@ const COPY: Record<Locale, CopyShape> = {
     loading: "Wird geladen...",
     empty: "Noch keine Aktivität.",
   },
+  fr: {
+    dateLocale: "fr-FR",
+    title: "Journal d'audit",
+    subtitle: "Actions récentes liées à votre session. Les 50 dernières entrées sont conservées.",
+    loading: "Chargement...",
+    empty: "Aucune activité pour l'instant.",
+  },
 };
 
 function summarize(e: AuditEntry): string {

@@ -14,6 +14,7 @@ const COPY: Record<Locale, CopyShape> = {
   en: { property: "Property", all: "All" },
   ru: { property: "Объект", all: "Все" },
   de: { property: "Unterkunft", all: "Alle" },
+  fr: { property: "Logement", all: "Tous" },
 };
 
 interface PropertySwitcherProps {

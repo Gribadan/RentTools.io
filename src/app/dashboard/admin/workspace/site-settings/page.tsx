@@ -30,44 +30,48 @@ interface FieldDef {
 const FIELDS: ReadonlyArray<FieldDef> = [
   {
     key: "signup_enabled",
-    label: { en: "Public signup", ru: "Публичная регистрация", de: "Öffentliche Registrierung" },
+    label: { en: "Public signup", ru: "Публичная регистрация", de: "Öffentliche Registrierung", fr: "Inscription publique" },
     hint: {
       en: "Toggle whether new accounts can be created.",
       ru: "Разрешить ли создание новых аккаунтов.",
       de: "Steuert, ob neue Konten erstellt werden können.",
+      fr: "Active ou désactive la création de nouveaux comptes.",
     },
     type: "toggle",
     defaultValue: "true",
   },
   {
     key: "extraction_per_user_daily_limit",
-    label: { en: "Daily extraction quota (per user)", ru: "Лимит распознавания (в сутки на пользователя)", de: "Tägliches Erkennungs-Kontingent (pro Benutzer)" },
+    label: { en: "Daily extraction quota (per user)", ru: "Лимит распознавания (в сутки на пользователя)", de: "Tägliches Erkennungs-Kontingent (pro Benutzer)", fr: "Quota d'extraction quotidien (par utilisateur)" },
     hint: {
       en: "Max passport extractions one user may run in 24h. 0 disables the limit.",
       ru: "Сколько паспортов один пользователь может распознать за 24 часа. 0 отключает лимит.",
       de: "Maximale Pass-Erkennungen, die ein Benutzer in 24 Std. ausführen kann. 0 deaktiviert das Limit.",
+      fr: "Nombre maximum d'extractions de passeport qu'un utilisateur peut lancer en 24 h. 0 désactive la limite.",
     },
     type: "number",
     defaultValue: "20",
   },
   {
     key: "landing_announcement",
-    label: { en: "Landing announcement banner", ru: "Объявление на главной", de: "Startseiten-Hinweisbanner" },
+    label: { en: "Landing announcement banner", ru: "Объявление на главной", de: "Startseiten-Hinweisbanner", fr: "Bannière d'annonce d'accueil" },
     hint: {
       en: "Short message shown at the top of the public landing page. Leave empty to hide.",
       ru: "Короткое сообщение в шапке публичной главной. Оставьте пустым, чтобы скрыть.",
       de: "Kurze Nachricht oben auf der öffentlichen Startseite. Leer lassen, um sie auszublenden.",
+      fr: "Message court affiché en haut de la page d'accueil publique. Laissez vide pour le masquer.",
     },
     type: "text",
     defaultValue: "",
   },
   {
     key: "support_email",
-    label: { en: "Support email", ru: "Email поддержки", de: "Support-E-Mail" },
+    label: { en: "Support email", ru: "Email поддержки", de: "Support-E-Mail", fr: "Email du support" },
     hint: {
       en: "Public contact address surfaced in landing/footer/help.",
       ru: "Публичный контактный адрес — отображается в подвале и помощи.",
       de: "Öffentliche Kontaktadresse, die auf Startseite, im Footer und in der Hilfe erscheint.",
+      fr: "Adresse de contact publique affichée sur l'accueil, le footer et l'aide.",
     },
     type: "email",
     defaultValue: "",
@@ -123,6 +127,18 @@ const COPY: Record<Locale, CopyShape> = {
     disabled: "Deaktiviert",
     saving: "Wird gespeichert",
     save: "Speichern",
+  },
+  fr: {
+    saved: "Enregistré. Les paramètres en cache se rafraîchissent sous 60 s.",
+    failedToSave: "Échec de l'enregistrement",
+    title: "Paramètres du site",
+    subtitle: "Paramètres applicables à toute l'instance, qui affectent les pages publiques et les quotas utilisateurs.",
+    loading: "Chargement...",
+    notSuperadmin: "Seuls les superadmins peuvent modifier les paramètres du site à l'échelle de l'instance.",
+    enabled: "Activé",
+    disabled: "Désactivé",
+    saving: "Enregistrement",
+    save: "Enregistrer",
   },
 };
 

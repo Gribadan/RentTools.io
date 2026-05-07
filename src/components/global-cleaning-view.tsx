@@ -56,6 +56,18 @@ const COPY: Record<Locale, CopyShape> = {
     dataSourcesHelper:
       "Der Plan wird aus Ihren Buchungen + iCal-Events berechnet (dedupliziert). Beim Kopieren / Drucken erscheint der Name der Unterkunft in jeder Zeile.",
   },
+  fr: {
+    emptyState: "Ajoutez un logement pour voir le planning des ménages.",
+    cleaning: "Ménage",
+    acrossAllProperties: (count) => `Sur l’ensemble des ${count} logements`,
+    allPropertiesLabel: (count) => `Tous les logements (${count})`,
+    view: "Affichage",
+    potentialHelper:
+      "Ménages utiles uniquement si un voyageur réserve sur la période libre.",
+    dataSources: "Sources de données",
+    dataSourcesHelper:
+      "Le planning est calculé à partir de vos réservations + événements iCal, dédupliqués. Le nom du logement apparaît sur chaque ligne lors de la copie / impression.",
+  },
 };
 
 // Sidebar carries the View toggle (include-potential) + a Data

@@ -81,6 +81,24 @@ const COPY: Record<Locale, CopyShape> = {
     fields: (n) => `${n} Feld${n === 1 ? "" : "er"}`,
     submissions: (n) => `${n} Einreichung${n === 1 ? "" : "en"}`,
   },
+  fr: {
+    title: "Modèles de formulaires voyageurs",
+    description:
+      "Tous les modèles de formulaires pré-arrivée pour les voyageurs sur vos logements. Cliquez sur un logement pour ouvrir ses paramètres Sync, où le modèle se modifie.",
+    loadFailed: "Échec du chargement",
+    loading: "Chargement...",
+    empty:
+      "Aucun formulaire voyageur configuré pour l'instant. Ouvrez un logement et créez un modèle dans l'onglet Sync.",
+    loadingEllipsis: "Chargement...",
+    summary: (totalCount, propertyCount, totalSubmissions) =>
+      `${totalCount} modèle${totalCount === 1 ? "" : "s"} sur ${propertyCount} logement${
+        propertyCount === 1 ? "" : "s"
+      } · ${totalSubmissions} réponse${totalSubmissions === 1 ? "" : "s"}.`,
+    openSync: "Ouvrir Sync",
+    untitled: "Modèle sans titre",
+    fields: (n) => `${n} champ${n === 1 ? "" : "s"}`,
+    submissions: (n) => `${n} réponse${n === 1 ? "" : "s"}`,
+  },
 };
 
 interface TemplateRow {

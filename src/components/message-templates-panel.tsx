@@ -74,6 +74,23 @@ const COPY: Record<Locale, CopyShape> = {
     edit: "Bearbeiten",
     remove: "Löschen",
   },
+  fr: {
+    nameAndBodyRequired: "Le nom et le contenu sont obligatoires",
+    confirmDelete: "Supprimer ce modèle ?",
+    title: "Modèles de message",
+    newTemplate: "Nouveau modèle",
+    namePlaceholder: "Nom du modèle",
+    subjectPlaceholder: "Objet (facultatif)",
+    bodyPlaceholder: "Contenu du message",
+    variables: "Variables :",
+    offsetLabel: "Jours avant/après l’arrivée",
+    preview: "Aperçu",
+    cancel: "Annuler",
+    save: "Enregistrer",
+    empty: "Aucun modèle pour le moment.",
+    edit: "Modifier",
+    remove: "Supprimer",
+  },
 };
 
 interface MessageTemplate {

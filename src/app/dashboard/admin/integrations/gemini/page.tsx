@@ -47,6 +47,14 @@ const COPY: Record<Locale, CopyShape> = {
     saveFailed: "Speichern fehlgeschlagen",
     apiKeyLabel: "API-Schlüssel:",
   },
+  fr: {
+    description:
+      "Utilisée pour l'extraction des données des passeports voyageurs. Stockée dans site_settings et appliquée à toute l'instance.",
+    loading: "Chargement...",
+    saved: "Enregistré",
+    saveFailed: "Échec de l'enregistrement",
+    apiKeyLabel: "Clé API :",
+  },
 };
 
 export default function AdminGeminiPage() {

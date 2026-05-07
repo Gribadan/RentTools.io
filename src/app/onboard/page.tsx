@@ -284,6 +284,57 @@ const COPY: Record<Locale, CopyShape> = {
     verifiedSubtitle: (valid, enabled) =>
       `${valid} von ${enabled} ${enabled === 1 ? "Plattform" : "Plattformen"} geprüft. Was nicht durchgeht, beheben Sie nach der Registrierung.`,
   },
+  fr: {
+    introEyebrow: "Démarrage · Gratuit pour chaque logement — pour toujours",
+    introTitleLead: "Configurez votre ",
+    introTitleAccent: "premier logement",
+    introBody:
+      "Choisissez les plateformes sur lesquelles vous publiez, collez l’URL d’export iCal de chacune, puis recopiez chez elles les URL qu’on génère. Vous pouvez le faire sans compte au début — créez-en un à la fin pour conserver vos données.",
+    loading: "Chargement…",
+    step1Title: "Nommez votre logement",
+    step1Subtitle: "Juste un libellé pour vous. Vous pourrez le renommer plus tard.",
+    step1Placeholder: "Mon premier logement",
+    step2Title: "Ajoutez les flux de calendrier",
+    step2Subtitle:
+      "Cochez chaque plateforme utilisée — collez son URL iCal, recopiez la nôtre. Ce qui n’est pas dans la liste, ajoutez-le en « Plateforme personnalisée ».",
+    addAnotherPlatform: "Ajouter une autre plateforme",
+    step3Title: "Créez votre compte",
+    step3SubtitleEmpty:
+      "Vous pouvez vous inscrire sans choisir de plateforme — ajoutez-les plus tard depuis le tableau de bord.",
+    signinPrefix: "Gratuit pour toujours, sans carte bancaire. Vous avez déjà un compte ? ",
+    signinLink: "Se connecter",
+    signinSuffix: ".",
+    saving: "Enregistrement…",
+    saveAndCreate: "Enregistrer et créer le compte",
+    customFallback: "Plateforme personnalisée",
+    enableAria: (display) => `Activer ${display}`,
+    customNamePlaceholder: "Nom de la plateforme",
+    removePlatformAria: "Supprimer cette plateforme",
+    hideInstructions: (display) => `Masquer les instructions pour ${display}`,
+    showInstructions: (display) => `Afficher les instructions pour ${display}`,
+    icalExportLabel: (display) => `URL d’export iCal · ${display}`,
+    invalidBadUrl: "L’URL semble incorrecte — vérifiez qu’il y a bien https://",
+    invalidUnreachable:
+      "Impossible de joindre cette URL. La plateforme peut être lente — réessayez dans une minute.",
+    invalidNotIcal:
+      "L’URL répond, mais ne renvoie pas de calendrier. Vérifiez que vous avez bien copié l’export iCal et non la page de l’annonce.",
+    invalidGeneric:
+      "Impossible de vérifier cette URL — vous pouvez tout de même enregistrer, on continuera d’essayer après l’inscription.",
+    validOk: "Tout bon — la synchronisation toutes les 10 minutes démarrera dès l’inscription.",
+    pasteBackLabel: (display) => `Recollez cette URL RentTools dans ${display}`,
+    feedUrlPlaceholder: "L’URL apparaît dès que vous nommez le logement ci-dessus",
+    copy: "Copier",
+    copied: "Copié !",
+    feedHelp:
+      "Cette URL est à vous pour toujours — même après l’inscription. Elle commencera à servir des données réelles dès que vous aurez terminé l’inscription.",
+    testTesting: "Vérification…",
+    testValid: "Vérifié",
+    testRetry: "Réessayer",
+    testFresh: "Tester",
+    changeColor: "Changer la couleur",
+    verifiedSubtitle: (valid, enabled) =>
+      `${valid} sur ${enabled} ${enabled === 1 ? "plateforme vérifiée" : "plateformes vérifiées"}. Ce qui n’est pas validé se corrige après l’inscription.`,
+  },
 };
 
 /* ────────────────────────────────────────────────────────────────────

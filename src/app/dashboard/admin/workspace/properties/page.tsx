@@ -114,6 +114,24 @@ const COPY: Record<Locale, CopyShape> = {
     on: "Ein",
     off: "Aus",
   },
+  fr: {
+    failedToLoad: "Échec du chargement",
+    title: "Logements",
+    subtitle: "Synthèse des réglages clés pour chaque logement accessible. Modifiez les paramètres de chaque logement dans son onglet Sync.",
+    loading: "Chargement...",
+    empty: "Aucun logement accessible pour l'instant.",
+    hPropery: "Logement",
+    hRole: "Rôle",
+    hBookings: "Réservations",
+    hMinNights: "Nuits min.",
+    hCheckInOut: "Arrivée / départ",
+    hWindow: "Fenêtre (j)",
+    hCleaning: "Ménage",
+    owner: "Propriétaire",
+    manager: "Gestionnaire",
+    on: "Activé",
+    off: "Désactivé",
+  },
 };
 
 export default function AdminPropertiesPage() {

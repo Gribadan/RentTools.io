@@ -40,14 +40,18 @@ describe("normalizeSeoPath", () => {
 });
 
 describe("isValidSeoLocale", () => {
-  it("accepts en and ru", () => {
+  it("accepts every supported locale", () => {
     expect(isValidSeoLocale("en")).toBe(true);
     expect(isValidSeoLocale("ru")).toBe(true);
+    expect(isValidSeoLocale("de")).toBe(true);
+    expect(isValidSeoLocale("fr")).toBe(true);
   });
 
   it("rejects everything else", () => {
     expect(isValidSeoLocale("EN")).toBe(false);
-    expect(isValidSeoLocale("fr")).toBe(false);
+    // `xx` is the ISO standard test-reserved locale code — never a real
+    // locale, safe as a negative case across any locale set extension.
+    expect(isValidSeoLocale("xx")).toBe(false);
     expect(isValidSeoLocale("")).toBe(false);
     expect(isValidSeoLocale("en-US")).toBe(false);
   });

@@ -45,6 +45,12 @@ const HOME_META: Record<Locale, { title: string; description: string }> = {
     description:
       "Kostenlose Open-Source-Verwaltung für Kurzzeitvermieter. Airbnb- und Booking.com-Kalender synchronisieren, Reinigung automatisieren, Gast-Pässe auslesen.",
   },
+  fr: {
+    title:
+      "RentTools — gestionnaire open source pour la location courte durée",
+    description:
+      "Gestionnaire open source gratuit pour les hôtes de location courte durée. Synchronisez les calendriers Airbnb et Booking.com, automatisez le ménage, extrayez les passeports voyageurs.",
+  },
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -481,6 +487,133 @@ const COPY: Record<Locale, CopyBlock> = {
       signIn: "Anmelden",
       cookieNoteA: "Nur technisch notwendige Cookies — kein Tracking, keine Analytics. Mehr im ",
       cookieNoteLink: "Datenschutz",
+      cookieNoteB: ".",
+    },
+  },
+  fr: {
+    hero: {
+      eyebrow: "Open source · Gratuit pour toujours",
+      titleLead: "Arrêtez de jongler entre",
+      titleAccent: "vos calendriers",
+      // "Cross-sync calendars between Airbnb, Booking.com, Vrbo and
+      // anything that speaks iCal." French preposition "entre" reads
+      // naturally; non-breaking space respected before the em dash.
+      subtitleA: "On synchronise les calendriers entre",
+      platforms: "Airbnb, Booking.com, Vrbo",
+      subtitleB: "et tout ce qui parle iCal. Chaque plateforme voit les réservations des autres —",
+      subtitleC: "les doubles réservations deviennent l’exception",
+      subtitleD: ". Gratuit pour toujours, open source.",
+      cta: "Commencer — gratuit pour toujours",
+      ctaNote: "Sans carte bancaire. Aucune offre payante. Essayez l’assistant avant de créer un compte.",
+    },
+    how: {
+      eyebrow: "Comment ça marche",
+      title: "Trois étapes. La plupart des hôtes terminent en sept minutes.",
+      steps: [
+        {
+          title: "Collez les liens iCal de vos plateformes",
+          body: "Chez Airbnb : Calendar → Sync calendars → Export. Chez Booking.com : Calendar → Sync calendars. Vrbo aussi. Déposez-les dans l’assistant.",
+        },
+        {
+          title: "On vous renvoie un flux unifié",
+          body: "Une URL iCal par plateforme avec les réservations des autres, vos blocages manuels et les jours tampons pour le ménage. Plus de fenêtre pour une double réservation.",
+        },
+        {
+          title: "Recollez notre URL dans chaque plateforme",
+          body: "Airbnb et Booking.com récupèrent notre flux toutes les quelques heures. Leurs calendriers se parlent enfin — et connaissent vos blocages manuels.",
+        },
+      ],
+      tryWizard: "Essayer l’assistant sans s’inscrire",
+    },
+    features: {
+      eyebrow: "Pensé pour ce qui fait mal",
+      titleA: "Tout ce qu’il faut à un hôte.",
+      titleB: "Rien dont vous ne vous servirez jamais.",
+      items: [
+        {
+          title: "Synchronisation multi-plateforme",
+          body: "Toutes les 10 minutes, on récupère le flux iCal de chaque plateforme et on le republie pour les autres. Airbnb voit les réservations de Booking et inversement — la même protection qu’un Channel Manager payant, en gratuit et open source.",
+        },
+        {
+          title: "Automatisation du ménage",
+          body: "Jours tampons que les plateformes ne savent pas gérer nativement. Liste de ménage du jour. Rôle « femme de ménage » dédié, avec accès limité au tableau de bord.",
+        },
+        {
+          title: "Tableau de bord multi-logements",
+          body: "Pilotez autant de logements que vous voulez depuis un seul endroit. Bascule au clavier. Co-hôtes et personnel de ménage ont leurs propres rôles avec les bons droits.",
+        },
+        {
+          title: "Modèles de messages",
+          body: "Modèles par logement avec variables (nom du voyageur, arrivée, wifi). Copie en un clic — collage direct dans Airbnb ou WhatsApp.",
+        },
+        {
+          title: "Flux iCal public",
+          body: "Chaque logement a sa propre URL de flux. Collez-la dans Airbnb ou Booking — vos blocages manuels suivent automatiquement.",
+        },
+        {
+          title: "Recherche voyageurs en Cmd-K",
+          body: "Retrouvez n’importe quel ancien voyageur, sur tous vos logements, en un raccourci. Avec export de documents quand il faut envoyer de la paperasse.",
+        },
+      ],
+    },
+    compatible: {
+      label: "Compatible avec",
+      footer: "…et toute plateforme qui exporte un flux iCal.",
+    },
+    trust: {
+      open: {
+        title: "Open source",
+        body: "Sous licence MIT sur GitHub. Lisez le code, ouvrez une issue, ou auto-hébergez sur n’importe quel droplet à 4 $.",
+        link: "Voir sur GitHub",
+      },
+      gdpr: {
+        title: "Conforme RGPD",
+        body: "Un seul cookie de session strictement nécessaire. Pas d’analytics, pas de pub, aucun traceur tiers. Vous supprimez le compte, les données disparaissent avec.",
+        link: "Politique de confidentialité",
+      },
+    },
+    faq: {
+      eyebrow: "Réponses rapides",
+      title: "Les questions que les hôtes posent en premier.",
+      items: [
+        {
+          q: "Est-ce que ça empêche vraiment les doubles réservations ?",
+          a: "Le risque baisse drastiquement — pas à zéro, mais on s’en approche. On récupère le flux iCal de chaque plateforme toutes les 10 minutes et on le republie pour les autres : Airbnb apprend une réservation Booking.com (et inversement) sous 10 min de notre côté. Les plateformes rafraîchissent les flux importés toutes les 2 à 12 h chez elles. Une synchro API en temps réel serait plus rapide, mais Airbnb et Booking.com ne vendent pas leurs API Channel Manager aux hôtes individuels — uniquement aux PMS certifiés qui facturent 100 à 300 $/mois pour relayer les mêmes flux que nous synchronisons gratuitement. Pour 99 % des petits hôtes, le handshake iCal suffit largement.",
+        },
+        {
+          q: "C’est vraiment gratuit ?",
+          a: "Oui. La version hébergée est gratuite pour un usage personnel, avec un rate-limit par compte pour que la facture reste raisonnable. Le code source est sous MIT — clonez-le, faites-le tourner sur un droplet à 4 $, vous ne devez rien à personne.",
+        },
+        {
+          q: "Concrètement, qu’est-ce que ça fait ?",
+          a: "Ça récupère n’importe quel calendrier iCal — Airbnb, Booking.com, Vrbo, ou tout autre service avec une URL d’export — pour vous éviter de jongler entre les onglets. Ajoute des jours tampons pour le ménage que les plateformes ne savent pas gérer. Génère une liste de ménage quotidienne. Modèles de messages par logement et recherche voyageurs en Cmd-K sur tous vos biens.",
+        },
+        {
+          q: "Faut-il s’auto-héberger ?",
+          a: "Non. Inscrivez-vous ici et utilisez la version hébergée. Si un jour vous dépassez la limite gratuite ou voulez la pleine maîtrise des données — exportez et auto-hébergez. Vos données, votre choix.",
+        },
+        {
+          q: "Où vivent les données des voyageurs ?",
+          a: "Dans un seul fichier SQLite sur le serveur hébergé. Aucun sous-traitant tiers, sauf Google Gemini pour l’OCR des passeports (et seulement pour cette unique requête). Vous supprimez le compte, les données disparaissent.",
+        },
+      ],
+    },
+    finalCta: {
+      titleA: "Construit par un hôte.",
+      titleB: "Pour des hôtes.",
+      body: "Pas d’offre payante. Pas d’upsell. Pas de tracking. Le mainteneur paie l’hébergement pour que vous vous occupiez des voyageurs, pas des onglets.",
+      primary: "Commencer — gratuit pour toujours",
+      secondary: "Lire le code source",
+    },
+    footer: {
+      copyright: "© 2026 RentTools · Licence MIT",
+      github: "GitHub",
+      blog: "Blog",
+      terms: "Conditions",
+      privacy: "Confidentialité",
+      signIn: "Se connecter",
+      cookieNoteA: "Cookies strictement nécessaires uniquement — pas de tracking, pas d’analytics. Voir la ",
+      cookieNoteLink: "politique de confidentialité",
       cookieNoteB: ".",
     },
   },

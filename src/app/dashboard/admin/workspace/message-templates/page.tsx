@@ -84,6 +84,19 @@ const COPY: Record<Locale, CopyShape> = {
       `${total} Vorlage${total === 1 ? "" : "n"} über ${properties} Objekt${properties === 1 ? "" : "e"}.`,
     openSync: "Sync öffnen",
   },
+  fr: {
+    failedToLoad: "Échec du chargement",
+    onCheckIn: "le jour de l'arrivée",
+    beforeCheckIn: (n) => `${n} j avant l'arrivée`,
+    afterCheckIn: (n) => `${n} j après l'arrivée`,
+    title: "Modèles de messages",
+    subtitle: "Tous les modèles de messages sur vos logements. Cliquez sur un logement pour ouvrir ses paramètres Sync, où les modèles se modifient.",
+    loading: "Chargement...",
+    empty: "Aucun modèle pour l'instant. Ouvrez un logement et ajoutez-en dans l'onglet Sync.",
+    summary: (total, properties) =>
+      `${total} modèle${total === 1 ? "" : "s"} sur ${properties} logement${properties === 1 ? "" : "s"}.`,
+    openSync: "Ouvrir Sync",
+  },
 };
 
 export default function AdminMessageTemplatesPage() {

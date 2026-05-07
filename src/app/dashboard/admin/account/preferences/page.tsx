@@ -43,6 +43,14 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Sprache der Oberfläche",
     languageHint: "Englisch, Russisch oder Deutsch.",
   },
+  fr: {
+    title: "Langue et thème",
+    subtitle: "Ces préférences sont enregistrées par navigateur — à choisir à nouveau sur les autres appareils.",
+    theme: "Thème",
+    themeHint: "Clair ou sombre.",
+    language: "Langue de l'interface",
+    languageHint: "Anglais, russe, allemand ou français.",
+  },
 };
 
 export default function AdminPreferencesPage() {

@@ -18,6 +18,7 @@ const NAV_LABELS = {
   en: { blog: "Blog", signIn: "Sign in", getStarted: "Get started", dashboard: "Dashboard" },
   ru: { blog: "Блог", signIn: "Войти", getStarted: "Начать", dashboard: "Панель" },
   de: { blog: "Blog", signIn: "Anmelden", getStarted: "Loslegen", dashboard: "Dashboard" },
+  fr: { blog: "Blog", signIn: "Se connecter", getStarted: "Commencer", dashboard: "Tableau de bord" },
 };
 
 /**

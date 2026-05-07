@@ -151,6 +151,43 @@ const COPY: Record<Locale, CopyShape> = {
     adding: "Wird hinzugefügt...",
     addOverrideButton: "Override hinzufügen",
   },
+  fr: {
+    title: "Overrides SEO",
+    description:
+      "Overrides par page pour le title, la description, l'image OG et l'URL canonique. Les champs vides conservent les valeurs par défaut de la page.",
+    loading: "Chargement...",
+    notSuperadmin: "Seuls les superadmins peuvent modifier les overrides SEO.",
+    existingHeader: "Existants",
+    refreshing: "Actualisation...",
+    refresh: "Actualiser",
+    loadFailed: (status) => `Échec du chargement des overrides SEO (${status})`,
+    loadFailedShort: "Échec du chargement des overrides SEO",
+    empty:
+      "Aucun override par page pour l'instant. Ajoutez-en un ci-dessous pour remplacer le title / description / image OG par défaut de la page.",
+    noTitleOverride: "(pas d'override de title)",
+    titleLabel: "Title (laissez vide pour conserver la valeur par défaut)",
+    descriptionLabel: "Description",
+    ogImageLabel: "URL de l'image OG",
+    canonicalLabel: "URL canonique",
+    failedSave: "Échec de l'enregistrement",
+    saveFailed: "Échec de l'enregistrement",
+    saved: "Enregistré. Actif sous 60 s.",
+    failedDelete: "Échec de la suppression",
+    failedCreate: "Échec de la création",
+    confirmDelete: (path, l) => `Supprimer l'override SEO pour ${path} (${l}) ?`,
+    delete: "Supprimer",
+    saving: "Enregistrement...",
+    save: "Enregistrer",
+    addOverrideTitle: "Ajouter un override",
+    addOverrideDescription:
+      "Path est le chemin de l'URL (ex. /about). Les champs vides conservent les valeurs par défaut de la page.",
+    titlePlaceholder: (max) => `Title (max ${max} caractères)`,
+    descriptionPlaceholder: (max) => `Description (max ${max} caractères)`,
+    ogImagePlaceholder: "URL de l'image OG",
+    canonicalPlaceholder: "URL canonique (optionnel)",
+    adding: "Ajout...",
+    addOverrideButton: "Ajouter l'override",
+  },
 };
 
 // RT-25.9 tick 13 — SEO overrides sub-route at

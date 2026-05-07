@@ -165,6 +165,31 @@ const COPY: Record<Locale, CopyShape> = {
     notListing: "Sie inserieren nirgends?",
     manualReservationLink: "Stattdessen eine Buchung manuell hinzufügen →",
   },
+  fr: {
+    step1Title: "Nommez votre premier logement",
+    step1Body:
+      "Juste un libellé pour vous — vous pourrez le renommer plus tard. À l’étape suivante, on connecte au moins un calendrier.",
+    step1Placeholder: "ex. Appartement Sunset",
+    step1Continue: "Continuer →",
+    step1Creating: "Création…",
+    step1Sample: "Ou essayer un logement de démo →",
+    step2TitlePrefix: "Connecter un calendrier à « ",
+    step2TitleSuffix: " »",
+    step2Body:
+      "Collez l’URL d’export iCal d’une plateforme sur laquelle vous publiez. Ensuite, vous recopierez la nôtre chez elles — on génère l’URL d’import dès l’enregistrement.",
+    customFallback: "Plateforme personnalisée",
+    customNamePlaceholder: "Nom de la plateforme",
+    test: "Tester",
+    save: "Enregistrer",
+    connected: "Connectée",
+    pasteBackPrefix: "Recoller dans ",
+    pasteBackSuffix: " :",
+    copy: "Copier",
+    copied: "Copié",
+    addAnotherPlatform: "Ajouter une autre plateforme",
+    notListing: "Vous ne publiez nulle part ?",
+    manualReservationLink: "Ajouter plutôt une réservation manuelle →",
+  },
 };
 
 function clientSlug(raw: string): string {

@@ -55,6 +55,14 @@ const COPY: Record<Locale, CopyShape> = {
     dateLocale: "de-DE",
     deleteUser: "Benutzer löschen",
   },
+  fr: {
+    failedToAdd: "Échec de l'ajout de l'utilisateur",
+    subtitle: "Administrateurs et gestionnaires de cette instance. Les agents d'entretien s'ajoutent par logement depuis les fiches d'agent.",
+    loading: "Chargement...",
+    empty: "Aucun utilisateur pour l'instant.",
+    dateLocale: "fr-FR",
+    deleteUser: "Supprimer l'utilisateur",
+  },
 };
 
 export default function AdminUsersPage() {

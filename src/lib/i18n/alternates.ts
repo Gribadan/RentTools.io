@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n/translations";
 // deliberate: middleware runs in Edge runtime and importing from
 // arbitrary modules is fragile; one extra const to update per new
 // language is cheap.)
-export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "ru", "de"];
+export const SUPPORTED_LOCALES: readonly Locale[] = ["en", "ru", "de", "fr"];
 export const DEFAULT_LOCALE: Locale = "en";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";

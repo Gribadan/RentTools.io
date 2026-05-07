@@ -73,6 +73,20 @@ const COPY: Record<Locale, CopyShape> = {
     creating: "Wird erstellt…",
     add: "Objekt hinzufügen",
   },
+  fr: {
+    nameRequired: "Le nom du logement est obligatoire",
+    backToDashboard: "Retour au dashboard",
+    addProperty: "Ajouter un logement",
+    propertyName: "Nom du logement",
+    propertyNameHint: "Visible par vous seul — les voyageurs ne le voient pas.",
+    propertyNamePlaceholder: "Studio Montmartre",
+    calendarFeeds: "Feeds de calendrier",
+    calendarFeedsHint: "Optionnel — vous pourrez les ajouter plus tard depuis la page du logement. Airbnb et Booking.com sont pris en charge.",
+    icalExportUrl: "URL d'export iCal",
+    cancel: "Annuler",
+    creating: "Création…",
+    add: "Ajouter le logement",
+  },
 };
 
 function AddPropertyContent() {

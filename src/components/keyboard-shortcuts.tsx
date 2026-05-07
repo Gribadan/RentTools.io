@@ -17,6 +17,7 @@ const COPY: Record<Locale, CopyShape> = {
   en: { title: "Keyboard shortcuts" },
   ru: { title: "Горячие клавиши" },
   de: { title: "Tastenkürzel" },
+  fr: { title: "Raccourcis clavier" },
 };
 
 const SHORTCUTS: Shortcut[] = [
@@ -26,11 +27,12 @@ const SHORTCUTS: Shortcut[] = [
       en: "Show this shortcut overlay",
       ru: "Показать справку по горячим клавишам",
       de: "Tastenkürzel-Übersicht anzeigen",
+      fr: "Afficher l’aide des raccourcis",
     },
   },
   {
     keys: ["⌘", "K"],
-    description: { en: "Open guest search", ru: "Поиск гостей", de: "Gästesuche öffnen" },
+    description: { en: "Open guest search", ru: "Поиск гостей", de: "Gästesuche öffnen", fr: "Ouvrir la recherche de voyageurs" },
   },
   {
     keys: ["←"],
@@ -38,6 +40,7 @@ const SHORTCUTS: Shortcut[] = [
       en: "Previous month (calendar)",
       ru: "Предыдущий месяц (календарь)",
       de: "Vorheriger Monat (Kalender)",
+      fr: "Mois précédent (calendrier)",
     },
   },
   {
@@ -46,11 +49,12 @@ const SHORTCUTS: Shortcut[] = [
       en: "Next month (calendar)",
       ru: "Следующий месяц (календарь)",
       de: "Nächster Monat (Kalender)",
+      fr: "Mois suivant (calendrier)",
     },
   },
   {
     keys: ["T"],
-    description: { en: "Jump to today (calendar)", ru: "К сегодня (календарь)", de: "Zu heute springen (Kalender)" },
+    description: { en: "Jump to today (calendar)", ru: "К сегодня (календарь)", de: "Zu heute springen (Kalender)", fr: "Aller à aujourd’hui (calendrier)" },
   },
   {
     keys: ["E"],
@@ -58,11 +62,12 @@ const SHORTCUTS: Shortcut[] = [
       en: "Toggle Edit Dates mode (calendar)",
       ru: "Переключить режим редактирования дат (календарь)",
       de: "Datums-Bearbeitungsmodus umschalten (Kalender)",
+      fr: "Activer le mode Édition des dates (calendrier)",
     },
   },
   {
     keys: ["Esc"],
-    description: { en: "Close overlay", ru: "Закрыть окно", de: "Fenster schließen" },
+    description: { en: "Close overlay", ru: "Закрыть окно", de: "Fenster schließen", fr: "Fermer la fenêtre" },
   },
 ];
 
