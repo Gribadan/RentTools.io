@@ -97,6 +97,19 @@ const COPY: Record<Locale, CopyShape> = {
       `${total} modèle${total === 1 ? "" : "s"} sur ${properties} logement${properties === 1 ? "" : "s"}.`,
     openSync: "Ouvrir Sync",
   },
+  es: {
+    failedToLoad: "Error al cargar",
+    onCheckIn: "el día de la llegada",
+    beforeCheckIn: (n) => `${n} d antes de la llegada`,
+    afterCheckIn: (n) => `${n} d después de la llegada`,
+    title: "Plantillas de mensajes",
+    subtitle: "Todas las plantillas de mensajes en sus alojamientos. Pulse en un alojamiento para abrir sus ajustes de Sync, donde se editan las plantillas.",
+    loading: "Cargando...",
+    empty: "Aún no hay plantillas. Abra un alojamiento y añádalas en la pestaña de ajustes de Sync.",
+    summary: (total, properties) =>
+      `${total} plantilla${total === 1 ? "" : "s"} en ${properties} alojamiento${properties === 1 ? "" : "s"}.`,
+    openSync: "Abrir Sync",
+  },
 };
 
 export default function AdminMessageTemplatesPage() {

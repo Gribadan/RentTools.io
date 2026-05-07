@@ -68,6 +68,19 @@ const COPY: Record<Locale, CopyShape> = {
     dataSourcesHelper:
       "Le planning est calculé à partir de vos réservations + événements iCal, dédupliqués. Le nom du logement apparaît sur chaque ligne lors de la copie / impression.",
   },
+  es: {
+    emptyState: "Añada un alojamiento para ver el calendario de limpiezas.",
+    cleaning: "Limpieza",
+    acrossAllProperties: (count) =>
+      `En todos los ${count} ${count === 1 ? "alojamiento" : "alojamientos"}`,
+    allPropertiesLabel: (count) => `Todos los alojamientos (${count})`,
+    view: "Vista",
+    potentialHelper:
+      "Limpiezas que solo importan si un huésped reserva el hueco intermedio.",
+    dataSources: "Fuentes de datos",
+    dataSourcesHelper:
+      "El calendario se calcula a partir de sus reservas + eventos iCal, deduplicados. El nombre del alojamiento aparece en cada línea al copiar / imprimir.",
+  },
 };
 
 // Sidebar carries the View toggle (include-potential) + a Data

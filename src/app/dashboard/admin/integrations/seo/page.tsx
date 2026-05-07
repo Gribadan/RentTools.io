@@ -188,6 +188,43 @@ const COPY: Record<Locale, CopyShape> = {
     adding: "Ajout...",
     addOverrideButton: "Ajouter l'override",
   },
+  es: {
+    title: "Overrides SEO",
+    description:
+      "Overrides por página para title, description, imagen OG y URL canónica. Los campos vacíos conservan los valores predeterminados de la página.",
+    loading: "Cargando...",
+    notSuperadmin: "Solo los superadministradores pueden editar los overrides SEO.",
+    existingHeader: "Existentes",
+    refreshing: "Actualizando...",
+    refresh: "Actualizar",
+    loadFailed: (status) => `No se pudieron cargar los overrides SEO (${status})`,
+    loadFailedShort: "No se pudieron cargar los overrides SEO",
+    empty:
+      "Aún no hay overrides por página. Añada uno abajo para sustituir el title / description / imagen OG por defecto de la página.",
+    noTitleOverride: "(sin override de title)",
+    titleLabel: "Title (déjelo vacío para conservar el valor por defecto)",
+    descriptionLabel: "Description",
+    ogImageLabel: "URL de la imagen OG",
+    canonicalLabel: "URL canónica",
+    failedSave: "No se pudo guardar",
+    saveFailed: "No se pudo guardar",
+    saved: "Guardado. Activo en menos de 60 s.",
+    failedDelete: "No se pudo eliminar",
+    failedCreate: "No se pudo crear",
+    confirmDelete: (path, l) => `¿Eliminar el override SEO de ${path} (${l})?`,
+    delete: "Eliminar",
+    saving: "Guardando...",
+    save: "Guardar",
+    addOverrideTitle: "Añadir un override",
+    addOverrideDescription:
+      "Path es la ruta del URL (p. ej. /about). Los campos vacíos conservan los valores predeterminados de la página.",
+    titlePlaceholder: (max) => `Title (máx. ${max} caracteres)`,
+    descriptionPlaceholder: (max) => `Description (máx. ${max} caracteres)`,
+    ogImagePlaceholder: "URL de la imagen OG",
+    canonicalPlaceholder: "URL canónica (opcional)",
+    adding: "Añadiendo...",
+    addOverrideButton: "Añadir override",
+  },
 };
 
 // RT-25.9 tick 13 — SEO overrides sub-route at

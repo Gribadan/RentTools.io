@@ -51,6 +51,13 @@ const COPY: Record<Locale, CopyShape> = {
     syncHealth: "Santé du sync des calendriers",
     externalNote: "Une page de statut externe (status.renttools.io) n'est pas encore branchée. Quand elle arrivera, elle sera liée ici.",
   },
+  es: {
+    title: "Estado del sistema",
+    subtitle: "Endpoints internos de salud de esta instancia. Úselos para hacer comprobaciones puntuales cuando el sync se comporte mal o se cuele un 5xx.",
+    appHealth: "Salud de la app",
+    syncHealth: "Salud del sync de calendarios",
+    externalNote: "Aún no hay una página de estado externa (status.renttools.io) conectada. Cuando se active, se enlazará desde aquí.",
+  },
 };
 
 export default function AdminStatusPage() {

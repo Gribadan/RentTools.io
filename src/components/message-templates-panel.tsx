@@ -91,6 +91,23 @@ const COPY: Record<Locale, CopyShape> = {
     edit: "Modifier",
     remove: "Supprimer",
   },
+  es: {
+    nameAndBodyRequired: "El nombre y el cuerpo son obligatorios",
+    confirmDelete: "¿Eliminar esta plantilla?",
+    title: "Plantillas de mensajes",
+    newTemplate: "Nueva plantilla",
+    namePlaceholder: "Nombre de la plantilla",
+    subjectPlaceholder: "Asunto (opcional)",
+    bodyPlaceholder: "Cuerpo del mensaje",
+    variables: "Variables:",
+    offsetLabel: "Días antes/después de la entrada",
+    preview: "Vista previa",
+    cancel: "Cancelar",
+    save: "Guardar",
+    empty: "Aún no hay plantillas.",
+    edit: "Editar",
+    remove: "Eliminar",
+  },
 };
 
 interface MessageTemplate {

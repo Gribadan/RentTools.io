@@ -129,6 +129,10 @@ const TAG_UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> 
     line1: "Les pages de tags sont uniquement en anglais.",
     line2: "Les titres et le contenu des articles du blog RentTools sont publiés en anglais.",
   },
+  es: {
+    line1: "Las páginas de etiquetas solo están en inglés por ahora.",
+    line2: "Los títulos y textos del blog de RentTools se publican en inglés.",
+  },
 };
 
 // Localised chrome (breadcrumb labels + nav-aria) for the tag page.
@@ -139,6 +143,7 @@ const TAG_CHROME: Record<Locale, { breadcrumbNav: string; homeLabel: string; blo
   ru: { breadcrumbNav: "Хлебные крошки", homeLabel: "Главная", blogLabel: "Блог" },
   de: { breadcrumbNav: "Brotkrumen", homeLabel: "Start", blogLabel: "Blog" },
   fr: { breadcrumbNav: "Fil d’Ariane", homeLabel: "Accueil", blogLabel: "Blog" },
+  es: { breadcrumbNav: "Migas de pan", homeLabel: "Inicio", blogLabel: "Blog" },
 };
 
 export default async function BlogTagPage({

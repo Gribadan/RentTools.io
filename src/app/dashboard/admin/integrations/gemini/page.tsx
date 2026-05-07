@@ -55,6 +55,14 @@ const COPY: Record<Locale, CopyShape> = {
     saveFailed: "Échec de l'enregistrement",
     apiKeyLabel: "Clé API :",
   },
+  es: {
+    description:
+      "Se usa para extraer los datos del pasaporte de los huéspedes. Se guarda en site_settings y se aplica a toda la instancia.",
+    loading: "Cargando...",
+    saved: "Guardado",
+    saveFailed: "No se pudo guardar",
+    apiKeyLabel: "Clave de API:",
+  },
 };
 
 export default function AdminGeminiPage() {

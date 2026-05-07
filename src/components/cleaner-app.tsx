@@ -36,6 +36,11 @@ const COPY: Record<Locale, CopyShape> = {
     cleanerBadge: "ménage",
     noProperties: "Aucun logement ne vous a encore été assigné pour le ménage.",
   },
+  es: {
+    cleaningSchedule: "Calendario de limpiezas",
+    cleanerBadge: "limpieza",
+    noProperties: "Aún no se le ha asignado ningún alojamiento para limpiar.",
+  },
 };
 
 interface CalendarEvent {

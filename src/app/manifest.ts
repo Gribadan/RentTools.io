@@ -41,6 +41,12 @@ const LOCALIZED: Record<Locale, { name: string; description: string; lang: strin
       "Gestionnaire open source gratuit pour les hôtes de location courte durée. Synchronisez Airbnb et Booking.com, automatisez le ménage.",
     lang: "fr",
   },
+  es: {
+    name: "RentTools",
+    description:
+      "Gestor de código abierto y gratuito para anfitriones de alquiler vacacional. Sincronice Airbnb y Booking.com y automatice las limpiezas.",
+    lang: "es",
+  },
 };
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {

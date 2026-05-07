@@ -61,6 +61,13 @@ const COPY: Record<Locale, CopyShape> = {
     loading: "Chargement...",
     empty: "Aucune activité pour l'instant.",
   },
+  es: {
+    dateLocale: "es-ES",
+    title: "Registro de auditoría",
+    subtitle: "Acciones recientes asociadas a su sesión. Se conservan las 50 últimas entradas.",
+    loading: "Cargando...",
+    empty: "Aún no hay actividad.",
+  },
 };
 
 function summarize(e: AuditEntry): string {

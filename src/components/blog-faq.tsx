@@ -13,6 +13,7 @@ const COPY: Record<Locale, CopyShape> = {
   ru: { heading: "Частые вопросы" },
   de: { heading: "Häufige Fragen" },
   fr: { heading: "Questions fréquentes" },
+  es: { heading: "Preguntas frecuentes" },
 };
 
 /**

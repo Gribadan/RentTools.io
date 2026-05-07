@@ -96,6 +96,24 @@ const COPY: Record<Locale, CopyShape> = {
     hoursAgo: (n) => `il y a ${n} h`,
     daysAgo: (n) => `il y a ${n} j`,
   },
+  es: {
+    title: "Enlaces iCal",
+    description:
+      "Todos los feeds de calendario conectados en sus alojamientos. Pulse en un alojamiento para abrir sus ajustes de Sync.",
+    loadFailed: "Error al cargar",
+    loading: "Cargando...",
+    empty: "Aún no hay enlaces iCal conectados. Añádalos en la pestaña de ajustes de Sync de cada alojamiento.",
+    errorBanner: (count) =>
+      `${count} enlace${count === 1 ? "" : "s"} con error. Abra el alojamiento para revisar la URL.`,
+    openSync: "Abrir Sync",
+    okBadge: "OK",
+    errorBadge: "Error",
+    never: "nunca",
+    justNow: "ahora mismo",
+    minutesAgo: (n) => `hace ${n} min`,
+    hoursAgo: (n) => `hace ${n} h`,
+    daysAgo: (n) => `hace ${n} d`,
+  },
 };
 
 // RT-25.9 tick 16 — iCal links sub-route at

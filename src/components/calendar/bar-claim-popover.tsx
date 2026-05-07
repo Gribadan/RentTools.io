@@ -58,6 +58,16 @@ const COPY: Record<Locale, CopyShape> = {
     save: "Enregistrer",
     saving: "Enregistrement…",
   },
+  es: {
+    heading: "Nombrar esta reserva",
+    body: "Esta reserva entró por iCal. Asígnele un nombre de huésped para que aparezca en su lista.",
+    guestNameLabel: "Nombre del huésped",
+    guestNamePlaceholder: "Juan García",
+    defaultGuestFallback: "Huésped",
+    cancel: "Cancelar",
+    save: "Guardar",
+    saving: "Guardando…",
+  },
 };
 
 export interface ClaimableBar {

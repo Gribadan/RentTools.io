@@ -159,6 +159,36 @@ const COPY: Record<Locale, CopyShape> = {
     deleteProperty: "Supprimer le logement",
     dateLocale: "fr-FR",
   },
+  es: {
+    save: "Guardar",
+    cancel: "Cancelar",
+    rename: "Renombrar",
+    platformName: "Nombre de la plataforma",
+    custom: "personalizada",
+    remove: "Quitar",
+    draftImportHint: "Nombre primero la plataforma para obtener su URL de importación.",
+    addAnother: "Añadir otra plataforma",
+    daysShort: (n) => (n !== 1 ? "días" : "día"),
+    nightsShort: (n) => (n !== 1 ? "noches" : "noche"),
+    monthsShort: "meses",
+    feedTokenTitle: "Token de acceso al feed",
+    feedTokenDesc:
+      "La URL del feed permite que servicios externos que no admiten subida de iCal (por ejemplo, herramientas de pricing, channel managers o sus propios scripts) lean el calendario combinado de Airbnb + Booking de este alojamiento en formato iCal. La mayoría de los anfitriones no lo necesitan — deje el token vacío para mantener el feed público, o gire el token para que la URL sea privada.",
+    feedTokenActiveNote:
+      "Sus URL de feed incluyen actualmente un token privado. Al rotarlo se invalida la URL anterior — vuelva a pegar la nueva donde la utilice.",
+    feedTokenPublicNote:
+      "Sus URL de feed son actualmente públicas. Añada un token para que no se puedan adivinar.",
+    makePublic: "Hacer público",
+    rotate: "Rotar",
+    generateToken: "Generar token",
+    dangerZone: "Zona peligrosa",
+    dangerZoneDesc:
+      "Eliminar este alojamiento borra todas sus reservas, huéspedes, documentos de pasaporte, registros de sincronización y enlaces iCal. La acción no se puede deshacer.",
+    confirmDelete: (name) =>
+      `¿Eliminar el alojamiento «${name}»? Se borrarán todas las reservas y datos relacionados. La acción no se puede deshacer.`,
+    deleteProperty: "Eliminar alojamiento",
+    dateLocale: "es-ES",
+  },
 };
 
 interface TestResult {

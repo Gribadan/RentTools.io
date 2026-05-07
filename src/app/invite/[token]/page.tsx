@@ -96,6 +96,21 @@ const COPY: Record<Locale, CopyShape> = {
     expired: "Cette invitation a expiré.",
     used: "Cette invitation a déjà été utilisée par quelqu'un d'autre.",
   },
+  es: {
+    loading: "Cargando invitación…",
+    inviteHeading: "Invitación de gestión",
+    invitingYou: "le invita a gestionar",
+    scopeBlurb: "Tendrá acceso completo de gestión: calendario, reservas, sync, limpieza. No podrá eliminar el alojamiento ni gestionar a otros gestores.",
+    accepting: "Aceptando…",
+    accept: "Aceptar invitación",
+    decline: "Rechazar",
+    alreadyAccepted: "Ya ha aceptado esta invitación.",
+    openApp: "Abrir la app",
+    notFound: "Invitación no encontrada.",
+    revoked: "Esta invitación se ha revocado.",
+    expired: "Esta invitación ha caducado.",
+    used: "Esta invitación ya ha sido usada por otra persona.",
+  },
 };
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {

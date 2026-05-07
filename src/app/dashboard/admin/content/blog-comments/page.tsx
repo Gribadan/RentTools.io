@@ -115,6 +115,28 @@ const COPY: Record<Locale, CopyShape> = {
     hide: "Masquer",
     delete: "Supprimer",
   },
+  es: {
+    title: "Comentarios del blog",
+    description:
+      "Moderación: ocultar, restaurar o borrado suave. Los comentarios con borrado suave permanecen en la base de datos para auditoría.",
+    loading: "Cargando...",
+    notSuperadmin: "Solo los superadministradores pueden moderar los comentarios.",
+    statusLabel: "Estado",
+    filterAll: "Todos",
+    filterVisible: "Visibles",
+    filterHidden: "Ocultos",
+    filterDeleted: "Eliminados",
+    refreshing: "Actualizando...",
+    refresh: "Actualizar",
+    loadFailed: (status) => `No se pudieron cargar los comentarios (${status})`,
+    loadFailedShort: "No se pudieron cargar los comentarios",
+    commentsCount: (n) => `${n} comentario${n === 1 ? "" : "s"}`,
+    empty: "No hay comentarios para moderar.",
+    confirmDelete: "¿Aplicar borrado suave a este comentario? Se ocultará, pero se conservará para auditoría.",
+    restore: "Restaurar",
+    hide: "Ocultar",
+    delete: "Eliminar",
+  },
 };
 
 // RT-25.9 tick 21 — Blog comments sub-route at

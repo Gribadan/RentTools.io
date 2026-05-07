@@ -99,6 +99,18 @@ const COPY: Record<Locale, CopyShape> = {
     noEntries: "Aucune entrée pour l'instant. Elles apparaîtront après le premier sync.",
     global: "global",
   },
+  es: {
+    failedToLoad: "Error al cargar",
+    dateLocale: "es-ES",
+    title: "Logs de sync",
+    subtitle: "Feed cronológico de eventos de sync en todos sus alojamientos. Últimas 200 entradas.",
+    all: "Todos",
+    issuesOnly: "Solo incidencias",
+    loading: "Cargando...",
+    noIssues: "Sin incidencias: todas las sincronizaciones se completaron sin problemas.",
+    noEntries: "Aún no hay entradas. Aparecerán tras el primer sync.",
+    global: "global",
+  },
 };
 
 export default function AdminSyncLogsPage() {

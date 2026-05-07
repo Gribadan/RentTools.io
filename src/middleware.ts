@@ -26,7 +26,7 @@ const IS_DEFAULT_SECRET = JWT_SECRET_RAW === "fallback-secret-change-me";
 //   1. Append its code to SUPPORTED_LOCALES below.
 //   2. Add the COPY block in each marketing page.
 //   3. Done — no new route files, no middleware changes.
-const SUPPORTED_LOCALES = ["en", "ru", "de", "fr"] as const;
+const SUPPORTED_LOCALES = ["en", "ru", "de", "fr", "es"] as const;
 const DEFAULT_LOCALE = "en";
 const LOCALE_PREFIXES = SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE); // ['ru'] today
 

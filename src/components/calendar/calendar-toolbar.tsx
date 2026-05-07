@@ -38,6 +38,12 @@ const COPY: Record<Locale, CopyShape> = {
     syncErrorTitle: "Erreur de synchronisation :",
     syncErrorShort: "Erreur sync :",
   },
+  es: {
+    syncNow: "Sincronizar ahora",
+    reservations: (n) => `${n} ${n === 1 ? "reserva" : "reservas"}`,
+    syncErrorTitle: "Error de sincronización:",
+    syncErrorShort: "Error de sync:",
+  },
 };
 
 interface CalendarToolbarProps {

@@ -18,6 +18,7 @@ const COPY: Record<Locale, CopyShape> = {
   ru: { copyLink: "Скопировать ссылку", copied: "Скопировано!" },
   de: { copyLink: "Link kopieren", copied: "Kopiert!" },
   fr: { copyLink: "Copier le lien", copied: "Copié !" },
+  es: { copyLink: "Copiar enlace", copied: "¡Copiado!" },
 };
 
 /**

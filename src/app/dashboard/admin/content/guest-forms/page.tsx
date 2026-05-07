@@ -99,6 +99,24 @@ const COPY: Record<Locale, CopyShape> = {
     fields: (n) => `${n} champ${n === 1 ? "" : "s"}`,
     submissions: (n) => `${n} réponse${n === 1 ? "" : "s"}`,
   },
+  es: {
+    title: "Plantillas de formularios para huéspedes",
+    description:
+      "Todas las plantillas de formularios previos a la llegada en sus alojamientos. Pulse en un alojamiento para abrir sus ajustes de Sync, donde se edita la plantilla.",
+    loadFailed: "Error al cargar",
+    loading: "Cargando...",
+    empty:
+      "Aún no hay formularios para huéspedes configurados. Abra un alojamiento y cree una plantilla en la pestaña de ajustes de Sync.",
+    loadingEllipsis: "Cargando...",
+    summary: (totalCount, propertyCount, totalSubmissions) =>
+      `${totalCount} plantilla${totalCount === 1 ? "" : "s"} en ${propertyCount} alojamiento${
+        propertyCount === 1 ? "" : "s"
+      } · ${totalSubmissions} respuesta${totalSubmissions === 1 ? "" : "s"}.`,
+    openSync: "Abrir Sync",
+    untitled: "Plantilla sin título",
+    fields: (n) => `${n} campo${n === 1 ? "" : "s"}`,
+    submissions: (n) => `${n} respuesta${n === 1 ? "" : "s"}`,
+  },
 };
 
 interface TemplateRow {

@@ -155,6 +155,35 @@ const COPY: Record<Locale, CopyShape> = {
       `jusqu’au ${date} · ${nights} ${nights === 1 ? "nuit" : "nuits"} restantes`,
     inDays: (date, days) => `${date} (dans ${days} j)`,
   },
+  es: {
+    dateLocale: "es-ES",
+    reservationsCount: (count) => `${count} ${count === 1 ? "reserva" : "reservas"}`,
+    reservationsAcross: (resCount, propCount) =>
+      `${resCount} reservas en ${propCount} ${propCount === 1 ? "alojamiento" : "alojamientos"}`,
+    needsAttention: "Requiere atención",
+    doubleBooking: "Doble reserva:",
+    moreCount: (n) => `+ ${n} más`,
+    cleanerConflict: "Conflicto de limpieza:",
+    moreCountSuffix: (n) => ` + ${n} más`,
+    openCleaning: "Abrir limpieza →",
+    noCalendars: "Sin calendarios conectados:",
+    connectCalendars: "Conectar calendarios",
+    reservationLabel: "Reserva",
+    availableLabel: "Disponible",
+    nextLabel: "Siguiente:",
+    noUpcoming: "No hay reservas próximas",
+    bookingsCountShort: "reservas",
+    minNightsLabel: (n) => `mín. ${n}n`,
+    syncShort: "Sync",
+    searchPlaceholder: "Buscar por nombre del huésped…",
+    foundLabel: "encontradas",
+    currentlyStaying: "Alojados ahora",
+    daysShort: "d",
+    guestShort: "h",
+    untilNightsLeft: (date, nights) =>
+      `hasta ${date} · ${nights} ${nights === 1 ? "noche" : "noches"} restantes`,
+    inDays: (date, days) => `${date} (en ${days} d)`,
+  },
 };
 
 // RT-25.6 tick 2 — bundled platform presets, kept inline rather than

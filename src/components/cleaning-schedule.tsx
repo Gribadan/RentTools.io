@@ -75,6 +75,19 @@ const COPY: Record<Locale, CopyShape> = {
     daysCount: (n) => (n === 1 ? "jour" : "jours"),
     cleaningCta: "Ménage",
   },
+  es: {
+    dateLocale: "es-ES",
+    arriveByLabel: (time) => `limpieza rápida, llegar antes de las ${time}`,
+    fullDayLabel: "día completo disponible",
+    manualLabel: "limpieza",
+    potentialPrefix: "posible — ",
+    scheduleHeader: "Calendario de limpiezas",
+    conflictNoBackup: " (conflicto — sin suplente configurado)",
+    conflictBackupBusy: (name) => ` (conflicto — el suplente ${name} también ocupado)`,
+    conflictBackupSet: (name) => ` (conflicto — suplente: ${name})`,
+    daysCount: (n) => (n === 1 ? "día" : "días"),
+    cleaningCta: "Limpieza",
+  },
 };
 
 /** RT-25.10 tick 3 — single cleaner assignment slot for a property.

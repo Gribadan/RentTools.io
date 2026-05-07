@@ -46,6 +46,14 @@ const COPY: Record<Locale, CopyShape> = {
     selectCleaner: "Choisir un agent de ménage…",
     add: "Ajouter",
   },
+  es: {
+    cleaners: "Personal de limpieza",
+    remove: "Quitar",
+    noneAssigned: "Aún no hay personal de limpieza asignado.",
+    noneAvailable: "No hay cuentas de limpieza disponibles",
+    selectCleaner: "Seleccionar personal…",
+    add: "Añadir",
+  },
 };
 
 interface Assignment {

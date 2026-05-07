@@ -132,6 +132,24 @@ const COPY: Record<Locale, CopyShape> = {
     on: "Activé",
     off: "Désactivé",
   },
+  es: {
+    failedToLoad: "Error al cargar",
+    title: "Alojamientos",
+    subtitle: "Resumen de los ajustes clave de cada alojamiento accesible. Edite los ajustes de cada alojamiento en su pestaña de Sync.",
+    loading: "Cargando...",
+    empty: "Aún no hay alojamientos accesibles.",
+    hPropery: "Alojamiento",
+    hRole: "Rol",
+    hBookings: "Reservas",
+    hMinNights: "Noches mín.",
+    hCheckInOut: "Entrada / salida",
+    hWindow: "Ventana (d)",
+    hCleaning: "Limpieza",
+    owner: "Propietario",
+    manager: "Gestor",
+    on: "Activa",
+    off: "Inactiva",
+  },
 };
 
 export default function AdminPropertiesPage() {

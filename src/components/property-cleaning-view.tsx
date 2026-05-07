@@ -35,6 +35,11 @@ const COPY: Record<Locale, CopyShape> = {
     view: "Affichage",
     includePotentialHint: "Ménages utiles uniquement si un voyageur réserve sur la période libre.",
   },
+  es: {
+    cleaning: "Limpieza",
+    view: "Vista",
+    includePotentialHint: "Limpiezas que solo importan si un huésped reserva el hueco intermedio.",
+  },
 };
 
 // View / display options live in the sidebar so they sit alongside the

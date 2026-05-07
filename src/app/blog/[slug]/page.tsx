@@ -143,6 +143,10 @@ const UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> = {
     line1: "Traduction en cours.",
     line2: "Cet article est affiché en anglais.",
   },
+  es: {
+    line1: "Traducción en curso.",
+    line2: "Este artículo se muestra en inglés.",
+  },
 };
 
 // Visible-body copy for the post page. Excludes the JSON-LD (kept in EN
@@ -226,6 +230,21 @@ const POST_COPY: Record<Locale, PostCopyShape> = {
     footerTerms: "Conditions",
     shareLabel: "Partager",
     emailLabel: "E-mail",
+  },
+  es: {
+    breadcrumbNav: "Migas de pan",
+    homeLabel: "Inicio",
+    homeHref: "/es",
+    blogLabel: "Blog",
+    blogHref: "/es/blog",
+    minutesRead: (n) => `${n} min de lectura`,
+    keepReading: "Seguir leyendo",
+    allPosts: "← Todos los artículos",
+    footerHome: "Inicio",
+    footerPrivacy: "Privacidad",
+    footerTerms: "Términos",
+    shareLabel: "Compartir",
+    emailLabel: "Email",
   },
 };
 
@@ -469,6 +488,7 @@ export default async function BlogPostPage({
     ru: { home: "Главная", blog: "Блог" },
     de: { home: "Start", blog: "Blog" },
     fr: { home: "Accueil", blog: "Blog" },
+    es: { home: "Inicio", blog: "Blog" },
   };
   const crumbLabels = BREADCRUMB_LABELS[requestedLocale];
   const homeUrl = requestedLocale === DEFAULT_LOCALE ? SITE_URL : `${SITE_URL}/${requestedLocale}`;

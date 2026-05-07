@@ -18,6 +18,7 @@ const COPY: Record<Locale, CopyShape> = {
   ru: { title: "Горячие клавиши" },
   de: { title: "Tastenkürzel" },
   fr: { title: "Raccourcis clavier" },
+  es: { title: "Atajos de teclado" },
 };
 
 const SHORTCUTS: Shortcut[] = [
@@ -28,11 +29,12 @@ const SHORTCUTS: Shortcut[] = [
       ru: "Показать справку по горячим клавишам",
       de: "Tastenkürzel-Übersicht anzeigen",
       fr: "Afficher l’aide des raccourcis",
+      es: "Mostrar esta ayuda de atajos",
     },
   },
   {
     keys: ["⌘", "K"],
-    description: { en: "Open guest search", ru: "Поиск гостей", de: "Gästesuche öffnen", fr: "Ouvrir la recherche de voyageurs" },
+    description: { en: "Open guest search", ru: "Поиск гостей", de: "Gästesuche öffnen", fr: "Ouvrir la recherche de voyageurs", es: "Abrir búsqueda de huéspedes" },
   },
   {
     keys: ["←"],
@@ -41,6 +43,7 @@ const SHORTCUTS: Shortcut[] = [
       ru: "Предыдущий месяц (календарь)",
       de: "Vorheriger Monat (Kalender)",
       fr: "Mois précédent (calendrier)",
+      es: "Mes anterior (calendario)",
     },
   },
   {
@@ -50,11 +53,12 @@ const SHORTCUTS: Shortcut[] = [
       ru: "Следующий месяц (календарь)",
       de: "Nächster Monat (Kalender)",
       fr: "Mois suivant (calendrier)",
+      es: "Mes siguiente (calendario)",
     },
   },
   {
     keys: ["T"],
-    description: { en: "Jump to today (calendar)", ru: "К сегодня (календарь)", de: "Zu heute springen (Kalender)", fr: "Aller à aujourd’hui (calendrier)" },
+    description: { en: "Jump to today (calendar)", ru: "К сегодня (календарь)", de: "Zu heute springen (Kalender)", fr: "Aller à aujourd’hui (calendrier)", es: "Ir a hoy (calendario)" },
   },
   {
     keys: ["E"],
@@ -63,11 +67,12 @@ const SHORTCUTS: Shortcut[] = [
       ru: "Переключить режим редактирования дат (календарь)",
       de: "Datums-Bearbeitungsmodus umschalten (Kalender)",
       fr: "Activer le mode Édition des dates (calendrier)",
+      es: "Activar el modo Editar fechas (calendario)",
     },
   },
   {
     keys: ["Esc"],
-    description: { en: "Close overlay", ru: "Закрыть окно", de: "Fenster schließen", fr: "Fermer la fenêtre" },
+    description: { en: "Close overlay", ru: "Закрыть окно", de: "Fenster schließen", fr: "Fermer la fenêtre", es: "Cerrar ventana" },
   },
 ];
 

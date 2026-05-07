@@ -34,6 +34,11 @@ const BLOG_INDEX_COPY: Record<Locale, { title: string; description: string }> = 
     description:
       "Guides pratiques pour les hôtes de location courte durée : synchronisation des calendriers, prévention des doubles réservations, automatisation du ménage et RGPD.",
   },
+  es: {
+    title: "Blog",
+    description:
+      "Guías prácticas para anfitriones de alquiler vacacional: sincronización de calendarios, prevención de reservas dobles, automatización de limpiezas y RGPD.",
+  },
 };
 
 interface CopyShape {
@@ -146,6 +151,28 @@ const COPY: Record<Locale, CopyShape> = {
     footerHome: "Accueil",
     footerPrivacy: "Confidentialité",
     footerTerms: "Conditions",
+  },
+  es: {
+    ogLocale: "es_ES",
+    breadcrumbNav: "Migas de pan",
+    homeLabel: "Inicio",
+    homeHref: "/es",
+    blogLabel: "Blog",
+    heroEyebrow: "El blog de RentTools",
+    heroTitle: "Notas de campo para anfitriones de alquiler vacacional",
+    heroIntro:
+      "Sincronización de calendarios que funciona de verdad, automatización de limpiezas que no duplica turnos al personal y un checklist de RGPD que cabe en una página. Escrito por gente que gestiona alojamientos, no por webs de afiliación.",
+    tagFilterNav: "Filtrar por etiqueta",
+    tagAll: "Todas",
+    emptyNoTag: "Aún no hay artículos.",
+    emptyWithTag: (tag) => `Aún no hay artículos con la etiqueta «${tag}».`,
+    featuredBadge: "Destacado",
+    paginationPrev: "← Anterior",
+    paginationLabel: (page, total) => `Página ${page} de ${total}`,
+    paginationNext: "Siguiente →",
+    footerHome: "Inicio",
+    footerPrivacy: "Privacidad",
+    footerTerms: "Términos",
   },
 };
 

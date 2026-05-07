@@ -13,6 +13,7 @@ const COPY: Record<Locale, CopyShape> = {
   ru: { dateLocale: "ru-RU" },
   de: { dateLocale: "de-DE" },
   fr: { dateLocale: "fr-FR" },
+  es: { dateLocale: "es-ES" },
 };
 
 interface AuditEntry {

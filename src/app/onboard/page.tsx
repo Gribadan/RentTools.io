@@ -335,6 +335,57 @@ const COPY: Record<Locale, CopyShape> = {
     verifiedSubtitle: (valid, enabled) =>
       `${valid} sur ${enabled} ${enabled === 1 ? "plateforme vérifiée" : "plateformes vérifiées"}. Ce qui n’est pas validé se corrige après l’inscription.`,
   },
+  es: {
+    introEyebrow: "Inicio · Gratis para todos los alojamientos — para siempre",
+    introTitleLead: "Configure su ",
+    introTitleAccent: "primer alojamiento",
+    introBody:
+      "Marque las plataformas en las que publica, pegue la URL iCal de cada una y copie las nuestras de vuelta. Puede hacerlo sin cuenta primero — al final se registra para guardar los datos.",
+    loading: "Cargando…",
+    step1Title: "Póngale nombre al alojamiento",
+    step1Subtitle: "Solo una etiqueta para usted. Puede renombrarlo cuando quiera.",
+    step1Placeholder: "Mi primer alojamiento",
+    step2Title: "Conecte los feeds de calendario",
+    step2Subtitle:
+      "Marque cada plataforma que use — pegue su URL iCal y copie la nuestra de vuelta. Lo que no esté en la lista, añádalo como «Plataforma personalizada».",
+    addAnotherPlatform: "Añadir otra plataforma",
+    step3Title: "Cree su cuenta",
+    step3SubtitleEmpty:
+      "Puede registrarse sin elegir plataforma — añádalas luego desde el panel.",
+    signinPrefix: "Gratis para siempre, sin tarjeta. ¿Ya tiene cuenta? ",
+    signinLink: "Iniciar sesión",
+    signinSuffix: ".",
+    saving: "Guardando…",
+    saveAndCreate: "Guardar y crear cuenta",
+    customFallback: "Plataforma personalizada",
+    enableAria: (display) => `Activar ${display}`,
+    customNamePlaceholder: "Nombre de la plataforma",
+    removePlatformAria: "Quitar esta plataforma",
+    hideInstructions: (display) => `Ocultar instrucciones para ${display}`,
+    showInstructions: (display) => `Mostrar instrucciones para ${display}`,
+    icalExportLabel: (display) => `URL de exportación iCal · ${display}`,
+    invalidBadUrl: "La URL no tiene buena pinta — compruebe que empieza por https://",
+    invalidUnreachable:
+      "No hemos podido alcanzar esa URL. La plataforma puede ir lenta — inténtelo en un minuto.",
+    invalidNotIcal:
+      "La URL responde, pero no devuelve un calendario. Compruebe que copió la exportación iCal y no la página del anuncio.",
+    invalidGeneric:
+      "No hemos podido verificar esta URL — puede guardar igualmente y seguiremos intentándolo tras el registro.",
+    validOk: "Todo en orden — empezamos a sincronizar cada 10 minutos en cuanto se registre.",
+    pasteBackLabel: (display) => `Pegue esta URL de RentTools de vuelta en ${display}`,
+    feedUrlPlaceholder: "La URL aparece en cuanto guarde el nombre del alojamiento arriba",
+    copy: "Copiar",
+    copied: "¡Copiado!",
+    feedHelp:
+      "Esta URL es suya para siempre — incluso después de registrarse. Empezará a servir datos en vivo en cuanto complete el registro.",
+    testTesting: "Comprobando…",
+    testValid: "Verificada",
+    testRetry: "Reintentar",
+    testFresh: "Probar",
+    changeColor: "Cambiar color",
+    verifiedSubtitle: (valid, enabled) =>
+      `${valid} de ${enabled} ${enabled === 1 ? "plataforma verificada" : "plataformas verificadas"}. Lo que no se haya validado se arregla después del registro.`,
+  },
 };
 
 /* ────────────────────────────────────────────────────────────────────

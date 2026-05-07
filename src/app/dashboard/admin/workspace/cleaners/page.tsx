@@ -128,6 +128,26 @@ const COPY: Record<Locale, CopyShape> = {
     edit: "Modifier",
     delete: "Supprimer",
   },
+  es: {
+    failed: "Error",
+    deleteConfirm: "¿Eliminar a este miembro del personal de limpieza? También se eliminarán todas sus asignaciones de alojamientos.",
+    defaultRank: "principal",
+    backupRank: (rank) => `suplente ${rank}`,
+    title: "Personal de limpieza",
+    subtitle: "Equipo de limpieza a nivel de cuenta. Asígnelo a alojamientos concretos desde la pestaña «Limpieza» de cada alojamiento.",
+    addCleaner: "Añadir personal de limpieza",
+    namePlaceholder: "Nombre",
+    phoneOptionalPlaceholder: "Teléfono (opcional)",
+    add: "Añadir",
+    loading: "Cargando…",
+    empty: "Aún no hay personal de limpieza. Añada el primero arriba.",
+    phonePlaceholder: "Teléfono",
+    cancel: "Cancelar",
+    save: "Guardar",
+    notAssigned: "Sin asignar a ningún alojamiento",
+    edit: "Editar",
+    delete: "Eliminar",
+  },
 };
 
 export default function AdminCleanersPage() {
