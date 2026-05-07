@@ -75,6 +75,39 @@ export function stripLocalePrefix(visiblePath: string): {
 export { SITE_URL };
 
 /**
+ * Strip any locale prefix from a visible path. Inverse of attaching a
+ * prefix; used by the locale switcher to swap one locale for another
+ * without double-prefixing on consecutive switches.
+ *
+ *   stripLocalePrefixFromPath("/ru/blog/foo") // → "/blog/foo"
+ *   stripLocalePrefixFromPath("/blog/foo")    // → "/blog/foo"
+ *   stripLocalePrefixFromPath("/ru")          // → "/"
+ */
+export function stripLocalePrefixFromPath(path: string): string {
+  for (const loc of SUPPORTED_LOCALES) {
+    if (loc === DEFAULT_LOCALE) continue;
+    if (path === `/${loc}`) return "/";
+    if (path.startsWith(`/${loc}/`)) return path.slice(loc.length + 1);
+  }
+  return path;
+}
+
+/**
+ * Take a visible path (with or without a locale prefix) and swap to
+ * the target locale's URL. The pattern the locale switcher needs:
+ * given the current path the user is on, produce the equivalent URL
+ * under the target language.
+ *
+ *   swapLocaleInPath("/blog", "ru")        // → "/ru/blog"
+ *   swapLocaleInPath("/ru/blog", "en")     // → "/blog"
+ *   swapLocaleInPath("/ru/blog", "ru")     // → "/ru/blog" (no-op)
+ */
+export function swapLocaleInPath(path: string, target: Locale): string {
+  const bare = stripLocalePrefixFromPath(path);
+  return localePath(bare, target);
+}
+
+/**
  * Prefix a default-locale path with the user's resolved locale so an
  * internal link points at the URL the user is already on. Without this,
  * a click on `<Link href="/blog">` from a /ru/ context goes to /blog,

@@ -2,6 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 const SECRET = new TextEncoder().encode(
@@ -39,7 +40,17 @@ export async function createSession(userId: number, username: string, role: stri
   return token;
 }
 
-export async function getSession(): Promise<{
+// React's `cache()` wraps the resolver in per-request memoization. The
+// root layout calls getSession() to populate SessionProvider, then the
+// home page calls it again to redirect logged-in users, then the
+// dashboard layout calls it again to gate access — without `cache()`
+// we'd hit Prisma three times for the same request. With it, every
+// caller within a single request shares the same result, and the DB
+// is hit at most once. (This is React's request-scoped cache, not
+// Next.js's data-cache — different mechanism, no revalidation needed.)
+export const getSession = cache(_getSession);
+
+async function _getSession(): Promise<{
   userId: number;
   username: string;
   role: string;

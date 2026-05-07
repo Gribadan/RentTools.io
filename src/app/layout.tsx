@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   description: SITE_TAGLINE,
   applicationName: SITE_NAME,
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   alternates: {
     canonical: "/",
   },

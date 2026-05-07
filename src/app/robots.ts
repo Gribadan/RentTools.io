@@ -31,13 +31,15 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: "/",
-        // /api  — JSON, no SEO value, would only burn crawl budget.
-        // /dashboard, /admin — auth-walled; redirects to /login.
+        // /api          — JSON, no SEO value, would only burn crawl budget.
+        // /dashboard    — auth-walled; redirects to /login.
+        // /admin        — auth-walled (superadmin); redirects to /login.
+        // /monitoring   — Sentry browser-SDK tunnel route; not user-facing.
         // /invite/, /g/ — one-time tokens; must NEVER be indexed because
-        //                  each URL exposes private data (manager invite
-        //                  or guest form share). Per-route layout.tsx
-        //                  also emits noindex meta as belt-and-suspenders.
-        disallow: ["/api/", "/dashboard", "/admin", "/invite/", "/g/"],
+        //                 each URL exposes private data (manager invite or
+        //                 guest form share). Per-route layout.tsx also
+        //                 emits noindex meta as belt-and-suspenders.
+        disallow: ["/api/", "/dashboard", "/admin", "/monitoring", "/invite/", "/g/"],
       },
       // Explicit Allow lines for major LLM training + retrieval crawlers.
       // We *want* RentTools content cited in AI answers — every blog
@@ -48,7 +50,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       ...["GPTBot", "ChatGPT-User", "OAI-SearchBot", "ClaudeBot", "Claude-Web", "anthropic-ai", "Google-Extended", "PerplexityBot", "Perplexity-User", "Applebot-Extended", "Bytespider", "CCBot", "cohere-ai"].map((userAgent) => ({
         userAgent,
         allow: "/",
-        disallow: ["/api/", "/dashboard", "/admin", "/invite/", "/g/"],
+        disallow: ["/api/", "/dashboard", "/admin", "/monitoring", "/invite/", "/g/"],
       })),
     ],
     sitemap: [`${SITE_URL}/sitemap.xml`],

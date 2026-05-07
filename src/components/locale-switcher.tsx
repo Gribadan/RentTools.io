@@ -4,32 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
-
-// Mirror of middleware's SUPPORTED_LOCALES + DEFAULT_LOCALE.
-// Inline-duplicated rather than imported because this is a client
-// component and the alternates module pulls in `next/headers` (server-
-// only) transitively. Keep in sync with middleware + alternates.ts.
-const LOCALE_PREFIXES_CLIENT: Locale[] = ["ru"];
-const DEFAULT_LOCALE_CLIENT: Locale = "en";
-
-// Build the URL path under a target locale, given the current visible
-// path. Strip any existing locale prefix first, then prepend the new
-// one (or none, for the default locale).
-function pathForLocale(currentPath: string, target: Locale): string {
-  let stripped = currentPath;
-  for (const loc of LOCALE_PREFIXES_CLIENT) {
-    if (currentPath === `/${loc}`) {
-      stripped = "/";
-      break;
-    }
-    if (currentPath.startsWith(`/${loc}/`)) {
-      stripped = currentPath.slice(loc.length + 1);
-      break;
-    }
-  }
-  if (target === DEFAULT_LOCALE_CLIENT) return stripped;
-  return stripped === "/" ? `/${target}` : `/${target}${stripped}`;
-}
+import { swapLocaleInPath } from "@/lib/i18n/alternates";
 
 // Inline SVG flags. We can't use 🇬🇧 / 🇷🇺 emojis here because Windows
 // desktop browsers render regional indicator chars as plain letters
@@ -121,7 +96,7 @@ export function LocaleSwitcher({
     setOpen(false);
     if (next === locale) return;
     setLocale(next);
-    const target = pathForLocale(pathname ?? "/", next);
+    const target = swapLocaleInPath(pathname ?? "/", next);
     if (typeof window !== "undefined") {
       window.location.assign(target);
     }

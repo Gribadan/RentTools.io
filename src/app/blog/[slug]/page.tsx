@@ -317,6 +317,11 @@ export default async function BlogPostPage({
     mainEntityOfPage: { "@type": "WebPage", "@id": postUrl },
     datePublished: post.publishedAt?.toISOString(),
     dateModified: post.updatedAt?.toISOString() ?? post.publishedAt?.toISOString(),
+    // inLanguage matches the BODY language, which is `post.locale` —
+    // even when serving an untranslated fallback under /<locale>/...,
+    // the body is still in the default locale, and Google should know
+    // that. The noindex + canonical-to-EN policy handled by metadata
+    // is what keeps the duplicate URL out of SERPs.
     inLanguage: post.locale,
     keywords: tags.length > 0 ? tags.join(", ") : undefined,
     articleSection,
@@ -360,12 +365,26 @@ export default async function BlogPostPage({
     })),
   } : null;
 
+  // Per-locale breadcrumb labels — Google uses these for the SERP
+  // sitelink crumb shown above the result snippet, so a Russian visitor
+  // searching from a Russian device sees Главная › Блог › <title>
+  // instead of Home › Blog › <title>. URLs stay stable; only the
+  // visible labels change per locale.
+  const BREADCRUMB_LABELS: Record<Locale, { home: string; blog: string }> = {
+    en: { home: "Home", blog: "Blog" },
+    ru: { home: "Главная", blog: "Блог" },
+  };
+  const crumbLabels = BREADCRUMB_LABELS[requestedLocale];
+  const homeUrl = requestedLocale === DEFAULT_LOCALE ? SITE_URL : `${SITE_URL}/${requestedLocale}`;
+  const blogUrl = requestedLocale === DEFAULT_LOCALE
+    ? `${SITE_URL}/blog`
+    : `${SITE_URL}/${requestedLocale}/blog`;
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Blog", item: `${SITE_URL}/blog` },
+      { "@type": "ListItem", position: 1, name: crumbLabels.home, item: homeUrl },
+      { "@type": "ListItem", position: 2, name: crumbLabels.blog, item: blogUrl },
       { "@type": "ListItem", position: 3, name: post.title, item: postUrl },
     ],
   };

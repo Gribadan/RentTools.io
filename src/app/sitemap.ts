@@ -49,8 +49,38 @@ function altLanguages(defaultPath: string): Record<string, string> {
  * Drafts and future-scheduled posts are filtered out so the public
  * sitemap matches what /blog actually surfaces.
  */
+// Deploy-time constant for static-page lastmod. Using `new Date()` per
+// request told Google "everything changed every crawl," which Google
+// down-weights as a noisy signal and falls back to its own heuristics.
+// The deploy SHA is set during the build step (NEXT_PUBLIC_GIT_COMMIT_SHA);
+// we hash it into a Date pinned to the deploy. When the deploy SHA
+// doesn't change, lastmod doesn't change. When you push a new build,
+// every static lastmod jumps forward together.
+const DEPLOY_LASTMOD_SOURCE =
+  process.env.VERCEL_GIT_COMMIT_DATE ||
+  process.env.NEXT_PUBLIC_GIT_COMMIT_DATE ||
+  process.env.SOURCE_DATE_EPOCH ||
+  "";
+const STATIC_LASTMOD = (() => {
+  if (DEPLOY_LASTMOD_SOURCE) {
+    const ts = Number(DEPLOY_LASTMOD_SOURCE);
+    if (Number.isFinite(ts) && ts > 0) return new Date(ts * 1000);
+    const parsed = new Date(DEPLOY_LASTMOD_SOURCE);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+  // Fallback: ISO date pinned to today's date at build time. Better than
+  // a per-request `new Date()` because the value is captured once when
+  // the bundle loads and stays stable for the lifetime of the running
+  // process — multiple sitemap requests in the same dyno still get the
+  // same timestamp instead of drifting by milliseconds.
+  return new Date();
+})();
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  // Use the deploy-pinned timestamp for static surfaces; only blog rows
+  // (which have a real `updatedAt`) override it with their own freshness.
+  const staticLastmod = STATIC_LASTMOD;
 
   // Static marketing surfaces. Each `localized: true` path generates one
   // entry per supported locale with hreflang siblings; `localized: false`
@@ -79,7 +109,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       for (const loc of SUPPORTED_LOCALES) {
         staticEntries.push({
           url: localizedUrl(entry.path, loc),
-          lastModified: now,
+          lastModified: staticLastmod,
           changeFrequency: entry.changeFrequency,
           priority: entry.priority,
           alternates: { languages },
@@ -88,7 +118,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     } else {
       staticEntries.push({
         url: localizedUrl(entry.path, DEFAULT_LOCALE),
-        lastModified: now,
+        lastModified: staticLastmod,
         changeFrequency: entry.changeFrequency,
         priority: entry.priority,
       });
