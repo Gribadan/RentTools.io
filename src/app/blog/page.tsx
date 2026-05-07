@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
-import { localizedAlternates } from "@/lib/i18n/alternates";
+import { localizedAlternates, localePath } from "@/lib/i18n/alternates";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
@@ -123,8 +123,8 @@ export default async function BlogIndexPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
-  const prevHref = buildHref({ page: page - 1, tag: tagFilter });
-  const nextHref = buildHref({ page: page + 1, tag: tagFilter });
+  const prevHref = localePath(buildHref({ page: page - 1, tag: tagFilter }), locale);
+  const nextHref = localePath(buildHref({ page: page + 1, tag: tagFilter }), locale);
 
   // Featured = newest post on page 1 with no tag filter — gets a wider
   // hero card. Everything else flows in the magazine grid below it.
@@ -235,7 +235,7 @@ export default async function BlogIndexPage({
             className="mt-8 flex flex-wrap gap-2 text-xs"
           >
             <Link
-              href="/blog"
+              href={localePath("/blog", locale)}
               className={`rounded-full border px-3 py-1 transition-colors ${
                 tagFilter
                   ? "border-[var(--line)] text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
@@ -246,6 +246,10 @@ export default async function BlogIndexPage({
             </Link>
             {tagRows.map((t) => {
               const active = tagFilter === t.slug;
+              // Tag pages stay default-locale; localePath() returns the
+              // unprefixed URL because /blog/tag is gated to EN-only via
+              // the middleware redirect. Once tag pages go multilingual,
+              // adding /blog/tag to LOCALIZABLE_PATHS auto-prefixes here.
               return (
                 <Link
                   key={t.slug}
@@ -274,7 +278,7 @@ export default async function BlogIndexPage({
             <>
               {featured && (
                 <Link
-                  href={`/blog/${featured.slug}`}
+                  href={localePath(`/blog/${featured.slug}`, locale)}
                   className="group mb-10 grid overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-2)]/30 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-xl md:grid-cols-2"
                 >
                   <div className="aspect-[1.91/1] overflow-hidden bg-[var(--bg-3)] md:aspect-auto md:h-full">
@@ -330,7 +334,7 @@ export default async function BlogIndexPage({
                   return (
                     <li key={p.id}>
                       <Link
-                        href={`/blog/${p.slug}`}
+                        href={localePath(`/blog/${p.slug}`, locale)}
                         className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-2)]/30 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
                       >
                         <div className="aspect-[1.91/1] overflow-hidden bg-[var(--bg-3)]">
@@ -416,7 +420,7 @@ export default async function BlogIndexPage({
         <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[var(--ink)]">
+            <Link href={localePath("/", locale)} className="hover:text-[var(--ink)]">
               {locale === "ru" ? "Главная" : "Home"}
             </Link>
             <Link href="/privacy" className="hover:text-[var(--ink)]">

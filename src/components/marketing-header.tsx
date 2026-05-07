@@ -36,6 +36,20 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
   const session = useSession();
   const t = NAV_LABELS[locale];
   const isAuthenticated = session !== null;
+  // Locale-aware href helper — internal links must point at the
+  // locale-prefixed URL when the user is in a non-default locale,
+  // otherwise the middleware would 308-redirect every click. Prefixing
+  // here lets the navigation hit the final URL on the first request.
+  // Pages outside LOCALIZABLE_PATHS (e.g. /dashboard) stay unprefixed
+  // because the middleware would redirect /<locale>/dashboard back to
+  // /dashboard anyway.
+  const NON_LOCALIZED_TARGETS = new Set(["/dashboard"]);
+  const localized = (href: string): string => {
+    if (locale === "en") return href;
+    if (NON_LOCALIZED_TARGETS.has(href)) return href;
+    if (href === "/") return `/${locale}`;
+    return `/${locale}${href}`;
+  };
   return (
     <header
       className={
@@ -45,7 +59,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
       }
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
-        <Link href="/" className="group flex items-center gap-2">
+        <Link href={localized("/")} className="group flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
             <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
               <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
@@ -86,7 +100,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
 
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link
-            href="/blog"
+            href={localized("/blog")}
             className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
           >
             {t.blog}
@@ -110,7 +124,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
             // the user is when they want to leave), not in marketing
             // header that they hit while exploring blog/onboard pages.
             <Link
-              href="/dashboard"
+              href={localized("/dashboard")}
               className="rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)]"
             >
               {t.dashboard}
@@ -118,13 +132,13 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
           ) : (
             <>
               <Link
-                href="/login"
+                href={localized("/login")}
                 className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
               >
                 {t.signIn}
               </Link>
               <Link
-                href="/onboard"
+                href={localized("/onboard")}
                 className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:inline-flex"
               >
                 {t.getStarted}

@@ -73,3 +73,35 @@ export function stripLocalePrefix(visiblePath: string): {
 }
 
 export { SITE_URL };
+
+/**
+ * Prefix a default-locale path with the user's resolved locale so an
+ * internal link points at the URL the user is already on. Without this,
+ * a click on `<Link href="/blog">` from a /ru/ context goes to /blog,
+ * the middleware sees rt-locale=ru, and 308-redirects to /ru/blog —
+ * adding ~50ms of round-trip per click. Using this helper makes the
+ * link's href the final URL on the first request.
+ *
+ *   localePath("/blog", "ru")   // → "/ru/blog"
+ *   localePath("/blog", "en")   // → "/blog"
+ *   localePath("/", "ru")       // → "/ru"
+ *   localePath("/dashboard", "ru") // → "/dashboard"  (non-localizable)
+ */
+const NON_LOCALIZED_PATHS = new Set([
+  // Auth-walled / token-gated paths the middleware redirects /<locale>/<path>
+  // back to / unprefixed. Prefixing them here would just waste a redirect.
+  "/dashboard",
+  "/admin",
+  "/privacy",
+  "/terms",
+]);
+export function localePath(defaultPath: string, locale: Locale): string {
+  if (locale === DEFAULT_LOCALE) return defaultPath;
+  for (const skip of NON_LOCALIZED_PATHS) {
+    if (defaultPath === skip || defaultPath.startsWith(`${skip}/`)) {
+      return defaultPath;
+    }
+  }
+  if (defaultPath === "/") return `/${locale}`;
+  return `/${locale}${defaultPath}`;
+}

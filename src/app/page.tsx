@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSetting } from "@/lib/site-settings";
 import { applySeoOverrides } from "@/lib/seo";
+import { localePath } from "@/lib/i18n/alternates";
 import { GoogleOneTap } from "@/components/google-one-tap";
 import { JsonLd } from "@/components/json-ld";
 import { MarketingHeader } from "@/components/marketing-header";
@@ -454,7 +455,7 @@ export default async function HomePage() {
 
           <div className="hero-in hero-in-4 mt-8 flex justify-center">
             <Link
-              href="/onboard"
+              href={localePath("/onboard", locale)}
               className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[var(--m-accent)] px-8 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)] sm:w-auto"
             >
               {t.hero.cta}
@@ -485,7 +486,7 @@ export default async function HomePage() {
           </ol>
           <div className="mt-12 text-center">
             <Link
-              href="/onboard"
+              href={localePath("/onboard", locale)}
               className="inline-flex items-center gap-2 text-[14px] font-medium text-[var(--m-accent)] hover:underline"
             >
               {t.how.tryWizard}
@@ -589,7 +590,7 @@ export default async function HomePage() {
             </p>
             <div className="mt-10 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Link
-                href="/onboard"
+                href={localePath("/onboard", locale)}
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[var(--m-accent)] px-7 text-[14px] font-medium text-white transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] active:translate-y-0 shadow-[0_2px_8px_rgba(255,56,92,0.25)] sm:w-auto"
               >
                 {t.finalCta.primary}
@@ -614,7 +615,7 @@ export default async function HomePage() {
             <p>{t.footer.copyright}</p>
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
               <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ink)] transition-colors">{t.footer.github}</a>
-              <Link href="/blog" className="hover:text-[var(--ink)] transition-colors">{t.footer.blog}</Link>
+              <Link href={localePath("/blog", locale)} className="hover:text-[var(--ink)] transition-colors">{t.footer.blog}</Link>
               <Link href="/terms" className="hover:text-[var(--ink)] transition-colors">{t.footer.terms}</Link>
               <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">{t.footer.privacy}</Link>
               {supportEmail && (
@@ -622,7 +623,7 @@ export default async function HomePage() {
                   {supportEmail}
                 </a>
               )}
-              <Link href="/login" className="hover:text-[var(--ink)] transition-colors">{t.footer.signIn}</Link>
+              <Link href={localePath("/login", locale)} className="hover:text-[var(--ink)] transition-colors">{t.footer.signIn}</Link>
             </nav>
           </div>
           <p className="mt-3 text-center text-[11px] text-[var(--ink-4)] sm:text-left">

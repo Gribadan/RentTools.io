@@ -169,16 +169,43 @@ export async function middleware(request: NextRequest) {
     logRequest(request, r, startedAt);
     return r;
   }
-  // For default-locale URLs we still set x-pathname + x-locale so
-  // pages can read them uniformly. Locale defaults to the rt-locale
-  // cookie if set, otherwise DEFAULT_LOCALE. A cookie picking a
-  // non-default locale on a default-prefix URL is honoured for
-  // backward compat — but the canonical URL Google sees stays the
-  // default-locale URL because that's what `pathname` is here.
+  // For default-locale URLs (no /<locale>/ prefix), reconcile the URL
+  // with the cookie. If the user's rt-locale cookie picks a non-default
+  // locale and they hit a localizable default-locale URL, redirect to
+  // the prefixed equivalent so URL ↔ body language always agree.
+  //
+  // Why this matters: without the redirect, an authenticated user with
+  // rt-locale=ru clicking a hard-coded Link href="/blog" lands on /blog
+  // and the cookie fallback below makes the server render Russian under
+  // the English URL. URL bar says /blog, body is in Russian. The user's
+  // refresh report: "URL doesn't change but I see the wrong language."
+  // The redirect makes the URL match what the user expects.
+  //
+  // Crawl impact: Googlebot has no cookie, so cookieLocale is undefined,
+  // resolvedLocale is DEFAULT_LOCALE, and the redirect is skipped — Google
+  // continues to crawl /blog as the EN canonical it has always been.
+  // Direct deep-link visits (someone pasting /blog in their browser) also
+  // skip the redirect because their cookie is empty until they choose a
+  // language. Only post-locale-switch navigations are redirected, and
+  // only the first time per locale (after that, internal links are
+  // already locale-prefixed by the locale-aware Link helper).
   const cookieLocale = request.cookies.get("rt-locale")?.value;
   const resolvedLocale = SUPPORTED_LOCALES.includes(cookieLocale as typeof SUPPORTED_LOCALES[number])
     ? (cookieLocale as string)
     : DEFAULT_LOCALE;
+  if (
+    resolvedLocale !== DEFAULT_LOCALE &&
+    isLocalizable(pathname) &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/_next") &&
+    !pathname.includes(".")
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname === "/" ? `/${resolvedLocale}` : `/${resolvedLocale}${pathname}`;
+    const r = NextResponse.redirect(url);
+    logRequest(request, r, startedAt);
+    return r;
+  }
   const i18nHeaders = new Headers(request.headers);
   i18nHeaders.set("x-locale", resolvedLocale);
   i18nHeaders.set("x-pathname", pathname);
