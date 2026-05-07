@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getLocale } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n/translations";
 
 /**
  * PWA manifest. Per-locale because the `name` / `short_name` /
@@ -15,7 +16,7 @@ import { getLocale } from "@/lib/i18n/server";
  * locale the install was initiated under.
  */
 
-const LOCALIZED: Record<"en" | "ru", { name: string; description: string; lang: string }> = {
+const LOCALIZED: Record<Locale, { name: string; description: string; lang: string }> = {
   en: {
     name: "RentTools",
     description:
