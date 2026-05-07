@@ -7,6 +7,7 @@ import { PlatformInstructions } from "@/components/platform-instructions";
 import { MarketingHeader } from "@/components/marketing-header";
 import { useI18n } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/alternates";
+import type { Locale } from "@/lib/i18n/translations";
 
 /* ────────────────────────────────────────────────────────────────────
    Types
@@ -77,6 +78,164 @@ const PRESETS: Preset[] = [
 const CUSTOM_PALETTE = ["#7c3aed", "#0ea5e9", "#f59e0b", "#10b981", "#ec4899", "#6366f1"];
 
 /* ────────────────────────────────────────────────────────────────────
+   Copy — typed per-locale lookup. Adding a new Locale to translations.ts
+   forces every key here to be filled in (TS error otherwise).
+──────────────────────────────────────────────────────────────────── */
+
+interface CopyShape {
+  introEyebrow: string;
+  introTitleLead: string;
+  introTitleAccent: string;
+  introBody: string;
+  loading: string;
+  step1Title: string;
+  step1Subtitle: string;
+  step1Placeholder: string;
+  step2Title: string;
+  step2Subtitle: string;
+  addAnotherPlatform: string;
+  step3Title: string;
+  step3SubtitleEmpty: string;
+  signinPrefix: string;
+  signinLink: string;
+  signinSuffix: string;
+  saving: string;
+  saveAndCreate: string;
+  /** Custom platform fallback display name */
+  customFallback: string;
+  /** aria-label `${enable} {display}` */
+  enableAria: (display: string) => string;
+  customNamePlaceholder: string;
+  removePlatformAria: string;
+  hideInstructions: (display: string) => string;
+  showInstructions: (display: string) => string;
+  icalExportLabel: (display: string) => string;
+  invalidBadUrl: string;
+  invalidUnreachable: string;
+  invalidNotIcal: string;
+  invalidGeneric: string;
+  validOk: string;
+  pasteBackLabel: (display: string) => string;
+  feedUrlPlaceholder: string;
+  copy: string;
+  copied: string;
+  feedHelp: string;
+  testTesting: string;
+  testValid: string;
+  testRetry: string;
+  testFresh: string;
+  changeColor: string;
+  /** Step 3 subtitle when at least one platform is enabled. */
+  verifiedSubtitle: (validCount: number, enabledCount: number) => string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    introEyebrow: "Onboarding · Free for every property — forever",
+    introTitleLead: "Set up your ",
+    introTitleAccent: "first property",
+    introBody:
+      "Pick the platforms you list on, paste each one's iCal export URL, and copy the URLs we generate back into them. You can do this without an account first — sign up at the end to keep your data.",
+    loading: "Loading…",
+    step1Title: "Name your property",
+    step1Subtitle: "Just a label for you. You can rename it later.",
+    step1Placeholder: "My first property",
+    step2Title: "Add calendar feeds",
+    step2Subtitle:
+      "Tick each platform you use — paste their iCal URL, copy ours back. Anything not on this list, add as Custom.",
+    addAnotherPlatform: "Add another platform",
+    step3Title: "Create your account",
+    step3SubtitleEmpty:
+      "You can sign up without picking a platform — add them later from the dashboard.",
+    signinPrefix: "Forever free, no credit card. Already have an account? ",
+    signinLink: "Sign in",
+    signinSuffix: ".",
+    saving: "Saving…",
+    saveAndCreate: "Save and create account",
+    customFallback: "Custom platform",
+    enableAria: (display) => `Enable ${display}`,
+    customNamePlaceholder: "Custom platform name",
+    removePlatformAria: "Remove this platform",
+    hideInstructions: (display) => `Hide instructions for ${display}`,
+    showInstructions: (display) => `Show instructions for ${display}`,
+    icalExportLabel: (display) => `${display} iCal export URL`,
+    invalidBadUrl: "URL doesn't look right — check for missing https://",
+    invalidUnreachable:
+      "Couldn't reach that URL. The platform may be slow — try again in a minute.",
+    invalidNotIcal:
+      "URL responded but doesn't return a calendar. Double-check you copied the iCal export, not the listing page.",
+    invalidGeneric:
+      "Couldn't verify this URL — you can still save and we'll keep trying after signup.",
+    validOk: "Looks good — we'll start syncing every 10 minutes after you sign up.",
+    pasteBackLabel: (display) => `Paste this RentTools URL back into ${display}`,
+    feedUrlPlaceholder: "URL appears once you save the property name above",
+    copy: "Copy",
+    copied: "Copied!",
+    feedHelp:
+      "This URL is yours forever — even after signup. It'll start serving live data once you complete signup.",
+    testTesting: "Testing…",
+    testValid: "Verified",
+    testRetry: "Retry",
+    testFresh: "Test fetch",
+    changeColor: "Change color",
+    verifiedSubtitle: (valid, enabled) =>
+      `${valid} of ${enabled} platform${enabled === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`,
+  },
+  ru: {
+    introEyebrow: "Старт · Бесплатно для любого числа объектов — навсегда",
+    introTitleLead: "Настройте свой ",
+    introTitleAccent: "первый объект",
+    introBody:
+      "Отметьте платформы, на которых вы сдаёте, вставьте iCal-ссылку с каждой и скопируйте наши обратно. Регистрироваться сразу не нужно — аккаунт пригодится в конце, чтобы сохранить настройки.",
+    loading: "Загрузка…",
+    step1Title: "Назовите объект",
+    step1Subtitle: "Просто пометка для себя. Переименовать можно когда угодно.",
+    step1Placeholder: "Мой первый объект",
+    step2Title: "Подключите календари",
+    step2Subtitle:
+      "Отметьте платформы, которыми пользуетесь — вставьте их iCal-ссылку, скопируйте нашу обратно. Чего нет в списке — добавьте через «Своя платформа».",
+    addAnotherPlatform: "Добавить ещё платформу",
+    step3Title: "Создайте аккаунт",
+    step3SubtitleEmpty:
+      "Можно зарегистрироваться и без платформ — добавите их потом из панели.",
+    signinPrefix: "Бесплатно навсегда, без карты. Уже есть аккаунт? ",
+    signinLink: "Войти",
+    signinSuffix: ".",
+    saving: "Сохраняем…",
+    saveAndCreate: "Сохранить и создать аккаунт",
+    customFallback: "Своя платформа",
+    enableAria: (display) => `Включить ${display}`,
+    customNamePlaceholder: "Название платформы",
+    removePlatformAria: "Удалить эту платформу",
+    hideInstructions: (display) => `Скрыть инструкции для ${display}`,
+    showInstructions: (display) => `Показать инструкции для ${display}`,
+    icalExportLabel: (display) => `URL экспорта iCal · ${display}`,
+    invalidBadUrl: "URL выглядит странно — проверьте, что там есть https://",
+    invalidUnreachable:
+      "Не удалось достучаться до URL. Платформа может тормозить — попробуйте через минуту.",
+    invalidNotIcal:
+      "URL отвечает, но это не календарь. Перепроверьте — нужен именно iCal-экспорт, а не страница объявления.",
+    invalidGeneric:
+      "Не получилось проверить URL — можно сохранить, мы продолжим попытки после регистрации.",
+    validOk:
+      "Всё в порядке — начнём синхронизацию каждые 10 минут, как только зарегистрируетесь.",
+    pasteBackLabel: (display) => `Вставьте этот URL обратно в ${display}`,
+    feedUrlPlaceholder: "URL появится после того, как вы зададите название объекта выше",
+    copy: "Копировать",
+    copied: "Скопировано!",
+    feedHelp:
+      "Эта ссылка — ваша навсегда. Начнёт отдавать живые данные сразу после регистрации.",
+    testTesting: "Проверяем…",
+    testValid: "Проверено",
+    testRetry: "Ещё раз",
+    testFresh: "Проверить",
+    changeColor: "Сменить цвет",
+    verifiedSubtitle: (valid, enabled) =>
+      `Проверено ${valid} из ${enabled}. Что не прошло — поправите после регистрации.`,
+  },
+};
+
+/* ────────────────────────────────────────────────────────────────────
    Helpers
 ──────────────────────────────────────────────────────────────────── */
 
@@ -133,6 +292,7 @@ function presetRow(preset: Preset): DraftRow {
 export default function OnboardPage() {
   const router = useRouter();
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [propertyName, setPropertyName] = useState("");
   const [feedSlug, setFeedSlug] = useState<string | null>(null);
   const [rows, setRows] = useState<DraftRow[]>(() => PRESETS.map(presetRow));
@@ -213,8 +373,8 @@ export default function OnboardPage() {
   // Debounce persist on changes — 600ms after the last edit.
   useEffect(() => {
     if (!hydrated) return;
-    const t = setTimeout(() => persist({ propertyName, rows }), 600);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => persist({ propertyName, rows }), 600);
+    return () => clearTimeout(timer);
   }, [hydrated, propertyName, rows, persist]);
 
   /* ── row mutations ─────────────────────────────────────────────── */
@@ -319,50 +479,33 @@ export default function OnboardPage() {
               a tier limit. */}
           <div className="hidden text-center sm:block">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-              {locale === "ru"
-                ? "Старт · Бесплатно для любого числа объектов — навсегда"
-                : "Onboarding · Free for every property — forever"}
+              {t.introEyebrow}
             </p>
             <h1 className="display mt-3 text-[32px] font-semibold leading-[1.1] tracking-[-0.03em] text-[var(--ink)] sm:text-[44px]">
-              {locale === "ru" ? (
-                <>
-                  Настройте свой <span className="italic font-normal">первый объект</span>.
-                </>
-              ) : (
-                <>
-                  Set up your <span className="italic font-normal">first property</span>.
-                </>
-              )}
+              {t.introTitleLead}
+              <span className="italic font-normal">{t.introTitleAccent}</span>.
             </h1>
             <p className="mx-auto mt-5 max-w-[560px] text-[15px] leading-relaxed text-[var(--ink-2)]">
-              {locale === "ru"
-                ? "Отметьте платформы, на которых вы сдаёте, вставьте iCal-ссылку с каждой и скопируйте наши обратно. Регистрироваться сразу не нужно — аккаунт пригодится в конце, чтобы сохранить настройки."
-                : "Pick the platforms you list on, paste each one's iCal export URL, and copy the URLs we generate back into them. You can do this without an account first — sign up at the end to keep your data."}
+              {t.introBody}
             </p>
           </div>
 
           {!hydrated ? (
             <div className="mt-6 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-8 text-center text-sm text-[var(--ink-3)] sm:mt-10">
-              {locale === "ru" ? "Загрузка…" : "Loading…"}
+              {t.loading}
             </div>
           ) : (
             <div className="mt-6 space-y-6 sm:mt-10">
               {/* Step 1 — Property name */}
               <Card
                 stepNumber={1}
-                title={locale === "ru" ? "Назовите объект" : "Name your property"}
-                subtitle={
-                  locale === "ru"
-                    ? "Просто пометка для себя. Переименовать можно когда угодно."
-                    : "Just a label for you. You can rename it later."
-                }
+                title={t.step1Title}
+                subtitle={t.step1Subtitle}
               >
                 <input
                   value={propertyName}
                   onChange={(e) => setPropertyName(e.target.value)}
-                  placeholder={
-                    locale === "ru" ? "Мой первый объект" : "My first property"
-                  }
+                  placeholder={t.step1Placeholder}
                   className="h-11 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[14px] text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)] transition-colors"
                   autoFocus
                 />
@@ -371,12 +514,8 @@ export default function OnboardPage() {
               {/* Step 2 — Platform rows */}
               <Card
                 stepNumber={2}
-                title={locale === "ru" ? "Подключите календари" : "Add calendar feeds"}
-                subtitle={
-                  locale === "ru"
-                    ? "Отметьте платформы, которыми пользуетесь — вставьте их iCal-ссылку, скопируйте нашу обратно. Чего нет в списке — добавьте через «Своя платформа»."
-                    : "Tick each platform you use — paste their iCal URL, copy ours back. Anything not on this list, add as Custom."
-                }
+                title={t.step2Title}
+                subtitle={t.step2Subtitle}
               >
                 <div className="space-y-3">
                   {rows.map((row) => (
@@ -405,7 +544,7 @@ export default function OnboardPage() {
                   <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                     <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  {locale === "ru" ? "Добавить ещё платформу" : "Add another platform"}
+                  {t.addAnotherPlatform}
                 </button>
               </Card>
 
@@ -414,43 +553,27 @@ export default function OnboardPage() {
                   account) reads at a glance on a 1280px laptop. */}
               <Card
                 stepNumber={3}
-                title={locale === "ru" ? "Создайте аккаунт" : "Create your account"}
+                title={t.step3Title}
                 subtitle={
                   enabledCount === 0
-                    ? locale === "ru"
-                      ? "Можно зарегистрироваться и без платформ — добавите их потом из панели."
-                      : "You can sign up without picking a platform — add them later from the dashboard."
-                    : locale === "ru"
-                      ? `Проверено ${validCount} из ${enabledCount}. Что не прошло — поправите после регистрации.`
-                      : `${validCount} of ${enabledCount} platform${enabledCount === 1 ? "" : "s"} verified. Anything unverified you can fix after signup.`
+                    ? t.step3SubtitleEmpty
+                    : t.verifiedSubtitle(validCount, enabledCount)
                 }
               >
                 <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-[13px] text-[var(--ink-3)]">
-                    {locale === "ru" ? (
-                      <>
-                        Бесплатно навсегда, без карты. Уже есть аккаунт?{" "}
-                        <Link href={localePath("/login", locale)} className="text-[var(--ink)] underline-offset-2 hover:underline">Войти</Link>.
-                      </>
-                    ) : (
-                      <>
-                        Forever free, no credit card. Already have an account?{" "}
-                        <Link href={localePath("/login", locale)} className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
-                      </>
-                    )}
+                    {t.signinPrefix}
+                    <Link href={localePath("/login", locale)} className="text-[var(--ink)] underline-offset-2 hover:underline">
+                      {t.signinLink}
+                    </Link>
+                    {t.signinSuffix}
                   </p>
                   <button
                     onClick={handleSaveAndSignup}
                     disabled={saving}
                     className="inline-flex h-11 items-center gap-2 rounded-md bg-[var(--m-accent)] px-6 text-[14px] font-medium text-white shadow-[0_2px_8px_rgba(255,56,92,0.2)] transition-all hover:bg-[var(--m-accent-2)] hover:translate-y-[-1px] disabled:opacity-50"
                   >
-                    {saving
-                      ? locale === "ru"
-                        ? "Сохраняем…"
-                        : "Saving…"
-                      : locale === "ru"
-                        ? "Сохранить и создать аккаунт"
-                        : "Save and create account"}
+                    {saving ? t.saving : t.saveAndCreate}
                     <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                       <path d="M3 7h8m0 0L7 3m4 4l-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -534,9 +657,9 @@ function PlatformRow({
   onCopy,
 }: PlatformRowProps) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const isCustom = !preset;
-  const customFallback = locale === "ru" ? "Своя платформа" : "Custom platform";
-  const display = preset?.displayName ?? (row.customName?.trim() || customFallback);
+  const display = preset?.displayName ?? (row.customName?.trim() || t.customFallback);
   const ourFeedUrl = feedSlug ? feedUrl(feedSlug, row.platform) : null;
   const copyKey = `our-${row.rowId}`;
 
@@ -548,9 +671,7 @@ function PlatformRow({
           type="checkbox"
           checked={row.enabled}
           onChange={onToggle}
-          aria-label={
-            locale === "ru" ? `Включить ${display}` : `Enable ${display}`
-          }
+          aria-label={t.enableAria(display)}
           className="h-4 w-4 cursor-pointer accent-[var(--m-accent)]"
         />
         <span
@@ -562,9 +683,7 @@ function PlatformRow({
           <input
             value={row.customName ?? ""}
             onChange={(e) => onCustomNameChange(e.target.value)}
-            placeholder={
-              locale === "ru" ? "Название платформы" : "Custom platform name"
-            }
+            placeholder={t.customNamePlaceholder}
             className="flex-1 bg-transparent text-[14px] font-medium text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
           />
         ) : (
@@ -578,9 +697,7 @@ function PlatformRow({
             type="button"
             onClick={onRemove}
             className="text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors"
-            aria-label={
-              locale === "ru" ? "Удалить эту платформу" : "Remove this platform"
-            }
+            aria-label={t.removePlatformAria}
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -601,9 +718,7 @@ function PlatformRow({
               <svg className={`h-3 w-3 transition-transform ${row.instructionsOpen ? "rotate-90" : ""}`} viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              {locale === "ru"
-                ? `${row.instructionsOpen ? "Скрыть" : "Показать"} инструкции для ${display}`
-                : `${row.instructionsOpen ? "Hide" : "Show"} instructions for ${display}`}
+              {row.instructionsOpen ? t.hideInstructions(display) : t.showInstructions(display)}
             </button>
           )}
           {row.instructionsOpen && preset?.hasInstructions && (preset.platform === "airbnb" || preset.platform === "booking") && (
@@ -615,9 +730,7 @@ function PlatformRow({
           {/* URL input + test button */}
           <div>
             <label className="block text-[12px] font-medium text-[var(--ink-2)] mb-1.5">
-              {locale === "ru"
-                ? `URL экспорта iCal · ${display}`
-                : `${display} iCal export URL`}
+              {t.icalExportLabel(display)}
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <input
@@ -631,27 +744,17 @@ function PlatformRow({
             {row.testStatus === "invalid" && (
               <p className="mt-1.5 text-[11.5px] text-rose-700">
                 {row.testReason === "bad_url"
-                  ? locale === "ru"
-                    ? "URL выглядит странно — проверьте, что там есть https://"
-                    : "URL doesn't look right — check for missing https://"
+                  ? t.invalidBadUrl
                   : row.testReason === "unreachable"
-                    ? locale === "ru"
-                      ? "Не удалось достучаться до URL. Платформа может тормозить — попробуйте через минуту."
-                      : "Couldn't reach that URL. The platform may be slow — try again in a minute."
+                    ? t.invalidUnreachable
                     : row.testReason === "not_ical"
-                      ? locale === "ru"
-                        ? "URL отвечает, но это не календарь. Перепроверьте — нужен именно iCal-экспорт, а не страница объявления."
-                        : "URL responded but doesn't return a calendar. Double-check you copied the iCal export, not the listing page."
-                      : locale === "ru"
-                        ? "Не получилось проверить URL — можно сохранить, мы продолжим попытки после регистрации."
-                        : "Couldn't verify this URL — you can still save and we'll keep trying after signup."}
+                      ? t.invalidNotIcal
+                      : t.invalidGeneric}
               </p>
             )}
             {row.testStatus === "valid" && (
               <p className="mt-1.5 text-[11.5px] text-emerald-700">
-                {locale === "ru"
-                  ? "Всё в порядке — начнём синхронизацию каждые 10 минут, как только зарегистрируетесь."
-                  : "Looks good — we'll start syncing every 10 minutes after you sign up."}
+                {t.validOk}
               </p>
             )}
           </div>
@@ -659,15 +762,11 @@ function PlatformRow({
           {/* RentTools feed URL for this platform */}
           <div>
             <label className="block text-[12px] font-medium text-[var(--ink-2)] mb-1.5">
-              {locale === "ru"
-                ? `Вставьте этот URL обратно в ${display}`
-                : `Paste this RentTools URL back into ${display}`}
+              {t.pasteBackLabel(display)}
             </label>
             <div className="flex flex-col gap-2 sm:flex-row">
               <code className="h-10 w-full min-w-0 select-all rounded-md border border-[var(--line)] bg-[var(--bg-2)] px-3 text-[12px] text-[var(--ink-2)] flex items-center overflow-x-auto whitespace-nowrap sm:flex-1">
-                {ourFeedUrl ?? (locale === "ru"
-                  ? "URL появится после того, как вы зададите название объекта выше"
-                  : "URL appears once you save the property name above")}
+                {ourFeedUrl ?? t.feedUrlPlaceholder}
               </code>
               <button
                 type="button"
@@ -675,19 +774,11 @@ function PlatformRow({
                 disabled={!ourFeedUrl}
                 className="h-10 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-[12.5px] text-[var(--ink)] hover:bg-[var(--bg-2)] transition-colors disabled:opacity-40 sm:w-auto"
               >
-                {copied === copyKey
-                  ? locale === "ru"
-                    ? "Скопировано!"
-                    : "Copied!"
-                  : locale === "ru"
-                    ? "Копировать"
-                    : "Copy"}
+                {copied === copyKey ? t.copied : t.copy}
               </button>
             </div>
             <p className="mt-1.5 text-[11.5px] text-[var(--ink-3)]">
-              {locale === "ru"
-                ? "Эта ссылка — ваша навсегда. Начнёт отдавать живые данные сразу после регистрации."
-                : "This URL is yours forever — even after signup. It'll start serving live data once you complete signup."}
+              {t.feedHelp}
             </p>
           </div>
         </div>
@@ -698,14 +789,15 @@ function PlatformRow({
 
 function TestButton({ status, onClick, disabled }: { status: DraftRow["testStatus"]; onClick: () => void; disabled?: boolean }) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const label =
     status === "testing"
-      ? locale === "ru" ? "Проверяем…" : "Testing…"
+      ? t.testTesting
       : status === "valid"
-        ? locale === "ru" ? "Проверено" : "Verified"
+        ? t.testValid
         : status === "invalid" || status === "error"
-          ? locale === "ru" ? "Ещё раз" : "Retry"
-          : locale === "ru" ? "Проверить" : "Test fetch";
+          ? t.testRetry
+          : t.testFresh;
   const tone =
     status === "valid"
       ? "border-transparent bg-emerald-700 text-white"
@@ -737,6 +829,7 @@ function TestButton({ status, onClick, disabled }: { status: DraftRow["testStatu
 
 function ColorSwatchButton({ color, onChange }: { color: string; onChange: (v: string) => void }) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [open, setOpen] = useState(false);
   return (
     <div className="relative">
@@ -745,7 +838,7 @@ function ColorSwatchButton({ color, onChange }: { color: string; onChange: (v: s
         onClick={() => setOpen((o) => !o)}
         className="h-5 w-5 rounded-md border border-[var(--line-2)] hover:border-[var(--ink-3)] transition-colors"
         style={{ backgroundColor: color }}
-        aria-label={locale === "ru" ? "Сменить цвет" : "Change color"}
+        aria-label={t.changeColor}
       />
       {open && (
         <div className="absolute right-0 top-7 z-10 flex gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--bg)] p-2 shadow-lg">

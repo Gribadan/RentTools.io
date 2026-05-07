@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PlatformInstructions } from "@/components/platform-instructions";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { CalendarLink } from "@/lib/types";
 
 // In-dashboard onboarding for users who land logged-in (e.g. Google
@@ -59,6 +60,88 @@ interface CustomDraft {
   color: string;
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   Copy — typed per-locale lookup. Adding a new Locale to translations.ts
+   forces every key here to be filled in (TS error otherwise).
+──────────────────────────────────────────────────────────────────── */
+
+interface CopyShape {
+  step1Title: string;
+  step1Body: string;
+  step1Placeholder: string;
+  step1Continue: string;
+  step1Creating: string;
+  step1Sample: string;
+  step2TitlePrefix: string;
+  step2TitleSuffix: string;
+  step2Body: string;
+  customFallback: string;
+  customNamePlaceholder: string;
+  test: string;
+  save: string;
+  connected: string;
+  pasteBackPrefix: string;
+  pasteBackSuffix: string;
+  copy: string;
+  copied: string;
+  addAnotherPlatform: string;
+  notListing: string;
+  manualReservationLink: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    step1Title: "Name your first property",
+    step1Body:
+      "Just a label for you — you can rename it later. Next we'll connect at least one calendar.",
+    step1Placeholder: "e.g. Sunset Apartment",
+    step1Continue: "Continue →",
+    step1Creating: "Creating…",
+    step1Sample: "Or try a sample property →",
+    step2TitlePrefix: "Connect a calendar to \"",
+    step2TitleSuffix: "\"",
+    step2Body:
+      "Paste the iCal export URL from any platform you list on. Next, you'll copy ours back into them — we generate the import URL the moment you save.",
+    customFallback: "Custom platform",
+    customNamePlaceholder: "Platform name",
+    test: "Test",
+    save: "Save",
+    connected: "Connected",
+    pasteBackPrefix: "Paste back into ",
+    pasteBackSuffix: ":",
+    copy: "Copy",
+    copied: "Copied",
+    addAnotherPlatform: "Add another platform",
+    notListing: "Not listing anywhere?",
+    manualReservationLink: "Add a manual reservation instead →",
+  },
+  ru: {
+    step1Title: "Назовите свой первый объект",
+    step1Body:
+      "Просто пометка для себя — переименовать можно потом. Следующий шаг — подключить календари.",
+    step1Placeholder: "Например: Квартира на Невском",
+    step1Continue: "Продолжить →",
+    step1Creating: "Создание…",
+    step1Sample: "Или попробуйте демо-объект →",
+    step2TitlePrefix: "Подключите календарь к «",
+    step2TitleSuffix: "»",
+    step2Body:
+      "Вставьте iCal-ссылку с любой платформы, где вы сдаёте. Следующим шагом скопируете нашу ссылку обратно к ним — мы выдаём её в момент сохранения.",
+    customFallback: "Своя платформа",
+    customNamePlaceholder: "Название платформы",
+    test: "Проверить",
+    save: "Сохранить",
+    connected: "Подключено",
+    pasteBackPrefix: "Скопируйте обратно в ",
+    pasteBackSuffix: ":",
+    copy: "Копировать",
+    copied: "Скопировано",
+    addAnotherPlatform: "Добавить другую платформу",
+    notListing: "Не размещаете нигде?",
+    manualReservationLink: "Добавить бронь вручную →",
+  },
+};
+
 function clientSlug(raw: string): string {
   if (!raw) return "custom";
   const cyr: Record<string, string> = {
@@ -84,6 +167,7 @@ function clientSlug(raw: string): string {
 
 export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
   const { locale } = useI18n();
+  const t = COPY[locale];
 
   // Step 1 — property name
   const [step, setStep] = useState<1 | 2>(1);
@@ -275,12 +359,10 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
       {step === 1 && (
         <>
           <h2 className="text-balance text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]">
-            {locale === "ru" ? "Назовите свой первый объект" : "Name your first property"}
+            {t.step1Title}
           </h2>
           <p className="mt-2 max-w-md text-sm text-[var(--ink-3)]">
-            {locale === "ru"
-              ? "Просто пометка для себя — переименовать можно потом. Следующий шаг — подключить календари."
-              : "Just a label for you — you can rename it later. Next we'll connect at least one calendar."}
+            {t.step1Body}
           </p>
           <form
             onSubmit={(e) => {
@@ -293,7 +375,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
               autoFocus
               value={propertyName}
               onChange={(e) => setPropertyName(e.target.value)}
-              placeholder={locale === "ru" ? "Например: Квартира на Невском" : "e.g. Sunset Apartment"}
+              placeholder={t.step1Placeholder}
               className="h-11 w-full rounded-lg border border-[var(--line-2)] bg-[var(--bg)] px-3.5 text-[15px] text-[var(--ink)] outline-none transition-colors focus:border-[var(--m-accent)]"
               maxLength={100}
             />
@@ -308,13 +390,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                 disabled={creating || !propertyName.trim()}
                 className="h-11 rounded-lg bg-[var(--m-accent)] px-6 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
               >
-                {creating
-                  ? locale === "ru"
-                    ? "Создание…"
-                    : "Creating…"
-                  : locale === "ru"
-                    ? "Продолжить →"
-                    : "Continue →"}
+                {creating ? t.step1Creating : t.step1Continue}
               </button>
               <button
                 type="button"
@@ -322,9 +398,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                 disabled={creating}
                 className="text-sm text-[var(--ink-3)] underline-offset-4 hover:text-[var(--ink)] hover:underline disabled:opacity-50"
               >
-                {locale === "ru"
-                  ? "Или попробуйте демо-объект →"
-                  : "Or try a sample property →"}
+                {t.step1Sample}
               </button>
             </div>
           </form>
@@ -334,14 +408,10 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
       {step === 2 && (
         <>
           <h2 className="text-balance text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]">
-            {locale === "ru"
-              ? `Подключите календарь к «${propertyName}»`
-              : `Connect a calendar to "${propertyName}"`}
+            {`${t.step2TitlePrefix}${propertyName}${t.step2TitleSuffix}`}
           </h2>
           <p className="mt-2 max-w-xl text-sm text-[var(--ink-3)]">
-            {locale === "ru"
-              ? "Вставьте iCal-ссылку с любой платформы, где вы сдаёте. Следующим шагом скопируете нашу ссылку обратно к ним — мы выдаём её в момент сохранения."
-              : "Paste the iCal export URL from any platform you list on. Next, you'll copy ours back into them — we generate the import URL the moment you save."}
+            {t.step2Body}
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -359,7 +429,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
               ...customDrafts.map((d) => ({
                 rowId: d.rowId,
                 platform: d.platform,
-                label: d.displayName || (locale === "ru" ? "Своя платформа" : "Custom platform"),
+                label: d.displayName || t.customFallback,
                 color: d.color,
                 placeholder: "https://…",
                 hasInstructions: false,
@@ -392,9 +462,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                           autoFocus
                           value={row.displayName ?? ""}
                           onChange={(e) => updateCustomDraftName(row.rowId, e.target.value)}
-                          placeholder={
-                            locale === "ru" ? "Название платформы" : "Platform name"
-                          }
+                          placeholder={t.customNamePlaceholder}
                           className="h-7 min-w-0 flex-1 rounded border border-[var(--line-2)] bg-[var(--bg)] px-2 text-sm font-semibold text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                         />
                       ) : (
@@ -406,7 +474,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                     {isSaved && (
                       <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                        {locale === "ru" ? "Подключено" : "Connected"}
+                        {t.connected}
                       </span>
                     )}
                     {row.isDraft && (
@@ -451,7 +519,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                           disabled={!url.trim() || isTesting || isSaving}
                           className="rounded-md border border-[var(--line-2)] px-2.5 py-1 text-xs text-[var(--ink-2)] hover:bg-[var(--bg-3)] disabled:opacity-40"
                         >
-                          {isTesting ? "…" : locale === "ru" ? "Проверить" : "Test"}
+                          {isTesting ? "…" : t.test}
                         </button>
                         <button
                           type="button"
@@ -465,11 +533,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                           }
                           className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-40"
                         >
-                          {isSaving
-                            ? "…"
-                            : locale === "ru"
-                              ? "Сохранить"
-                              : "Save"}
+                          {isSaving ? "…" : t.save}
                         </button>
                       </div>
                       {result && (
@@ -498,9 +562,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                   {isSaved && (
                     <div className="space-y-1.5">
                       <p className="text-[11px] uppercase tracking-wider text-[var(--ink-4)]">
-                        {locale === "ru"
-                          ? `Скопируйте обратно в ${row.label}:`
-                          : `Paste back into ${row.label}:`}
+                        {`${t.pasteBackPrefix}${row.label}${t.pasteBackSuffix}`}
                       </p>
                       <div className="flex items-center gap-1.5">
                         <code className="flex-1 truncate rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1.5 text-[11px] text-[var(--ink-2)]">
@@ -513,13 +575,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                           }
                           className="shrink-0 rounded-md bg-[var(--line-2)] px-2.5 py-1.5 text-[11px] text-[var(--ink-2)] hover:bg-[var(--bg-3)]"
                         >
-                          {copied === `feed-${row.platform}`
-                            ? locale === "ru"
-                              ? "Скопировано"
-                              : "Copied"
-                            : locale === "ru"
-                              ? "Копировать"
-                              : "Copy"}
+                          {copied === `feed-${row.platform}` ? t.copied : t.copy}
                         </button>
                       </div>
                     </div>
@@ -542,7 +598,7 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
                 strokeLinecap="round"
               />
             </svg>
-            {locale === "ru" ? "Добавить другую платформу" : "Add another platform"}
+            {t.addAnotherPlatform}
           </button>
 
           {error && step === 2 && (
@@ -557,16 +613,14 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
               same onComplete path so the dashboard re-renders. */}
           <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-4 text-[13px]">
             <span className="text-[var(--ink-4)]">
-              {locale === "ru" ? "Не размещаете нигде?" : "Not listing anywhere?"}
+              {t.notListing}
             </span>
             <Link
               href={propertyId ? `/dashboard?property=${propertyId}&view=calendar` : "/dashboard"}
               onClick={() => onComplete()}
               className="text-[var(--m-accent)] underline-offset-4 hover:text-[var(--m-accent-2)] hover:underline"
             >
-              {locale === "ru"
-                ? "Добавить бронь вручную →"
-                : "Add a manual reservation instead →"}
+              {t.manualReservationLink}
             </Link>
           </div>
         </>
