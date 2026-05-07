@@ -7,12 +7,13 @@ import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
 import { localizedAlternates, localePath } from "@/lib/i18n/alternates";
+import type { Locale } from "@/lib/i18n/translations";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
 
 const PAGE_SIZE = 12;
 
-const BLOG_INDEX_COPY: Record<"en" | "ru", { title: string; description: string }> = {
+const BLOG_INDEX_COPY: Record<Locale, { title: string; description: string }> = {
   en: {
     title: "Blog",
     description:
@@ -22,6 +23,75 @@ const BLOG_INDEX_COPY: Record<"en" | "ru", { title: string; description: string 
     title: "Блог",
     description:
       "Практические руководства для хостов: синхронизация календарей, предотвращение двойных бронирований, автоматизация уборок и GDPR.",
+  },
+};
+
+interface CopyShape {
+  ogLocale: string;
+  breadcrumbNav: string;
+  homeLabel: string;
+  homeHref: string;
+  blogLabel: string;
+  heroEyebrow: string;
+  heroTitle: string;
+  heroIntro: string;
+  tagFilterNav: string;
+  tagAll: string;
+  emptyNoTag: string;
+  emptyWithTag: (tag: string) => string;
+  featuredBadge: string;
+  paginationPrev: string;
+  paginationLabel: (page: number, total: number) => string;
+  paginationNext: string;
+  footerHome: string;
+  footerPrivacy: string;
+  footerTerms: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    ogLocale: "en_US",
+    breadcrumbNav: "Breadcrumb",
+    homeLabel: "Home",
+    homeHref: "/",
+    blogLabel: "Blog",
+    heroEyebrow: "The RentTools blog",
+    heroTitle: "Field notes for short-term rental hosts",
+    heroIntro:
+      "Calendar sync that actually works, cleaning automation that doesn't double-book the cleaner, and a host's GDPR checklist that fits on one page. Written by people who run listings, not affiliate sites.",
+    tagFilterNav: "Filter by tag",
+    tagAll: "All",
+    emptyNoTag: "No posts yet.",
+    emptyWithTag: (tag) => `No posts yet for tag "${tag}".`,
+    featuredBadge: "Featured",
+    paginationPrev: "← Previous",
+    paginationLabel: (page, total) => `Page ${page} of ${total}`,
+    paginationNext: "Next →",
+    footerHome: "Home",
+    footerPrivacy: "Privacy",
+    footerTerms: "Terms",
+  },
+  ru: {
+    ogLocale: "ru_RU",
+    breadcrumbNav: "Хлебные крошки",
+    homeLabel: "Главная",
+    homeHref: "/ru",
+    blogLabel: "Блог",
+    heroEyebrow: "Блог RentTools",
+    heroTitle: "Полевые заметки для хостов краткосрочной аренды",
+    heroIntro:
+      "Синхронизация календарей, которая правда работает, автоматизация уборок без двойных назначений и чек-лист GDPR на одну страницу. Писали те, кто сами сдают, а не те, кто пишет для трафика.",
+    tagFilterNav: "Фильтр по тегам",
+    tagAll: "Все",
+    emptyNoTag: "Пока нет статей.",
+    emptyWithTag: (tag) => `Пока нет статей по тегу "${tag}".`,
+    featuredBadge: "Главное",
+    paginationPrev: "← Назад",
+    paginationLabel: (page, total) => `Страница ${page} из ${total}`,
+    paginationNext: "Дальше →",
+    footerHome: "Главная",
+    footerPrivacy: "Конфиденциальность",
+    footerTerms: "Условия",
   },
 };
 
@@ -39,7 +109,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: copy.description,
       url: alts.canonical,
       siteName: "RentTools",
-      locale: locale === "ru" ? "ru_RU" : "en_US",
+      locale: COPY[locale].ogLocale,
     },
     twitter: {
       card: "summary_large_image",
@@ -81,6 +151,7 @@ export default async function BlogIndexPage({
 }) {
   const sp = await searchParams;
   const locale = await getLocale();
+  const t = COPY[locale];
   const page = parsePage(sp.page);
   const tagFilter = (sp.tag ?? "").trim().toLowerCase().slice(0, 60) || undefined;
 
@@ -168,13 +239,13 @@ export default async function BlogIndexPage({
       <main className="mx-auto max-w-[1180px] px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
-          navLabel={locale === "ru" ? "Хлебные крошки" : "Breadcrumb"}
+          navLabel={t.breadcrumbNav}
           items={[
             {
-              label: locale === "ru" ? "Главная" : "Home",
-              href: locale === "ru" ? "/ru" : "/",
+              label: t.homeLabel,
+              href: t.homeHref,
             },
-            { label: locale === "ru" ? "Блог" : "Blog" },
+            { label: t.blogLabel },
           ]}
         />
         {/* Index hero — same accent gradient as the post pages so the
@@ -192,17 +263,13 @@ export default async function BlogIndexPage({
           />
           <div className="relative">
             <p className="mono mb-4 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
-              {locale === "ru" ? "Блог RentTools" : "The RentTools blog"}
+              {t.heroEyebrow}
             </p>
             <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-[var(--ink)] sm:text-4xl md:text-[2.75rem]">
-              {locale === "ru"
-                ? "Полевые заметки для хостов краткосрочной аренды"
-                : "Field notes for short-term rental hosts"}
+              {t.heroTitle}
             </h1>
             <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-[var(--ink-3)] sm:text-lg">
-              {locale === "ru"
-                ? "Синхронизация календарей, которая правда работает, автоматизация уборок без двойных назначений и чек-лист GDPR на одну страницу. Писали те, кто сами сдают, а не те, кто пишет для трафика."
-                : "Calendar sync that actually works, cleaning automation that doesn't double-book the cleaner, and a host's GDPR checklist that fits on one page. Written by people who run listings, not affiliate sites."}
+              {t.heroIntro}
             </p>
           </div>
         </section>
@@ -243,7 +310,7 @@ export default async function BlogIndexPage({
 
         {tagRows.length > 0 && (
           <nav
-            aria-label={locale === "ru" ? "Фильтр по тегам" : "Filter by tag"}
+            aria-label={t.tagFilterNav}
             className="mt-8 flex flex-wrap gap-2 text-xs"
           >
             <Link
@@ -254,7 +321,7 @@ export default async function BlogIndexPage({
                   : "border-[var(--m-accent)] text-[var(--m-accent)]"
               }`}
             >
-              {locale === "ru" ? "Все" : "All"}
+              {t.tagAll}
             </Link>
             {tagRows.map((t) => {
               const active = tagFilter === t.slug;
@@ -282,9 +349,7 @@ export default async function BlogIndexPage({
         <section className="mt-10 sm:mt-12">
           {posts.length === 0 ? (
             <p className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-12 text-center text-sm text-[var(--ink-3)]">
-              {locale === "ru"
-                ? `Пока нет статей${tagFilter ? ` по тегу "${tagFilter}"` : ""}.`
-                : `No posts yet${tagFilter ? ` for tag "${tagFilter}"` : ""}.`}
+              {tagFilter ? t.emptyWithTag(tagFilter) : t.emptyNoTag}
             </p>
           ) : (
             <>
@@ -311,7 +376,7 @@ export default async function BlogIndexPage({
                   </div>
                   <div className="flex flex-col justify-center p-6 sm:p-8">
                     <span className="mb-3 inline-flex w-fit items-center rounded-full bg-[var(--m-accent)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white">
-                      {locale === "ru" ? "Главное" : "Featured"}
+                      {t.featuredBadge}
                     </span>
                     <h2 className="text-balance text-2xl font-bold leading-snug tracking-tight text-[var(--ink)] sm:text-[1.75rem]">
                       {featured.title}
@@ -403,15 +468,13 @@ export default async function BlogIndexPage({
                 className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="prev"
               >
-                {locale === "ru" ? "← Назад" : "← Previous"}
+                {t.paginationPrev}
               </Link>
             ) : (
               <span aria-hidden className="opacity-0">prev</span>
             )}
             <span className="text-[var(--ink-4)]">
-              {locale === "ru"
-                ? `Страница ${page} из ${totalPages}`
-                : `Page ${page} of ${totalPages}`}
+              {t.paginationLabel(page, totalPages)}
             </span>
             {hasNext ? (
               <Link
@@ -419,7 +482,7 @@ export default async function BlogIndexPage({
                 className="rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-2 text-[var(--ink-3)] hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                 rel="next"
               >
-                {locale === "ru" ? "Дальше →" : "Next →"}
+                {t.paginationNext}
               </Link>
             ) : (
               <span aria-hidden className="opacity-0">next</span>
@@ -433,13 +496,13 @@ export default async function BlogIndexPage({
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href={localePath("/", locale)} className="hover:text-[var(--ink)]">
-              {locale === "ru" ? "Главная" : "Home"}
+              {t.footerHome}
             </Link>
             <Link href="/privacy" className="hover:text-[var(--ink)]">
-              {locale === "ru" ? "Конфиденциальность" : "Privacy"}
+              {t.footerPrivacy}
             </Link>
             <Link href="/terms" className="hover:text-[var(--ink)]">
-              {locale === "ru" ? "Условия" : "Terms"}
+              {t.footerTerms}
             </Link>
           </nav>
         </div>

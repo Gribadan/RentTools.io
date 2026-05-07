@@ -136,6 +136,60 @@ const UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> = {
   },
 };
 
+// Visible-body copy for the post page. Excludes the JSON-LD (kept in EN
+// as an international SEO signal) and the BREADCRUMB_LABELS / UNTRANSLATED_BANNER
+// blocks (already in the Record pattern). Add a new locale here when
+// adding a language — TypeScript will refuse to compile until every
+// string is filled in.
+interface PostCopyShape {
+  breadcrumbNav: string;
+  homeLabel: string;
+  homeHref: string;
+  blogLabel: string;
+  blogHref: string;
+  minutesRead: (n: number) => string;
+  keepReading: string;
+  allPosts: string;
+  footerHome: string;
+  footerPrivacy: string;
+  footerTerms: string;
+  shareLabel: string;
+  emailLabel: string;
+}
+
+const POST_COPY: Record<Locale, PostCopyShape> = {
+  en: {
+    breadcrumbNav: "Breadcrumb",
+    homeLabel: "Home",
+    homeHref: "/",
+    blogLabel: "Blog",
+    blogHref: "/blog",
+    minutesRead: (n) => `${n} min read`,
+    keepReading: "Keep reading",
+    allPosts: "← All posts",
+    footerHome: "Home",
+    footerPrivacy: "Privacy",
+    footerTerms: "Terms",
+    shareLabel: "Share",
+    emailLabel: "Email",
+  },
+  ru: {
+    breadcrumbNav: "Хлебные крошки",
+    homeLabel: "Главная",
+    homeHref: "/ru",
+    blogLabel: "Блог",
+    blogHref: "/ru/blog",
+    minutesRead: (n) => `${n} мин чтения`,
+    keepReading: "Читать дальше",
+    allPosts: "← Все статьи",
+    footerHome: "Главная",
+    footerPrivacy: "Конфиденциальность",
+    footerTerms: "Условия",
+    shareLabel: "Поделиться",
+    emailLabel: "Почта",
+  },
+};
+
 // All locales that have a published row for this slug. Used to build
 // per-post hreflang siblings without pointing at 404s.
 async function findPostLocales(slug: string): Promise<Set<string>> {
@@ -260,6 +314,7 @@ export default async function BlogPostPage({
 
   const session = await getSession();
   const locale = resolvedLocale;
+  const t = POST_COPY[locale];
   const isSuperadmin = session?.role === "superadmin";
 
   // Related posts: same primary tag (first tag), newest first, exclude current.
@@ -403,15 +458,15 @@ export default async function BlogPostPage({
       <main className="mx-auto max-w-[1180px] px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
-          navLabel={requestedLocale === "ru" ? "Хлебные крошки" : "Breadcrumb"}
+          navLabel={t.breadcrumbNav}
           items={[
             {
-              label: requestedLocale === "ru" ? "Главная" : "Home",
-              href: requestedLocale === "ru" ? "/ru" : "/",
+              label: t.homeLabel,
+              href: t.homeHref,
             },
             {
-              label: requestedLocale === "ru" ? "Блог" : "Blog",
-              href: requestedLocale === "ru" ? "/ru/blog" : "/blog",
+              label: t.blogLabel,
+              href: t.blogHref,
             },
             { label: post.title },
           ]}
@@ -494,7 +549,7 @@ export default async function BlogPostPage({
                   )}
                   <span aria-hidden className="text-[var(--ink-4)]">·</span>
                   <span>
-                    {locale === "ru" ? `${minutes} мин чтения` : `${minutes} min read`}
+                    {t.minutesRead(minutes)}
                   </span>
                 </div>
               </div>
@@ -537,7 +592,7 @@ export default async function BlogPostPage({
                   id="related-heading"
                   className="text-xl font-semibold tracking-tight text-[var(--ink)]"
                 >
-                  {locale === "ru" ? "Читать дальше" : "Keep reading"}
+                  {t.keepReading}
                 </h2>
                 <ul className="mt-5 grid gap-4 sm:grid-cols-2">
                   {related.map((r) => (
@@ -579,7 +634,7 @@ export default async function BlogPostPage({
 
             <nav className="mt-12 border-t border-[var(--line)] pt-6 text-sm">
               <Link href={localePath("/blog", locale)} className="text-[var(--ink-3)] hover:text-[var(--ink)]">
-                {locale === "ru" ? "← Все статьи" : "← All posts"}
+                {t.allPosts}
               </Link>
             </nav>
           </article>
@@ -599,13 +654,13 @@ export default async function BlogPostPage({
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">
-              {locale === "ru" ? "Главная" : "Home"}
+              {t.footerHome}
             </Link>
             <Link href="/privacy" className="hover:text-[var(--ink)]">
-              {locale === "ru" ? "Конфиденциальность" : "Privacy"}
+              {t.footerPrivacy}
             </Link>
             <Link href="/terms" className="hover:text-[var(--ink)]">
-              {locale === "ru" ? "Условия" : "Terms"}
+              {t.footerTerms}
             </Link>
           </nav>
         </div>
@@ -639,15 +694,16 @@ function BlogShareRow({
   url: string;
   title: string;
   excerpt: string;
-  locale: "en" | "ru";
+  locale: Locale;
 }) {
   // Brand names (X, LinkedIn, etc.) stay un-translated — they're proper
   // nouns and the share buttons send to the same domains regardless of
   // visitor locale. Only "Share" + "Email" need a Russian variant.
+  const t = POST_COPY[locale];
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-[var(--line)] pt-6">
       <span className="text-xs uppercase tracking-wider text-[var(--ink-4)]">
-        {locale === "ru" ? "Поделиться" : "Share"}
+        {t.shareLabel}
       </span>
       <ShareLink
         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`}
@@ -667,7 +723,7 @@ function BlogShareRow({
       />
       <ShareLink
         href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${excerpt}\n\n${url}`)}`}
-        label={locale === "ru" ? "Почта" : "Email"}
+        label={t.emailLabel}
       />
       <BlogCopyLink url={url} />
     </div>
