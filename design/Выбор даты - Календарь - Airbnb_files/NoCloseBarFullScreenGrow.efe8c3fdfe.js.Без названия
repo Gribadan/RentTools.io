@@ -1,2 +1,0 @@
-__d(function(g,r,i,a,m,e,d){"use strict";var l=r(d[0]).default;Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(l){return(0,n.jsx)(t.default,{ModalContainer:u.default,FixedOverlay:()=>null,ModalCloseBar:o,...l})};var t=l(r(d[1])),u=l(r(d[2])),n=r(d[3]);function o(){return null}},"f77cee",["ba7a76","697859","e37c01","b8c07d"]);
-//# sourceMappingURL=https://sourcemaps.d.musta.ch/airbnb/static/packages/web/common/frontend/host-calendar/components/AnimatedSidebarLayout/NoCloseBarFullScreenGrow.63f0992c41.js.map
