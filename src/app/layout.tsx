@@ -54,8 +54,15 @@ export const metadata: Metadata = {
     title: SITE_NAME,
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    // Browser favicon: ship the SVG (sharp at every zoom, theme-agnostic)
+    // first, with a PNG fallback for older browsers + crawlers that don't
+    // negotiate SVG icon rels.
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   robots: {
     index: true,
@@ -88,9 +95,17 @@ const ORGANIZATION_JSON_LD = {
   "@id": `${SITE_URL}/#organization`,
   name: SITE_NAME,
   url: SITE_URL,
+  // MUST be a raster image (PNG/JPG/GIF) — Google's structured-data
+  // spec for Organization explicitly rejects SVG. When the URL is
+  // unreachable or the format is unsupported, Google's Knowledge Panel
+  // and brand sitelinks fall back to whatever it last crawled — which
+  // on a previously-Vercel-hosted domain ends up being the Vercel
+  // default favicon (the "vercel logo in google search" symptom). The
+  // PNG ships from public/icon-512.png; regenerate via
+  // `node scripts/generate-icons.mjs` after editing public/icon.svg.
   logo: {
     "@type": "ImageObject",
-    url: `${SITE_URL}/icon.svg`,
+    url: `${SITE_URL}/icon-512.png`,
     width: 512,
     height: 512,
   },
