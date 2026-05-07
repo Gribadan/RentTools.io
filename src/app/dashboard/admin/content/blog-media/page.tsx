@@ -50,6 +50,21 @@ const COPY: Record<Locale, CopyShape> = {
     imagesHeader: "Картинки",
     usedBy: (n) => `Используется в ${n} ${n === 1 ? "статье" : "статьях"}`,
   },
+  de: {
+    title: "Blog-Medien",
+    description:
+      "Alle externen OG-Bild-URLs, die von Blogbeiträgen referenziert werden. Direkter Upload folgt, sobald R2- / S3-Speicher angebunden ist (RT-21.x); aktuell zeigt diese Seite nur, was bereits an post.ogImageUrl angehängt ist.",
+    loading: "Wird geladen...",
+    notSuperadmin: "Nur Superadmins können Blog-Medien einsehen.",
+    imagesLabel: "Bilder",
+    refreshing: "Wird aktualisiert...",
+    refresh: "Aktualisieren",
+    loadFailed: (status) => `Blogbeiträge konnten nicht geladen werden (${status})`,
+    loadFailedShort: "Blogbeiträge konnten nicht geladen werden",
+    emptyMedia: "Noch kein Beitrag verweist auf ein OG-Bild. Setzen Sie eines im Beitragseditor.",
+    imagesHeader: "Bilder",
+    usedBy: (n) => `Verwendet in ${n} Beitrag${n === 1 ? "" : "en"}`,
+  },
 };
 
 // RT-25.9 tick 20 — Blog media sub-route at

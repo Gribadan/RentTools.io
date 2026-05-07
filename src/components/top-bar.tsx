@@ -80,6 +80,30 @@ const COPY: Record<Locale, CopyShape> = {
     admin: "Админ",
     syncTasks: "Задачи синхронизации",
   },
+  de: {
+    tabDashboard: "Übersicht",
+    tabCalendar: "Kalender",
+    tabCleaning: "Reinigung",
+    tabReports: "Berichte",
+    tabProperty: "Unterkunft",
+    allProperties: "Alle Unterkünfte",
+    dashboardAll: "Übersicht (alle Unterkünfte)",
+    countLabel: (resCount, guestCount) =>
+      `${resCount} ${resCount === 1 ? "Buchung" : "Buchungen"}, ${guestCount} ${guestCount === 1 ? "Gast" : "Gäste"}`,
+    addProperty: "Unterkunft hinzufügen",
+    searchGuests: "Gäste suchen",
+    searchGuestsTitle: "Gäste suchen (⌘K)",
+    searchPlaceholder: "Name, Pass, Land…",
+    closeSearch: "Suche schließen",
+    searching: "Suche läuft...",
+    noMatches: "Keine Treffer",
+    userMenu: "Benutzermenü",
+    personalAccount: "Mein Konto",
+    theme: "Design",
+    language: "Sprache",
+    admin: "Admin",
+    syncTasks: "Sync-Aufgaben",
+  },
 };
 
 export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks" | "reports" | "profile";

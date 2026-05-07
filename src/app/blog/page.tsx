@@ -24,6 +24,11 @@ const BLOG_INDEX_COPY: Record<Locale, { title: string; description: string }> = 
     description:
       "Практические руководства для хостов: синхронизация календарей, предотвращение двойных бронирований, автоматизация уборок и GDPR.",
   },
+  de: {
+    title: "Blog",
+    description:
+      "Praktische Anleitungen für Kurzzeitvermieter: Kalendersynchronisation, Doppelbuchungen verhindern, Reinigungsautomatisierung und DSGVO.",
+  },
 };
 
 interface CopyShape {
@@ -92,6 +97,28 @@ const COPY: Record<Locale, CopyShape> = {
     footerHome: "Главная",
     footerPrivacy: "Конфиденциальность",
     footerTerms: "Условия",
+  },
+  de: {
+    ogLocale: "de_DE",
+    breadcrumbNav: "Brotkrumen",
+    homeLabel: "Start",
+    homeHref: "/de",
+    blogLabel: "Blog",
+    heroEyebrow: "Der RentTools-Blog",
+    heroTitle: "Feldnotizen für Kurzzeitvermieter",
+    heroIntro:
+      "Kalendersynchronisation, die wirklich funktioniert, Reinigungsautomatisierung ohne Doppelbelegung der Reinigungskraft und eine DSGVO-Checkliste auf einer Seite. Geschrieben von Leuten, die selbst vermieten — nicht von Affiliate-Seiten.",
+    tagFilterNav: "Nach Tag filtern",
+    tagAll: "Alle",
+    emptyNoTag: "Noch keine Artikel.",
+    emptyWithTag: (tag) => `Noch keine Artikel zum Tag „${tag}“.`,
+    featuredBadge: "Empfohlen",
+    paginationPrev: "← Zurück",
+    paginationLabel: (page, total) => `Seite ${page} von ${total}`,
+    paginationNext: "Weiter →",
+    footerHome: "Start",
+    footerPrivacy: "Datenschutz",
+    footerTerms: "AGB",
   },
 };
 

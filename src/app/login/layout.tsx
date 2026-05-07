@@ -17,6 +17,11 @@ const LOGIN_COPY: Record<Locale, { title: string; description: string }> = {
     description:
       "Войдите в RentTools, чтобы управлять календарями аренды, расписанием уборок и данными гостей.",
   },
+  de: {
+    title: "Anmelden",
+    description:
+      "Melden Sie sich bei RentTools an, um Mietkalender, Reinigungspläne und Gastdaten zu verwalten.",
+  },
 };
 
 // /login needs its own canonical — see signup/layout.tsx for the

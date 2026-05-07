@@ -63,6 +63,24 @@ const COPY: Record<Locale, CopyShape> = {
     fields: (n) => `${n} пол(ей)`,
     submissions: (n) => `${n} ответ(ов)`,
   },
+  de: {
+    title: "Gästeformular-Vorlagen",
+    description:
+      "Alle Vorlagen für Gäste-Anreiseformulare über Ihre Objekte. Klicken Sie auf ein Objekt, um die Sync-Einstellungen zu öffnen, in denen die Vorlage bearbeitet wird.",
+    loadFailed: "Laden fehlgeschlagen",
+    loading: "Wird geladen...",
+    empty:
+      "Noch keine Gästeformulare konfiguriert. Öffnen Sie ein Objekt und erstellen Sie eine Vorlage im Sync-Einstellungs-Tab.",
+    loadingEllipsis: "Wird geladen...",
+    summary: (totalCount, propertyCount, totalSubmissions) =>
+      `${totalCount} Vorlage${totalCount === 1 ? "" : "n"} über ${propertyCount} Objekt${
+        propertyCount === 1 ? "" : "e"
+      } · ${totalSubmissions} Einreichung${totalSubmissions === 1 ? "" : "en"}.`,
+    openSync: "Sync öffnen",
+    untitled: "Vorlage ohne Titel",
+    fields: (n) => `${n} Feld${n === 1 ? "" : "er"}`,
+    submissions: (n) => `${n} Einreichung${n === 1 ? "" : "en"}`,
+  },
 };
 
 interface TemplateRow {

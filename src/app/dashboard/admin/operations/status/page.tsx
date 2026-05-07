@@ -37,6 +37,13 @@ const COPY: Record<Locale, CopyShape> = {
     syncHealth: "Здоровье календарной синхронизации",
     externalNote: "Внешняя страница статуса (status.renttools.io) пока не настроена. Когда появится — будет ссылаться отсюда.",
   },
+  de: {
+    title: "Systemstatus",
+    subtitle: "Interne Health-Endpoints dieser Instanz. Nutzen Sie sie für Stichproben, wenn Sync sich seltsam verhält oder ein 5xx durchgerutscht ist.",
+    appHealth: "App-Health",
+    syncHealth: "Kalender-Sync-Health",
+    externalNote: "Eine externe Statusseite (status.renttools.io) ist noch nicht angebunden. Sobald sie verfügbar ist, wird hier verlinkt.",
+  },
 };
 
 export default function AdminStatusPage() {

@@ -39,6 +39,12 @@ const HOME_META: Record<Locale, { title: string; description: string }> = {
     description:
       "Бесплатный менеджер для хостов краткосрочной аренды с открытым кодом. Синхронизация календарей Airbnb и Booking.com, автоматизация уборок, распознавание паспортов гостей.",
   },
+  de: {
+    title:
+      "RentTools — Open-Source-Verwaltung für Kurzzeitvermietung",
+    description:
+      "Kostenlose Open-Source-Verwaltung für Kurzzeitvermieter. Airbnb- und Booking.com-Kalender synchronisieren, Reinigung automatisieren, Gast-Pässe auslesen.",
+  },
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -348,6 +354,133 @@ const COPY: Record<Locale, CopyBlock> = {
       signIn: "Войти",
       cookieNoteA: "Только служебные cookie — без трекинга и аналитики. Подробнее в ",
       cookieNoteLink: "Политике конфиденциальности",
+      cookieNoteB: ".",
+    },
+  },
+  de: {
+    hero: {
+      eyebrow: "Open Source · Für immer kostenlos",
+      titleLead: "Schluss mit dem",
+      titleAccent: "Kalender-Chaos",
+      // "Cross-sync calendars between Airbnb, Booking.com, Vrbo and
+      // anything that speaks iCal." Native German preposition (zwischen)
+      // and a clean compound flow.
+      subtitleA: "Wir synchronisieren Kalender zwischen",
+      platforms: "Airbnb, Booking.com, Vrbo",
+      subtitleB: "und allem, was iCal spricht. Jede Plattform sieht die Buchungen der anderen —",
+      subtitleC: "Doppelbuchungen werden zur Ausnahme",
+      subtitleD: ". Für immer kostenlos, Open Source.",
+      cta: "Loslegen — für immer kostenlos",
+      ctaNote: "Keine Karte. Kein Bezahltarif. Erst ausprobieren, dann registrieren.",
+    },
+    how: {
+      eyebrow: "So läuft's",
+      title: "Drei Schritte. Bei den meisten Hosts in sieben Minuten erledigt.",
+      steps: [
+        {
+          title: "iCal-Links Ihrer Plattformen einfügen",
+          body: "Bei Airbnb unter Calendar → Sync calendars → Export. Bei Booking.com unter Calendar → Sync calendars. Bei Vrbo genauso. Im Wizard einfügen — fertig.",
+        },
+        {
+          title: "Sie bekommen einen vereinten Feed zurück",
+          body: "Eine iCal-URL pro Plattform — inklusive Buchungen der anderen, Ihrer manuellen Sperren und Puffertage für die Reinigung. Doppelbuchungen haben keine Lücke mehr.",
+        },
+        {
+          title: "Unsere URL in jede Plattform zurück einfügen",
+          body: "Airbnb und Booking.com holen unseren Feed alle paar Stunden ab. Ab da kennen ihre Kalender einander — und Ihre manuellen Sperren.",
+        },
+      ],
+      tryWizard: "Wizard ohne Registrierung ausprobieren",
+    },
+    features: {
+      eyebrow: "Gebaut für die Stellen, die wirklich wehtun",
+      titleA: "Alles, was ein Host braucht.",
+      titleB: "Nichts, was Sie nie nutzen.",
+      items: [
+        {
+          title: "Plattformübergreifende Kalendersynchronisation",
+          body: "Alle 10 Minuten ziehen wir den iCal-Feed jeder Plattform und veröffentlichen ihn für die anderen. Airbnb sieht Booking-Buchungen und umgekehrt — derselbe Schutz wie bei kostenpflichtigen Channel Managern, nur kostenlos und Open Source.",
+        },
+        {
+          title: "Automatische Reinigungsplanung",
+          body: "Puffertage, die die Plattformen selbst nicht können. Tägliche Reinigungsliste. Eigene Rolle für die Reinigungskraft mit eingeschränktem Dashboard-Zugriff.",
+        },
+        {
+          title: "Mehrere Unterkünfte, ein Dashboard",
+          body: "Beliebig viele Objekte aus einer Übersicht steuern. Per Tastendruck wechseln. Property Manager und Reinigungskräfte bekommen passende Rollen.",
+        },
+        {
+          title: "Nachrichtenvorlagen",
+          body: "Vorlagen pro Unterkunft mit Variablen (Gastname, Check-in, WLAN). In die Zwischenablage und direkt in Airbnb oder WhatsApp einfügen.",
+        },
+        {
+          title: "Öffentlicher iCal-Feed",
+          body: "Jede Unterkunft hat ihre eigene Feed-URL. In Airbnb oder Booking einfügen — und Ihre manuellen Sperren werden mit übernommen.",
+        },
+        {
+          title: "Gästesuche per Cmd-K",
+          body: "Jeden früheren Gast über alle Unterkünfte mit einem Tastendruck finden. Mit Dokumentenexport, falls Sie Papierkram einreichen müssen.",
+        },
+      ],
+    },
+    compatible: {
+      label: "Kompatibel mit",
+      footer: "…und jeder Plattform mit iCal-Export.",
+    },
+    trust: {
+      open: {
+        title: "Open Source",
+        body: "MIT-Lizenz auf GitHub. Lesen Sie den Code, melden Sie ein Issue, oder hosten Sie selbst auf einem 4-$-Droplet.",
+        link: "Auf GitHub ansehen",
+      },
+      gdpr: {
+        title: "DSGVO-konform",
+        body: "Ein einziger technisch notwendiger Session-Cookie. Keine Analytics, keine Werbung, keine Drittanbieter-Tracker. Konto löschen, Daten weg.",
+        link: "Datenschutzerklärung",
+      },
+    },
+    faq: {
+      eyebrow: "Schnelle Antworten",
+      title: "Was Hosts zuerst fragen.",
+      items: [
+        {
+          q: "Verhindert das wirklich Doppelbuchungen?",
+          a: "Es senkt das Risiko drastisch — nicht auf null, aber nah dran. Wir holen den iCal-Feed jeder Plattform alle 10 Minuten und veröffentlichen ihn für die anderen, also erfährt Airbnb von einer Booking.com-Buchung (und umgekehrt) auf unserer Seite innerhalb von ~10 Min. Die Plattformen aktualisieren importierte Feeds bei sich alle 2–12 Stunden. Echtzeit-API-Sync wäre schneller, aber Airbnb und Booking.com verkaufen ihre Channel-Manager-APIs nicht an einzelne Hosts — nur an zertifizierte PMS-Anbieter, die 100–300 $/Monat dafür nehmen, dieselben Feeds weiterzureichen, die wir kostenlos synchronisieren. Für 99 % der kleinen Hosts reicht der iCal-Handshake bei Weitem.",
+        },
+        {
+          q: "Ist es wirklich kostenlos?",
+          a: "Ja. Die gehostete Instanz ist für den Eigenbedarf kostenlos, mit Rate-Limits pro Konto, damit unsere Rechnungen im Rahmen bleiben. Der Code steht unter MIT — klonen, auf einem 4-$-Droplet laufen lassen, fertig. Sie schulden uns nichts.",
+        },
+        {
+          q: "Was macht es eigentlich?",
+          a: "Holt jeden iCal-kompatiblen Kalender ab — Airbnb, Booking.com, Vrbo oder alles andere mit Export-URL — damit Sie nicht mehr zwischen Tabs wechseln. Fügt Puffertage für die Reinigung hinzu, die die Plattformen selbst nicht können. Erstellt täglich einen Reinigungsplan. Pro-Unterkunft-Vorlagen für Nachrichten und Cmd-K-Gästesuche über alle Unterkünfte hinweg.",
+        },
+        {
+          q: "Muss ich selbst hosten?",
+          a: "Nein. Hier registrieren und die gehostete Version nutzen. Falls Sie irgendwann das kostenlose Limit sprengen oder volle Datenhoheit wollen — Daten exportieren und selbst hosten. Ihre Daten, Ihre Entscheidung.",
+        },
+        {
+          q: "Wo liegen die Gastdaten?",
+          a: "In einer einzigen SQLite-Datei auf dem gehosteten Server. Keine Drittanbieter-Verarbeiter außer Google Gemini für die Pass-OCR (und auch nur für diese eine Anfrage). Konto löschen — Daten weg.",
+        },
+      ],
+    },
+    finalCta: {
+      titleA: "Von einem Host gebaut.",
+      titleB: "Für Hosts.",
+      body: "Kein Bezahltarif. Kein Upsell. Kein Tracking. Der Maintainer zahlt die Hosting-Rechnung, damit Sie sich um Gäste kümmern statt um Browser-Tabs.",
+      primary: "Loslegen — für immer kostenlos",
+      secondary: "Quellcode lesen",
+    },
+    footer: {
+      copyright: "© 2026 RentTools · MIT-Lizenz",
+      github: "GitHub",
+      blog: "Blog",
+      terms: "AGB",
+      privacy: "Datenschutz",
+      signIn: "Anmelden",
+      cookieNoteA: "Nur technisch notwendige Cookies — kein Tracking, keine Analytics. Mehr im ",
+      cookieNoteLink: "Datenschutz",
       cookieNoteB: ".",
     },
   },

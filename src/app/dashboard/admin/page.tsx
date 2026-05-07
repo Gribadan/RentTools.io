@@ -44,185 +44,199 @@ const TILES: ReadonlyArray<{
   items: ReadonlyArray<Tile>;
 }> = [
   {
-    group: { en: "Account", ru: "Аккаунт" },
+    group: { en: "Account", ru: "Аккаунт", de: "Konto" },
     items: [
       {
         href: "/dashboard/admin/account/profile",
-        label: { en: "Profile", ru: "Профиль" },
-        desc: { en: "Username, password, sessions.", ru: "Логин, пароль, сессии." },
+        label: { en: "Profile", ru: "Профиль", de: "Profil" },
+        desc: { en: "Username, password, sessions.", ru: "Логин, пароль, сессии.", de: "Benutzername, Passwort, Sitzungen." },
       },
       {
         href: "/dashboard/admin/account/preferences",
-        label: { en: "Language & theme", ru: "Язык и тема" },
-        desc: { en: "Per-browser display preferences.", ru: "Настройки отображения в этом браузере." },
+        label: { en: "Language & theme", ru: "Язык и тема", de: "Sprache & Design" },
+        desc: { en: "Per-browser display preferences.", ru: "Настройки отображения в этом браузере.", de: "Anzeigeeinstellungen pro Browser." },
       },
       {
         href: "/dashboard/admin/account/export",
-        label: { en: "Data export", ru: "Экспорт данных" },
-        desc: { en: "Download a JSON backup of your data.", ru: "Скачать JSON резервную копию данных." },
+        label: { en: "Data export", ru: "Экспорт данных", de: "Datenexport" },
+        desc: { en: "Download a JSON backup of your data.", ru: "Скачать JSON резервную копию данных.", de: "JSON-Backup Ihrer Daten herunterladen." },
       },
     ],
   },
   {
-    group: { en: "Workspace", ru: "Рабочее пространство" },
+    group: { en: "Workspace", ru: "Рабочее пространство", de: "Arbeitsbereich" },
     items: [
       {
         href: "/dashboard/admin/workspace/users",
-        label: { en: "Users & roles", ru: "Пользователи и роли" },
-        desc: { en: "Admins and managers of this instance.", ru: "Администраторы и менеджеры." },
+        label: { en: "Users & roles", ru: "Пользователи и роли", de: "Benutzer & Rollen" },
+        desc: { en: "Admins and managers of this instance.", ru: "Администраторы и менеджеры.", de: "Administratoren und Manager dieser Instanz." },
       },
       {
         href: "/dashboard/admin/workspace/properties",
-        label: { en: "Properties", ru: "Объекты" },
+        label: { en: "Properties", ru: "Объекты", de: "Objekte" },
         desc: {
           en: "Key-settings summary across every accessible property.",
           ru: "Сводка ключевых настроек по всем доступным объектам.",
+          de: "Übersicht der wichtigsten Einstellungen über alle zugänglichen Objekte.",
         },
       },
       {
         href: "/dashboard/admin/workspace/site-settings",
-        label: { en: "Site settings", ru: "Настройки сайта" },
-        desc: { en: "Public signup, quotas, landing announcement.", ru: "Регистрация, квоты, объявление." },
+        label: { en: "Site settings", ru: "Настройки сайта", de: "Seiteneinstellungen" },
+        desc: { en: "Public signup, quotas, landing announcement.", ru: "Регистрация, квоты, объявление.", de: "Öffentliche Registrierung, Kontingente, Startseiten-Hinweis." },
         requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/workspace/cleaners",
-        label: { en: "Cleaners", ru: "Уборщики" },
+        label: { en: "Cleaners", ru: "Уборщики", de: "Reinigungskräfte" },
         desc: {
           en: "Account-level cleaner pool. Per-property assignment lives on each property's Cleaning tab.",
           ru: "Пул уборщиков аккаунта. Назначение по объектам — на вкладке «Уборки» объекта.",
+          de: "Pool der Reinigungskräfte auf Kontoebene. Zuweisung pro Objekt erfolgt im Reinigungs-Tab des Objekts.",
         },
       },
       {
         href: "/dashboard/admin/workspace/message-templates",
-        label: { en: "Message templates", ru: "Шаблоны сообщений" },
+        label: { en: "Message templates", ru: "Шаблоны сообщений", de: "Nachrichtenvorlagen" },
         desc: {
           en: "Cross-property overview of guest-message templates.",
           ru: "Сводка шаблонов сообщений по всем объектам.",
+          de: "Objektübergreifende Übersicht der Gästenachrichten-Vorlagen.",
         },
       },
       {
         href: "/dashboard/admin/workspace/audit",
-        label: { en: "Audit log", ru: "Журнал действий" },
-        desc: { en: "Recent actions tied to your session.", ru: "Последние действия в вашей сессии." },
+        label: { en: "Audit log", ru: "Журнал действий", de: "Aktionsprotokoll" },
+        desc: { en: "Recent actions tied to your session.", ru: "Последние действия в вашей сессии.", de: "Letzte Aktionen in Ihrer Sitzung." },
       },
     ],
   },
   {
-    group: { en: "Integrations", ru: "Интеграции" },
+    group: { en: "Integrations", ru: "Интеграции", de: "Integrationen" },
     items: [
       {
         href: "/dashboard/admin/integrations/ical-links",
-        label: { en: "iCal links", ru: "iCal ссылки" },
+        label: { en: "iCal links", ru: "iCal ссылки", de: "iCal-Links" },
         desc: {
           en: "All calendar feeds across your properties — status + last sync.",
           ru: "Все календарные фиды по объектам — статус и время последней синхронизации.",
+          de: "Alle Kalender-Feeds Ihrer Objekte — Status und letzter Sync.",
         },
       },
       {
         href: "/dashboard/admin/integrations/feed-tokens",
-        label: { en: "Feed access tokens", ru: "Токены доступа к фиду" },
+        label: { en: "Feed access tokens", ru: "Токены доступа к фиду", de: "Feed-Zugriffstoken" },
         desc: {
           en: "Per-property: public or token-gated iCal feed URL.",
           ru: "По объектам: публичный или закрытый токеном URL фида.",
+          de: "Pro Objekt: öffentliche oder per Token geschützte iCal-Feed-URL.",
         },
       },
       {
         href: "/dashboard/admin/integrations/gemini",
-        label: { en: "Gemini AI key", ru: "Gemini AI ключ" },
-        desc: { en: "API key for guest passport extraction.", ru: "API ключ для извлечения паспортов." },
+        label: { en: "Gemini AI key", ru: "Gemini AI ключ", de: "Gemini-AI-Schlüssel" },
+        desc: { en: "API key for guest passport extraction.", ru: "API ключ для извлечения паспортов.", de: "API-Schlüssel für die Erkennung von Gäste-Pässen." },
       },
       {
         href: "/dashboard/admin/integrations/seo",
-        label: { en: "SEO overrides", ru: "SEO переопределения" },
+        label: { en: "SEO overrides", ru: "SEO переопределения", de: "SEO-Overrides" },
         desc: {
           en: "Override title, description, OG image, canonical per page.",
           ru: "Переопределить title, description, OG-картинку и canonical для страницы.",
+          de: "Title, Description, OG-Bild und Canonical pro Seite überschreiben.",
         },
         requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/integrations/platforms",
-        label: { en: "Calendar platforms", ru: "Платформы (календарь)" },
+        label: { en: "Calendar platforms", ru: "Платформы (календарь)", de: "Kalenderplattformen" },
         desc: {
           en: "Edit colors, sort order, enable/disable. Add custom platforms.",
           ru: "Цвета, порядок, включение/отключение. Добавить пользовательские платформы.",
+          de: "Farben, Sortierung, Aktivieren/Deaktivieren bearbeiten. Eigene Plattformen hinzufügen.",
         },
         requiresSuperadmin: true,
       },
     ],
   },
   {
-    group: { en: "Operations", ru: "Эксплуатация" },
+    group: { en: "Operations", ru: "Эксплуатация", de: "Betrieb" },
     items: [
       {
         href: "/dashboard/admin/operations/sync-logs",
-        label: { en: "Sync logs", ru: "Логи синхронизации" },
+        label: { en: "Sync logs", ru: "Логи синхронизации", de: "Sync-Logs" },
         desc: {
           en: "Chronological feed of sync events across all properties.",
           ru: "Хронологическая лента событий синхронизации по всем объектам.",
+          de: "Chronologischer Feed der Sync-Ereignisse über alle Objekte.",
         },
       },
       {
         href: "/dashboard/admin/operations/scheduled-jobs",
-        label: { en: "Scheduled jobs", ru: "Запланированные задачи" },
+        label: { en: "Scheduled jobs", ru: "Запланированные задачи", de: "Geplante Aufgaben" },
         desc: {
           en: "Cron jobs running on the host — schedule + description.",
           ru: "Задачи cron на сервере — расписание и описание.",
+          de: "Cron-Jobs auf dem Server — Zeitplan und Beschreibung.",
         },
       },
       {
         href: "/dashboard/admin/operations/status",
-        label: { en: "Status page", ru: "Статус" },
-        desc: { en: "Internal health endpoints for spot checks.", ru: "Внутренние эндпоинты здоровья для проверки." },
+        label: { en: "Status page", ru: "Статус", de: "Statusseite" },
+        desc: { en: "Internal health endpoints for spot checks.", ru: "Внутренние эндпоинты здоровья для проверки.", de: "Interne Health-Endpoints für Stichproben." },
       },
     ],
   },
   {
-    group: { en: "Content", ru: "Контент" },
+    group: { en: "Content", ru: "Контент", de: "Inhalte" },
     items: [
       {
         href: "/dashboard/admin/content/blog-posts",
-        label: { en: "Blog posts", ru: "Статьи блога" },
+        label: { en: "Blog posts", ru: "Статьи блога", de: "Blogbeiträge" },
         desc: {
           en: "List, filter, sort, bulk publish or archive. Edit body in the post editor.",
           ru: "Список, фильтры, сортировка, массовая публикация или архив. Тело редактируется в редакторе статьи.",
+          de: "Liste, Filter, Sortierung, Massenveröffentlichung oder Archivierung. Inhalt im Beitragseditor bearbeiten.",
         },
         requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/content/blog-comments",
-        label: { en: "Blog comments", ru: "Комментарии блога" },
+        label: { en: "Blog comments", ru: "Комментарии блога", de: "Blog-Kommentare" },
         desc: {
           en: "Moderate reader comments — hide, restore, soft-delete.",
           ru: "Модерация комментариев — скрыть, восстановить, удалить.",
+          de: "Leserkommentare moderieren — ausblenden, wiederherstellen, weich löschen.",
         },
         requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/content/blog-tags",
-        label: { en: "Blog tags", ru: "Теги блога" },
+        label: { en: "Blog tags", ru: "Теги блога", de: "Blog-Tags" },
         desc: {
           en: "Rename, delete, or merge tags. Slug edits rewrite all referencing posts.",
           ru: "Переименование, удаление и объединение тегов. Изменение слага переписывает все статьи.",
+          de: "Tags umbenennen, löschen oder zusammenführen. Slug-Änderungen aktualisieren alle verweisenden Beiträge.",
         },
         requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/content/blog-media",
-        label: { en: "Blog media", ru: "Медиа блога" },
+        label: { en: "Blog media", ru: "Медиа блога", de: "Blog-Medien" },
         desc: {
           en: "OG images referenced by blog posts. Read-only until R2 / S3 ships.",
           ru: "OG-картинки статей блога. Только просмотр, пока не подключено R2 / S3.",
+          de: "Von Blogbeiträgen referenzierte OG-Bilder. Nur lesend, bis R2 / S3 verfügbar ist.",
         },
         requiresSuperadmin: true,
       },
       {
         href: "/dashboard/admin/content/guest-forms",
-        label: { en: "Guest form templates", ru: "Шаблоны анкет гостей" },
+        label: { en: "Guest form templates", ru: "Шаблоны анкет гостей", de: "Gästeformular-Vorlagen" },
         desc: {
           en: "Pre-arrival forms across properties — field count + submission count.",
           ru: "Анкеты заезда по объектам — количество полей и ответов.",
+          de: "Anreiseformulare über alle Objekte — Anzahl Felder und Einreichungen.",
         },
       },
     ],
@@ -266,6 +280,18 @@ const COPY: Record<Locale, CopyShape> = {
     recentActivity: "Последние действия",
     loading: "Загрузка...",
     noActivity: "Действий пока нет.",
+  },
+  de: {
+    justNow: "gerade eben",
+    minutesAgo: (n) => `vor ${n} Min.`,
+    hoursAgo: (n) => `vor ${n} Std.`,
+    daysAgo: (n) => `vor ${n} T.`,
+    dateLocale: "de-DE",
+    title: "Verwaltung",
+    subtitle: "Alle Einstellungen an einem Ort. Weitere Bereiche kommen hinzu, sobald sie aus der alten Einstellungsseite migriert sind.",
+    recentActivity: "Letzte Aktivität",
+    loading: "Wird geladen...",
+    noActivity: "Noch keine Aktivität.",
   },
 };
 

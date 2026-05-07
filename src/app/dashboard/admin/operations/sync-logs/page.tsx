@@ -75,6 +75,18 @@ const COPY: Record<Locale, CopyShape> = {
     noEntries: "Записей пока нет. Они появятся после первой синхронизации.",
     global: "глобально",
   },
+  de: {
+    failedToLoad: "Laden fehlgeschlagen",
+    dateLocale: "de-DE",
+    title: "Sync-Logs",
+    subtitle: "Chronologischer Feed der Sync-Ereignisse über alle Ihre Objekte. Letzte 200 Einträge.",
+    all: "Alle",
+    issuesOnly: "Nur Probleme",
+    loading: "Wird geladen...",
+    noIssues: "Keine Probleme — jeder Sync ist sauber durchgelaufen.",
+    noEntries: "Noch keine Log-Einträge. Sie erscheinen nach dem ersten Sync-Lauf.",
+    global: "global",
+  },
 };
 
 export default function AdminSyncLogsPage() {

@@ -30,6 +30,14 @@ const COPY: Record<Locale, CopyShape> = {
     selectCleaner: "Выберите уборщика…",
     add: "Добавить",
   },
+  de: {
+    cleaners: "Reinigungskräfte",
+    remove: "Entfernen",
+    noneAssigned: "Noch keine Reinigungskräfte zugewiesen.",
+    noneAvailable: "Keine Reinigungskraft-Konten verfügbar",
+    selectCleaner: "Reinigungskraft auswählen…",
+    add: "Hinzufügen",
+  },
 };
 
 interface Assignment {

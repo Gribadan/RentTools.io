@@ -88,6 +88,26 @@ const COPY: Record<Locale, CopyShape> = {
     edit: "Изменить",
     delete: "Удалить",
   },
+  de: {
+    failed: "Fehlgeschlagen",
+    deleteConfirm: "Diese Reinigungskraft löschen? Alle Objektzuweisungen werden ebenfalls entfernt.",
+    defaultRank: "Standard",
+    backupRank: (rank) => `Backup ${rank}`,
+    title: "Reinigungskräfte",
+    subtitle: "Pool der Reinigungskräfte auf Kontoebene. Die Zuweisung zu einzelnen Objekten erfolgt im Reinigungs-Tab des jeweiligen Objekts.",
+    addCleaner: "Reinigungskraft hinzufügen",
+    namePlaceholder: "Name",
+    phoneOptionalPlaceholder: "Telefon (optional)",
+    add: "Hinzufügen",
+    loading: "Wird geladen…",
+    empty: "Noch keine Reinigungskräfte. Fügen Sie oben Ihre erste hinzu.",
+    phonePlaceholder: "Telefon",
+    cancel: "Abbrechen",
+    save: "Speichern",
+    notAssigned: "Keinem Objekt zugewiesen",
+    edit: "Bearbeiten",
+    delete: "Löschen",
+  },
 };
 
 export default function AdminCleanersPage() {

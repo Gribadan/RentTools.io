@@ -124,3 +124,7 @@ authorized_keys
 # Written by /api/admin/blog-images at runtime. Excluded from git so
 # `git reset --hard` on deploys does not wipe author uploads.
 /public/uploads/
+
+# Local design references (Airbnb page saves used as visual references)
+# Contains third-party API keys embedded in vendor JS — never commit.
+design/

@@ -47,6 +47,13 @@ const COPY: Record<Locale, CopyShape> = {
     loading: "Загрузка...",
     empty: "Действий пока нет.",
   },
+  de: {
+    dateLocale: "de-DE",
+    title: "Aktionsprotokoll",
+    subtitle: "Letzte Aktionen Ihrer Sitzung. Die letzten 50 Einträge werden aufbewahrt.",
+    loading: "Wird geladen...",
+    empty: "Noch keine Aktivität.",
+  },
 };
 
 function summarize(e: AuditEntry): string {

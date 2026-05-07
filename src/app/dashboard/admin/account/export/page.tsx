@@ -34,6 +34,13 @@ const COPY: Record<Locale, CopyShape> = {
     preparing: "Готовим...",
     download: "Скачать JSON",
   },
+  de: {
+    failedToPrepare: "Export konnte nicht vorbereitet werden",
+    title: "Datenexport",
+    subtitle: "Laden Sie einen JSON-Dump Ihrer Objekte, Buchungen, Gäste, iCal-Links, Nachrichtenvorlagen und Reinigungseinträge herunter. Nützlich als persönliches Backup.",
+    preparing: "Wird vorbereitet...",
+    download: "JSON herunterladen",
+  },
 };
 
 export default function AdminExportPage() {

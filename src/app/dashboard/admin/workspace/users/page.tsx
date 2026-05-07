@@ -47,6 +47,14 @@ const COPY: Record<Locale, CopyShape> = {
     dateLocale: "ru-RU",
     deleteUser: "Удалить пользователя",
   },
+  de: {
+    failedToAdd: "Benutzer konnte nicht hinzugefügt werden",
+    subtitle: "Administratoren und Manager dieser Instanz. Reinigungskräfte werden pro Objekt über die Reinigungskarten hinzugefügt.",
+    loading: "Wird geladen...",
+    empty: "Noch keine Benutzer.",
+    dateLocale: "de-DE",
+    deleteUser: "Benutzer löschen",
+  },
 };
 
 export default function AdminUsersPage() {

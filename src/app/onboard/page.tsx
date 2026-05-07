@@ -233,6 +233,57 @@ const COPY: Record<Locale, CopyShape> = {
     verifiedSubtitle: (valid, enabled) =>
       `Проверено ${valid} из ${enabled}. Что не прошло — поправите после регистрации.`,
   },
+  de: {
+    introEyebrow: "Einrichtung · Kostenlos für jede Unterkunft — für immer",
+    introTitleLead: "Richten Sie Ihre ",
+    introTitleAccent: "erste Unterkunft",
+    introBody:
+      "Wählen Sie die Plattformen, auf denen Sie inserieren, fügen Sie deren iCal-Export-URL ein und kopieren Sie die URLs zurück, die wir generieren. Geht erst einmal ohne Konto — am Ende registrieren, um die Daten zu sichern.",
+    loading: "Wird geladen…",
+    step1Title: "Geben Sie Ihrer Unterkunft einen Namen",
+    step1Subtitle: "Nur ein Etikett für Sie. Können Sie jederzeit umbenennen.",
+    step1Placeholder: "Meine erste Unterkunft",
+    step2Title: "Kalender-Feeds hinzufügen",
+    step2Subtitle:
+      "Jede genutzte Plattform anhaken — deren iCal-URL einfügen, unsere zurückkopieren. Was nicht in der Liste steht, als „Eigene Plattform“ ergänzen.",
+    addAnotherPlatform: "Weitere Plattform hinzufügen",
+    step3Title: "Konto erstellen",
+    step3SubtitleEmpty:
+      "Sie können sich auch ohne ausgewählte Plattform registrieren — später aus dem Dashboard ergänzen.",
+    signinPrefix: "Für immer kostenlos, keine Karte. Schon ein Konto? ",
+    signinLink: "Anmelden",
+    signinSuffix: ".",
+    saving: "Speichern…",
+    saveAndCreate: "Speichern und Konto erstellen",
+    customFallback: "Eigene Plattform",
+    enableAria: (display) => `${display} aktivieren`,
+    customNamePlaceholder: "Name der Plattform",
+    removePlatformAria: "Diese Plattform entfernen",
+    hideInstructions: (display) => `Anleitung für ${display} ausblenden`,
+    showInstructions: (display) => `Anleitung für ${display} anzeigen`,
+    icalExportLabel: (display) => `iCal-Export-URL · ${display}`,
+    invalidBadUrl: "Die URL sieht nicht richtig aus — fehlt vielleicht das https://?",
+    invalidUnreachable:
+      "URL nicht erreichbar. Die Plattform kann gerade träge sein — in einer Minute erneut versuchen.",
+    invalidNotIcal:
+      "Die URL antwortet, liefert aber keinen Kalender. Prüfen Sie, ob Sie wirklich den iCal-Export kopiert haben — und nicht die Inseratsseite.",
+    invalidGeneric:
+      "Diese URL konnten wir nicht prüfen — Sie können trotzdem speichern, wir versuchen es nach der Registrierung weiter.",
+    validOk: "Sieht gut aus — wir starten den 10-Minuten-Sync, sobald Sie sich registriert haben.",
+    pasteBackLabel: (display) => `Diese RentTools-URL zurück in ${display} einfügen`,
+    feedUrlPlaceholder: "URL erscheint, sobald oben ein Name vergeben ist",
+    copy: "Kopieren",
+    copied: "Kopiert!",
+    feedHelp:
+      "Diese URL bleibt für immer Ihre — auch nach der Registrierung. Sobald die Registrierung abgeschlossen ist, liefert sie Live-Daten.",
+    testTesting: "Wird geprüft…",
+    testValid: "Geprüft",
+    testRetry: "Erneut",
+    testFresh: "Prüfen",
+    changeColor: "Farbe ändern",
+    verifiedSubtitle: (valid, enabled) =>
+      `${valid} von ${enabled} ${enabled === 1 ? "Plattform" : "Plattformen"} geprüft. Was nicht durchgeht, beheben Sie nach der Registrierung.`,
+  },
 };
 
 /* ────────────────────────────────────────────────────────────────────

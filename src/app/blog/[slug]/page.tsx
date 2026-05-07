@@ -135,6 +135,10 @@ const UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> = {
     line1: "Перевод в процессе.",
     line2: "Эта статья показана на английском.",
   },
+  de: {
+    line1: "Übersetzung in Arbeit.",
+    line2: "Dieser Beitrag wird auf Englisch angezeigt.",
+  },
 };
 
 // Visible-body copy for the post page. Excludes the JSON-LD (kept in EN
@@ -188,6 +192,21 @@ const POST_COPY: Record<Locale, PostCopyShape> = {
     footerTerms: "Условия",
     shareLabel: "Поделиться",
     emailLabel: "Почта",
+  },
+  de: {
+    breadcrumbNav: "Brotkrumen",
+    homeLabel: "Start",
+    homeHref: "/de",
+    blogLabel: "Blog",
+    blogHref: "/de/blog",
+    minutesRead: (n) => `${n} Min. Lesezeit`,
+    keepReading: "Weiterlesen",
+    allPosts: "← Alle Beiträge",
+    footerHome: "Start",
+    footerPrivacy: "Datenschutz",
+    footerTerms: "AGB",
+    shareLabel: "Teilen",
+    emailLabel: "E-Mail",
   },
 };
 
@@ -429,6 +448,7 @@ export default async function BlogPostPage({
   const BREADCRUMB_LABELS: Record<Locale, { home: string; blog: string }> = {
     en: { home: "Home", blog: "Blog" },
     ru: { home: "Главная", blog: "Блог" },
+    de: { home: "Start", blog: "Blog" },
   };
   const crumbLabels = BREADCRUMB_LABELS[requestedLocale];
   const homeUrl = requestedLocale === DEFAULT_LOCALE ? SITE_URL : `${SITE_URL}/${requestedLocale}`;

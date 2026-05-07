@@ -35,6 +35,14 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Язык интерфейса",
     languageHint: "Английский или русский.",
   },
+  de: {
+    title: "Sprache & Design",
+    subtitle: "Diese Einstellungen werden pro Browser gespeichert — auf anderen Geräten erneut auswählen.",
+    theme: "Design",
+    themeHint: "Hell oder dunkel.",
+    language: "Sprache der Oberfläche",
+    languageHint: "Englisch, Russisch oder Deutsch.",
+  },
 };
 
 export default function AdminPreferencesPage() {

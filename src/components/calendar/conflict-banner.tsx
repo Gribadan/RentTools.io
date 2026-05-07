@@ -11,6 +11,7 @@ interface ConflictBannerProps {
 const DAYS_LABEL: Record<Locale, (n: number) => string> = {
   en: (n) => (n === 1 ? "day" : "days"),
   ru: () => "дн.",
+  de: (n) => (n === 1 ? "Tag" : "Tage"),
 };
 
 export function ConflictBanner({ conflicts }: ConflictBannerProps) {

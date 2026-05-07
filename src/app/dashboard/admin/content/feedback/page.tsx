@@ -65,6 +65,26 @@ const COPY: Record<Locale, CopyShape> = {
     delete: "Удалить",
     confirmDelete: "Удалить навсегда?",
   },
+  de: {
+    title: "Feedback",
+    description:
+      "Nachrichten von Website-Besuchern über den schwebenden Feedback-Button. Spam-Schutz: 30-Sekunden-Limit pro IP plus Honeypot.",
+    loading: "Wird geladen...",
+    notSuperadmin: "Nur Superadmins können Feedback einsehen.",
+    filterAll: "Alle",
+    filterNew: "Neu",
+    filterRead: "Gelesen",
+    filterArchived: "Archiviert",
+    refreshing: "Wird aktualisiert...",
+    refresh: "Aktualisieren",
+    empty: "Noch kein Feedback.",
+    anonymous: "anonym",
+    markRead: "Als gelesen markieren",
+    archive: "Archivieren",
+    restore: "Wiederherstellen",
+    delete: "Löschen",
+    confirmDelete: "Endgültig löschen?",
+  },
 };
 
 // Site-wide visitor feedback queue. Source: the floating

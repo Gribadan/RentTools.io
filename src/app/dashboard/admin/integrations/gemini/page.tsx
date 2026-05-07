@@ -39,6 +39,14 @@ const COPY: Record<Locale, CopyShape> = {
     saveFailed: "Не удалось сохранить",
     apiKeyLabel: "API ключ:",
   },
+  de: {
+    description:
+      "Wird für die Datenerkennung aus Gäste-Pässen verwendet. In site_settings gespeichert und instanzweit angewendet.",
+    loading: "Wird geladen...",
+    saved: "Gespeichert",
+    saveFailed: "Speichern fehlgeschlagen",
+    apiKeyLabel: "API-Schlüssel:",
+  },
 };
 
 export default function AdminGeminiPage() {

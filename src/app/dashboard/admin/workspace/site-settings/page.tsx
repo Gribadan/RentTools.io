@@ -30,40 +30,44 @@ interface FieldDef {
 const FIELDS: ReadonlyArray<FieldDef> = [
   {
     key: "signup_enabled",
-    label: { en: "Public signup", ru: "Публичная регистрация" },
+    label: { en: "Public signup", ru: "Публичная регистрация", de: "Öffentliche Registrierung" },
     hint: {
       en: "Toggle whether new accounts can be created.",
       ru: "Разрешить ли создание новых аккаунтов.",
+      de: "Steuert, ob neue Konten erstellt werden können.",
     },
     type: "toggle",
     defaultValue: "true",
   },
   {
     key: "extraction_per_user_daily_limit",
-    label: { en: "Daily extraction quota (per user)", ru: "Лимит распознавания (в сутки на пользователя)" },
+    label: { en: "Daily extraction quota (per user)", ru: "Лимит распознавания (в сутки на пользователя)", de: "Tägliches Erkennungs-Kontingent (pro Benutzer)" },
     hint: {
       en: "Max passport extractions one user may run in 24h. 0 disables the limit.",
       ru: "Сколько паспортов один пользователь может распознать за 24 часа. 0 отключает лимит.",
+      de: "Maximale Pass-Erkennungen, die ein Benutzer in 24 Std. ausführen kann. 0 deaktiviert das Limit.",
     },
     type: "number",
     defaultValue: "20",
   },
   {
     key: "landing_announcement",
-    label: { en: "Landing announcement banner", ru: "Объявление на главной" },
+    label: { en: "Landing announcement banner", ru: "Объявление на главной", de: "Startseiten-Hinweisbanner" },
     hint: {
       en: "Short message shown at the top of the public landing page. Leave empty to hide.",
       ru: "Короткое сообщение в шапке публичной главной. Оставьте пустым, чтобы скрыть.",
+      de: "Kurze Nachricht oben auf der öffentlichen Startseite. Leer lassen, um sie auszublenden.",
     },
     type: "text",
     defaultValue: "",
   },
   {
     key: "support_email",
-    label: { en: "Support email", ru: "Email поддержки" },
+    label: { en: "Support email", ru: "Email поддержки", de: "Support-E-Mail" },
     hint: {
       en: "Public contact address surfaced in landing/footer/help.",
       ru: "Публичный контактный адрес — отображается в подвале и помощи.",
+      de: "Öffentliche Kontaktadresse, die auf Startseite, im Footer und in der Hilfe erscheint.",
     },
     type: "email",
     defaultValue: "",
@@ -107,6 +111,18 @@ const COPY: Record<Locale, CopyShape> = {
     disabled: "Отключено",
     saving: "Сохр...",
     save: "Сохранить",
+  },
+  de: {
+    saved: "Gespeichert. Gecachte Einstellungen werden innerhalb von 60 s aktualisiert.",
+    failedToSave: "Speichern fehlgeschlagen",
+    title: "Seiteneinstellungen",
+    subtitle: "Instanzweite Einstellungen, die öffentliche Seiten und Benutzerkontingente betreffen.",
+    loading: "Wird geladen...",
+    notSuperadmin: "Nur Superadmins können instanzweite Seiteneinstellungen bearbeiten.",
+    enabled: "Aktiviert",
+    disabled: "Deaktiviert",
+    saving: "Wird gespeichert",
+    save: "Speichern",
   },
 };
 

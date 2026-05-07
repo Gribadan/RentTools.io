@@ -41,6 +41,14 @@ const COPY: Record<Locale, CopyShape> = {
     pickADay: "Выберите день",
     pickADayHint: "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь.",
   },
+  de: {
+    weekdays: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
+    connectCalendar: "Kalender verbinden",
+    dateLocale: "de-DE",
+    syncNow: "Jetzt synchronisieren",
+    pickADay: "Tag auswählen",
+    pickADayHint: "Klicken Sie auf ein Datum im Kalender, um Aktionen zu öffnen oder eine Buchung anzulegen.",
+  },
 };
 
 interface PropertyCalendarProps {

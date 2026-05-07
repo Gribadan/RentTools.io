@@ -10,14 +10,18 @@ import {
 } from "./cookie";
 
 describe("isLocale", () => {
-  it("accepts en and ru", () => {
+  it("accepts every supported locale", () => {
     expect(isLocale("en")).toBe(true);
     expect(isLocale("ru")).toBe(true);
+    expect(isLocale("de")).toBe(true);
   });
 
   it("rejects everything else", () => {
     expect(isLocale("EN")).toBe(false);
-    expect(isLocale("de")).toBe(false);
+    // `xx` is the ISO standard 'placeholder' code reserved for testing —
+    // never a real locale, safe to use as a negative case across any
+    // locale set extension.
+    expect(isLocale("xx")).toBe(false);
     expect(isLocale("")).toBe(false);
     expect(isLocale(null)).toBe(false);
     expect(isLocale(undefined)).toBe(false);
@@ -51,7 +55,8 @@ describe("parseLocaleFromCookieHeader", () => {
   });
 
   it("returns null when value is invalid", () => {
-    expect(parseLocaleFromCookieHeader(`${LOCALE_COOKIE_NAME}=de`)).toBeNull();
+    // `xx` is reserved for test use; safely never a real locale.
+    expect(parseLocaleFromCookieHeader(`${LOCALE_COOKIE_NAME}=xx`)).toBeNull();
     expect(parseLocaleFromCookieHeader(`${LOCALE_COOKIE_NAME}=`)).toBeNull();
   });
 

@@ -25,6 +25,11 @@ const COPY: Record<Locale, CopyShape> = {
     view: "Отображение",
     includePotentialHint: "Уборки, которые понадобятся только если промежуток будет занят гостем.",
   },
+  de: {
+    cleaning: "Reinigung",
+    view: "Ansicht",
+    includePotentialHint: "Reinigungen, die nur relevant werden, wenn ein Lückenfüller-Gast bucht.",
+  },
 };
 
 // View / display options live in the sidebar so they sit alongside the

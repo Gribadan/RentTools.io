@@ -71,6 +71,19 @@ const COPY: Record<Locale, CopyShape> = {
     summary: (total, properties) => `${total} шаблон(ов) в ${properties} объект(ах).`,
     openSync: "Открыть синхронизацию",
   },
+  de: {
+    failedToLoad: "Laden fehlgeschlagen",
+    onCheckIn: "am Anreisetag",
+    beforeCheckIn: (n) => `${n} T. vor Anreise`,
+    afterCheckIn: (n) => `${n} T. nach Anreise`,
+    title: "Nachrichtenvorlagen",
+    subtitle: "Alle Nachrichtenvorlagen Ihrer Objekte. Klicken Sie auf ein Objekt, um die Sync-Einstellungen zu öffnen, in denen die Vorlagen bearbeitet werden.",
+    loading: "Wird geladen...",
+    empty: "Noch keine Vorlagen. Öffnen Sie ein Objekt und fügen Sie sie im Sync-Einstellungs-Tab hinzu.",
+    summary: (total, properties) =>
+      `${total} Vorlage${total === 1 ? "" : "n"} über ${properties} Objekt${properties === 1 ? "" : "e"}.`,
+    openSync: "Sync öffnen",
+  },
 };
 
 export default function AdminMessageTemplatesPage() {

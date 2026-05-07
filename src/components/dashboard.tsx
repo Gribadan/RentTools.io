@@ -97,6 +97,35 @@ const COPY: Record<Locale, CopyShape> = {
       `до ${date} · ${nights} ${nights === 1 ? "ночь" : nights < 5 ? "ночи" : "ноч."}`,
     inDays: (date, days) => `${date} (через ${days} д.)`,
   },
+  de: {
+    dateLocale: "de-DE",
+    reservationsCount: (count) => `${count} ${count === 1 ? "Buchung" : "Buchungen"}`,
+    reservationsAcross: (resCount, propCount) =>
+      `${resCount} Buchungen in ${propCount} ${propCount === 1 ? "Unterkunft" : "Unterkünften"}`,
+    needsAttention: "Erfordert Aufmerksamkeit",
+    doubleBooking: "Doppelbuchung:",
+    moreCount: (n) => `+ ${n} weitere`,
+    cleanerConflict: "Reinigungskonflikt:",
+    moreCountSuffix: (n) => ` + ${n} weitere`,
+    openCleaning: "Reinigung öffnen →",
+    noCalendars: "Keine Kalender verbunden:",
+    connectCalendars: "Kalender verbinden",
+    reservationLabel: "Buchung",
+    availableLabel: "Frei",
+    nextLabel: "Nächste:",
+    noUpcoming: "Keine bevorstehenden Buchungen",
+    bookingsCountShort: "Buchungen",
+    minNightsLabel: (n) => `min. ${n} N.`,
+    syncShort: "Sync",
+    searchPlaceholder: "Nach Gastnamen suchen...",
+    foundLabel: "gefunden",
+    currentlyStaying: "Aktuell im Haus",
+    daysShort: "T",
+    guestShort: "G",
+    untilNightsLeft: (date, nights) =>
+      `bis ${date} · noch ${nights} ${nights === 1 ? "Nacht" : "Nächte"}`,
+    inDays: (date, days) => `${date} (in ${days} T.)`,
+  },
 };
 
 // RT-25.6 tick 2 — bundled platform presets, kept inline rather than

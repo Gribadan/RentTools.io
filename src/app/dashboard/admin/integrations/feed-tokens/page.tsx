@@ -45,6 +45,19 @@ const COPY: Record<Locale, CopyShape> = {
     publicBadge: "Публичный",
     openSync: "Открыть синхронизацию →",
   },
+  de: {
+    title: "Feed-Zugriffstoken",
+    description:
+      "Jedes Objekt stellt eine kombinierte iCal-Feed-URL bereit. Ohne Token ist die URL öffentlich — jeder mit dem Link kann sie lesen. Mit gesetztem Token wird die URL privat. Statusübersicht; die Token-Rotation erfolgt im Sync-Einstellungs-Tab des jeweiligen Objekts.",
+    loadFailed: "Laden fehlgeschlagen",
+    loading: "Wird geladen...",
+    empty: "Noch keine Objekte. Fügen Sie ein Objekt hinzu, um seine iCal-Feed-URL zu erhalten.",
+    publicCountLabel: "Öffentlicher Feed: ",
+    gatedCountLabel: "Token gesetzt: ",
+    gatedBadge: "Token gesetzt",
+    publicBadge: "Öffentlich",
+    openSync: "Sync öffnen →",
+  },
 };
 
 // RT-25.9 tick 18 — Feed access tokens sub-route at

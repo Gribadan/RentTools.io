@@ -11,6 +11,7 @@ interface CopyShape {
 const COPY: Record<Locale, CopyShape> = {
   en: { heading: "Frequently asked questions" },
   ru: { heading: "Частые вопросы" },
+  de: { heading: "Häufige Fragen" },
 };
 
 /**

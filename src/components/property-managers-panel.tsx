@@ -11,6 +11,7 @@ interface CopyShape {
 const COPY: Record<Locale, CopyShape> = {
   en: { dateLocale: "en-GB" },
   ru: { dateLocale: "ru-RU" },
+  de: { dateLocale: "de-DE" },
 };
 
 interface Manager {

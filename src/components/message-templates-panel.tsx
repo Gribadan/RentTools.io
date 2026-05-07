@@ -57,6 +57,23 @@ const COPY: Record<Locale, CopyShape> = {
     edit: "Изменить",
     remove: "Удалить",
   },
+  de: {
+    nameAndBodyRequired: "Name und Text sind erforderlich",
+    confirmDelete: "Diese Vorlage löschen?",
+    title: "Nachrichtenvorlagen",
+    newTemplate: "Neue Vorlage",
+    namePlaceholder: "Vorlagenname",
+    subjectPlaceholder: "Betreff (optional)",
+    bodyPlaceholder: "Nachrichtentext",
+    variables: "Variablen:",
+    offsetLabel: "Tage vor/nach Check-in",
+    preview: "Vorschau",
+    cancel: "Abbrechen",
+    save: "Speichern",
+    empty: "Noch keine Vorlagen.",
+    edit: "Bearbeiten",
+    remove: "Löschen",
+  },
 };
 
 interface MessageTemplate {

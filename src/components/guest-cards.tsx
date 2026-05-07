@@ -13,6 +13,7 @@ interface CopyShape {
 const COPY: Record<Locale, CopyShape> = {
   en: { saving: "Saving…", saved: "Saved" },
   ru: { saving: "Сохранение…", saved: "Сохранено" },
+  de: { saving: "Wird gespeichert…", saved: "Gespeichert" },
 };
 
 // Age computed dynamically from DOB so it doesn't go stale across years.

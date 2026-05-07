@@ -18,6 +18,7 @@ import type { Locale } from "@/lib/i18n/translations";
 export const OG_LOCALE: Record<Locale, string> = {
   en: "en_US",
   ru: "ru_RU",
+  de: "de_DE",
 };
 
 export function toOgLocale(locale: Locale): string {
@@ -32,6 +33,7 @@ export function toOgLocale(locale: Locale): string {
 export const BCP47_TAG: Record<Locale, string> = {
   en: "en-GB",
   ru: "ru-RU",
+  de: "de-DE",
 };
 
 export function toBcp47(locale: Locale): string {

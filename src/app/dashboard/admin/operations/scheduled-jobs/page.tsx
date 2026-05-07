@@ -28,46 +28,50 @@ interface ScheduledJob {
 const JOBS: ReadonlyArray<ScheduledJob> = [
   {
     id: "calendar-sync",
-    name: { en: "Calendar sync", ru: "Синхронизация календарей" },
+    name: { en: "Calendar sync", ru: "Синхронизация календарей", de: "Kalender-Sync" },
     schedule: "*/10 * * * *",
-    schedulePretty: { en: "Every 10 minutes", ru: "Каждые 10 минут" },
+    schedulePretty: { en: "Every 10 minutes", ru: "Каждые 10 минут", de: "Alle 10 Minuten" },
     description: {
       en: "Pulls every CalendarLink's iCal feed, writes events into CalendarEvent, records the result into SyncLog.",
       ru: "Загружает iCal фиды по каждой CalendarLink, пишет события в CalendarEvent, журнал в SyncLog.",
+      de: "Lädt den iCal-Feed jeder CalendarLink, schreibt Ereignisse in CalendarEvent und protokolliert das Ergebnis in SyncLog.",
     },
     link: {
       href: "/dashboard/admin/operations/sync-logs",
-      label: { en: "View sync logs", ru: "Логи синхронизации" },
+      label: { en: "View sync logs", ru: "Логи синхронизации", de: "Sync-Logs anzeigen" },
     },
   },
   {
     id: "db-backup",
-    name: { en: "SQLite backup", ru: "Резервная копия SQLite" },
+    name: { en: "SQLite backup", ru: "Резервная копия SQLite", de: "SQLite-Backup" },
     schedule: "15 3 * * *",
-    schedulePretty: { en: "Daily at 03:15 UTC", ru: "Ежедневно в 03:15 UTC" },
+    schedulePretty: { en: "Daily at 03:15 UTC", ru: "Ежедневно в 03:15 UTC", de: "Täglich um 03:15 UTC" },
     description: {
       en: "Snapshot of data/prod.db with tiered retention (14 daily / 8 weekly / 6 monthly).",
       ru: "Снимок data/prod.db с многоуровневым хранением (14 дн / 8 нед / 6 мес).",
+      de: "Snapshot von data/prod.db mit gestaffelter Aufbewahrung (14 täglich / 8 wöchentlich / 6 monatlich).",
     },
   },
   {
     id: "resource-check",
-    name: { en: "Resource check", ru: "Проверка ресурсов" },
+    name: { en: "Resource check", ru: "Проверка ресурсов", de: "Ressourcenprüfung" },
     schedule: "5 * * * *",
-    schedulePretty: { en: "Hourly at :05", ru: "Каждый час в :05" },
+    schedulePretty: { en: "Hourly at :05", ru: "Каждый час в :05", de: "Stündlich um :05" },
     description: {
       en: "Alerts on RAM or disk usage above the configured warning thresholds. Posts to Telegram or webhook.",
       ru: "Уведомляет при превышении пороговых значений RAM или диска. Отправляет в Telegram или webhook.",
+      de: "Warnt, wenn RAM- oder Festplattennutzung die konfigurierten Schwellen übersteigen. Sendet an Telegram oder Webhook.",
     },
   },
   {
     id: "restore-drill",
-    name: { en: "Backup restore drill", ru: "Проверка восстановления" },
+    name: { en: "Backup restore drill", ru: "Проверка восстановления", de: "Backup-Restore-Test" },
     schedule: "30 4 1 * *",
-    schedulePretty: { en: "Monthly on the 1st at 04:30 UTC", ru: "1-го числа в 04:30 UTC" },
+    schedulePretty: { en: "Monthly on the 1st at 04:30 UTC", ru: "1-го числа в 04:30 UTC", de: "Monatlich am 1. um 04:30 UTC" },
     description: {
       en: "Restores the latest monthly snapshot into a temp DB and runs sanity queries. Proves backups are usable.",
       ru: "Восстанавливает последний месячный снимок во временную БД и проверяет запросами. Подтверждает, что резервная копия рабочая.",
+      de: "Stellt den letzten Monats-Snapshot in einer temporären DB wieder her und führt Plausibilitätsabfragen aus. Belegt, dass Backups verwendbar sind.",
     },
   },
 ];
@@ -85,6 +89,10 @@ const COPY: Record<Locale, CopyShape> = {
   ru: {
     title: "Запланированные задачи",
     subtitle: "Задачи cron, настроенные на сервере (deploy/cron/rent-tool.cron). Управляются из crontab на хосте — здесь только справочник. История синхронизации календарей доступна на отдельной странице.",
+  },
+  de: {
+    title: "Geplante Aufgaben",
+    subtitle: "Cron-Jobs, die auf dem Server konfiguriert sind (deploy/cron/rent-tool.cron). Werden über crontab auf dem Droplet gesteuert — diese Seite dient nur zur Referenz. Die Kalender-Sync-Historie ist auf einer eigenen Seite verfügbar.",
   },
 };
 

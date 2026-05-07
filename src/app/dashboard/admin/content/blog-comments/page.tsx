@@ -71,6 +71,28 @@ const COPY: Record<Locale, CopyShape> = {
     hide: "Скрыть",
     delete: "Удалить",
   },
+  de: {
+    title: "Blog-Kommentare",
+    description:
+      "Moderation: ausblenden, wiederherstellen oder weich löschen. Weich gelöschte Kommentare bleiben für die Revision in der Datenbank.",
+    loading: "Wird geladen...",
+    notSuperadmin: "Nur Superadmins können Kommentare moderieren.",
+    statusLabel: "Status",
+    filterAll: "Alle",
+    filterVisible: "Sichtbar",
+    filterHidden: "Ausgeblendet",
+    filterDeleted: "Gelöscht",
+    refreshing: "Wird aktualisiert...",
+    refresh: "Aktualisieren",
+    loadFailed: (status) => `Kommentare konnten nicht geladen werden (${status})`,
+    loadFailedShort: "Kommentare konnten nicht geladen werden",
+    commentsCount: (n) => `${n} Kommentar${n === 1 ? "" : "e"}`,
+    empty: "Keine Kommentare zu moderieren.",
+    confirmDelete: "Diesen Kommentar weich löschen? Er wird ausgeblendet, aber für die Revision aufbewahrt.",
+    restore: "Wiederherstellen",
+    hide: "Ausblenden",
+    delete: "Löschen",
+  },
 };
 
 // RT-25.9 tick 21 — Blog comments sub-route at

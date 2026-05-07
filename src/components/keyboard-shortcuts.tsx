@@ -16,6 +16,7 @@ interface CopyShape {
 const COPY: Record<Locale, CopyShape> = {
   en: { title: "Keyboard shortcuts" },
   ru: { title: "Горячие клавиши" },
+  de: { title: "Tastenkürzel" },
 };
 
 const SHORTCUTS: Shortcut[] = [
@@ -24,17 +25,19 @@ const SHORTCUTS: Shortcut[] = [
     description: {
       en: "Show this shortcut overlay",
       ru: "Показать справку по горячим клавишам",
+      de: "Tastenkürzel-Übersicht anzeigen",
     },
   },
   {
     keys: ["⌘", "K"],
-    description: { en: "Open guest search", ru: "Поиск гостей" },
+    description: { en: "Open guest search", ru: "Поиск гостей", de: "Gästesuche öffnen" },
   },
   {
     keys: ["←"],
     description: {
       en: "Previous month (calendar)",
       ru: "Предыдущий месяц (календарь)",
+      de: "Vorheriger Monat (Kalender)",
     },
   },
   {
@@ -42,22 +45,24 @@ const SHORTCUTS: Shortcut[] = [
     description: {
       en: "Next month (calendar)",
       ru: "Следующий месяц (календарь)",
+      de: "Nächster Monat (Kalender)",
     },
   },
   {
     keys: ["T"],
-    description: { en: "Jump to today (calendar)", ru: "К сегодня (календарь)" },
+    description: { en: "Jump to today (calendar)", ru: "К сегодня (календарь)", de: "Zu heute springen (Kalender)" },
   },
   {
     keys: ["E"],
     description: {
       en: "Toggle Edit Dates mode (calendar)",
       ru: "Переключить режим редактирования дат (календарь)",
+      de: "Datums-Bearbeitungsmodus umschalten (Kalender)",
     },
   },
   {
     keys: ["Esc"],
-    description: { en: "Close overlay", ru: "Закрыть окно" },
+    description: { en: "Close overlay", ru: "Закрыть окно", de: "Fenster schließen" },
   },
 ];
 

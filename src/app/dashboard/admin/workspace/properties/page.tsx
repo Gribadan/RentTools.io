@@ -96,6 +96,24 @@ const COPY: Record<Locale, CopyShape> = {
     on: "Вкл",
     off: "Выкл",
   },
+  de: {
+    failedToLoad: "Laden fehlgeschlagen",
+    title: "Objekte",
+    subtitle: "Übersicht der wichtigsten Einstellungen über alle zugänglichen Objekte. Bearbeiten Sie die Einstellungen jedes Objekts in dessen Sync-Tab.",
+    loading: "Wird geladen...",
+    empty: "Noch keine zugänglichen Objekte.",
+    hPropery: "Objekt",
+    hRole: "Rolle",
+    hBookings: "Buchungen",
+    hMinNights: "Min. Nächte",
+    hCheckInOut: "Check-in / -out",
+    hWindow: "Fenster (T)",
+    hCleaning: "Reinigung",
+    owner: "Eigentümer",
+    manager: "Manager",
+    on: "Ein",
+    off: "Aus",
+  },
 };
 
 export default function AdminPropertiesPage() {

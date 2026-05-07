@@ -59,6 +59,20 @@ const COPY: Record<Locale, CopyShape> = {
     creating: "Создаю…",
     add: "Добавить объект",
   },
+  de: {
+    nameRequired: "Objektname ist erforderlich",
+    backToDashboard: "Zurück zum Dashboard",
+    addProperty: "Objekt hinzufügen",
+    propertyName: "Objektname",
+    propertyNameHint: "Nur für Sie sichtbar — Gäste sehen ihn nicht.",
+    propertyNamePlaceholder: "Sonnenuntergang-Wohnung",
+    calendarFeeds: "Kalender-Feeds",
+    calendarFeedsHint: "Optional — Sie können sie später auf der Objektseite hinzufügen. Airbnb und Booking.com werden unterstützt.",
+    icalExportUrl: "iCal-Export-URL",
+    cancel: "Abbrechen",
+    creating: "Wird erstellt…",
+    add: "Objekt hinzufügen",
+  },
 };
 
 function AddPropertyContent() {

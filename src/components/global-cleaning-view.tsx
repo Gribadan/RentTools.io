@@ -43,6 +43,19 @@ const COPY: Record<Locale, CopyShape> = {
     dataSourcesHelper:
       "Расписание считается из ваших броней + iCal событий, дедуплицированных. Названия объектов попадают в каждую строку при копировании / печати.",
   },
+  de: {
+    emptyState: "Fügen Sie eine Unterkunft hinzu, um den Reinigungsplan zu sehen.",
+    cleaning: "Reinigung",
+    acrossAllProperties: (count) =>
+      `Über alle ${count} ${count === 1 ? "Unterkunft" : "Unterkünfte"}`,
+    allPropertiesLabel: (count) => `Alle Unterkünfte (${count})`,
+    view: "Ansicht",
+    potentialHelper:
+      "Reinigungen, die nur relevant werden, wenn ein Lückenfüller-Gast bucht.",
+    dataSources: "Datenquellen",
+    dataSourcesHelper:
+      "Der Plan wird aus Ihren Buchungen + iCal-Events berechnet (dedupliziert). Beim Kopieren / Drucken erscheint der Name der Unterkunft in jeder Zeile.",
+  },
 };
 
 // Sidebar carries the View toggle (include-potential) + a Data

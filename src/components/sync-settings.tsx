@@ -99,6 +99,36 @@ const COPY: Record<Locale, CopyShape> = {
     deleteProperty: "Удалить объект",
     dateLocale: "ru-RU",
   },
+  de: {
+    save: "Speichern",
+    cancel: "Abbrechen",
+    rename: "Umbenennen",
+    platformName: "Plattform-Name",
+    custom: "eigene",
+    remove: "Entfernen",
+    draftImportHint: "Benennen Sie zuerst die Plattform, um die Import-URL zu erhalten.",
+    addAnother: "Weitere Plattform hinzufügen",
+    daysShort: () => "Tage",
+    nightsShort: (n) => (n !== 1 ? "Nächte" : "Nacht"),
+    monthsShort: "Mon.",
+    feedTokenTitle: "Zugriffstoken für Feed",
+    feedTokenDesc:
+      "Die Feed-URL erlaubt externen Diensten, die keinen iCal-Upload unterstützen (z. B. Preisoptimierungs-Tools, Channel Manager oder eigene Skripte), den kombinierten Airbnb- + Booking-Kalender dieser Unterkunft im iCal-Format zu lesen. Die meisten Hosts brauchen das nicht — lassen Sie das Token leer, damit der Feed öffentlich bleibt, oder generieren Sie ein Token, um die URL privat zu machen.",
+    feedTokenActiveNote:
+      "Ihre Feed-URLs enthalten aktuell ein privates Token. Beim Rotieren wird die alte URL ungültig — fügen Sie die neue URL überall dort wieder ein, wo sie verwendet wird.",
+    feedTokenPublicNote:
+      "Ihre Feed-URLs sind aktuell öffentlich. Fügen Sie ein Token hinzu, damit sie nicht erratbar sind.",
+    makePublic: "Öffentlich machen",
+    rotate: "Rotieren",
+    generateToken: "Token generieren",
+    dangerZone: "Gefahrenzone",
+    dangerZoneDesc:
+      "Beim Löschen dieser Unterkunft werden alle Buchungen, Gäste, Pass-Dokumente, Sync-Logs und iCal-Verknüpfungen entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
+    confirmDelete: (name) =>
+      `Unterkunft „${name}" löschen? Damit werden alle Buchungen und zugehörigen Daten gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`,
+    deleteProperty: "Unterkunft löschen",
+    dateLocale: "de-DE",
+  },
 };
 
 interface TestResult {

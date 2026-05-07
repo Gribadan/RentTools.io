@@ -114,6 +114,43 @@ const COPY: Record<Locale, CopyShape> = {
     adding: "Добавление...",
     addOverrideButton: "Добавить переопределение",
   },
+  de: {
+    title: "SEO-Overrides",
+    description:
+      "Pro-Seite-Overrides für Title, Description, OG-Bild und Canonical-URL. Leere Felder behalten die Standardwerte der Seite bei.",
+    loading: "Wird geladen...",
+    notSuperadmin: "Nur Superadmins können SEO-Overrides bearbeiten.",
+    existingHeader: "Vorhanden",
+    refreshing: "Wird aktualisiert...",
+    refresh: "Aktualisieren",
+    loadFailed: (status) => `SEO-Overrides konnten nicht geladen werden (${status})`,
+    loadFailedShort: "SEO-Overrides konnten nicht geladen werden",
+    empty:
+      "Noch keine Pro-Seite-Overrides. Fügen Sie unten einen hinzu, um Title / Description / OG-Bild zu überschreiben.",
+    noTitleOverride: "(kein Title-Override)",
+    titleLabel: "Title (leer lassen für Seiten-Standard)",
+    descriptionLabel: "Description",
+    ogImageLabel: "OG-Bild-URL",
+    canonicalLabel: "Canonical-URL",
+    failedSave: "Speichern fehlgeschlagen",
+    saveFailed: "Speichern fehlgeschlagen",
+    saved: "Gespeichert. Innerhalb von 60 s aktiv.",
+    failedDelete: "Löschen fehlgeschlagen",
+    failedCreate: "Erstellen fehlgeschlagen",
+    confirmDelete: (path, l) => `SEO-Override für ${path} (${l}) löschen?`,
+    delete: "Löschen",
+    saving: "Wird gespeichert...",
+    save: "Speichern",
+    addOverrideTitle: "Override hinzufügen",
+    addOverrideDescription:
+      "Path ist der URL-Pfad (z. B. /about). Leere Felder behalten die Standardwerte der Seite bei.",
+    titlePlaceholder: (max) => `Title (max. ${max} Zeichen)`,
+    descriptionPlaceholder: (max) => `Description (max. ${max} Zeichen)`,
+    ogImagePlaceholder: "OG-Bild-URL",
+    canonicalPlaceholder: "Canonical-URL (optional)",
+    adding: "Wird hinzugefügt...",
+    addOverrideButton: "Override hinzufügen",
+  },
 };
 
 // RT-25.9 tick 13 — SEO overrides sub-route at
