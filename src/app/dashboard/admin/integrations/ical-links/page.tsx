@@ -3,6 +3,64 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loadFailed: string;
+  loading: string;
+  empty: string;
+  errorBanner: (count: number) => string;
+  openSync: string;
+  okBadge: string;
+  errorBadge: string;
+  never: string;
+  justNow: string;
+  minutesAgo: (n: number) => string;
+  hoursAgo: (n: number) => string;
+  daysAgo: (n: number) => string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "iCal links",
+    description:
+      "All calendar feeds connected across your properties. Click a property to open its Sync settings.",
+    loadFailed: "Failed to load",
+    loading: "Loading...",
+    empty: "No iCal links connected yet. Add them on each property's Sync settings tab.",
+    errorBanner: (count) =>
+      `${count} link${count === 1 ? "" : "s"} reporting an error. Open the property to check the URL.`,
+    openSync: "Open Sync",
+    okBadge: "OK",
+    errorBadge: "Error",
+    never: "never",
+    justNow: "just now",
+    minutesAgo: (n) => `${n}m ago`,
+    hoursAgo: (n) => `${n}h ago`,
+    daysAgo: (n) => `${n}d ago`,
+  },
+  ru: {
+    title: "iCal ссылки",
+    description:
+      "Все календарные фиды, подключённые к вашим объектам. Нажмите на объект, чтобы открыть его настройки синхронизации.",
+    loadFailed: "Не удалось загрузить",
+    loading: "Загрузка...",
+    empty:
+      "Нет подключённых iCal ссылок. Добавьте их в настройках синхронизации каждого объекта.",
+    errorBanner: (count) =>
+      `Обнаружены ошибки в ${count} ссылках. Откройте объект и проверьте URL.`,
+    openSync: "Открыть синхронизацию",
+    okBadge: "OK",
+    errorBadge: "Ошибка",
+    never: "ещё не синхронизировался",
+    justNow: "только что",
+    minutesAgo: (n) => `${n} мин назад`,
+    hoursAgo: (n) => `${n} ч назад`,
+    daysAgo: (n) => `${n} д назад`,
+  },
+};
 
 // RT-25.9 tick 16 — iCal links sub-route at
 // /dashboard/admin/integrations/ical-links. First admin-shell surface
@@ -51,6 +109,7 @@ interface CalendarLinkRow {
 
 export default function AdminIcalLinksPage() {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [rows, setRows] = useState<CalendarLinkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +119,11 @@ export default function AdminIcalLinksPage() {
       .then((r) => (r.ok ? (r.json() as Promise<CalendarLinkRow[]>) : null))
       .then((data) => {
         if (Array.isArray(data)) setRows(data);
-        else setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load");
+        else setError(c.loadFailed);
       })
-      .catch(() => setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load"))
+      .catch(() => setError(c.loadFailed))
       .finally(() => setLoaded(true));
-  }, [locale]);
+  }, [c.loadFailed]);
 
   // Group by property so the table reads as "this property has these
   // feeds" rather than a flat list — for accounts with 5+ properties
@@ -82,34 +141,32 @@ export default function AdminIcalLinksPage() {
   const errorCount = rows.filter((r) => r.lastError).length;
 
   const formatRelative = (iso: string | null): string => {
-    if (!iso) return locale === "ru" ? "ещё не синхронизировался" : "never";
+    if (!iso) return c.never;
     const then = new Date(iso).getTime();
     const now = Date.now();
     const diffMin = Math.floor((now - then) / 60000);
-    if (diffMin < 1) return locale === "ru" ? "только что" : "just now";
-    if (diffMin < 60) return locale === "ru" ? `${diffMin} мин назад` : `${diffMin}m ago`;
+    if (diffMin < 1) return c.justNow;
+    if (diffMin < 60) return c.minutesAgo(diffMin);
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return locale === "ru" ? `${diffHr} ч назад` : `${diffHr}h ago`;
+    if (diffHr < 24) return c.hoursAgo(diffHr);
     const diffDay = Math.floor(diffHr / 24);
-    return locale === "ru" ? `${diffDay} д назад` : `${diffDay}d ago`;
+    return c.daysAgo(diffDay);
   };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "iCal ссылки" : "iCal links"}
+          {c.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Все календарные фиды, подключённые к вашим объектам. Нажмите на объект, чтобы открыть его настройки синхронизации."
-            : "All calendar feeds connected across your properties. Click a property to open its Sync settings."}
+          {c.description}
         </p>
       </div>
 
       {!loaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {c.loading}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-5 text-sm text-rose-300">
@@ -117,17 +174,13 @@ export default function AdminIcalLinksPage() {
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Нет подключённых iCal ссылок. Добавьте их в настройках синхронизации каждого объекта."
-            : "No iCal links connected yet. Add them on each property's Sync settings tab."}
+          {c.empty}
         </div>
       ) : (
         <>
           {errorCount > 0 && (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm text-amber-200">
-              {locale === "ru"
-                ? `Обнаружены ошибки в ${errorCount} ссылках. Откройте объект и проверьте URL.`
-                : `${errorCount} link${errorCount === 1 ? "" : "s"} reporting an error. Open the property to check the URL.`}
+              {c.errorBanner(errorCount)}
             </div>
           )}
           <div className="space-y-4">
@@ -142,7 +195,7 @@ export default function AdminIcalLinksPage() {
                 >
                   <span>{g.property.name}</span>
                   <span className="flex items-center gap-1 text-xs text-[var(--ink-4)]">
-                    {locale === "ru" ? "Открыть синхронизацию" : "Open Sync"}
+                    {c.openSync}
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                     </svg>
@@ -168,7 +221,7 @@ export default function AdminIcalLinksPage() {
                               : "bg-rose-500/15 text-rose-300"
                           }`}
                         >
-                          {ok ? "OK" : locale === "ru" ? "Ошибка" : "Error"}
+                          {ok ? c.okBadge : c.errorBadge}
                         </span>
                         <span
                           className="min-w-0 flex-1 truncate text-xs text-[var(--ink-4)]"

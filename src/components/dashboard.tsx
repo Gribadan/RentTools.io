@@ -6,7 +6,98 @@ import { DateSlider } from "@/components/date-slider";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { DashboardOnboarding } from "@/components/dashboard-onboarding";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
+
+interface CopyShape {
+  dateLocale: string;
+  reservationsCount: (count: number) => string;
+  reservationsAcross: (resCount: number, propCount: number) => string;
+  needsAttention: string;
+  doubleBooking: string;
+  moreCount: (n: number) => string;
+  cleanerConflict: string;
+  moreCountSuffix: (n: number) => string;
+  openCleaning: string;
+  noCalendars: string;
+  connectCalendars: string;
+  reservationLabel: string;
+  availableLabel: string;
+  nextLabel: string;
+  noUpcoming: string;
+  bookingsCountShort: string;
+  minNightsLabel: (n: number) => string;
+  syncShort: string;
+  searchPlaceholder: string;
+  foundLabel: string;
+  currentlyStaying: string;
+  daysShort: string;
+  guestShort: string;
+  untilNightsLeft: (date: string, nights: number) => string;
+  inDays: (date: string, days: number) => string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    dateLocale: "en-GB",
+    reservationsCount: (count) => `${count} ${count === 1 ? "reservation" : "reservations"}`,
+    reservationsAcross: (resCount, propCount) =>
+      `${resCount} reservations across ${propCount} ${propCount === 1 ? "property" : "properties"}`,
+    needsAttention: "Needs attention",
+    doubleBooking: "Double booking:",
+    moreCount: (n) => `+ ${n} more`,
+    cleanerConflict: "Cleaner conflict:",
+    moreCountSuffix: (n) => ` + ${n} more`,
+    openCleaning: "Open cleaning →",
+    noCalendars: "No calendars connected:",
+    connectCalendars: "Connect calendars",
+    reservationLabel: "Reservation",
+    availableLabel: "Available",
+    nextLabel: "Next:",
+    noUpcoming: "No upcoming bookings",
+    bookingsCountShort: "bookings",
+    minNightsLabel: (n) => `min ${n}n`,
+    syncShort: "Sync",
+    searchPlaceholder: "Search by guest name...",
+    foundLabel: "found",
+    currentlyStaying: "Currently staying",
+    daysShort: "d",
+    guestShort: "g",
+    untilNightsLeft: (date, nights) =>
+      `until ${date} · ${nights} ${nights === 1 ? "night" : "nights"} left`,
+    inDays: (date, days) => `${date} (in ${days}d)`,
+  },
+  ru: {
+    dateLocale: "ru-RU",
+    reservationsCount: (count) =>
+      `${count} ${count === 1 ? "бронирование" : count < 5 ? "бронирования" : "бронирований"}`,
+    reservationsAcross: (resCount, propCount) =>
+      `${resCount} бронирований в ${propCount} ${propCount === 1 ? "объекте" : "объектах"}`,
+    needsAttention: "Требует внимания",
+    doubleBooking: "Двойное бронирование:",
+    moreCount: (n) => `+ ещё ${n}`,
+    cleanerConflict: "Конфликт уборщиков:",
+    moreCountSuffix: (n) => ` + ещё ${n}`,
+    openCleaning: "Открыть уборки →",
+    noCalendars: "Календари не подключены:",
+    connectCalendars: "Подключить",
+    reservationLabel: "Бронь",
+    availableLabel: "Свободно",
+    nextLabel: "Далее:",
+    noUpcoming: "Нет предстоящих броней",
+    bookingsCountShort: "бронир.",
+    minNightsLabel: (n) => `мин. ${n}н.`,
+    syncShort: "Синхр.",
+    searchPlaceholder: "Поиск по имени гостя...",
+    foundLabel: "найдено",
+    currentlyStaying: "Сейчас в гостях",
+    daysShort: "д",
+    guestShort: "г",
+    untilNightsLeft: (date, nights) =>
+      `до ${date} · ${nights} ${nights === 1 ? "ночь" : nights < 5 ? "ночи" : "ноч."}`,
+    inDays: (date, days) => `${date} (через ${days} д.)`,
+  },
+};
 
 // RT-25.6 tick 2 — bundled platform presets, kept inline rather than
 // imported from @/lib/platforms because that module's lazy
@@ -203,6 +294,7 @@ export function Dashboard({
   onRefresh,
 }: DashboardProps) {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState("");
   const [formPropertyId, setFormPropertyId] = useState<number | "">(
@@ -618,7 +710,7 @@ export function Dashboard({
   };
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "2-digit", month: "short" });
+    new Date(d).toLocaleDateString(c.dateLocale, { day: "2-digit", month: "short" });
 
   const dayCount = (checkIn: string, checkOut: string) => {
     const d1 = new Date(checkIn);
@@ -629,8 +721,8 @@ export function Dashboard({
   const title = selectedProperty ? selectedProperty.name : t("dashboard.title");
   const resCount = displayReservations.length;
   const subtitle = selectedProperty
-    ? `${resCount} ${locale === "ru" ? (resCount === 1 ? "бронирование" : resCount < 5 ? "бронирования" : "бронирований") : (resCount === 1 ? "reservation" : "reservations")}`
-    : `${resCount} ${locale === "ru" ? "бронирований" : "reservations"} ${locale === "ru" ? "в" : "across"} ${properties.length} ${locale === "ru" ? (properties.length === 1 ? "объекте" : "объектах") : (properties.length === 1 ? "property" : "properties")}`;
+    ? c.reservationsCount(resCount)
+    : c.reservationsAcross(resCount, properties.length);
 
   // Zero-property first-screen — the dashboard's main column becomes
   // the onboarding wizard until the user has named one property AND
@@ -695,7 +787,7 @@ export function Dashboard({
               {t("dashboard.today")}
             </h2>
             <span className="text-xs text-[var(--ink-4)]">
-              {new Date().toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { weekday: "short", day: "2-digit", month: "short" })}
+              {new Date().toLocaleDateString(c.dateLocale, { weekday: "short", day: "2-digit", month: "short" })}
             </span>
             {hasCleanerConflictToday && (
               <a
@@ -785,13 +877,13 @@ export function Dashboard({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              {locale === "ru" ? "Требует внимания" : "Needs attention"}
+              {c.needsAttention}
             </span>
           </div>
           {dashboardAlerts.doubleBookings.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
               <span className="font-medium text-rose-700 dark:text-rose-400">
-                {locale === "ru" ? "Двойное бронирование:" : "Double booking:"}
+                {c.doubleBooking}
               </span>
               {dashboardAlerts.doubleBookings.slice(0, 3).map((d, i) => (
                 <span key={i} className="text-[var(--ink-2)]">
@@ -801,7 +893,7 @@ export function Dashboard({
               ))}
               {dashboardAlerts.doubleBookings.length > 3 && (
                 <span className="text-[var(--ink-3)]">
-                  {locale === "ru" ? `+ ещё ${dashboardAlerts.doubleBookings.length - 3}` : `+ ${dashboardAlerts.doubleBookings.length - 3} more`}
+                  {c.moreCount(dashboardAlerts.doubleBookings.length - 3)}
                 </span>
               )}
             </div>
@@ -809,24 +901,24 @@ export function Dashboard({
           {cleanerConflictDates.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
               <span className="font-medium text-amber-800 dark:text-amber-300">
-                {locale === "ru" ? "Конфликт уборщиков:" : "Cleaner conflict:"}
+                {c.cleanerConflict}
               </span>
               <span>
                 {cleanerConflictDates.slice(0, 3).map((d) => formatDate(d)).join(", ")}
-                {cleanerConflictDates.length > 3 && (locale === "ru" ? ` + ещё ${cleanerConflictDates.length - 3}` : ` + ${cleanerConflictDates.length - 3} more`)}
+                {cleanerConflictDates.length > 3 && c.moreCountSuffix(cleanerConflictDates.length - 3)}
               </span>
               <a
                 href="?view=cleaning"
                 className="text-[11px] text-amber-700 underline hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300"
               >
-                {locale === "ru" ? "Открыть уборки →" : "Open cleaning →"}
+                {c.openCleaning}
               </a>
             </div>
           )}
           {dashboardAlerts.propertiesWithoutCalendar.length > 0 && (
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-[var(--ink-2)]">
               <span className="font-medium text-amber-800 dark:text-amber-300">
-                {locale === "ru" ? "Календари не подключены:" : "No calendars connected:"}
+                {c.noCalendars}
               </span>
               <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 {dashboardAlerts.propertiesWithoutCalendar.map((p, i) => (
@@ -846,7 +938,7 @@ export function Dashboard({
                   href={`/dashboard?property=${dashboardAlerts.propertiesWithoutCalendar[0].id}&view=sync`}
                   className="ml-1 inline-flex items-center gap-1 rounded-md bg-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-900 transition-colors hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
                 >
-                  {locale === "ru" ? "Подключить" : "Connect calendars"}
+                  {c.connectCalendars}
                   <span aria-hidden>→</span>
                 </Link>
               </span>
@@ -905,7 +997,7 @@ export function Dashboard({
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
-                    <span className="hidden sm:inline">{locale === "ru" ? "Бронь" : "Reservation"}</span>
+                    <span className="hidden sm:inline">{c.reservationLabel}</span>
                   </Link>
                 </div>
                 <div className="space-y-2">
@@ -926,14 +1018,12 @@ export function Dashboard({
                         />
                         <span className="font-semibold text-[var(--ink)] truncate">{current.name}</span>
                         <span className="text-[11px] text-[var(--ink-3)] whitespace-nowrap">
-                          {locale === "ru"
-                            ? `до ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "ночь" : nightsLeft < 5 ? "ночи" : "ноч."}`
-                            : `until ${formatDate(toLocalDateStr(current.end))} · ${nightsLeft} ${nightsLeft === 1 ? "night" : "nights"} left`}
+                          {c.untilNightsLeft(formatDate(toLocalDateStr(current.end)), nightsLeft)}
                         </span>
                       </>
                     ) : (
                       <span className="text-[var(--ink-3)]">
-                        {locale === "ru" ? "Свободно" : "Available"}
+                        {c.availableLabel}
                       </span>
                     )}
                   </div>
@@ -946,29 +1036,27 @@ export function Dashboard({
                       <div className="h-2.5 w-24 rounded bg-[var(--line-2)]/40 animate-pulse" />
                     ) : next ? (
                       <>
-                        <span className="text-[var(--ink-4)]">{locale === "ru" ? "Далее:" : "Next:"}</span>
+                        <span className="text-[var(--ink-4)]">{c.nextLabel}</span>
                         <span
                           className="h-1.5 w-1.5 shrink-0 rounded-full"
                           style={{ backgroundColor: platformColor(next.platform) }}
                         />
                         <span className="font-medium text-[var(--ink-2)] truncate">{next.name}</span>
                         <span className="text-[var(--ink-4)] whitespace-nowrap">
-                          {locale === "ru"
-                            ? `${formatDate(toLocalDateStr(next.start))} (через ${daysUntilNext} д.)`
-                            : `${formatDate(toLocalDateStr(next.start))} (in ${daysUntilNext}d)`}
+                          {c.inDays(formatDate(toLocalDateStr(next.start)), daysUntilNext)}
                         </span>
                       </>
                     ) : (
                       <span className="text-[var(--ink-4)]">
-                        {locale === "ru" ? "Нет предстоящих броней" : "No upcoming bookings"}
+                        {c.noUpcoming}
                       </span>
                     )}
                   </div>
                   {/* Footer meta — booking count, min nights, sync chip. */}
                   <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--ink-4)] pt-1">
-                    <span>{futureRes.length} {locale === "ru" ? "бронир." : "bookings"}</span>
+                    <span>{futureRes.length} {c.bookingsCountShort}</span>
                     <span>·</span>
-                    <span>{locale === "ru" ? "мин." : "min"} {p.minNights}{locale === "ru" ? "н." : "n"}</span>
+                    <span>{c.minNightsLabel(p.minNights)}</span>
                     {hasSyncError && (
                       <>
                         <span>·</span>
@@ -980,7 +1068,7 @@ export function Dashboard({
                           <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                           </svg>
-                          {locale === "ru" ? "Синхр." : "Sync"}
+                          {c.syncShort}
                         </span>
                       </>
                     )}
@@ -1000,7 +1088,7 @@ export function Dashboard({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={locale === "ru" ? "Поиск по имени гостя..." : "Search by guest name..."}
+            placeholder={c.searchPlaceholder}
             className="h-9 w-full rounded-md border border-[var(--line)] bg-[var(--bg-2)] pl-9 pr-8 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none transition-colors focus:border-[var(--line-2)]"
           />
           <svg className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1030,7 +1118,7 @@ export function Dashboard({
                 : t("dashboard.upcomingReservations")}
               {trimmedQuery && (
                 <span className="ml-2 text-[var(--ink-4)]">
-                  · {displayReservations.length} {locale === "ru" ? "найдено" : "found"}
+                  · {displayReservations.length} {c.foundLabel}
                 </span>
               )}
             </h2>
@@ -1044,7 +1132,7 @@ export function Dashboard({
               {active.length > 0 && (
                 <>
                   <ReservationSectionHeader
-                    label={locale === "ru" ? "Сейчас в гостях" : "Currently staying"}
+                    label={c.currentlyStaying}
                   />
                   {active.map((res, i) => (
                     <ReservationRow
@@ -1237,6 +1325,7 @@ interface ReservationRowProps {
 }
 
 function ReservationRow({ res, isLast, hideProperty, formatDate, dayCount, locale, onClick, muted }: ReservationRowProps) {
+  const c = COPY[locale as Locale];
   return (
     <div
       onClick={onClick}
@@ -1274,12 +1363,12 @@ function ReservationRow({ res, isLast, hideProperty, formatDate, dayCount, local
       </span>
 
       <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
-        {dayCount(res.checkIn, res.checkOut)}{locale === "ru" ? "д" : "d"}
+        {dayCount(res.checkIn, res.checkOut)}{c.daysShort}
       </span>
 
       <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
         {res._count?.guests || 0}
-        <span className="ml-0.5 text-[var(--ink-4)]">{locale === "ru" ? "г" : "g"}</span>
+        <span className="ml-0.5 text-[var(--ink-4)]">{c.guestShort}</span>
       </span>
 
       <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

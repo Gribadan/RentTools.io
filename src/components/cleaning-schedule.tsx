@@ -4,8 +4,52 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState }
 import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
+
+interface CopyShape {
+  dateLocale: string;
+  arriveByLabel: (time: string) => string;
+  fullDayLabel: string;
+  manualLabel: string;
+  potentialPrefix: string;
+  scheduleHeader: string;
+  conflictNoBackup: string;
+  conflictBackupBusy: (name: string) => string;
+  conflictBackupSet: (name: string) => string;
+  daysCount: (n: number) => string;
+  cleaningCta: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    dateLocale: "en-GB",
+    arriveByLabel: (time) => `quick cleaning, arrive by ${time}`,
+    fullDayLabel: "full day available",
+    manualLabel: "cleaning",
+    potentialPrefix: "potential — ",
+    scheduleHeader: "Cleaning Schedule",
+    conflictNoBackup: " (conflict — no backup configured)",
+    conflictBackupBusy: (name) => ` (conflict — backup ${name} also busy)`,
+    conflictBackupSet: (name) => ` (conflict — backup: ${name})`,
+    daysCount: (n) => (n === 1 ? "day" : "days"),
+    cleaningCta: "Cleaning",
+  },
+  ru: {
+    dateLocale: "ru-RU",
+    arriveByLabel: (time) => `быстрая уборка, прибыть к ${time}`,
+    fullDayLabel: "полный день",
+    manualLabel: "уборка",
+    potentialPrefix: "возможная — ",
+    scheduleHeader: "График уборок",
+    conflictNoBackup: " (конфликт — резерв не настроен)",
+    conflictBackupBusy: (name) => ` (конфликт — резерв ${name} тоже занят)`,
+    conflictBackupSet: (name) => ` (конфликт — резерв: ${name})`,
+    daysCount: (n) => (n === 1 ? "день" : "дней"),
+    cleaningCta: "Уборка",
+  },
+};
 
 /** RT-25.10 tick 3 — single cleaner assignment slot for a property.
  *  Sorted priority-asc within a property's list, so element [0] is the
@@ -376,6 +420,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
   loading = false,
 }, ref) {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const [copied, setCopied] = useState(false);
   const [internalIncludePotential, setInternalIncludePotential] = useState(true);
   // Controlled when the prop is provided; otherwise fall back to local state
@@ -584,7 +629,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     const dateYear = date.getFullYear();
     const opts: Intl.DateTimeFormatOptions = { weekday: "short", day: "2-digit", month: "short" };
     if (dateYear !== currentYear) opts.year = "numeric";
-    return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", opts);
+    return date.toLocaleDateString(c.dateLocale, opts);
   };
 
   // Compact "May 14" / "14 May" for inline date references inside notes.
@@ -594,7 +639,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     const dateYear = date.getFullYear();
     const opts: Intl.DateTimeFormatOptions = { day: "2-digit", month: "short" };
     if (dateYear !== currentYear) opts.year = "numeric";
-    return date.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", opts);
+    return date.toLocaleDateString(c.dateLocale, opts);
   };
 
   const formatReason = (day: CleaningDay): string => {
@@ -685,14 +730,13 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     const headerSuffix = singlePropertyName ? ` — ${singlePropertyName}` : "";
     const propertyById = new Map(properties.map((p) => [p.id, p]));
 
-    const arriveByLabel = (time: string) =>
-      locale === "ru" ? `быстрая уборка, прибыть к ${time}` : `quick cleaning, arrive by ${time}`;
-    const fullDayLabel = locale === "ru" ? "полный день" : "full day available";
-    const manualLabel = locale === "ru" ? "уборка" : "cleaning";
-    const potentialPrefix = locale === "ru" ? "возможная — " : "potential — ";
+    const arriveByLabel = c.arriveByLabel;
+    const fullDayLabel = c.fullDayLabel;
+    const manualLabel = c.manualLabel;
+    const potentialPrefix = c.potentialPrefix;
 
     const lines: string[] = [];
-    lines.push((locale === "ru" ? "График уборок" : "Cleaning Schedule") + headerSuffix);
+    lines.push(c.scheduleHeader + headerSuffix);
     lines.push("");
     for (const day of visibleDays) {
       const dateStr = formatDate(day.date);
@@ -722,14 +766,9 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
       const conflictSuffix = (() => {
         if (!conflictForCleaner) return "";
         const backup = conflictForCleaner.backupByPropertyId.get(day.propertyId) ?? null;
-        if (locale === "ru") {
-          if (!backup) return " (конфликт — резерв не настроен)";
-          if (backup.busy) return ` (конфликт — резерв ${backup.name} тоже занят)`;
-          return ` (конфликт — резерв: ${backup.name})`;
-        }
-        if (!backup) return " (conflict — no backup configured)";
-        if (backup.busy) return ` (conflict — backup ${backup.name} also busy)`;
-        return ` (conflict — backup: ${backup.name})`;
+        if (!backup) return c.conflictNoBackup;
+        if (backup.busy) return c.conflictBackupBusy(backup.name);
+        return c.conflictBackupSet(backup.name);
       })();
       const conflictPrefix = isConflict ? "⚠ " : "";
       lines.push(`${conflictPrefix}${dateStr}${propLabel} — ${prefix}${detail}${cleanerLabel}${conflictSuffix}`);
@@ -798,7 +837,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <span className="text-sm font-semibold text-[var(--cleaning-fg)]">
-              {t("cleaning.overlapWarning")} ({futureOverlaps.length} {locale === "ru" ? (futureOverlaps.length === 1 ? "день" : "дней") : (futureOverlaps.length === 1 ? "day" : "days")})
+              {t("cleaning.overlapWarning")} ({futureOverlaps.length} {c.daysCount(futureOverlaps.length)})
             </span>
           </div>
           <p className="text-xs text-[var(--cleaning-fg)] opacity-80">
@@ -828,7 +867,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
             </svg>
             <span className="text-sm font-semibold text-amber-300">
-              {t("cleaning.cleanerConflict")} ({futureCleanerConflicts.length} {locale === "ru" ? (futureCleanerConflicts.length === 1 ? "день" : "дней") : (futureCleanerConflicts.length === 1 ? "day" : "days")})
+              {t("cleaning.cleanerConflict")} ({futureCleanerConflicts.length} {c.daysCount(futureCleanerConflicts.length)})
             </span>
           </div>
           <p className="text-xs text-amber-300/80">
@@ -891,7 +930,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
-                  {locale === "ru" ? "Уборка" : "Cleaning"}
+                  {c.cleaningCta}
                 </Link>
               )}
               {visibleDays.length > 0 && (

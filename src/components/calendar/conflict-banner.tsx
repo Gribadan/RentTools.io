@@ -1,11 +1,17 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { ConflictInfo } from "./types";
 
 interface ConflictBannerProps {
   conflicts: ConflictInfo[];
 }
+
+const DAYS_LABEL: Record<Locale, (n: number) => string> = {
+  en: (n) => (n === 1 ? "day" : "days"),
+  ru: () => "дн.",
+};
 
 export function ConflictBanner({ conflicts }: ConflictBannerProps) {
   const { t, locale } = useI18n();
@@ -20,7 +26,7 @@ export function ConflictBanner({ conflicts }: ConflictBannerProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
         </svg>
         <span className="text-sm font-semibold text-rose-500">
-          {t("calendar.doubleBooking")} ({conflictDateCount} {locale === "ru" ? "дн." : (conflictDateCount !== 1 ? "days" : "day")})
+          {t("calendar.doubleBooking")} ({conflictDateCount} {DAYS_LABEL[locale](conflictDateCount)})
         </span>
       </div>
       <p className="text-xs text-rose-500/80">{t("calendar.overlapWarning")}</p>

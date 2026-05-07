@@ -2,6 +2,55 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  imagesLabel: string;
+  refreshing: string;
+  refresh: string;
+  loadFailed: (status: number) => string;
+  loadFailedShort: string;
+  emptyMedia: string;
+  imagesHeader: string;
+  usedBy: (n: number) => string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Blog media",
+    description:
+      "Every external OG image URL referenced by a blog post. Direct uploads ship once R2 / S3 storage is wired (RT-21.x); for now this surfaces what's already attached to post.ogImageUrl.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can view blog media.",
+    imagesLabel: "Images",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    loadFailed: (status) => `Failed to load blog posts (${status})`,
+    loadFailedShort: "Failed to load blog posts",
+    emptyMedia: "No posts reference an OG image yet. Set one from the post editor.",
+    imagesHeader: "Images",
+    usedBy: (n) => `Used by ${n} post${n === 1 ? "" : "s"}`,
+  },
+  ru: {
+    title: "Медиа блога",
+    description:
+      "Все внешние OG-картинки, на которые ссылаются статьи блога. Прямая загрузка появится после подключения R2 / S3 (RT-21.x); пока страница только показывает то, что уже привязано к post.ogImageUrl.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может видеть медиа блога.",
+    imagesLabel: "Картинки",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    loadFailed: (status) => `Не удалось загрузить статьи (${status})`,
+    loadFailedShort: "Не удалось загрузить статьи",
+    emptyMedia: "Ни одна статья ещё не ссылается на OG-картинку. Назначьте её в редакторе статьи.",
+    imagesHeader: "Картинки",
+    usedBy: (n) => `Используется в ${n} ${n === 1 ? "статье" : "статьях"}`,
+  },
+};
 
 // RT-25.9 tick 20 — Blog media sub-route at
 // /dashboard/admin/content/blog-media. First slice off the long-scroll
@@ -38,6 +87,7 @@ interface MeResponse {
 
 export default function AdminBlogMediaPage() {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [posts, setPosts] = useState<BlogPostRow[]>([]);
@@ -65,17 +115,13 @@ export default function AdminBlogMediaPage() {
     try {
       const res = await fetch("/api/admin/blog-posts");
       if (!res.ok) {
-        setError(
-          locale === "ru"
-            ? `Не удалось загрузить статьи (${res.status})`
-            : `Failed to load blog posts (${res.status})`,
-        );
+        setError(c.loadFailed(res.status));
         return;
       }
       const data = (await res.json()) as BlogPostRow[];
       setPosts(data);
     } catch {
-      setError(locale === "ru" ? "Не удалось загрузить статьи" : "Failed to load blog posts");
+      setError(c.loadFailedShort);
     } finally {
       setLoading(false);
     }
@@ -105,30 +151,26 @@ export default function AdminBlogMediaPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Медиа блога" : "Blog media"}
+          {c.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Все внешние OG-картинки, на которые ссылаются статьи блога. Прямая загрузка появится после подключения R2 / S3 (RT-21.x); пока страница только показывает то, что уже привязано к post.ogImageUrl."
-            : "Every external OG image URL referenced by a blog post. Direct uploads ship once R2 / S3 storage is wired (RT-21.x); for now this surfaces what's already attached to post.ogImageUrl."}
+          {c.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {c.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может видеть медиа блога."
-            : "Only superadmins can view blog media."}
+          {c.notSuperadmin}
         </div>
       ) : (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-2">
           <div className="flex items-center justify-between px-3 pb-1 pt-2">
             <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-              {locale === "ru" ? "Картинки" : "Images"}
+              {c.imagesHeader}
               {mediaUsage.length > 0 && ` · ${mediaUsage.length}`}
             </span>
             <button
@@ -137,22 +179,14 @@ export default function AdminBlogMediaPage() {
               disabled={loading}
               className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
             >
-              {loading
-                ? locale === "ru"
-                  ? "Обновляется..."
-                  : "Refreshing..."
-                : locale === "ru"
-                ? "Обновить"
-                : "Refresh"}
+              {loading ? c.refreshing : c.refresh}
             </button>
           </div>
 
           {error && <p className="px-3 py-2 text-xs text-rose-300">{error}</p>}
           {!error && mediaUsage.length === 0 && !loading && (
             <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Ни одна статья ещё не ссылается на OG-картинку. Назначьте её в редакторе статьи."
-                : "No posts reference an OG image yet. Set one from the post editor."}
+              {c.emptyMedia}
             </p>
           )}
           {mediaUsage.length > 0 && (
@@ -181,9 +215,7 @@ export default function AdminBlogMediaPage() {
                       {m.url}
                     </a>
                     <p className="mt-1 text-[10px] uppercase tracking-wide text-[var(--ink-4)]">
-                      {locale === "ru"
-                        ? `Используется в ${m.posts.length} ${m.posts.length === 1 ? "статье" : "статьях"}`
-                        : `Used by ${m.posts.length} post${m.posts.length === 1 ? "" : "s"}`}
+                      {c.usedBy(m.posts.length)}
                     </p>
                     <ul className="mt-1 space-y-0.5">
                       {m.posts.map((p) => (

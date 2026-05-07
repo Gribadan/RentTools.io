@@ -15,7 +15,157 @@ import {
 } from "recharts";
 import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Property } from "@/lib/types";
+
+interface CopyShape {
+  reports: string;
+  portfolioSubtitle: (count: number) => string;
+  propertySubtitle: (name: string) => string;
+  noDataYet: string;
+  pastWindow: (months: number) => string;
+  noProperties: string;
+  pastOccupancy: string;
+  upcomingNights: string;
+  upcomingNightsSubtitle: (months: number) => string;
+  bookings: string;
+  avgNights: (n: number) => string;
+  allTime: string;
+  cleaningsAhead: string;
+  cleaningsAheadSubtitle: string;
+  topSource: string;
+  chartHeader: (max: string) => string;
+  yAxisUnit: string;
+  tooltipUnit: string;
+  now: string;
+  past: string;
+  upcoming: string;
+  noBookings: string;
+  loading: string;
+  byProperty: string;
+  byPropertyHint: string;
+  colProperty: string;
+  colPastOcc: string;
+  colUpcoming: string;
+  colBookings: string;
+  colCleanings: string;
+  colTopSource: string;
+  allPropertiesLabel: (count: number) => string;
+  period: string;
+  allPeriod: string;
+  monthsLabel: (n: number) => string;
+  periodHelp: string;
+  exportTitle: string;
+  exportingProperty: (name: string) => string;
+  exportingAll: (count: number) => string;
+  fromLabel: string;
+  toLabel: string;
+  downloadCsv: string;
+  exportHelp: string;
+  dataSources: string;
+  dataSourcesHelp: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    reports: "Reports",
+    portfolioSubtitle: (count) =>
+      `Portfolio across ${count} ${count === 1 ? "property" : "properties"} — history + upcoming`,
+    propertySubtitle: (name) => `${name} — history & pipeline`,
+    noDataYet: "no data yet",
+    pastWindow: (months) => `last ${months} ${months === 1 ? "month" : "months"}`,
+    noProperties: "No properties to report on yet.",
+    pastOccupancy: "Past occupancy",
+    upcomingNights: "Upcoming nights",
+    upcomingNightsSubtitle: (months) => `next ${months} mo.`,
+    bookings: "Bookings",
+    avgNights: (n) => `avg ${n} nights`,
+    allTime: "all time",
+    cleaningsAhead: "Cleanings ahead",
+    cleaningsAheadSubtitle: "one per upcoming checkout",
+    topSource: "Top source:",
+    chartHeader: (max) => `Nights occupied per month (max ${max})`,
+    yAxisUnit: "d",
+    tooltipUnit: "nights",
+    now: "now",
+    past: "past",
+    upcoming: "upcoming",
+    noBookings: "No bookings yet.",
+    loading: "Loading…",
+    byProperty: "By property",
+    byPropertyHint: "Click a property to open its scoped report.",
+    colProperty: "Property",
+    colPastOcc: "Past occ.",
+    colUpcoming: "Upcoming",
+    colBookings: "Bookings",
+    colCleanings: "Cleanings",
+    colTopSource: "Top source",
+    allPropertiesLabel: (count) => `All properties (${count})`,
+    period: "Period",
+    allPeriod: "All",
+    monthsLabel: (n) => `${n}M`,
+    periodHelp: "Past window + next 6 months. \"All\" extends back to your earliest stay.",
+    exportTitle: "Export reservations",
+    exportingProperty: (name) => `Exporting ${name}.`,
+    exportingAll: (count) =>
+      `All ${count} ${count === 1 ? "property" : "properties"}.`,
+    fromLabel: "From",
+    toLabel: "To",
+    downloadCsv: "Download CSV",
+    exportHelp: "Leave dates blank to export everything. UTF-8 BOM for Excel.",
+    dataSources: "Data sources",
+    dataSourcesHelp:
+      "Numbers are computed from your reservations + iCal events, deduped by uid. Past stays are preserved in our DB even after platforms drop them from their feeds.",
+  },
+  ru: {
+    reports: "Отчёты",
+    portfolioSubtitle: (count) => `Сводка по ${count} объектам — прошлое + ближайшие месяцы`,
+    propertySubtitle: (name) => `${name} — история и план`,
+    noDataYet: "нет данных",
+    pastWindow: (months) => `${months} мес. назад`,
+    noProperties: "Нет объектов для отчёта.",
+    pastOccupancy: "Заполняемость",
+    upcomingNights: "Ночей вперёд",
+    upcomingNightsSubtitle: (months) => `на ${months} мес.`,
+    bookings: "Бронирований",
+    avgNights: (n) => `средн. ${n} ноч.`,
+    allTime: "за весь период",
+    cleaningsAhead: "Уборок впереди",
+    cleaningsAheadSubtitle: "после выезда гостей",
+    topSource: "Главный источник:",
+    chartHeader: (max) => `Ночи занятости по месяцам (макс. ${max})`,
+    yAxisUnit: "д",
+    tooltipUnit: "ноч.",
+    now: "сейчас",
+    past: "прошедшие",
+    upcoming: "впереди",
+    noBookings: "Бронирований пока нет.",
+    loading: "Загрузка…",
+    byProperty: "По объектам",
+    byPropertyHint: "Кликните по объекту, чтобы открыть его отчёт.",
+    colProperty: "Объект",
+    colPastOcc: "Заполн.",
+    colUpcoming: "Впереди",
+    colBookings: "Брон.",
+    colCleanings: "Уборок",
+    colTopSource: "Источник",
+    allPropertiesLabel: (count) => `Все объекты (${count})`,
+    period: "Период",
+    allPeriod: "Все",
+    monthsLabel: (n) => `${n}м`,
+    periodHelp: "Прошлые месяцы + 6 месяцев вперёд. «Все» — с самой ранней брони.",
+    exportTitle: "Экспорт броней",
+    exportingProperty: (name) => `Будет выгружен ${name}.`,
+    exportingAll: (count) => `Все ${count} объекта.`,
+    fromLabel: "С",
+    toLabel: "По",
+    downloadCsv: "Скачать CSV",
+    exportHelp: "Пустые поля = выгрузить все. UTF-8 BOM для Excel.",
+    dataSources: "Источники данных",
+    dataSourcesHelp:
+      "Цифры считаются из ваших броней + iCal событий, дедуплицированных по uid. Прошлые брони сохраняются в нашей БД, даже если платформы убрали их из своих фидов.",
+  },
+};
 
 // Bundled platform presets — kept inline rather than imported from
 // @/lib/platforms because that module's lazy `import("@/lib/prisma")`
@@ -389,6 +539,7 @@ function KpiCard({ label, value, subtitle, accent }: KpiCardProps) {
 
 export function ReportsPanel({ property, properties }: ReportsPanelProps) {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [exportFrom, setExportFrom] = useState("");
   const [exportTo, setExportTo] = useState("");
   const [events, setEvents] = useState<CalendarEventRow[]>([]);
@@ -559,21 +710,14 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
   }, [buckets]);
 
   const headerSubtitle = isMulti
-    ? (locale === "ru"
-        ? `Сводка по ${properties.length} объектам — прошлое + ближайшие месяцы`
-        : `Portfolio across ${properties.length} ${properties.length === 1 ? "property" : "properties"} — history + upcoming`)
-    : (locale === "ru"
-        ? `${property!.name} — история и план`
-        : `${property!.name} — history & pipeline`);
+    ? c.portfolioSubtitle(properties.length)
+    : c.propertySubtitle(property!.name);
 
   const pastWindowLabel = useMemo(() => {
     const pastBuckets = buckets.filter((b) => b.isPast);
-    if (pastBuckets.length === 0) return locale === "ru" ? "нет данных" : "no data yet";
-    const months = pastBuckets.length;
-    return locale === "ru"
-      ? `${months} ${months === 1 ? "мес." : "мес."} назад`
-      : `last ${months} ${months === 1 ? "month" : "months"}`;
-  }, [buckets, locale]);
+    if (pastBuckets.length === 0) return c.noDataYet;
+    return c.pastWindow(pastBuckets.length);
+  }, [buckets, c]);
 
   const noData = !loading && targetProperties.length > 0 && aggregate.totalBookings === 0;
 
@@ -587,14 +731,14 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
         <div className="min-w-0 lg:flex-1 space-y-4">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
-              {locale === "ru" ? "Отчёты" : "Reports"}
+              {c.reports}
             </h1>
             <p className="mt-1 text-xs text-[var(--ink-3)]">{headerSubtitle}</p>
           </div>
 
           {targetProperties.length === 0 ? (
             <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 text-center text-xs text-[var(--ink-4)]">
-              {locale === "ru" ? "Нет объектов для отчёта." : "No properties to report on yet."}
+              {c.noProperties}
             </div>
           ) : (
             <>
@@ -603,36 +747,36 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                   conflated with "we're 30% full forever" anxiety. */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <KpiCard
-                  label={locale === "ru" ? "Заполняемость" : "Past occupancy"}
+                  label={c.pastOccupancy}
                   value={`${aggregate.pastOccupancy}%`}
                   subtitle={pastWindowLabel}
                   accent
                 />
                 <KpiCard
-                  label={locale === "ru" ? "Ночей вперёд" : "Upcoming nights"}
+                  label={c.upcomingNights}
                   value={aggregate.upcomingNights}
-                  subtitle={locale === "ru" ? `на ${FUTURE_MONTHS} мес.` : `next ${FUTURE_MONTHS} mo.`}
+                  subtitle={c.upcomingNightsSubtitle(FUTURE_MONTHS)}
                 />
                 <KpiCard
-                  label={locale === "ru" ? "Бронирований" : "Bookings"}
+                  label={c.bookings}
                   value={aggregate.totalBookings}
                   subtitle={
                     aggregate.avgStayNights > 0
-                      ? (locale === "ru" ? `средн. ${aggregate.avgStayNights} ноч.` : `avg ${aggregate.avgStayNights} nights`)
-                      : (locale === "ru" ? "за весь период" : "all time")
+                      ? c.avgNights(aggregate.avgStayNights)
+                      : c.allTime
                   }
                 />
                 <KpiCard
-                  label={locale === "ru" ? "Уборок впереди" : "Cleanings ahead"}
+                  label={c.cleaningsAhead}
                   value={aggregate.cleaningsUpcoming}
-                  subtitle={locale === "ru" ? "после выезда гостей" : "one per upcoming checkout"}
+                  subtitle={c.cleaningsAheadSubtitle}
                 />
               </div>
 
               {/* Top-platform readout — colored pill matches calendar bars. */}
               {aggregate.topPlatform && (
                 <div className="flex items-center gap-2 text-xs text-[var(--ink-3)]">
-                  <span>{locale === "ru" ? "Главный источник:" : "Top source:"}</span>
+                  <span>{c.topSource}</span>
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white"
                     style={{ backgroundColor: aggregate.topPlatform.color }}
@@ -650,9 +794,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
               <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4 text-[var(--ink-3)]">
                 <div className="mb-3 flex items-center justify-between gap-3 text-xs">
                   <span className="text-[var(--ink-3)]">
-                    {locale === "ru"
-                      ? `Ночи занятости по месяцам (макс. ${isMulti ? `${targetProperties.length} × 31` : 31})`
-                      : `Nights occupied per month (max ${isMulti ? `${targetProperties.length} × 31` : 31})`}
+                    {c.chartHeader(isMulti ? `${targetProperties.length} × 31` : "31")}
                   </span>
                 </div>
                 <div className="h-72 w-full">
@@ -670,7 +812,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                         axisLine={{ stroke: "currentColor", strokeOpacity: 0.18 }}
                         tickLine={false}
                         domain={[0, yAxisMax]}
-                        unit={locale === "ru" ? "д" : "d"}
+                        unit={c.yAxisUnit}
                         allowDecimals={false}
                       />
                       <Tooltip
@@ -688,8 +830,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                         formatter={(value, name) => {
                           const meta = activePlatforms.find((p) => p.slug === name);
                           const label = meta?.label ?? String(name);
-                          const unit = locale === "ru" ? "ноч." : "nights";
-                          return [`${value} ${unit}`, label];
+                          return [`${value} ${c.tooltipUnit}`, label];
                         }}
                       />
                       {currentBucketLabel && (
@@ -699,7 +840,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                           strokeOpacity={0.5}
                           strokeDasharray="4 4"
                           label={{
-                            value: locale === "ru" ? "сейчас" : "now",
+                            value: c.now,
                             position: "top",
                             fill: "var(--m-accent)",
                             fontSize: 10,
@@ -746,11 +887,11 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                     <>
                       <span className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-3)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
                         <span className="inline-block h-2 w-3 rounded-sm bg-[var(--ink-3)]/55" />
-                        {locale === "ru" ? "прошедшие" : "past"}
+                        {c.past}
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-3)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
                         <span className="inline-block h-2 w-3 rounded-sm bg-[var(--ink-3)]" />
-                        {locale === "ru" ? "впереди" : "upcoming"}
+                        {c.upcoming}
                       </span>
                     </>
                   )}
@@ -758,12 +899,12 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
 
                 {noData && (
                   <p className="mt-3 text-center text-xs text-[var(--ink-4)]">
-                    {locale === "ru" ? "Бронирований пока нет." : "No bookings yet."}
+                    {c.noBookings}
                   </p>
                 )}
                 {loading && (
                   <p className="mt-3 text-center text-xs text-[var(--ink-4)]">
-                    {locale === "ru" ? "Загрузка…" : "Loading…"}
+                    {c.loading}
                   </p>
                 )}
               </div>
@@ -776,23 +917,21 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                 <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] overflow-hidden">
                   <div className="border-b border-[var(--line)] px-4 py-3">
                     <h2 className="text-sm font-semibold text-[var(--ink)]">
-                      {locale === "ru" ? "По объектам" : "By property"}
+                      {c.byProperty}
                     </h2>
                     <p className="mt-0.5 text-[11px] text-[var(--ink-4)]">
-                      {locale === "ru"
-                        ? "Кликните по объекту, чтобы открыть его отчёт."
-                        : "Click a property to open its scoped report."}
+                      {c.byPropertyHint}
                     </p>
                   </div>
                   <table className="w-full text-sm">
                     <thead className="border-b border-[var(--line)] text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium">{locale === "ru" ? "Объект" : "Property"}</th>
-                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Заполн." : "Past occ."}</th>
-                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Впереди" : "Upcoming"}</th>
-                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Брон." : "Bookings"}</th>
-                        <th className="px-4 py-2 text-right font-medium">{locale === "ru" ? "Уборок" : "Cleanings"}</th>
-                        <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">{locale === "ru" ? "Источник" : "Top source"}</th>
+                        <th className="px-4 py-2 text-left font-medium">{c.colProperty}</th>
+                        <th className="px-4 py-2 text-right font-medium">{c.colPastOcc}</th>
+                        <th className="px-4 py-2 text-right font-medium">{c.colUpcoming}</th>
+                        <th className="px-4 py-2 text-right font-medium">{c.colBookings}</th>
+                        <th className="px-4 py-2 text-right font-medium">{c.colCleanings}</th>
+                        <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">{c.colTopSource}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -838,14 +977,10 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
           <div className="border-b border-[var(--line)] px-5 py-4 space-y-3">
             <div>
               <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-                {locale === "ru" ? "Отчёты" : "Reports"}
+                {c.reports}
               </div>
               <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
-                {property
-                  ? property.name
-                  : (locale === "ru"
-                      ? `Все объекты (${properties.length})`
-                      : `All properties (${properties.length})`)}
+                {property ? property.name : c.allPropertiesLabel(properties.length)}
               </div>
             </div>
             <PropertySwitcher
@@ -866,14 +1001,12 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
               widen the past window of our own DB snapshot. */}
           <div className="border-b border-[var(--line)] px-5 py-4">
             <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-2">
-              {locale === "ru" ? "Период" : "Period"}
+              {c.period}
             </div>
             <div className="grid grid-cols-5 gap-1.5">
               {([3, 6, 12, 24, "all"] as PeriodChoice[]).map((p) => {
                 const active = periodMonths === p;
-                const label = p === "all"
-                  ? (locale === "ru" ? "Все" : "All")
-                  : (locale === "ru" ? `${p}м` : `${p}M`);
+                const label = p === "all" ? c.allPeriod : c.monthsLabel(p);
                 return (
                   <button
                     key={String(p)}
@@ -891,27 +1024,21 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
               })}
             </div>
             <p className="mt-2 text-[11px] text-[var(--ink-4)] leading-relaxed">
-              {locale === "ru"
-                ? "Прошлые месяцы + 6 месяцев вперёд. «Все» — с самой ранней брони."
-                : "Past window + next 6 months. \"All\" extends back to your earliest stay."}
+              {c.periodHelp}
             </p>
           </div>
 
           <div className="px-5 py-4 space-y-3">
             <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-              {locale === "ru" ? "Экспорт броней" : "Export reservations"}
+              {c.exportTitle}
             </div>
             <p className="text-[11px] text-[var(--ink-3)] leading-relaxed">
-              {property
-                ? (locale === "ru" ? `Будет выгружен ${property.name}.` : `Exporting ${property.name}.`)
-                : (locale === "ru"
-                    ? `Все ${properties.length} объекта.`
-                    : `All ${properties.length} ${properties.length === 1 ? "property" : "properties"}.`)}
+              {property ? c.exportingProperty(property.name) : c.exportingAll(properties.length)}
             </p>
             <div className="grid grid-cols-2 gap-2">
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-                  {locale === "ru" ? "С" : "From"}
+                  {c.fromLabel}
                 </label>
                 <input
                   type="date"
@@ -922,7 +1049,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-                  {locale === "ru" ? "По" : "To"}
+                  {c.toLabel}
                 </label>
                 <input
                   type="date"
@@ -937,12 +1064,10 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
               disabled={targetProperties.length === 0}
               className="h-9 w-full rounded-md bg-[var(--m-accent)] px-3 text-sm font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40 transition-colors"
             >
-              {locale === "ru" ? "Скачать CSV" : "Download CSV"}
+              {c.downloadCsv}
             </button>
             <p className="text-[11px] text-[var(--ink-4)] leading-relaxed">
-              {locale === "ru"
-                ? "Пустые поля = выгрузить все. UTF-8 BOM для Excel."
-                : "Leave dates blank to export everything. UTF-8 BOM for Excel."}
+              {c.exportHelp}
             </p>
           </div>
 
@@ -951,12 +1076,10 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
               time as the DB accumulates its own snapshot. */}
           <div className="border-t border-[var(--line)] px-5 py-4">
             <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
-              {locale === "ru" ? "Источники данных" : "Data sources"}
+              {c.dataSources}
             </div>
             <p className="text-[11px] text-[var(--ink-3)] leading-relaxed">
-              {locale === "ru"
-                ? "Цифры считаются из ваших броней + iCal событий, дедуплицированных по uid. Прошлые брони сохраняются в нашей БД, даже если платформы убрали их из своих фидов."
-                : "Numbers are computed from your reservations + iCal events, deduped by uid. Past stays are preserved in our DB even after platforms drop them from their feeds."}
+              {c.dataSourcesHelp}
             </p>
           </div>
         </aside>

@@ -3,6 +3,42 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useI18n } from "@/lib/i18n/context";
+import { toBcp47 } from "@/lib/i18n/locale-tags";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  heading: string;
+  body: string;
+  guestNameLabel: string;
+  guestNamePlaceholder: string;
+  defaultGuestFallback: string;
+  cancel: string;
+  save: string;
+  saving: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    heading: "Name this booking",
+    body: "This booking came in from iCal. Give it a guest name so it shows up in your list.",
+    guestNameLabel: "Guest name",
+    guestNamePlaceholder: "Jane Doe",
+    defaultGuestFallback: "Guest",
+    cancel: "Cancel",
+    save: "Save",
+    saving: "Saving…",
+  },
+  ru: {
+    heading: "Назвать бронь",
+    body: "Эта бронь подтянулась из iCal. Дайте ей имя, чтобы видеть гостя в списке.",
+    guestNameLabel: "Имя гостя",
+    guestNamePlaceholder: "Иван Петров",
+    defaultGuestFallback: "Гость",
+    cancel: "Отмена",
+    save: "Сохранить",
+    saving: "Сохраняю…",
+  },
+};
 
 export interface ClaimableBar {
   eventUid: string;
@@ -28,6 +64,7 @@ interface BarClaimPopoverProps {
 // area and use "Add reservation".
 export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPopoverProps) {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const popRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
@@ -66,7 +103,7 @@ export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPo
 
   const formatRange = (a: string, b: string) => {
     const fmt = (s: string) =>
-      new Date(s + "T12:00:00").toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", {
+      new Date(s + "T12:00:00").toLocaleDateString(toBcp47(locale as Locale), {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -75,7 +112,7 @@ export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPo
   };
 
   const handleSave = async () => {
-    const finalName = name.trim() || bar.defaultName || (locale === "ru" ? "Гость" : "Guest");
+    const finalName = name.trim() || bar.defaultName || c.defaultGuestFallback;
     setSaving(true);
     try {
       await onSave(finalName);
@@ -92,7 +129,7 @@ export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPo
     >
       <div className="border-b border-[var(--line)] px-4 py-3">
         <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-          {locale === "ru" ? "Назвать бронь" : "Name this booking"}
+          {c.heading}
         </div>
         <div className="mt-1 flex items-center gap-2">
           <span
@@ -107,19 +144,17 @@ export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPo
 
       <div className="p-4 space-y-3">
         <p className="text-xs text-[var(--ink-3)] leading-snug">
-          {locale === "ru"
-            ? "Эта бронь подтянулась из iCal. Дайте ей имя, чтобы видеть гостя в списке."
-            : "This booking came in from iCal. Give it a guest name so it shows up in your list."}
+          {c.body}
         </p>
         <div>
           <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
-            {locale === "ru" ? "Имя гостя" : "Guest name"}
+            {c.guestNameLabel}
           </label>
           <input
             ref={inputRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={bar.defaultName || (locale === "ru" ? "Иван Петров" : "Jane Doe")}
+            placeholder={bar.defaultName || c.guestNamePlaceholder}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -137,16 +172,14 @@ export function BarClaimPopover({ bar, anchorRect, onClose, onSave }: BarClaimPo
           disabled={saving}
           className="rounded-md px-3 py-1.5 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors disabled:opacity-50"
         >
-          {t("common.cancel") || (locale === "ru" ? "Отмена" : "Cancel")}
+          {t("common.cancel") || c.cancel}
         </button>
         <button
           onClick={handleSave}
           disabled={saving}
           className="rounded-md bg-[var(--m-accent)] px-3.5 py-1.5 text-sm font-medium text-white hover:bg-[var(--m-accent-2)] transition-colors disabled:opacity-50"
         >
-          {saving
-            ? (locale === "ru" ? "Сохраняю…" : "Saving…")
-            : (locale === "ru" ? "Сохранить" : "Save")}
+          {saving ? c.saving : c.save}
         </button>
       </div>
     </div>,

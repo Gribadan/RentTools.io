@@ -2,6 +2,190 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  dateLocale: string;
+  staysTurnover: (count: number) => string;
+  manualCleaning: string;
+  blockDate: string;
+  blockDateDesc: string;
+  scheduleCleaning: string;
+  scheduleCleaningDesc: string;
+  makeAvailable: string;
+  makeAvailableDesc: string;
+  unblockDate: string;
+  removeCleaning: string;
+  resetOverride: string;
+  resetOverrideDesc: string;
+  createReservation: string;
+  createReservationDesc: string;
+  cancelCleaningOnBooked: string;
+  cancelCleaningOnBookedDesc: string;
+  removeCleaningDescAuto: string;
+  cancelCleaningOnAuto: string;
+  cancelCleaningOnAutoDesc: string;
+  blockAll: (count: number) => string;
+  scheduleAll: (count: number) => string;
+  openAll: (count: number) => string;
+  resetAll: (count: number) => string;
+  createBulk: (count: number) => string;
+  createBulkDesc: string;
+  noActions: string;
+  selectedDates: string;
+  daysCount: (count: number) => string;
+  bookedDisabled: (count: number) => string;
+  contiguousRange: string;
+  nonContiguous: string;
+  close: string;
+  checkingOut: string;
+  checkingIn: string;
+  singleDayStay: string;
+  staying: string;
+  cleanLabel: string;
+  cleaningScheduled: string;
+  cleaningRequired: string;
+  betweenStays: string;
+  removeFromSelection: string;
+  guestName: string;
+  guestNamePlaceholder: string;
+  platform: string;
+  platformDirect: string;
+  checkInLabel: string;
+  checkOutLabel: string;
+  nightsParenthetical: (count: number) => string;
+  linkToBooking: string;
+  beforeCheckIn: string;
+  afterCheckOut: string;
+  stayLabel: string;
+  addNights: (nights: number, side: string) => string;
+  cancel: string;
+  saving: string;
+  save: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    dateLocale: "en-GB",
+    staysTurnover: (count) => `${count} stays — turnover`,
+    manualCleaning: "Manual cleaning",
+    blockDate: "Block this date",
+    blockDateDesc: "Stop new bookings. No cleaning chip.",
+    scheduleCleaning: "Schedule cleaning",
+    scheduleCleaningDesc: "Block the date and mark it as a cleaning slot.",
+    makeAvailable: "Make available for booking",
+    makeAvailableDesc: "Ignore buffer / min-nights for this date.",
+    unblockDate: "Unblock this date",
+    removeCleaning: "Remove cleaning",
+    resetOverride: "Reset to default",
+    resetOverrideDesc: "Return this date to its auto-detected state.",
+    createReservation: "Create reservation",
+    createReservationDesc: "Add a reservation starting on this date.",
+    cancelCleaningOnBooked: "Cancel cleaning",
+    cancelCleaningOnBookedDesc: "Free this date from the cleaning — schedule it on another day.",
+    removeCleaningDescAuto: "Go back to the auto-detected hint.",
+    cancelCleaningOnAuto: "Cancel cleaning",
+    cancelCleaningOnAutoDesc: "Free up this date — schedule cleaning on another day instead.",
+    blockAll: (count) => `Block all (${count})`,
+    scheduleAll: (count) => `Schedule cleaning (${count})`,
+    openAll: (count) => `Make available (${count})`,
+    resetAll: (count) => `Reset overrides (${count})`,
+    createBulk: (count) => `Create reservation (${count} ${count === 1 ? "night" : "nights"})`,
+    createBulkDesc: "One reservation covering all selected days.",
+    noActions: "No actions available.",
+    selectedDates: "Selected dates",
+    daysCount: (count) => (count === 1 ? "day" : "days"),
+    bookedDisabled: (count) => `${count} booked — bulk actions disabled`,
+    contiguousRange: "Contiguous range",
+    nonContiguous: "Non-contiguous",
+    close: "Close",
+    checkingOut: "checking out",
+    checkingIn: "checking in",
+    singleDayStay: "single-day stay",
+    staying: "staying",
+    cleanLabel: "Clean",
+    cleaningScheduled: "Cleaning scheduled",
+    cleaningRequired: "Cleaning required",
+    betweenStays: "between stays",
+    removeFromSelection: "Remove from selection",
+    guestName: "Guest name",
+    guestNamePlaceholder: "Jane Doe",
+    platform: "Platform",
+    platformDirect: "Direct",
+    checkInLabel: "Check-in:",
+    checkOutLabel: "Check-out:",
+    nightsParenthetical: (count) => `(${count} ${count === 1 ? "night" : "nights"})`,
+    linkToBooking: "Link to an existing booking",
+    beforeCheckIn: "before check-in",
+    afterCheckOut: "after check-out",
+    stayLabel: "Stay",
+    addNights: (nights, side) =>
+      `Add ${nights} ${nights === 1 ? "night" : "nights"} ${side}`,
+    cancel: "Cancel",
+    saving: "Saving…",
+    save: "Save",
+  },
+  ru: {
+    dateLocale: "ru-RU",
+    staysTurnover: (count) => `${count} брони — пересменка`,
+    manualCleaning: "Ручная уборка",
+    blockDate: "Заблокировать дату",
+    blockDateDesc: "Запретить новые брони. Без отметки уборки.",
+    scheduleCleaning: "Запланировать уборку",
+    scheduleCleaningDesc: "Заблокировать дату и пометить как уборку.",
+    makeAvailable: "Сделать доступной",
+    makeAvailableDesc: "Игнорировать буфер уборки / минимум ночей.",
+    unblockDate: "Разблокировать",
+    removeCleaning: "Снять уборку",
+    resetOverride: "Сбросить ручное состояние",
+    resetOverrideDesc: "Вернуть автоматическое поведение для этой даты.",
+    createReservation: "Создать бронь",
+    createReservationDesc: "Добавить бронь, начинающуюся в этот день.",
+    cancelCleaningOnBooked: "Отменить уборку",
+    cancelCleaningOnBookedDesc: "Освободить дату от уборки — выберите другой день.",
+    removeCleaningDescAuto: "Вернуть автоматическое определение.",
+    cancelCleaningOnAuto: "Отменить уборку",
+    cancelCleaningOnAutoDesc: "Освободить дату — выберите другой день для уборки.",
+    blockAll: (count) => `Заблокировать все (${count})`,
+    scheduleAll: (count) => `Запланировать уборку (${count})`,
+    openAll: (count) => `Сделать доступными (${count})`,
+    resetAll: (count) => `Сбросить переопределения (${count})`,
+    createBulk: (count) => `Создать бронь на ${count} ${count === 1 ? "ночь" : "ночей"}`,
+    createBulkDesc: "Одна бронь на все выбранные дни.",
+    noActions: "Нет доступных действий.",
+    selectedDates: "Выбрано дат",
+    daysCount: () => "дн.",
+    bookedDisabled: (count) => `${count} с бронями — массовые действия отключены`,
+    contiguousRange: "Дни идут подряд",
+    nonContiguous: "Не подряд",
+    close: "Закрыть",
+    checkingOut: "выезжает",
+    checkingIn: "заезжает",
+    singleDayStay: "однодневная бронь",
+    staying: "проживает",
+    cleanLabel: "Уборка",
+    cleaningScheduled: "Уборка подтверждена",
+    cleaningRequired: "Нужна уборка",
+    betweenStays: "между бронями",
+    removeFromSelection: "Убрать из выделения",
+    guestName: "Имя гостя",
+    guestNamePlaceholder: "Иван Петров",
+    platform: "Платформа",
+    platformDirect: "Напрямую",
+    checkInLabel: "Заезд:",
+    checkOutLabel: "Выезд:",
+    nightsParenthetical: (count) => `(${count} ${count === 1 ? "ночь" : "ночей"})`,
+    linkToBooking: "Привязать к существующей броне",
+    beforeCheckIn: "перед заездом",
+    afterCheckOut: "после выезда",
+    stayLabel: "Бронь",
+    addNights: (nights, side) =>
+      `Добавить ${nights} ${nights === 1 ? "ночь" : "ночей"} ${side}`,
+    cancel: "Отмена",
+    saving: "Сохраняю…",
+    save: "Сохранить",
+  },
+};
 
 export interface DateStatus {
   hasBar: boolean;
@@ -111,6 +295,7 @@ export function DateActionsPopover({
   onCreateReservation,
 }: DateActionsPanelProps) {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const popRef = useRef<HTMLDivElement>(null);
   const [creating, setCreating] = useState(false);
   const [resName, setResName] = useState("");
@@ -145,14 +330,12 @@ export function DateActionsPopover({
     if (!singleStatus) return "";
     if (singleStatus.hasBar) {
       if (singleDateBars.length > 1) {
-        return locale === "ru"
-          ? `${singleDateBars.length} брони — пересменка`
-          : `${singleDateBars.length} stays — turnover`;
+        return c.staysTurnover(singleDateBars.length);
       }
       return t("dateActions.statusBooked", { name: singleDateBars[0]?.name || "—" });
     }
     if (singleStatus.isOpenOverride) return t("dateActions.statusOpen");
-    if (singleStatus.isManualCleaning) return locale === "ru" ? "Ручная уборка" : "Manual cleaning";
+    if (singleStatus.isManualCleaning) return c.manualCleaning;
     if (singleStatus.isClosedOverride) return t("dateActions.statusClosed");
     if (singleStatus.isBuffer) return t("dateActions.statusCleaning");
     if (singleStatus.isSameDayCleaning) return t("dateActions.statusCleaning");
@@ -177,7 +360,7 @@ export function DateActionsPopover({
   })();
 
   const formatHeaderDate = (s: string) =>
-    new Date(s + "T12:00:00").toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", {
+    new Date(s + "T12:00:00").toLocaleDateString(c.dateLocale, {
       weekday: "long",
       day: "2-digit",
       month: "long",
@@ -185,7 +368,7 @@ export function DateActionsPopover({
     });
 
   const formatShort = (s: string) =>
-    new Date(s + "T12:00:00").toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", {
+    new Date(s + "T12:00:00").toLocaleDateString(c.dateLocale, {
       day: "2-digit",
       month: "short",
     });
@@ -193,18 +376,18 @@ export function DateActionsPopover({
   // Single-date actions (per-state, same logic as before).
   const singleActions: ResolvedAction[] = (() => {
     if (!singleStatus) return [];
-    const lBlock = locale === "ru" ? "Заблокировать дату" : "Block this date";
-    const lBlockDesc = locale === "ru" ? "Запретить новые брони. Без отметки уборки." : "Stop new bookings. No cleaning chip.";
-    const lSchedule = locale === "ru" ? "Запланировать уборку" : "Schedule cleaning";
-    const lScheduleDesc = locale === "ru" ? "Заблокировать дату и пометить как уборку." : "Block the date and mark it as a cleaning slot.";
-    const lOpen = locale === "ru" ? "Сделать доступной" : "Make available for booking";
-    const lOpenDesc = locale === "ru" ? "Игнорировать буфер уборки / минимум ночей." : "Ignore buffer / min-nights for this date.";
-    const lUnblock = locale === "ru" ? "Разблокировать" : "Unblock this date";
-    const lRemoveCleaning = locale === "ru" ? "Снять уборку" : "Remove cleaning";
-    const lRemoveOverride = locale === "ru" ? "Сбросить ручное состояние" : "Reset to default";
-    const lRemoveOverrideDesc = locale === "ru" ? "Вернуть автоматическое поведение для этой даты." : "Return this date to its auto-detected state.";
-    const lCreate = locale === "ru" ? "Создать бронь" : "Create reservation";
-    const lCreateDesc = locale === "ru" ? "Добавить бронь, начинающуюся в этот день." : "Add a reservation starting on this date.";
+    const lBlock = c.blockDate;
+    const lBlockDesc = c.blockDateDesc;
+    const lSchedule = c.scheduleCleaning;
+    const lScheduleDesc = c.scheduleCleaningDesc;
+    const lOpen = c.makeAvailable;
+    const lOpenDesc = c.makeAvailableDesc;
+    const lUnblock = c.unblockDate;
+    const lRemoveCleaning = c.removeCleaning;
+    const lRemoveOverride = c.resetOverride;
+    const lRemoveOverrideDesc = c.resetOverrideDesc;
+    const lCreate = c.createReservation;
+    const lCreateDesc = c.createReservationDesc;
     const createAction: ResolvedAction = { kind: "createReservation", label: lCreate, description: lCreateDesc, tone: "primary", onClick: () => setCreating(true) };
 
     if (singleStatus.hasBar) {
@@ -224,11 +407,9 @@ export function DateActionsPopover({
       // Now we collapse to a single Cancel-cleaning action that
       // matches the host's mental model: "the cleaner can't make
       // this day, free it up so I can schedule another day".
-      const lRemoveCleaningDesc = locale === "ru" ? "Вернуть автоматическое определение." : "Go back to the auto-detected hint.";
-      const lCancelCleaning = locale === "ru" ? "Отменить уборку" : "Cancel cleaning";
-      const lCancelCleaningDesc = locale === "ru"
-        ? "Освободить дату от уборки — выберите другой день."
-        : "Free this date from the cleaning — schedule it on another day.";
+      const lRemoveCleaningDesc = c.removeCleaningDescAuto;
+      const lCancelCleaning = c.cancelCleaningOnBooked;
+      const lCancelCleaningDesc = c.cancelCleaningOnBookedDesc;
       if (singleStatus.isManualCleaning) {
         return [{ kind: "removeCleaning", label: lCancelCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride }];
       }
@@ -253,10 +434,8 @@ export function DateActionsPopover({
     //   * Min-nights blocks (unbookable): "Make available" — the
     //     date is locked for booking-fit reasons, no cleaning concept.
     if (singleStatus.isBuffer || singleStatus.isSameDayCleaning || singleStatus.isPotential) {
-      const lCancelCleaning = locale === "ru" ? "Отменить уборку" : "Cancel cleaning";
-      const lCancelCleaningDesc = locale === "ru"
-        ? "Освободить дату — выберите другой день для уборки."
-        : "Free up this date — schedule cleaning on another day instead.";
+      const lCancelCleaning = c.cancelCleaningOnAuto;
+      const lCancelCleaningDesc = c.cancelCleaningOnAutoDesc;
       return [createAction, { kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
     }
     if (singleStatus.isUnbookable) {
@@ -267,12 +446,12 @@ export function DateActionsPopover({
 
   // Bulk-mode actions: simpler — operate on the whole selection.
   const bulkActions: ResolvedAction[] = (() => {
-    const lBlockAll = locale === "ru" ? `Заблокировать все (${selectedDates.length})` : `Block all (${selectedDates.length})`;
-    const lScheduleAll = locale === "ru" ? `Запланировать уборку (${selectedDates.length})` : `Schedule cleaning (${selectedDates.length})`;
-    const lOpenAll = locale === "ru" ? `Сделать доступными (${selectedDates.length})` : `Make available (${selectedDates.length})`;
-    const lResetAll = locale === "ru" ? `Сбросить переопределения (${selectedDates.length})` : `Reset overrides (${selectedDates.length})`;
-    const lCreate = locale === "ru" ? `Создать бронь на ${selectedDates.length} ${selectedDates.length === 1 ? "ночь" : "ночей"}` : `Create reservation (${selectedDates.length} ${selectedDates.length === 1 ? "night" : "nights"})`;
-    const lCreateDesc = locale === "ru" ? "Одна бронь на все выбранные дни." : "One reservation covering all selected days.";
+    const lBlockAll = c.blockAll(selectedDates.length);
+    const lScheduleAll = c.scheduleAll(selectedDates.length);
+    const lOpenAll = c.openAll(selectedDates.length);
+    const lResetAll = c.resetAll(selectedDates.length);
+    const lCreate = c.createBulk(selectedDates.length);
+    const lCreateDesc = c.createBulkDesc;
 
     const out: ResolvedAction[] = [];
 
@@ -381,7 +560,7 @@ export function DateActionsPopover({
   const renderActionsList = (actions: ResolvedAction[]) =>
     actions.length === 0 ? (
       <div className="px-3 py-2 text-xs text-[var(--ink-4)]">
-        {locale === "ru" ? "Нет доступных действий." : "No actions available."}
+        {c.noActions}
       </div>
     ) : (
       actions.map((a) => (
@@ -425,10 +604,10 @@ export function DateActionsPopover({
           ) : (
             <>
               <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-                {locale === "ru" ? "Выбрано дат" : "Selected dates"}
+                {c.selectedDates}
               </div>
               <div className="mt-0.5 text-base font-semibold text-[var(--ink)]">
-                {selectedDates.length} {locale === "ru" ? "дн." : selectedDates.length === 1 ? "day" : "days"}
+                {selectedDates.length} {c.daysCount(selectedDates.length)}
                 {isContiguous && selectedDates.length > 1 && (
                   <span className="ml-2 text-sm font-normal text-[var(--ink-3)]">
                     {formatShort(selectedDates[0])} → {formatShort(selectedDates[selectedDates.length - 1])}
@@ -437,19 +616,17 @@ export function DateActionsPopover({
               </div>
               <div className="mt-2 text-[11px] text-[var(--ink-3)]">
                 {bulkCounts.booked > 0
-                  ? (locale === "ru"
-                    ? `${bulkCounts.booked} с бронями — массовые действия отключены`
-                    : `${bulkCounts.booked} booked — bulk actions disabled`)
+                  ? c.bookedDisabled(bulkCounts.booked)
                   : isContiguous
-                    ? (locale === "ru" ? "Дни идут подряд" : "Contiguous range")
-                    : (locale === "ru" ? "Не подряд" : "Non-contiguous")}
+                    ? c.contiguousRange
+                    : c.nonContiguous}
               </div>
             </>
           )}
         </div>
         <button
           onClick={onClose}
-          aria-label={locale === "ru" ? "Закрыть" : "Close"}
+          aria-label={c.close}
           className="shrink-0 rounded-full p-1.5 text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-colors"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -471,12 +648,12 @@ export function DateActionsPopover({
               const platformColor = b.platform === "booking" ? "#003580" : "#ff385c";
               const platformLabel = b.platform === "booking" ? "Booking" : b.platform === "airbnb" ? "Airbnb" : b.platform;
               const roleLabel = b.role === "checkout"
-                ? (locale === "ru" ? "выезжает" : "checking out")
+                ? c.checkingOut
                 : b.role === "checkin"
-                  ? (locale === "ru" ? "заезжает" : "checking in")
+                  ? c.checkingIn
                   : b.role === "fullday"
-                    ? (locale === "ru" ? "однодневная бронь" : "single-day stay")
-                    : (locale === "ru" ? "проживает" : "staying");
+                    ? c.singleDayStay
+                    : c.staying;
               return (
                 /* Two-column grid: a fixed 64px badge column + a flexible
                    description column. Badges stay their natural width
@@ -500,16 +677,14 @@ export function DateActionsPopover({
                   {i === cleaningBetweenIndex && (
                     <div className="grid grid-cols-[64px_1fr] items-start gap-x-3">
                       <span className="justify-self-start mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide bg-[var(--cleaning-bg)] text-[var(--cleaning-fg)] border border-[var(--cleaning-border)]">
-                        {locale === "ru" ? "Уборка" : "Clean"}
+                        {c.cleanLabel}
                       </span>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium leading-tight text-[var(--ink)]">
-                          {singleStatus?.isManualCleaning
-                            ? (locale === "ru" ? "Уборка подтверждена" : "Cleaning scheduled")
-                            : (locale === "ru" ? "Нужна уборка" : "Cleaning required")}
+                          {singleStatus?.isManualCleaning ? c.cleaningScheduled : c.cleaningRequired}
                         </div>
                         <div className="mt-0.5 text-[11px] leading-tight text-[var(--ink-3)]">
-                          {locale === "ru" ? "между бронями" : "between stays"}
+                          {c.betweenStays}
                         </div>
                       </div>
                     </div>
@@ -529,7 +704,7 @@ export function DateActionsPopover({
                   key={d}
                   onClick={() => onToggleDate(d)}
                   className="group inline-flex items-center gap-1 rounded-full border border-[var(--m-accent)]/30 bg-[var(--m-accent)]/10 px-2 py-1 text-[11px] font-medium text-[var(--m-accent)] hover:bg-[var(--m-accent)]/20 transition-colors"
-                  title={locale === "ru" ? "Убрать из выделения" : "Remove from selection"}
+                  title={c.removeFromSelection}
                 >
                   {formatShort(d)}
                   <svg className="h-3 w-3 opacity-60 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -546,7 +721,7 @@ export function DateActionsPopover({
           <div className="px-5 py-4 space-y-4">
             <div>
               <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
-                {locale === "ru" ? "Имя гостя" : "Guest name"}
+                {c.guestName}
               </label>
               <input
                 autoFocus
@@ -558,19 +733,19 @@ export function DateActionsPopover({
                     submitCreate();
                   }
                 }}
-                placeholder={locale === "ru" ? "Иван Петров" : "Jane Doe"}
+                placeholder={c.guestNamePlaceholder}
                 className="h-10 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--m-accent)] focus:ring-1 focus:ring-[var(--m-accent)]/20"
               />
             </div>
             <div>
               <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
-                {locale === "ru" ? "Платформа" : "Platform"}
+                {c.platform}
               </label>
               <div className="flex gap-2">
                 {[
                   { code: "airbnb", label: "Airbnb", color: "#ff385c" },
                   { code: "booking", label: "Booking", color: "#003580" },
-                  { code: "direct", label: locale === "ru" ? "Напрямую" : "Direct", color: "#6b6b73" },
+                  { code: "direct", label: c.platformDirect, color: "#6b6b73" },
                 ].map((p) => (
                   <button
                     key={p.code}
@@ -590,21 +765,21 @@ export function DateActionsPopover({
             </div>
             <div className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] p-3 text-xs text-[var(--ink-3)]">
               <div>
-                <span className="text-[var(--ink-4)]">{locale === "ru" ? "Заезд:" : "Check-in:"}</span>{" "}
+                <span className="text-[var(--ink-4)]">{c.checkInLabel}</span>{" "}
                 <span className="font-medium text-[var(--ink)]">{formatShort(selectedDates[0])}</span>
               </div>
               <div className="mt-1">
-                <span className="text-[var(--ink-4)]">{locale === "ru" ? "Выезд:" : "Check-out:"}</span>{" "}
+                <span className="text-[var(--ink-4)]">{c.checkOutLabel}</span>{" "}
                 <span className="font-medium text-[var(--ink)]">
                   {(() => {
                     const last = selectedDates[selectedDates.length - 1];
                     const d = new Date(last + "T12:00:00");
                     d.setDate(d.getDate() + 1);
-                    return d.toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "2-digit", month: "short" });
+                    return d.toLocaleDateString(c.dateLocale, { day: "2-digit", month: "short" });
                   })()}
                 </span>{" "}
                 <span className="text-[var(--ink-4)]">
-                  ({selectedDates.length} {selectedDates.length === 1 ? (locale === "ru" ? "ночь" : "night") : (locale === "ru" ? "ночей" : "nights")})
+                  {c.nightsParenthetical(selectedDates.length)}
                 </span>
               </div>
             </div>
@@ -622,18 +797,13 @@ export function DateActionsPopover({
             {extendable.length > 0 && bulkCounts.booked === 0 && isContiguous && (
               <div className="mt-2 border-t border-[var(--line)] pt-2 px-1.5">
                 <div className="px-1.5 py-1.5 text-[11px] uppercase tracking-wide text-[var(--ink-4)]">
-                  {locale === "ru" ? "Привязать к существующей броне" : "Link to an existing booking"}
+                  {c.linkToBooking}
                 </div>
                 {extendable.map((b, i) => {
                   const platformColor = b.platform === "booking" ? "#003580" : "#ff385c";
                   const platformLabel = b.platform === "booking" ? "Booking" : b.platform === "airbnb" ? "Airbnb" : b.platform;
                   const nights = selectedDates.length;
-                  const sideLabel = b.side === "before"
-                    ? (locale === "ru" ? "перед заездом" : "before check-in")
-                    : (locale === "ru" ? "после выезда" : "after check-out");
-                  const nightsLabel = nights === 1
-                    ? (locale === "ru" ? "ночь" : "night")
-                    : (locale === "ru" ? "ночей" : "nights");
+                  const sideLabel = b.side === "before" ? c.beforeCheckIn : c.afterCheckOut;
                   return (
                     <button
                       key={i}
@@ -653,12 +823,10 @@ export function DateActionsPopover({
                         </svg>
                       </div>
                       <div className="mt-1 text-[11px] text-[var(--ink-3)]">
-                        {locale === "ru" ? "Бронь" : "Stay"}: <span className="text-[var(--ink-2)]">{formatShort(b.bookingStart)} → {formatShort(b.bookingEnd)}</span>
+                        {c.stayLabel}: <span className="text-[var(--ink-2)]">{formatShort(b.bookingStart)} → {formatShort(b.bookingEnd)}</span>
                       </div>
                       <div className="mt-0.5 text-[11px] font-medium text-[var(--m-accent)]">
-                        {locale === "ru"
-                          ? `Добавить ${nights} ${nightsLabel} ${sideLabel}`
-                          : `Add ${nights} ${nightsLabel} ${sideLabel}`}
+                        {c.addNights(nights, sideLabel)}
                       </div>
                     </button>
                   );
@@ -678,7 +846,7 @@ export function DateActionsPopover({
             disabled={submitting}
             className="flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-3 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors disabled:opacity-50"
           >
-            {t("common.cancel") || (locale === "ru" ? "Отмена" : "Cancel")}
+            {t("common.cancel") || c.cancel}
           </button>
           <button
             type="button"
@@ -686,7 +854,7 @@ export function DateActionsPopover({
             disabled={submitting || !resName.trim()}
             className="flex-1 rounded-md bg-[var(--m-accent)] px-3 py-2 text-sm font-medium text-white hover:bg-[var(--m-accent-2)] transition-colors disabled:opacity-50"
           >
-            {submitting ? (locale === "ru" ? "Сохраняю…" : "Saving…") : (locale === "ru" ? "Сохранить" : "Save")}
+            {submitting ? c.saving : c.save}
           </button>
         </div>
       )}

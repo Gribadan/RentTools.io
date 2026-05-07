@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 interface PlatformRow {
   platform: "airbnb" | "booking";
@@ -14,8 +15,55 @@ interface PlatformRow {
   url: string;
 }
 
+interface CopyShape {
+  nameRequired: string;
+  backToDashboard: string;
+  addProperty: string;
+  propertyName: string;
+  propertyNameHint: string;
+  propertyNamePlaceholder: string;
+  calendarFeeds: string;
+  calendarFeedsHint: string;
+  icalExportUrl: string;
+  cancel: string;
+  creating: string;
+  add: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    nameRequired: "Property name is required",
+    backToDashboard: "Back to dashboard",
+    addProperty: "Add property",
+    propertyName: "Property name",
+    propertyNameHint: "Visible only to you — guests don't see this.",
+    propertyNamePlaceholder: "Sunset Cottage",
+    calendarFeeds: "Calendar feeds",
+    calendarFeedsHint: "Optional — you can add these later from the property settings page. Airbnb and Booking.com are supported.",
+    icalExportUrl: "iCal export URL",
+    cancel: "Cancel",
+    creating: "Creating…",
+    add: "Add property",
+  },
+  ru: {
+    nameRequired: "Введите название объекта",
+    backToDashboard: "Назад в кабинет",
+    addProperty: "Добавить объект",
+    propertyName: "Название объекта",
+    propertyNameHint: "Видно только вам — гостям не показываем.",
+    propertyNamePlaceholder: "Квартира на Невском",
+    calendarFeeds: "Календари с площадок",
+    calendarFeedsHint: "Можно пропустить и добавить позже на странице объекта. Поддерживаются Airbnb и Booking.com.",
+    icalExportUrl: "iCal Export URL",
+    cancel: "Отмена",
+    creating: "Создаю…",
+    add: "Добавить объект",
+  },
+};
+
 function AddPropertyContent() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const router = useRouter();
   const [name, setName] = useState("");
   const [rows, setRows] = useState<PlatformRow[]>([
@@ -31,7 +79,7 @@ function AddPropertyContent() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError(locale === "ru" ? "Введите название объекта" : "Property name is required");
+      setError(t.nameRequired);
       return;
     }
     setError("");
@@ -91,10 +139,10 @@ function AddPropertyContent() {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
-            {locale === "ru" ? "Назад в кабинет" : "Back to dashboard"}
+            {t.backToDashboard}
           </Link>
           <h1 className="text-base font-semibold text-[var(--ink)]">
-            {locale === "ru" ? "Добавить объект" : "Add property"}
+            {t.addProperty}
           </h1>
           <div className="w-[150px]" />
         </div>
@@ -105,18 +153,16 @@ function AddPropertyContent() {
           {/* Property name */}
           <section>
             <h2 className="text-lg font-semibold text-[var(--ink)]">
-              {locale === "ru" ? "Название объекта" : "Property name"}
+              {t.propertyName}
             </h2>
             <p className="mt-1 text-sm text-[var(--ink-3)]">
-              {locale === "ru"
-                ? "Видно только вам — гостям не показываем."
-                : "Visible only to you — guests don't see this."}
+              {t.propertyNameHint}
             </p>
             <input
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={locale === "ru" ? "Квартира на Невском" : "Sunset Cottage"}
+              placeholder={t.propertyNamePlaceholder}
               className="mt-3 h-11 w-full rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-4 text-base text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--m-accent)] focus:ring-1 focus:ring-[var(--m-accent)]/20"
             />
           </section>
@@ -124,12 +170,10 @@ function AddPropertyContent() {
           {/* iCal feed URLs */}
           <section>
             <h2 className="text-lg font-semibold text-[var(--ink)]">
-              {locale === "ru" ? "Календари с площадок" : "Calendar feeds"}
+              {t.calendarFeeds}
             </h2>
             <p className="mt-1 text-sm text-[var(--ink-3)]">
-              {locale === "ru"
-                ? "Можно пропустить и добавить позже на странице объекта. Поддерживаются Airbnb и Booking.com."
-                : "Optional — you can add these later from the property settings page. Airbnb and Booking.com are supported."}
+              {t.calendarFeedsHint}
             </p>
             <div className="mt-4 space-y-3">
               {rows.map((row, i) => (
@@ -142,7 +186,7 @@ function AddPropertyContent() {
                       {row.label}
                     </span>
                     <span className="text-xs text-[var(--ink-4)]">
-                      {locale === "ru" ? "iCal Export URL" : "iCal export URL"}
+                      {t.icalExportUrl}
                     </span>
                   </div>
                   <input
@@ -167,16 +211,14 @@ function AddPropertyContent() {
               href="/dashboard"
               className="rounded-md px-4 py-2 text-sm text-[var(--ink-2)] hover:bg-[var(--bg-3)] transition-colors"
             >
-              {locale === "ru" ? "Отмена" : "Cancel"}
+              {t.cancel}
             </Link>
             <button
               type="submit"
               disabled={submitting || !name.trim()}
               className="flex items-center gap-1.5 rounded-md bg-[var(--m-accent)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
-              {submitting
-                ? (locale === "ru" ? "Создаю…" : "Creating…")
-                : (locale === "ru" ? "Добавить объект" : "Add property")}
+              {submitting ? t.creating : t.add}
             </button>
           </div>
         </form>

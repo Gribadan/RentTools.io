@@ -1,7 +1,17 @@
 "use client";
 
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import { renderInlineSafe } from "@/lib/markdown";
+
+interface CopyShape {
+  heading: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { heading: "Frequently asked questions" },
+  ru: { heading: "Частые вопросы" },
+};
 
 /**
  * Render the FAQ section as a native <details>/<summary> accordion.
@@ -24,6 +34,7 @@ const FAQ_HEADING_ID = "faq";
 
 export function BlogFaq({ items }: Props) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   if (items.length === 0) return null;
 
   return (
@@ -35,7 +46,7 @@ export function BlogFaq({ items }: Props) {
         id={FAQ_HEADING_ID}
         className="scroll-mt-24 text-2xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.75rem]"
       >
-        {locale === "ru" ? "Частые вопросы" : "Frequently asked questions"}
+        {t.heading}
       </h2>
       <ul className="mt-6 space-y-3">
         {items.map((item, idx) => (

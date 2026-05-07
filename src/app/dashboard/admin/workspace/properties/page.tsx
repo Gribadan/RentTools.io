@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 19 — Properties overview at
 // /dashboard/admin/workspace/properties. Read-only summary table of
@@ -39,8 +40,67 @@ interface MeResponse {
   user?: { id: number } | null;
 }
 
+interface CopyShape {
+  failedToLoad: string;
+  title: string;
+  subtitle: string;
+  loading: string;
+  empty: string;
+  hPropery: string;
+  hRole: string;
+  hBookings: string;
+  hMinNights: string;
+  hCheckInOut: string;
+  hWindow: string;
+  hCleaning: string;
+  owner: string;
+  manager: string;
+  on: string;
+  off: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    failedToLoad: "Failed to load",
+    title: "Properties",
+    subtitle: "Key-settings summary across every accessible property. Edit each property's settings on its Sync tab.",
+    loading: "Loading...",
+    empty: "No accessible properties yet.",
+    hPropery: "Property",
+    hRole: "Role",
+    hBookings: "Bookings",
+    hMinNights: "Min nights",
+    hCheckInOut: "Check-in / out",
+    hWindow: "Window (d)",
+    hCleaning: "Cleaning",
+    owner: "Owner",
+    manager: "Manager",
+    on: "On",
+    off: "Off",
+  },
+  ru: {
+    failedToLoad: "Не удалось загрузить",
+    title: "Объекты",
+    subtitle: "Сводка ключевых настроек по всем доступным объектам. Изменения вносятся на странице синхронизации каждого объекта.",
+    loading: "Загрузка...",
+    empty: "У вас пока нет доступных объектов.",
+    hPropery: "Объект",
+    hRole: "Роль",
+    hBookings: "Бронирований",
+    hMinNights: "Мин. ночей",
+    hCheckInOut: "Заезд / выезд",
+    hWindow: "Окно (дн)",
+    hCleaning: "Уборка",
+    owner: "Владелец",
+    manager: "Менеджер",
+    on: "Вкл",
+    off: "Выкл",
+  },
+};
+
 export default function AdminPropertiesPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [props, setProps] = useState<Property[]>([]);
   const [meId, setMeId] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -53,12 +113,12 @@ export default function AdminPropertiesPage() {
     ])
       .then(([propsData, meData]) => {
         if (Array.isArray(propsData)) setProps(propsData);
-        else setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load");
+        else setError(t.failedToLoad);
         setMeId(meData?.user?.id ?? null);
       })
-      .catch(() => setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load"))
+      .catch(() => setError(t.failedToLoad))
       .finally(() => setLoaded(true));
-  }, [locale]);
+  }, [t.failedToLoad]);
 
   const sorted = useMemo(
     () => [...props].sort((a, b) => a.name.localeCompare(b.name)),
@@ -69,18 +129,16 @@ export default function AdminPropertiesPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Объекты" : "Properties"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Сводка ключевых настроек по всем доступным объектам. Изменения вносятся на странице синхронизации каждого объекта."
-            : "Key-settings summary across every accessible property. Edit each property's settings on its Sync tab."}
+          {t.subtitle}
         </p>
       </div>
 
       {!loaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-5 text-sm text-rose-300">
@@ -88,9 +146,7 @@ export default function AdminPropertiesPage() {
         </div>
       ) : props.length === 0 ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "У вас пока нет доступных объектов."
-            : "No accessible properties yet."}
+          {t.empty}
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
@@ -99,25 +155,25 @@ export default function AdminPropertiesPage() {
               <thead className="bg-[var(--bg-3)]/40 text-[11px] uppercase tracking-wide text-[var(--ink-4)]">
                 <tr>
                   <th className="px-4 py-2 text-left font-medium">
-                    {locale === "ru" ? "Объект" : "Property"}
+                    {t.hPropery}
                   </th>
                   <th className="px-3 py-2 text-left font-medium">
-                    {locale === "ru" ? "Роль" : "Role"}
+                    {t.hRole}
                   </th>
                   <th className="px-3 py-2 text-right font-medium">
-                    {locale === "ru" ? "Бронирований" : "Bookings"}
+                    {t.hBookings}
                   </th>
                   <th className="px-3 py-2 text-right font-medium">
-                    {locale === "ru" ? "Мин. ночей" : "Min nights"}
+                    {t.hMinNights}
                   </th>
                   <th className="px-3 py-2 text-left font-medium">
-                    {locale === "ru" ? "Заезд / выезд" : "Check-in / out"}
+                    {t.hCheckInOut}
                   </th>
                   <th className="px-3 py-2 text-right font-medium">
-                    {locale === "ru" ? "Окно (дн)" : "Window (d)"}
+                    {t.hWindow}
                   </th>
                   <th className="px-3 py-2 text-left font-medium">
-                    {locale === "ru" ? "Уборка" : "Cleaning"}
+                    {t.hCleaning}
                   </th>
                   <th className="w-10 px-3 py-2"></th>
                 </tr>
@@ -136,13 +192,7 @@ export default function AdminPropertiesPage() {
                               : "bg-[var(--bg-3)] text-[var(--ink-3)]"
                           }`}
                         >
-                          {isOwner
-                            ? locale === "ru"
-                              ? "Владелец"
-                              : "Owner"
-                            : locale === "ru"
-                            ? "Менеджер"
-                            : "Manager"}
+                          {isOwner ? t.owner : t.manager}
                         </span>
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums">{p.reservations.length}</td>
@@ -154,11 +204,11 @@ export default function AdminPropertiesPage() {
                       <td className="px-3 py-2.5">
                         {p.cleaningEnabled ? (
                           <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
-                            {locale === "ru" ? "Вкл" : "On"}
+                            {t.on}
                           </span>
                         ) : (
                           <span className="rounded bg-[var(--bg-3)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-4)]">
-                            {locale === "ru" ? "Выкл" : "Off"}
+                            {t.off}
                           </span>
                         )}
                       </td>

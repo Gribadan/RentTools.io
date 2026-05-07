@@ -2,6 +2,117 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  existingHeader: string;
+  refreshing: string;
+  refresh: string;
+  loadFailed: (status: number) => string;
+  loadFailedShort: string;
+  empty: string;
+  customBadge: string;
+  saveFailed: string;
+  saved: string;
+  failedDelete: string;
+  failedCreate: string;
+  confirmDelete: (name: string, slug: string) => string;
+  colHeaderName: string;
+  colHeaderColor: string;
+  colHeaderSort: string;
+  colHeaderStatus: string;
+  colHeaderActions: string;
+  enabled: string;
+  disabled: string;
+  save: string;
+  delete: string;
+  addCustomTitle: string;
+  addCustomDescription: string;
+  displayName: string;
+  color: string;
+  sort: string;
+  adding: string;
+  add: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Calendar platforms",
+    description:
+      "Booking platform registry. Colors and sort order surface in the calendar and the dashboard. Slug is baked into the outbound iCal feed URL (/for-{slug}.ics) and cannot be changed after creation.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can edit the platform registry.",
+    existingHeader: "Existing",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    loadFailed: (status) => `Failed to load platforms (${status})`,
+    loadFailedShort: "Failed to load platforms",
+    empty: "No platforms.",
+    customBadge: "custom",
+    saveFailed: "Failed to save",
+    saved: "Saved. Live within 60s.",
+    failedDelete: "Failed to delete",
+    failedCreate: "Failed to create",
+    confirmDelete: (name, slug) => `Delete platform "${name}" (${slug})? This can't be undone.`,
+    colHeaderName: "Name",
+    colHeaderColor: "Color",
+    colHeaderSort: "Sort",
+    colHeaderStatus: "Status",
+    colHeaderActions: "Actions",
+    enabled: "Enabled",
+    disabled: "Disabled",
+    save: "Save",
+    delete: "Delete",
+    addCustomTitle: "Add a custom platform",
+    addCustomDescription:
+      "Use this for platforms not in the built-in list. The slug is permanent — it's baked into the outbound iCal feed URL /for-{slug}.ics.",
+    displayName: "Display name",
+    color: "Color",
+    sort: "Sort",
+    adding: "Adding...",
+    add: "Add",
+  },
+  ru: {
+    title: "Платформы (календарь)",
+    description:
+      "Реестр платформ бронирования. Цвета и порядок отображаются в календаре и в дашборде. Slug встраивается в URL исходящего iCal feed (/for-{slug}.ics) и не может быть изменён после создания.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может изменять реестр платформ.",
+    existingHeader: "Существующие",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    loadFailed: (status) => `Не удалось загрузить платформы (${status})`,
+    loadFailedShort: "Не удалось загрузить платформы",
+    empty: "Нет платформ.",
+    customBadge: "польз.",
+    saveFailed: "Не удалось сохранить",
+    saved: "Сохранено. Применится в течение 60 сек.",
+    failedDelete: "Не удалось удалить",
+    failedCreate: "Не удалось создать",
+    confirmDelete: (name, slug) => `Удалить платформу "${name}" (${slug})? Это действие нельзя отменить.`,
+    colHeaderName: "Название",
+    colHeaderColor: "Цвет",
+    colHeaderSort: "Порядок",
+    colHeaderStatus: "Статус",
+    colHeaderActions: "Действия",
+    enabled: "Включено",
+    disabled: "Отключено",
+    save: "Сохр.",
+    delete: "Удалить",
+    addCustomTitle: "Добавить пользовательскую платформу",
+    addCustomDescription:
+      "Для платформ, которых нет во встроенном списке. Slug нельзя изменить — он встраивается в URL исходящего iCal feed /for-{slug}.ics.",
+    displayName: "Название",
+    color: "Цвет",
+    sort: "Порядок",
+    adding: "Добавление...",
+    add: "Добавить",
+  },
+};
 
 // RT-25.9 tick 14 — Calendar platforms sub-route at
 // /dashboard/admin/integrations/platforms. Lifts the "Admin · Platforms"
@@ -51,6 +162,7 @@ const EMPTY_NEW: NewDraft = {
 
 export default function AdminPlatformsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [rows, setRows] = useState<PlatformRow[]>([]);
@@ -84,11 +196,7 @@ export default function AdminPlatformsPage() {
     try {
       const res = await fetch("/api/admin/platforms");
       if (!res.ok) {
-        setError(
-          locale === "ru"
-            ? `Не удалось загрузить платформы (${res.status})`
-            : `Failed to load platforms (${res.status})`,
-        );
+        setError(t.loadFailed(res.status));
         return;
       }
       const data = (await res.json()) as PlatformRow[];
@@ -97,9 +205,7 @@ export default function AdminPlatformsPage() {
       for (const p of data) next[p.slug] = { ...p };
       setDrafts(next);
     } catch {
-      setError(
-        locale === "ru" ? "Не удалось загрузить платформы" : "Failed to load platforms",
-      );
+      setError(t.loadFailedShort);
     } finally {
       setLoading(false);
     }
@@ -140,14 +246,14 @@ export default function AdminPlatformsPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           slug,
-          text: data.error ?? (locale === "ru" ? "Не удалось сохранить" : "Failed to save"),
+          text: data.error ?? t.saveFailed,
           ok: false,
         });
         return;
       }
       setMessage({
         slug,
-        text: locale === "ru" ? "Сохранено. Применится в течение 60 сек." : "Saved. Live within 60s.",
+        text: t.saved,
         ok: true,
       });
       await load();
@@ -158,11 +264,7 @@ export default function AdminPlatformsPage() {
   };
 
   const remove = async (p: PlatformRow) => {
-    const text =
-      locale === "ru"
-        ? `Удалить платформу "${p.displayName}" (${p.slug})? Это действие нельзя отменить.`
-        : `Delete platform "${p.displayName}" (${p.slug})? This can't be undone.`;
-    if (!confirm(text)) return;
+    if (!confirm(t.confirmDelete(p.displayName, p.slug))) return;
     setBusy(p.slug);
     setMessage(null);
     try {
@@ -173,7 +275,7 @@ export default function AdminPlatformsPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           slug: p.slug,
-          text: data.error ?? (locale === "ru" ? "Не удалось удалить" : "Failed to delete"),
+          text: data.error ?? t.failedDelete,
           ok: false,
         });
         return;
@@ -201,7 +303,7 @@ export default function AdminPlatformsPage() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setCreateError(data.error ?? (locale === "ru" ? "Не удалось создать" : "Failed to create"));
+        setCreateError(data.error ?? t.failedCreate);
         return;
       }
       setNewRow(EMPTY_NEW);
@@ -215,31 +317,27 @@ export default function AdminPlatformsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Платформы (календарь)" : "Calendar platforms"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Реестр платформ бронирования. Цвета и порядок отображаются в календаре и в дашборде. Slug встраивается в URL исходящего iCal feed (/for-{slug}.ics) и не может быть изменён после создания."
-            : "Booking platform registry. Colors and sort order surface in the calendar and the dashboard. Slug is baked into the outbound iCal feed URL (/for-{slug}.ics) and cannot be changed after creation."}
+          {t.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может изменять реестр платформ."
-            : "Only superadmins can edit the platform registry."}
+          {t.notSuperadmin}
         </div>
       ) : (
         <>
           <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-                {locale === "ru" ? "Существующие" : "Existing"}
+                {t.existingHeader}
                 {rows.length > 0 && ` · ${rows.length}`}
               </span>
               <button
@@ -248,20 +346,14 @@ export default function AdminPlatformsPage() {
                 disabled={loading}
                 className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
               >
-                {loading
-                  ? locale === "ru"
-                    ? "Обновляется..."
-                    : "Refreshing..."
-                  : locale === "ru"
-                  ? "Обновить"
-                  : "Refresh"}
+                {loading ? t.refreshing : t.refresh}
               </button>
             </div>
 
             {error && <p className="px-4 pb-3 text-xs text-rose-300">{error}</p>}
             {!error && rows.length === 0 && !loading && (
               <p className="px-4 pb-3 text-xs text-[var(--ink-4)]">
-                {locale === "ru" ? "Нет платформ." : "No platforms."}
+                {t.empty}
               </p>
             )}
             {rows.length > 0 && (
@@ -271,19 +363,19 @@ export default function AdminPlatformsPage() {
                     <tr>
                       <th className="px-4 py-2 text-left font-medium">Slug</th>
                       <th className="px-4 py-2 text-left font-medium">
-                        {locale === "ru" ? "Название" : "Name"}
+                        {t.colHeaderName}
                       </th>
                       <th className="px-4 py-2 text-left font-medium">
-                        {locale === "ru" ? "Цвет" : "Color"}
+                        {t.colHeaderColor}
                       </th>
                       <th className="px-4 py-2 text-right font-medium">
-                        {locale === "ru" ? "Порядок" : "Sort"}
+                        {t.colHeaderSort}
                       </th>
                       <th className="px-4 py-2 text-left font-medium">
-                        {locale === "ru" ? "Статус" : "Status"}
+                        {t.colHeaderStatus}
                       </th>
                       <th className="px-4 py-2 text-right font-medium">
-                        {locale === "ru" ? "Действия" : "Actions"}
+                        {t.colHeaderActions}
                       </th>
                     </tr>
                   </thead>
@@ -301,7 +393,7 @@ export default function AdminPlatformsPage() {
                             {p.slug}
                             {p.isCustom && (
                               <span className="ml-2 inline-flex items-center rounded-md bg-[var(--m-accent)]/15 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--m-accent)]">
-                                {locale === "ru" ? "польз." : "custom"}
+                                {t.customBadge}
                               </span>
                             )}
                           </td>
@@ -356,10 +448,10 @@ export default function AdminPlatformsPage() {
                               className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
                             >
                               <option value="true">
-                                {locale === "ru" ? "Включено" : "Enabled"}
+                                {t.enabled}
                               </option>
                               <option value="false">
-                                {locale === "ru" ? "Отключено" : "Disabled"}
+                                {t.disabled}
                               </option>
                             </select>
                           </td>
@@ -371,7 +463,7 @@ export default function AdminPlatformsPage() {
                                 disabled={!canSave || busy === p.slug}
                                 className="h-7 rounded-md bg-[var(--m-accent)] px-2.5 text-xs font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
                               >
-                                {busy === p.slug ? "…" : locale === "ru" ? "Сохр." : "Save"}
+                                {busy === p.slug ? "…" : t.save}
                               </button>
                               {p.isCustom && (
                                 <button
@@ -380,7 +472,7 @@ export default function AdminPlatformsPage() {
                                   disabled={busy === p.slug}
                                   className="h-7 rounded-md px-2 text-xs text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
                                 >
-                                  {locale === "ru" ? "Удалить" : "Delete"}
+                                  {t.delete}
                                 </button>
                               )}
                             </div>
@@ -406,12 +498,10 @@ export default function AdminPlatformsPage() {
           {/* Add a custom platform */}
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
             <p className="mb-1 text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Добавить пользовательскую платформу" : "Add a custom platform"}
+              {t.addCustomTitle}
             </p>
             <p className="mb-4 text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Для платформ, которых нет во встроенном списке. Slug нельзя изменить — он встраивается в URL исходящего iCal feed /for-{slug}.ics."
-                : "Use this for platforms not in the built-in list. The slug is permanent — it's baked into the outbound iCal feed URL /for-{slug}.ics."}
+              {t.addCustomDescription}
             </p>
             <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto_auto]">
               <div>
@@ -429,7 +519,7 @@ export default function AdminPlatformsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-[var(--ink-4)]" htmlFor="np-name">
-                  {locale === "ru" ? "Название" : "Display name"}
+                  {t.displayName}
                 </label>
                 <input
                   id="np-name"
@@ -442,7 +532,7 @@ export default function AdminPlatformsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-[var(--ink-4)]" htmlFor="np-color">
-                  {locale === "ru" ? "Цвет" : "Color"}
+                  {t.color}
                 </label>
                 <input
                   id="np-color"
@@ -456,7 +546,7 @@ export default function AdminPlatformsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs text-[var(--ink-4)]" htmlFor="np-sort">
-                  {locale === "ru" ? "Порядок" : "Sort"}
+                  {t.sort}
                 </label>
                 <input
                   id="np-sort"
@@ -477,13 +567,7 @@ export default function AdminPlatformsPage() {
                   }
                   className="h-9 rounded-md bg-[var(--m-accent)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
                 >
-                  {creating
-                    ? locale === "ru"
-                      ? "Добавление..."
-                      : "Adding..."
-                    : locale === "ru"
-                    ? "Добавить"
-                    : "Add"}
+                  {creating ? t.adding : t.add}
                 </button>
               </div>
             </div>

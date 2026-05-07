@@ -2,6 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  dateLocale: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { dateLocale: "en-GB" },
+  ru: { dateLocale: "ru-RU" },
+};
 
 interface Manager {
   id: number;
@@ -36,6 +46,7 @@ function daysUntil(dateStr: string): number {
 
 export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }: PropertyManagersPanelProps) {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const [managers, setManagers] = useState<Manager[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,7 +227,7 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
                 <div className="min-w-0">
                   <div className="text-sm text-[var(--ink)] truncate">{m.username}</div>
                   <div className="text-[11px] text-[var(--ink-4)]">
-                    {new Date(m.createdAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB")}
+                    {new Date(m.createdAt).toLocaleDateString(c.dateLocale)}
                   </div>
                 </div>
               </div>

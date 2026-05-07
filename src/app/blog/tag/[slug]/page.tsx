@@ -123,6 +123,14 @@ const TAG_UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> 
   },
 };
 
+// Localised chrome (breadcrumb labels + nav-aria) for the tag page.
+// Adding a third Locale to the union forces every key here to be filled
+// in — TypeScript refuses to compile otherwise.
+const TAG_CHROME: Record<Locale, { breadcrumbNav: string; homeLabel: string; blogLabel: string }> = {
+  en: { breadcrumbNav: "Breadcrumb", homeLabel: "Home", blogLabel: "Blog" },
+  ru: { breadcrumbNav: "Хлебные крошки", homeLabel: "Главная", blogLabel: "Блог" },
+};
+
 export default async function BlogTagPage({
   params,
   searchParams,
@@ -198,14 +206,14 @@ export default async function BlogTagPage({
       <main className="mx-auto max-w-[1180px] px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
-          navLabel={localeForLinks === "ru" ? "Хлебные крошки" : "Breadcrumb"}
+          navLabel={TAG_CHROME[localeForLinks].breadcrumbNav}
           items={[
             {
-              label: localeForLinks === "ru" ? "Главная" : "Home",
+              label: TAG_CHROME[localeForLinks].homeLabel,
               href: localePath("/", localeForLinks),
             },
             {
-              label: localeForLinks === "ru" ? "Блог" : "Blog",
+              label: TAG_CHROME[localeForLinks].blogLabel,
               href: localePath("/blog", localeForLinks),
             },
             { label: tag.displayName },

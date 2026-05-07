@@ -3,6 +3,49 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loadFailed: string;
+  loading: string;
+  empty: string;
+  publicCountLabel: string;
+  gatedCountLabel: string;
+  gatedBadge: string;
+  publicBadge: string;
+  openSync: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Feed access tokens",
+    description:
+      "Each property exposes a combined iCal feed URL. Without a token the URL is public — anyone with the link can read it. With a token set, the URL becomes private. Overview of statuses; token rotation lives on each property's Sync settings tab.",
+    loadFailed: "Failed to load",
+    loading: "Loading...",
+    empty: "No properties yet. Add a property to get its iCal feed URL.",
+    publicCountLabel: "Public feed: ",
+    gatedCountLabel: "Token set: ",
+    gatedBadge: "Token set",
+    publicBadge: "Public",
+    openSync: "Open Sync →",
+  },
+  ru: {
+    title: "Токены доступа к фиду",
+    description:
+      "У каждого объекта есть iCal-фид с объединённым календарём. Без токена URL публичный — любой, у кого есть ссылка, может его прочитать. С токеном URL становится приватным. Обзор статусов; ротация токена выполняется на странице синхронизации объекта.",
+    loadFailed: "Не удалось загрузить",
+    loading: "Загрузка...",
+    empty: "У вас пока нет объектов. Добавьте объект, чтобы получить iCal-фид.",
+    publicCountLabel: "Публичный фид: ",
+    gatedCountLabel: "Закрыт токеном: ",
+    gatedBadge: "Закрыт",
+    publicBadge: "Публичный",
+    openSync: "Открыть синхронизацию →",
+  },
+};
 
 // RT-25.9 tick 18 — Feed access tokens sub-route at
 // /dashboard/admin/integrations/feed-tokens. Same aggregation pattern
@@ -23,6 +66,7 @@ interface PropertyRow {
 
 export default function AdminFeedTokensPage() {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [props, setProps] = useState<PropertyRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,12 +84,12 @@ export default function AdminFeedTokensPage() {
             }))
           );
         } else {
-          setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load");
+          setError(c.loadFailed);
         }
       })
-      .catch(() => setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load"))
+      .catch(() => setError(c.loadFailed))
       .finally(() => setLoaded(true));
-  }, [locale]);
+  }, [c.loadFailed]);
 
   const sorted = useMemo(
     () => [...props].sort((a, b) => a.name.localeCompare(b.name)),
@@ -58,18 +102,16 @@ export default function AdminFeedTokensPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Токены доступа к фиду" : "Feed access tokens"}
+          {c.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "У каждого объекта есть iCal-фид с объединённым календарём. Без токена URL публичный — любой, у кого есть ссылка, может его прочитать. С токеном URL становится приватным. Обзор статусов; ротация токена выполняется на странице синхронизации объекта."
-            : "Each property exposes a combined iCal feed URL. Without a token the URL is public — anyone with the link can read it. With a token set, the URL becomes private. Overview of statuses; token rotation lives on each property's Sync settings tab."}
+          {c.description}
         </p>
       </div>
 
       {!loaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {c.loading}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-5 text-sm text-rose-300">
@@ -77,19 +119,17 @@ export default function AdminFeedTokensPage() {
         </div>
       ) : props.length === 0 ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "У вас пока нет объектов. Добавьте объект, чтобы получить iCal-фид."
-            : "No properties yet. Add a property to get its iCal feed URL."}
+          {c.empty}
         </div>
       ) : (
         <>
           <div className="flex flex-wrap gap-3 text-xs text-[var(--ink-3)]">
             <span>
-              {locale === "ru" ? "Публичный фид: " : "Public feed: "}
+              {c.publicCountLabel}
               <span className="text-[var(--ink)]">{publicCount}</span>
             </span>
             <span>
-              {locale === "ru" ? "Закрыт токеном: " : "Token set: "}
+              {c.gatedCountLabel}
               <span className="text-[var(--ink)]">{gatedCount}</span>
             </span>
           </div>
@@ -107,19 +147,13 @@ export default function AdminFeedTokensPage() {
                           : "bg-amber-500/15 text-amber-300"
                       }`}
                     >
-                      {gated
-                        ? locale === "ru"
-                          ? "Закрыт"
-                          : "Token set"
-                        : locale === "ru"
-                        ? "Публичный"
-                        : "Public"}
+                      {gated ? c.gatedBadge : c.publicBadge}
                     </span>
                     <Link
                       href={`/dashboard?property=${p.id}&view=sync`}
                       className="shrink-0 text-xs text-[var(--ink-3)] hover:text-[var(--ink)] hover:underline"
                     >
-                      {locale === "ru" ? "Открыть синхронизацию →" : "Open Sync →"}
+                      {c.openSync}
                     </Link>
                   </li>
                 );

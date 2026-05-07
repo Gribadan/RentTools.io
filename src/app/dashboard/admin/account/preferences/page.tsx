@@ -3,24 +3,52 @@
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 3 — Language & theme sub-route. Wraps the existing
 // ThemeToggle + LocaleSwitcher components in a labelled card layout
 // instead of duplicating their logic.
 
+interface CopyShape {
+  title: string;
+  subtitle: string;
+  theme: string;
+  themeHint: string;
+  language: string;
+  languageHint: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Language & theme",
+    subtitle: "Saved per-browser — pick again on other devices.",
+    theme: "Theme",
+    themeHint: "Light or dark.",
+    language: "Interface language",
+    languageHint: "English or Russian.",
+  },
+  ru: {
+    title: "Язык и тема",
+    subtitle: "Эти настройки сохраняются в браузере — на других устройствах их нужно выбрать заново.",
+    theme: "Тема оформления",
+    themeHint: "Светлая или тёмная.",
+    language: "Язык интерфейса",
+    languageHint: "Английский или русский.",
+  },
+};
+
 export default function AdminPreferencesPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Язык и тема" : "Language & theme"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Эти настройки сохраняются в браузере — на других устройствах их нужно выбрать заново."
-            : "Saved per-browser — pick again on other devices."}
+          {t.subtitle}
         </p>
       </div>
 
@@ -28,10 +56,10 @@ export default function AdminPreferencesPage() {
         <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
           <div>
             <h3 className="text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Тема оформления" : "Theme"}
+              {t.theme}
             </h3>
             <p className="mt-0.5 text-xs text-[var(--ink-4)]">
-              {locale === "ru" ? "Светлая или тёмная." : "Light or dark."}
+              {t.themeHint}
             </p>
           </div>
           <ThemeToggle />
@@ -39,10 +67,10 @@ export default function AdminPreferencesPage() {
         <div className="flex items-center justify-between px-5 py-4">
           <div>
             <h3 className="text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Язык интерфейса" : "Interface language"}
+              {t.language}
             </h3>
             <p className="mt-0.5 text-xs text-[var(--ink-4)]">
-              {locale === "ru" ? "Английский или русский." : "English or Russian."}
+              {t.languageHint}
             </p>
           </div>
           <LocaleSwitcher />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.10 tick 2 — Account-level Cleaners pool admin sub-route at
 // /dashboard/admin/workspace/cleaners. CRUD for the host's named cleaner
@@ -25,8 +26,73 @@ interface CleanerRow {
   assignments: AssignmentSummary[];
 }
 
+interface CopyShape {
+  failed: string;
+  deleteConfirm: string;
+  defaultRank: string;
+  backupRank: (rank: number) => string;
+  title: string;
+  subtitle: string;
+  addCleaner: string;
+  namePlaceholder: string;
+  phoneOptionalPlaceholder: string;
+  add: string;
+  loading: string;
+  empty: string;
+  phonePlaceholder: string;
+  cancel: string;
+  save: string;
+  notAssigned: string;
+  edit: string;
+  delete: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    failed: "Failed",
+    deleteConfirm: "Delete this cleaner? All property assignments will be removed too.",
+    defaultRank: "default",
+    backupRank: (rank) => `backup ${rank}`,
+    title: "Cleaners",
+    subtitle: "Account-level cleaner pool. Assign to specific properties from each property's Cleaning tab.",
+    addCleaner: "Add cleaner",
+    namePlaceholder: "Name",
+    phoneOptionalPlaceholder: "Phone (optional)",
+    add: "Add",
+    loading: "Loading…",
+    empty: "No cleaners yet. Add your first above.",
+    phonePlaceholder: "Phone",
+    cancel: "Cancel",
+    save: "Save",
+    notAssigned: "Not assigned to any property",
+    edit: "Edit",
+    delete: "Delete",
+  },
+  ru: {
+    failed: "Не удалось",
+    deleteConfirm: "Удалить уборщика? Все назначения по объектам также будут удалены.",
+    defaultRank: "осн.",
+    backupRank: (rank) => `рез. ${rank}`,
+    title: "Уборщики",
+    subtitle: "Пул уборщиков на уровне аккаунта. Назначение на конкретный объект — на вкладке «Уборки» этого объекта.",
+    addCleaner: "Добавить уборщика",
+    namePlaceholder: "Имя",
+    phoneOptionalPlaceholder: "Телефон (необязательно)",
+    add: "Добавить",
+    loading: "Загрузка…",
+    empty: "Уборщиков ещё нет. Добавьте первого выше.",
+    phonePlaceholder: "Телефон",
+    cancel: "Отмена",
+    save: "Сохранить",
+    notAssigned: "Не назначен ни одному объекту",
+    edit: "Изменить",
+    delete: "Удалить",
+  },
+};
+
 export default function AdminCleanersPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [rows, setRows] = useState<CleanerRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -70,7 +136,7 @@ export default function AdminCleanersPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error || (locale === "ru" ? "Не удалось" : "Failed"));
+        setError(data?.error || t.failed);
         return;
       }
       setName("");
@@ -102,7 +168,7 @@ export default function AdminCleanersPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error || (locale === "ru" ? "Не удалось" : "Failed"));
+        setError(data?.error || t.failed);
         return;
       }
       setEditingId(null);
@@ -113,11 +179,7 @@ export default function AdminCleanersPage() {
   };
 
   const remove = async (id: number) => {
-    const confirmText =
-      locale === "ru"
-        ? "Удалить уборщика? Все назначения по объектам также будут удалены."
-        : "Delete this cleaner? All property assignments will be removed too.";
-    if (!confirm(confirmText)) return;
+    if (!confirm(t.deleteConfirm)) return;
     setBusy(true);
     try {
       await fetch(`/api/cleaners/${id}`, { method: "DELETE" });
@@ -128,34 +190,32 @@ export default function AdminCleanersPage() {
   };
 
   const priorityLabel = (rank: number): string => {
-    if (rank === 0) return locale === "ru" ? "осн." : "default";
-    return locale === "ru" ? `рез. ${rank}` : `backup ${rank}`;
+    if (rank === 0) return t.defaultRank;
+    return t.backupRank(rank);
   };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Уборщики" : "Cleaners"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Пул уборщиков на уровне аккаунта. Назначение на конкретный объект — на вкладке «Уборки» этого объекта."
-            : "Account-level cleaner pool. Assign to specific properties from each property's Cleaning tab."}
+          {t.subtitle}
         </p>
       </div>
 
       {/* Create */}
       <section className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4 space-y-3">
         <h3 className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-          {locale === "ru" ? "Добавить уборщика" : "Add cleaner"}
+          {t.addCleaner}
         </h3>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={locale === "ru" ? "Имя" : "Name"}
+            placeholder={t.namePlaceholder}
             disabled={busy}
             className="h-9 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
           />
@@ -163,7 +223,7 @@ export default function AdminCleanersPage() {
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder={locale === "ru" ? "Телефон (необязательно)" : "Phone (optional)"}
+            placeholder={t.phoneOptionalPlaceholder}
             disabled={busy}
             className="h-9 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
           />
@@ -173,7 +233,7 @@ export default function AdminCleanersPage() {
             disabled={busy || !name.trim()}
             className="rounded-md bg-[var(--m-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
           >
-            {locale === "ru" ? "Добавить" : "Add"}
+            {t.add}
           </button>
         </div>
         {error && <p className="text-xs text-rose-500">{error}</p>}
@@ -183,13 +243,11 @@ export default function AdminCleanersPage() {
       <section className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
         {!loaded ? (
           <div className="px-4 py-5 text-sm text-[var(--ink-4)]">
-            {locale === "ru" ? "Загрузка…" : "Loading…"}
+            {t.loading}
           </div>
         ) : rows.length === 0 ? (
           <div className="px-4 py-5 text-sm text-[var(--ink-4)]">
-            {locale === "ru"
-              ? "Уборщиков ещё нет. Добавьте первого выше."
-              : "No cleaners yet. Add your first above."}
+            {t.empty}
           </div>
         ) : (
           <ul className="divide-y divide-[var(--line)]/60">
@@ -209,7 +267,7 @@ export default function AdminCleanersPage() {
                         type="tel"
                         value={editPhone}
                         onChange={(e) => setEditPhone(e.target.value)}
-                        placeholder={locale === "ru" ? "Телефон" : "Phone"}
+                        placeholder={t.phonePlaceholder}
                         disabled={busy}
                         className="h-9 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
                       />
@@ -221,7 +279,7 @@ export default function AdminCleanersPage() {
                         disabled={busy}
                         className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 py-1.5 text-xs text-[var(--ink-2)] hover:bg-[var(--bg-3)] disabled:opacity-50"
                       >
-                        {locale === "ru" ? "Отмена" : "Cancel"}
+                        {t.cancel}
                       </button>
                       <button
                         type="button"
@@ -229,7 +287,7 @@ export default function AdminCleanersPage() {
                         disabled={busy || !editName.trim()}
                         className="rounded-md bg-[var(--m-accent)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
                       >
-                        {locale === "ru" ? "Сохранить" : "Save"}
+                        {t.save}
                       </button>
                     </div>
                   </div>
@@ -244,9 +302,7 @@ export default function AdminCleanersPage() {
                       </div>
                       {r.assignments.length === 0 ? (
                         <div className="mt-1 text-xs text-[var(--ink-4)] italic">
-                          {locale === "ru"
-                            ? "Не назначен ни одному объекту"
-                            : "Not assigned to any property"}
+                          {t.notAssigned}
                         </div>
                       ) : (
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -272,7 +328,7 @@ export default function AdminCleanersPage() {
                         disabled={busy}
                         className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1 text-xs text-[var(--ink-2)] hover:bg-[var(--bg-3)] disabled:opacity-50"
                       >
-                        {locale === "ru" ? "Изменить" : "Edit"}
+                        {t.edit}
                       </button>
                       <button
                         type="button"
@@ -280,7 +336,7 @@ export default function AdminCleanersPage() {
                         disabled={busy}
                         className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 py-1 text-xs text-rose-500 hover:bg-rose-500/10 disabled:opacity-50"
                       >
-                        {locale === "ru" ? "Удалить" : "Delete"}
+                        {t.delete}
                       </button>
                     </div>
                   </div>

@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AuthSubmit } from "@/components/auth-form";
@@ -18,10 +19,60 @@ type InviteStatus =
   | { status: "used" }
   | { status: "error"; message: string };
 
+interface CopyShape {
+  loading: string;
+  inviteHeading: string;
+  invitingYou: string;
+  scopeBlurb: string;
+  accepting: string;
+  accept: string;
+  decline: string;
+  alreadyAccepted: string;
+  openApp: string;
+  notFound: string;
+  revoked: string;
+  expired: string;
+  used: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    loading: "Loading invite…",
+    inviteHeading: "Property invitation",
+    invitingYou: "is inviting you to manage",
+    scopeBlurb: "You will get full management access — calendar, reservations, sync, cleanings. You cannot delete the property or manage other managers.",
+    accepting: "Accepting…",
+    accept: "Accept invitation",
+    decline: "Decline",
+    alreadyAccepted: "You already accepted this invitation.",
+    openApp: "Open app",
+    notFound: "Invitation not found.",
+    revoked: "This invitation was revoked.",
+    expired: "This invitation has expired.",
+    used: "This invitation was already used by someone else.",
+  },
+  ru: {
+    loading: "Загрузка приглашения…",
+    inviteHeading: "Приглашение в управление",
+    invitingYou: "приглашает вас управлять объектом",
+    scopeBlurb: "Вы получите доступ к календарю, бронированиям, синхронизации и уборке. Вы не сможете удалить объект или управлять другими менеджерами.",
+    accepting: "Принимаем…",
+    accept: "Принять приглашение",
+    decline: "Отказаться",
+    alreadyAccepted: "Вы уже приняли это приглашение.",
+    openApp: "Открыть приложение",
+    notFound: "Приглашение не найдено.",
+    revoked: "Приглашение было отменено владельцем.",
+    expired: "Срок действия приглашения истёк.",
+    used: "Приглашение уже использовано другим пользователем.",
+  },
+};
+
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const router = useRouter();
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [state, setState] = useState<InviteStatus>({ status: "loading" });
   const [accepting, setAccepting] = useState(false);
 
@@ -71,8 +122,6 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     }
   };
 
-  const isRu = locale === "ru";
-
   return (
     <div className="editorial min-h-screen flex flex-col">
       {/* ── Header ── */}
@@ -99,7 +148,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         <div className="w-full max-w-[440px] rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 sm:p-7 space-y-4">
           {state.status === "loading" && (
             <p className="text-center text-[14px] text-[var(--ink-3)]">
-              {isRu ? "Загрузка приглашения…" : "Loading invite…"}
+              {t.loading}
             </p>
           )}
 
@@ -112,26 +161,26 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
               </div>
               <div className="text-center space-y-1.5">
                 <h1 className="display text-[20px] font-semibold tracking-tight text-[var(--ink)]">
-                  {isRu ? "Приглашение в управление" : "Property invitation"}
+                  {t.inviteHeading}
                 </h1>
                 <p className="text-[14px] text-[var(--ink-2)]">
                   <span className="font-medium text-[var(--ink)]">{state.invitedBy}</span>{" "}
-                  {isRu ? "приглашает вас управлять объектом" : "is inviting you to manage"}{" "}
+                  {t.invitingYou}{" "}
                   <span className="font-medium text-[var(--ink)]">{state.propertyName}</span>.
                 </p>
                 <p className="text-[12px] text-[var(--ink-3)]">
-                  {isRu ? "Вы получите доступ к календарю, бронированиям, синхронизации и уборке. Вы не сможете удалить объект или управлять другими менеджерами." : "You will get full management access — calendar, reservations, sync, cleanings. You cannot delete the property or manage other managers."}
+                  {t.scopeBlurb}
                 </p>
               </div>
               <AuthSubmit type="button" loading={accepting} onClick={handleAccept}>
-                {accepting ? (isRu ? "Принимаем…" : "Accepting…") : (isRu ? "Принять приглашение" : "Accept invitation")}
+                {accepting ? t.accepting : t.accept}
               </AuthSubmit>
               <button
                 type="button"
                 onClick={() => router.replace("/dashboard")}
                 className="h-11 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] text-[14px] text-[var(--ink-2)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)]"
               >
-                {isRu ? "Отказаться" : "Decline"}
+                {t.decline}
               </button>
             </>
           )}
@@ -139,10 +188,10 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
           {state.status === "already_accepted" && (
             <>
               <p className="text-center text-[14px] text-[var(--ink-2)]">
-                {isRu ? "Вы уже приняли это приглашение." : "You already accepted this invitation."}
+                {t.alreadyAccepted}
               </p>
               <AuthSubmit type="button" onClick={() => router.replace("/dashboard")}>
-                {isRu ? "Открыть приложение" : "Open app"}
+                {t.openApp}
               </AuthSubmit>
             </>
           )}
@@ -155,17 +204,17 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                 </svg>
               </div>
               <p className="text-center text-[14px] text-[var(--ink)]">
-                {state.status === "not_found" && (isRu ? "Приглашение не найдено." : "Invitation not found.")}
-                {state.status === "revoked" && (isRu ? "Приглашение было отменено владельцем." : "This invitation was revoked.")}
-                {state.status === "expired" && (isRu ? "Срок действия приглашения истёк." : "This invitation has expired.")}
-                {state.status === "used" && (isRu ? "Приглашение уже использовано другим пользователем." : "This invitation was already used by someone else.")}
+                {state.status === "not_found" && t.notFound}
+                {state.status === "revoked" && t.revoked}
+                {state.status === "expired" && t.expired}
+                {state.status === "used" && t.used}
               </p>
               <button
                 type="button"
                 onClick={() => router.replace("/dashboard")}
                 className="h-11 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] text-[14px] text-[var(--ink-2)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)]"
               >
-                {isRu ? "Открыть приложение" : "Open app"}
+                {t.openApp}
               </button>
             </>
           )}

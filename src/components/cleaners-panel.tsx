@@ -2,6 +2,80 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  default: string;
+  firstBackup: string;
+  secondBackup: string;
+  nthBackup: (rank: number) => string;
+  failed: string;
+  cleaners: string;
+  add: string;
+  emptyState: string;
+  legacyLogin: string;
+  moveUp: string;
+  moveDown: string;
+  remove: string;
+  poolEmpty: string;
+  pickFromPool: string;
+  createNew: string;
+  cancel: string;
+  addBtn: string;
+  namePlaceholder: string;
+  phonePlaceholder: string;
+  back: string;
+  createAndAdd: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    default: "Default",
+    firstBackup: "1st backup",
+    secondBackup: "2nd backup",
+    nthBackup: (rank) => `${rank}th backup`,
+    failed: "Failed",
+    cleaners: "Cleaners",
+    add: "+ Add",
+    emptyState: "No one assigned. Add a default and optional backups.",
+    legacyLogin: "Legacy login",
+    moveUp: "Move up",
+    moveDown: "Move down",
+    remove: "Remove",
+    poolEmpty: "All pool cleaners already assigned",
+    pickFromPool: "Pick from your pool…",
+    createNew: "+ Create new",
+    cancel: "Cancel",
+    addBtn: "Add",
+    namePlaceholder: "Name",
+    phonePlaceholder: "Phone (optional)",
+    back: "Back",
+    createAndAdd: "Create & add",
+  },
+  ru: {
+    default: "Основной",
+    firstBackup: "1-й резерв",
+    secondBackup: "2-й резерв",
+    nthBackup: (rank) => `${rank}-й резерв`,
+    failed: "Не удалось",
+    cleaners: "Уборщики",
+    add: "+ Добавить",
+    emptyState: "Никто не назначен. Добавьте основного и при желании резервных.",
+    legacyLogin: "Унаследовано",
+    moveUp: "Поднять",
+    moveDown: "Опустить",
+    remove: "Убрать",
+    poolEmpty: "Все уборщики из пула уже добавлены",
+    pickFromPool: "Выберите из пула…",
+    createNew: "+ Создать нового",
+    cancel: "Отмена",
+    addBtn: "Добавить",
+    namePlaceholder: "Имя",
+    phonePlaceholder: "Телефон (необязательно)",
+    back: "Назад",
+    createAndAdd: "Создать и добавить",
+  },
+};
 
 // RT-25.10 tick 2 — per-property Cleaners assignment panel rendered in the
 // PropertyCleaningView sidebar. Pulls from the account-level Cleaner pool
@@ -40,6 +114,7 @@ interface CleanersPanelProps {
 
 export function CleanersPanel({ propertyId }: CleanersPanelProps) {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [pool, setPool] = useState<Pool[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -82,10 +157,10 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
       : Math.max(...assignments.map((a) => a.priority)) + 1;
 
   const priorityLabel = (rank: number): string => {
-    if (rank === 0) return locale === "ru" ? "Основной" : "Default";
-    if (rank === 1) return locale === "ru" ? "1-й резерв" : "1st backup";
-    if (rank === 2) return locale === "ru" ? "2-й резерв" : "2nd backup";
-    return locale === "ru" ? `${rank}-й резерв` : `${rank}th backup`;
+    if (rank === 0) return c.default;
+    if (rank === 1) return c.firstBackup;
+    if (rank === 2) return c.secondBackup;
+    return c.nthBackup(rank);
   };
 
   const addProfile = async (profileId: number) => {
@@ -103,7 +178,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error || (locale === "ru" ? "Не удалось" : "Failed"));
+        setError(data?.error || c.failed);
         return;
       }
       setShowAdd(false);
@@ -133,7 +208,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data?.error || (locale === "ru" ? "Не удалось" : "Failed"));
+        setError(data?.error || c.failed);
         setBusy(false);
         return;
       }
@@ -200,7 +275,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
     <div className="border-b border-[var(--line)] px-5 py-4">
       <div className="flex items-center justify-between mb-2.5">
         <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-          {locale === "ru" ? "Уборщики" : "Cleaners"}
+          {c.cleaners}
         </div>
         {!showAdd && loaded && (
           <button
@@ -209,7 +284,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
             disabled={busy}
             className="text-xs text-[var(--m-accent)] hover:underline disabled:opacity-50"
           >
-            {locale === "ru" ? "+ Добавить" : "+ Add"}
+            {c.add}
           </button>
         )}
       </div>
@@ -220,9 +295,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
         <>
           {assignments.length === 0 ? (
             <p className="text-xs text-[var(--ink-3)] leading-relaxed">
-              {locale === "ru"
-                ? "Никто не назначен. Добавьте основного и при желании резервных."
-                : "No one assigned. Add a default and optional backups."}
+              {c.emptyState}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -247,7 +320,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                     )}
                     {a.username && !a.cleanerProfileId && (
                       <div className="text-[10px] text-[var(--ink-4)] italic">
-                        {locale === "ru" ? "Унаследовано" : "Legacy login"}
+                        {c.legacyLogin}
                       </div>
                     )}
                   </div>
@@ -256,7 +329,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                       type="button"
                       onClick={() => move(idx, -1)}
                       disabled={busy || idx === 0 || !a.cleanerProfileId}
-                      title={locale === "ru" ? "Поднять" : "Move up"}
+                      title={c.moveUp}
                       className="flex h-6 w-6 items-center justify-center rounded text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-30"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -267,7 +340,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                       type="button"
                       onClick={() => move(idx, 1)}
                       disabled={busy || idx === assignments.length - 1 || !a.cleanerProfileId}
-                      title={locale === "ru" ? "Опустить" : "Move down"}
+                      title={c.moveDown}
                       className="flex h-6 w-6 items-center justify-center rounded text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-30"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -278,7 +351,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                       type="button"
                       onClick={() => remove(a.id)}
                       disabled={busy}
-                      title={locale === "ru" ? "Убрать" : "Remove"}
+                      title={c.remove}
                       className="flex h-6 w-6 items-center justify-center rounded text-rose-500 hover:bg-rose-500/10 disabled:opacity-30"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -305,13 +378,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                     className="h-8 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
                   >
                     <option value="">
-                      {availablePool.length === 0
-                        ? locale === "ru"
-                          ? "Все уборщики из пула уже добавлены"
-                          : "All pool cleaners already assigned"
-                        : locale === "ru"
-                        ? "Выберите из пула…"
-                        : "Pick from your pool…"}
+                      {availablePool.length === 0 ? c.poolEmpty : c.pickFromPool}
                     </option>
                     {availablePool.map((p) => (
                       <option key={p.id} value={p.id}>
@@ -327,7 +394,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                       disabled={busy}
                       className="text-xs text-[var(--m-accent)] hover:underline disabled:opacity-50"
                     >
-                      {locale === "ru" ? "+ Создать нового" : "+ Create new"}
+                      {c.createNew}
                     </button>
                     <div className="flex gap-1.5">
                       <button
@@ -340,7 +407,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                         disabled={busy}
                         className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2.5 py-1 text-xs text-[var(--ink-2)] hover:bg-[var(--bg-3)] disabled:opacity-50"
                       >
-                        {locale === "ru" ? "Отмена" : "Cancel"}
+                        {c.cancel}
                       </button>
                       <button
                         type="button"
@@ -348,7 +415,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                         disabled={busy || !pickedProfileId}
                         className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
                       >
-                        {locale === "ru" ? "Добавить" : "Add"}
+                        {c.addBtn}
                       </button>
                     </div>
                   </div>
@@ -359,7 +426,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder={locale === "ru" ? "Имя" : "Name"}
+                    placeholder={c.namePlaceholder}
                     disabled={busy}
                     className="h-8 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
                   />
@@ -367,7 +434,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                     type="tel"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder={locale === "ru" ? "Телефон (необязательно)" : "Phone (optional)"}
+                    placeholder={c.phonePlaceholder}
                     disabled={busy}
                     className="h-8 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
                   />
@@ -382,7 +449,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                       disabled={busy}
                       className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2.5 py-1 text-xs text-[var(--ink-2)] hover:bg-[var(--bg-3)] disabled:opacity-50"
                     >
-                      {locale === "ru" ? "Назад" : "Back"}
+                      {c.back}
                     </button>
                     <button
                       type="button"
@@ -390,7 +457,7 @@ export function CleanersPanel({ propertyId }: CleanersPanelProps) {
                       disabled={busy || !newName.trim()}
                       className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
                     >
-                      {locale === "ru" ? "Создать и добавить" : "Create & add"}
+                      {c.createAndAdd}
                     </button>
                   </div>
                 </>

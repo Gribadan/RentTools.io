@@ -2,7 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import { AuditPanel } from "@/components/audit-panel";
+
+interface CopyShape {
+  dateLocale: string;
+  subtitle: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    dateLocale: "en",
+    subtitle: "Personal info, password, and activity.",
+  },
+  ru: {
+    dateLocale: "ru-RU",
+    subtitle: "Личные данные, пароль и активность.",
+  },
+};
 
 interface ProfileUser {
   id: number;
@@ -19,7 +36,8 @@ type InviteSaveState = "idle" | "saving" | "saved" | "error";
 // but felt like a popup. Lives at activeView === "profile" inside the
 // dashboard shell.
 export function ProfilePanel() {
-  const { t, locale } = useI18n();
+  const { t: tr, locale } = useI18n();
+  const c = COPY[locale];
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -78,7 +96,7 @@ export function ProfilePanel() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErr(data.error || (isTg ? t("profile.invitesInvalidTg") : t("profile.invitesInvalidWa")));
+        setErr(data.error || (isTg ? tr("profile.invitesInvalidTg") : tr("profile.invitesInvalidWa")));
         setState("error");
         return;
       }
@@ -87,7 +105,7 @@ export function ProfilePanel() {
       setState("saved");
       setTimeout(() => setState((s) => (s === "saved" ? "idle" : s)), 1800);
     } catch {
-      setErr(isTg ? t("profile.invitesInvalidTg") : t("profile.invitesInvalidWa"));
+      setErr(isTg ? tr("profile.invitesInvalidTg") : tr("profile.invitesInvalidWa"));
       setState("error");
     }
   };
@@ -118,7 +136,7 @@ export function ProfilePanel() {
 
   const formatDate = (iso?: string) => {
     if (!iso) return "—";
-    return new Date(iso).toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+    return new Date(iso).toLocaleDateString(c.dateLocale, {
       year: "numeric", month: "short", day: "numeric",
     });
   };
@@ -127,25 +145,25 @@ export function ProfilePanel() {
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--bg-2)] p-6 shadow-sm">
         <div className="mb-5">
-          <h1 className="text-xl font-semibold text-[var(--ink)]">{t("profile.title")}</h1>
+          <h1 className="text-xl font-semibold text-[var(--ink)]">{tr("profile.title")}</h1>
           <p className="mt-0.5 text-sm text-[var(--ink-3)]">
-            {locale === "ru" ? "Личные данные, пароль и активность." : "Personal info, password, and activity."}
+            {c.subtitle}
           </p>
         </div>
 
         <dl className="grid grid-cols-2 gap-y-2 text-sm">
-          <dt className="text-[var(--ink-4)]">{t("profile.username")}</dt>
+          <dt className="text-[var(--ink-4)]">{tr("profile.username")}</dt>
           <dd className="text-[var(--ink)]">{user?.username ?? "…"}</dd>
-          <dt className="text-[var(--ink-4)]">{t("profile.role")}</dt>
+          <dt className="text-[var(--ink-4)]">{tr("profile.role")}</dt>
           <dd className="text-[var(--ink)]">{user?.role ?? "—"}</dd>
-          <dt className="text-[var(--ink-4)]">{t("profile.createdAt")}</dt>
+          <dt className="text-[var(--ink-4)]">{tr("profile.createdAt")}</dt>
           <dd className="text-[var(--ink)]">{formatDate(user?.createdAt)}</dd>
         </dl>
 
         <form onSubmit={submit} className="mt-6 space-y-3 border-t border-[var(--line)] pt-4">
-          <h3 className="text-sm font-semibold text-[var(--ink)]">{t("profile.changePassword")}</h3>
+          <h3 className="text-sm font-semibold text-[var(--ink)]">{tr("profile.changePassword")}</h3>
           <div className="space-y-1.5">
-            <label className="text-xs text-[var(--ink-3)]" htmlFor="curpw">{t("profile.currentPassword")}</label>
+            <label className="text-xs text-[var(--ink-3)]" htmlFor="curpw">{tr("profile.currentPassword")}</label>
             <input
               id="curpw"
               type="password"
@@ -156,7 +174,7 @@ export function ProfilePanel() {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-[var(--ink-3)]" htmlFor="newpw">{t("profile.newPassword")}</label>
+            <label className="text-xs text-[var(--ink-3)]" htmlFor="newpw">{tr("profile.newPassword")}</label>
             <input
               id="newpw"
               type="password"
@@ -172,7 +190,7 @@ export function ProfilePanel() {
             <div className="rounded-md bg-rose-500/10 border border-rose-500/20 px-3 py-2 text-xs text-rose-500">{error}</div>
           )}
           {success && (
-            <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs text-emerald-500">{t("profile.saved")}</div>
+            <div className="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 text-xs text-emerald-500">{tr("profile.saved")}</div>
           )}
 
           <button
@@ -180,7 +198,7 @@ export function ProfilePanel() {
             disabled={busy}
             className="h-9 w-full rounded-md bg-[var(--m-accent)] text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
           >
-            {t("profile.save")}
+            {tr("profile.save")}
           </button>
         </form>
 
@@ -189,13 +207,13 @@ export function ProfilePanel() {
             unless at least one platform has a URL saved). */}
         <div className="mt-6 space-y-3 border-t border-[var(--line)] pt-4">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--ink)]">{t("profile.messengerInvites")}</h3>
-            <p className="mt-1 text-xs text-[var(--ink-3)]">{t("profile.messengerInvitesHint")}</p>
+            <h3 className="text-sm font-semibold text-[var(--ink)]">{tr("profile.messengerInvites")}</h3>
+            <p className="mt-1 text-xs text-[var(--ink-3)]">{tr("profile.messengerInvitesHint")}</p>
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs text-[var(--ink-3)]" htmlFor="tg-invite">
-                {t("profile.tgInviteUrl")}
+                {tr("profile.tgInviteUrl")}
               </label>
               <span
                 className={`text-[10px] transition-opacity ${
@@ -209,9 +227,9 @@ export function ProfilePanel() {
                 }`}
               >
                 {tgInviteState === "saving"
-                  ? t("profile.invitesSaving")
+                  ? tr("profile.invitesSaving")
                   : tgInviteState === "saved"
-                    ? t("profile.invitesSaved")
+                    ? tr("profile.invitesSaved")
                     : tgInviteState === "error"
                       ? tgInviteError
                       : ""}
@@ -226,14 +244,14 @@ export function ProfilePanel() {
                 if (tgInviteState === "saved" || tgInviteState === "error") setTgInviteState("idle");
               }}
               onBlur={() => saveInvite("tgGroupInviteUrl", tgInviteDraft)}
-              placeholder={t("profile.tgInvitePlaceholder")}
+              placeholder={tr("profile.tgInvitePlaceholder")}
               className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs text-[var(--ink-3)]" htmlFor="wa-invite">
-                {t("profile.waInviteUrl")}
+                {tr("profile.waInviteUrl")}
               </label>
               <span
                 className={`text-[10px] transition-opacity ${
@@ -247,9 +265,9 @@ export function ProfilePanel() {
                 }`}
               >
                 {waInviteState === "saving"
-                  ? t("profile.invitesSaving")
+                  ? tr("profile.invitesSaving")
                   : waInviteState === "saved"
-                    ? t("profile.invitesSaved")
+                    ? tr("profile.invitesSaved")
                     : waInviteState === "error"
                       ? waInviteError
                       : ""}
@@ -264,7 +282,7 @@ export function ProfilePanel() {
                 if (waInviteState === "saved" || waInviteState === "error") setWaInviteState("idle");
               }}
               onBlur={() => saveInvite("waGroupInviteUrl", waInviteDraft)}
-              placeholder={t("profile.waInvitePlaceholder")}
+              placeholder={tr("profile.waInvitePlaceholder")}
               className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
           </div>

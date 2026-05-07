@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
 import { SUPPORTED_LOCALES, DEFAULT_LOCALE, localePath } from "@/lib/i18n/alternates";
+import { toOgLocale } from "@/lib/i18n/locale-tags";
 import type { Locale } from "@/lib/i18n/translations";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
@@ -258,7 +259,7 @@ export async function generateMetadata({
       description: post.excerpt,
       url,
       siteName: "RentTools",
-      locale: post.locale === "ru" ? "ru_RU" : "en_US",
+      locale: toOgLocale(post.locale as Locale),
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString() ?? post.publishedAt?.toISOString(),
       authors: post.author?.username ? [post.author.username] : undefined,

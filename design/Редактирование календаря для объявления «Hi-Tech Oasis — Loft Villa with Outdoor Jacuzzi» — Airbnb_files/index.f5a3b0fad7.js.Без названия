@@ -1,0 +1,3 @@
+__d(function(g,r,i,a,m,e,d){"use strict";Object.defineProperty(e,"__esModule",{value:!0}),e.default=function(){(0,t.getFacebookBootstrapData)()};var t=r(d[0])},"541692",["f08ba7"]);
+__d(function(g,r,i,a,m,e,d){"use strict";var t=r(d[0]).default;Object.defineProperty(e,"__esModule",{value:!0}),e.getFacebookBootstrapData=function(){const t=o.default.get('facebook-init');return!!t?.enabled&&t};var o=t(r(d[1]))},"f08ba7",["ba7a76","ef2bc3"]);
+//# sourceMappingURL=https://sourcemaps.d.musta.ch/airbnb/static/packages/web/common/frontend/initializers/facebook/index.910fcf6e34.js.map

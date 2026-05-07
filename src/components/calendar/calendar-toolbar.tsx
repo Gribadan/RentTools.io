@@ -3,7 +3,30 @@
 import { useMemo } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { Property, CalendarLink } from "@/lib/types";
+import type { Locale } from "@/lib/i18n/translations";
 import { computeSyncHealth } from "./sync-health";
+
+interface CopyShape {
+  syncNow: string;
+  reservations: (count: number) => string;
+  syncErrorTitle: string;
+  syncErrorShort: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    syncNow: "Sync now",
+    reservations: (n) => `${n} ${n === 1 ? "reservation" : "reservations"}`,
+    syncErrorTitle: "Sync error:",
+    syncErrorShort: "Sync error:",
+  },
+  ru: {
+    syncNow: "Синхронизировать сейчас",
+    reservations: (n) => `${n} бронирований`,
+    syncErrorTitle: "Ошибка синхронизации:",
+    syncErrorShort: "Ошибка синхр.:",
+  },
+};
 
 interface CalendarToolbarProps {
   property: Property;
@@ -29,7 +52,8 @@ export function CalendarToolbar({
   onExport,
 }: CalendarToolbarProps) {
   const { t, locale } = useI18n();
-  const syncHealth = useMemo(() => computeSyncHealth(links, locale), [links, locale]);
+  const c = COPY[locale];
+  const syncHealth = useMemo(() => computeSyncHealth(links, locale as Locale), [links, locale]);
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -39,7 +63,7 @@ export function CalendarToolbar({
           <button
             onClick={onSyncNow}
             disabled={syncing}
-            title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+            title={c.syncNow}
             className="rounded-md p-1.5 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
           >
             <svg className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -48,16 +72,16 @@ export function CalendarToolbar({
           </button>
         </div>
         <p className="mt-0.5 text-sm text-[var(--ink-3)]">
-          {property.reservations.length} {locale === "ru" ? "бронирований" : (property.reservations.length !== 1 ? "reservations" : "reservation")}
+          {c.reservations(property.reservations.length)}
         </p>
         {syncHealth && (
           <div
             className="mt-1 flex items-center gap-1.5 text-xs"
-            title={syncHealth.ok ? syncHealth.message : `${locale === "ru" ? "Ошибка синхронизации:" : "Sync error:"} ${syncHealth.message}`}
+            title={syncHealth.ok ? syncHealth.message : `${c.syncErrorTitle} ${syncHealth.message}`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${syncHealth.ok ? "bg-emerald-500" : "bg-rose-400"}`} />
             <span className={syncHealth.ok ? "text-[var(--ink-4)]" : "text-rose-400"}>
-              {syncHealth.ok ? syncHealth.message : `${locale === "ru" ? "Ошибка синхр.:" : "Sync error:"} ${syncHealth.message.slice(0, 60)}`}
+              {syncHealth.ok ? syncHealth.message : `${c.syncErrorShort} ${syncHealth.message.slice(0, 60)}`}
             </span>
           </div>
         )}

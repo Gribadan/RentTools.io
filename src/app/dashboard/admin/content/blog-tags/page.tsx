@@ -2,6 +2,145 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  tagsHeader: string;
+  refreshing: string;
+  refresh: string;
+  loadFailed: (status: number) => string;
+  loadFailedShort: string;
+  empty: string;
+  failedSave: string;
+  savedWithRewrite: (count: number) => string;
+  saved: string;
+  failedDelete: string;
+  failedCreate: string;
+  confirmDeleteWithPosts: (name: string, l: string, count: number) => string;
+  confirmDelete: (name: string, l: string) => string;
+  pickBoth: string;
+  mustDiffer: string;
+  notFound: string;
+  failedMerge: string;
+  confirmMerge: (sName: string, sLocale: string, dName: string, dLocale: string, count: number) => string;
+  colDisplayName: string;
+  colSlug: string;
+  colLocale: string;
+  colPosts: string;
+  colActions: string;
+  saveShort: string;
+  deleteShort: string;
+  newTagTitle: string;
+  newTagNamePlaceholder: string;
+  newTagSlugPlaceholder: string;
+  adding: string;
+  add: string;
+  mergeTitle: string;
+  mergeDescription: string;
+  mergeSourcePlaceholder: string;
+  mergeDestPlaceholder: string;
+  merging: string;
+  mergeButton: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Blog tags",
+    description:
+      "Rename, delete, and merge tags. Renaming the slug rewrites every post that references it; merging moves all source-tagged posts onto the destination tag.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can manage blog tags.",
+    tagsHeader: "Tags",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    loadFailed: (status) => `Failed to load tags (${status})`,
+    loadFailedShort: "Failed to load tags",
+    empty: "No tags yet. Add one with the form below.",
+    failedSave: "Failed to save",
+    savedWithRewrite: (count) => `Saved. Rewrote ${count} post(s).`,
+    saved: "Saved.",
+    failedDelete: "Failed to delete",
+    failedCreate: "Failed to create",
+    confirmDeleteWithPosts: (name, l, count) =>
+      `Delete tag "${name}" (${l})? It is used by ${count} post(s); the slug will be removed from each but the posts will not be deleted.`,
+    confirmDelete: (name, l) => `Delete tag "${name}" (${l})?`,
+    pickBoth: "Pick both a source and a destination tag",
+    mustDiffer: "Source and destination must differ",
+    notFound: "Source or destination not found",
+    failedMerge: "Merge failed",
+    confirmMerge: (sName, sLocale, dName, dLocale, count) =>
+      `Merge "${sName}" (${sLocale}) into "${dName}" (${dLocale})? Source tag will be deleted; ${count} post(s) will be rewritten.`,
+    colDisplayName: "Display name",
+    colSlug: "Slug",
+    colLocale: "Locale",
+    colPosts: "Posts",
+    colActions: "Actions",
+    saveShort: "Save",
+    deleteShort: "Delete",
+    newTagTitle: "New tag",
+    newTagNamePlaceholder: "Display name (e.g. Hosting tips)",
+    newTagSlugPlaceholder: "slug (optional)",
+    adding: "Adding…",
+    add: "Add",
+    mergeTitle: "Merge tags",
+    mergeDescription:
+      "Move every post from a source tag onto a destination tag, then delete the source. Both tags must share a locale.",
+    mergeSourcePlaceholder: "Source tag…",
+    mergeDestPlaceholder: "Destination tag…",
+    merging: "Merging…",
+    mergeButton: "Merge",
+  },
+  ru: {
+    title: "Теги блога",
+    description:
+      "Переименование, удаление и объединение тегов. При переименовании slug автоматически обновляется во всех статьях, использующих тег.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может управлять тегами.",
+    tagsHeader: "Теги",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    loadFailed: (status) => `Не удалось загрузить теги (${status})`,
+    loadFailedShort: "Не удалось загрузить теги",
+    empty: "Тегов ещё нет. Добавьте ниже.",
+    failedSave: "Не удалось сохранить",
+    savedWithRewrite: (count) => `Сохранено. Переписано ${count} статей.`,
+    saved: "Сохранено.",
+    failedDelete: "Не удалось удалить",
+    failedCreate: "Не удалось создать",
+    confirmDeleteWithPosts: (name, l, count) =>
+      `Удалить тег «${name}» (${l})? Используется в ${count} статьях; будет убран с каждой, статьи останутся.`,
+    confirmDelete: (name, l) => `Удалить тег «${name}» (${l})?`,
+    pickBoth: "Выберите источник и назначение",
+    mustDiffer: "Источник и назначение должны отличаться",
+    notFound: "Тег не найден",
+    failedMerge: "Не удалось объединить",
+    confirmMerge: (sName, sLocale, dName, dLocale, count) =>
+      `Объединить «${sName}» (${sLocale}) в «${dName}» (${dLocale})? Источник будет удалён; ${count} статей будет переписано.`,
+    colDisplayName: "Название",
+    colSlug: "Слаг",
+    colLocale: "Язык",
+    colPosts: "Статей",
+    colActions: "Действия",
+    saveShort: "Сохр.",
+    deleteShort: "Удал.",
+    newTagTitle: "Новый тег",
+    newTagNamePlaceholder: "Название (например, Советы хостам)",
+    newTagSlugPlaceholder: "слаг (необязательно)",
+    adding: "Добавляется…",
+    add: "Добавить",
+    mergeTitle: "Объединить теги",
+    mergeDescription:
+      "Перенести все статьи с тега-источника на тег-назначение, потом удалить источник. Оба тега должны быть на одном языке.",
+    mergeSourcePlaceholder: "Источник…",
+    mergeDestPlaceholder: "Назначение…",
+    merging: "Объединение…",
+    mergeButton: "Объединить",
+  },
+};
 
 // RT-25.9 tick 22 — Blog tags sub-route at
 // /dashboard/admin/content/blog-tags. Third slice off the long-scroll
@@ -41,6 +180,7 @@ const NAME_MAX = 80;
 
 export default function AdminBlogTagsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [tags, setTags] = useState<BlogTagRow[]>([]);
@@ -78,18 +218,16 @@ export default function AdminBlogTagsPage() {
     try {
       const res = await fetch("/api/admin/blog-tags");
       if (!res.ok) {
-        setError(
-          locale === "ru" ? `Не удалось загрузить теги (${res.status})` : `Failed to load tags (${res.status})`,
-        );
+        setError(t.loadFailed(res.status));
         return;
       }
       const data = (await res.json()) as BlogTagRow[];
       setTags(data);
       const next: Record<number, { slug: string; displayName: string }> = {};
-      for (const t of data) next[t.id] = { slug: t.slug, displayName: t.displayName };
+      for (const tag of data) next[tag.id] = { slug: tag.slug, displayName: tag.displayName };
       setDrafts(next);
     } catch {
-      setError(locale === "ru" ? "Не удалось загрузить теги" : "Failed to load tags");
+      setError(t.loadFailedShort);
     } finally {
       setLoading(false);
     }
@@ -120,7 +258,7 @@ export default function AdminBlogTagsPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           id,
-          text: data.error ?? (locale === "ru" ? "Не удалось сохранить" : "Failed to save"),
+          text: data.error ?? t.failedSave,
           ok: false,
         });
         return;
@@ -128,14 +266,7 @@ export default function AdminBlogTagsPage() {
       const data = (await res.json()) as { rewrittenPosts: number };
       setMessage({
         id,
-        text:
-          data.rewrittenPosts > 0
-            ? locale === "ru"
-              ? `Сохранено. Переписано ${data.rewrittenPosts} статей.`
-              : `Saved. Rewrote ${data.rewrittenPosts} post(s).`
-            : locale === "ru"
-              ? "Сохранено."
-              : "Saved.",
+        text: data.rewrittenPosts > 0 ? t.savedWithRewrite(data.rewrittenPosts) : t.saved,
         ok: true,
       });
       await load();
@@ -148,12 +279,8 @@ export default function AdminBlogTagsPage() {
   const remove = async (row: BlogTagRow) => {
     const warn =
       row.postCount > 0
-        ? locale === "ru"
-          ? `Удалить тег «${row.displayName}» (${row.locale})? Используется в ${row.postCount} статьях; будет убран с каждой, статьи останутся.`
-          : `Delete tag "${row.displayName}" (${row.locale})? It is used by ${row.postCount} post(s); the slug will be removed from each but the posts will not be deleted.`
-        : locale === "ru"
-          ? `Удалить тег «${row.displayName}» (${row.locale})?`
-          : `Delete tag "${row.displayName}" (${row.locale})?`;
+        ? t.confirmDeleteWithPosts(row.displayName, row.locale, row.postCount)
+        : t.confirmDelete(row.displayName, row.locale);
     if (!confirm(warn)) return;
     setBusy(row.id);
     try {
@@ -162,7 +289,7 @@ export default function AdminBlogTagsPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           id: row.id,
-          text: data.error ?? (locale === "ru" ? "Не удалось удалить" : "Failed to delete"),
+          text: data.error ?? t.failedDelete,
           ok: false,
         });
         return;
@@ -184,9 +311,7 @@ export default function AdminBlogTagsPage() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setCreateError(
-          data.error ?? (locale === "ru" ? "Не удалось создать" : "Failed to create"),
-        );
+        setCreateError(data.error ?? t.failedCreate);
         return;
       }
       setNewTag(EMPTY_NEW_TAG);
@@ -200,28 +325,26 @@ export default function AdminBlogTagsPage() {
     const sourceId = Number(mergeSourceId);
     const destId = Number(mergeDestId);
     if (!Number.isInteger(sourceId) || sourceId <= 0 || !Number.isInteger(destId) || destId <= 0) {
-      setMergeError(
-        locale === "ru" ? "Выберите источник и назначение" : "Pick both a source and a destination tag",
-      );
+      setMergeError(t.pickBoth);
       return;
     }
     if (sourceId === destId) {
-      setMergeError(
-        locale === "ru" ? "Источник и назначение должны отличаться" : "Source and destination must differ",
-      );
+      setMergeError(t.mustDiffer);
       return;
     }
-    const source = tags.find((t) => t.id === sourceId);
-    const dest = tags.find((t) => t.id === destId);
+    const source = tags.find((tag) => tag.id === sourceId);
+    const dest = tags.find((tag) => tag.id === destId);
     if (!source || !dest) {
-      setMergeError(locale === "ru" ? "Тег не найден" : "Source or destination not found");
+      setMergeError(t.notFound);
       return;
     }
-    const confirmText =
-      locale === "ru"
-        ? `Объединить «${source.displayName}» (${source.locale}) в «${dest.displayName}» (${dest.locale})? Источник будет удалён; ${source.postCount} статей будет переписано.`
-        : `Merge "${source.displayName}" (${source.locale}) into "${dest.displayName}" (${dest.locale})? Source tag will be deleted; ${source.postCount} post(s) will be rewritten.`;
-    if (!confirm(confirmText)) return;
+    if (
+      !confirm(
+        t.confirmMerge(source.displayName, source.locale, dest.displayName, dest.locale, source.postCount),
+      )
+    ) {
+      return;
+    }
     setMerging(true);
     setMergeError(null);
     try {
@@ -232,7 +355,7 @@ export default function AdminBlogTagsPage() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setMergeError(data.error ?? (locale === "ru" ? "Не удалось объединить" : "Merge failed"));
+        setMergeError(data.error ?? t.failedMerge);
         return;
       }
       setMergeSourceId("");
@@ -247,24 +370,20 @@ export default function AdminBlogTagsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Теги блога" : "Blog tags"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Переименование, удаление и объединение тегов. При переименовании slug автоматически обновляется во всех статьях, использующих тег."
-            : "Rename, delete, and merge tags. Renaming the slug rewrites every post that references it; merging moves all source-tagged posts onto the destination tag."}
+          {t.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может управлять тегами."
-            : "Only superadmins can manage blog tags."}
+          {t.notSuperadmin}
         </div>
       ) : (
         <>
@@ -272,7 +391,7 @@ export default function AdminBlogTagsPage() {
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-2">
             <div className="flex items-center justify-between px-3 pb-1 pt-2">
               <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-                {locale === "ru" ? "Теги" : "Tags"}
+                {t.tagsHeader}
                 {tags.length > 0 && ` · ${tags.length}`}
               </span>
               <button
@@ -281,20 +400,14 @@ export default function AdminBlogTagsPage() {
                 disabled={loading}
                 className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
               >
-                {loading
-                  ? locale === "ru"
-                    ? "Обновляется..."
-                    : "Refreshing..."
-                  : locale === "ru"
-                  ? "Обновить"
-                  : "Refresh"}
+                {loading ? t.refreshing : t.refresh}
               </button>
             </div>
 
             {error && <p className="px-3 py-2 text-xs text-rose-300">{error}</p>}
             {!error && tags.length === 0 && !loading && (
               <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
-                {locale === "ru" ? "Тегов ещё нет. Добавьте ниже." : "No tags yet. Add one with the form below."}
+                {t.empty}
               </p>
             )}
 
@@ -304,15 +417,15 @@ export default function AdminBlogTagsPage() {
                   <thead>
                     <tr className="border-b border-[var(--line)]/50 text-left text-[10px] uppercase tracking-wide text-[var(--ink-4)]">
                       <th className="px-3 py-2 font-medium">
-                        {locale === "ru" ? "Название" : "Display name"}
+                        {t.colDisplayName}
                       </th>
-                      <th className="px-3 py-2 font-medium">{locale === "ru" ? "Слаг" : "Slug"}</th>
-                      <th className="px-3 py-2 font-medium">{locale === "ru" ? "Язык" : "Locale"}</th>
+                      <th className="px-3 py-2 font-medium">{t.colSlug}</th>
+                      <th className="px-3 py-2 font-medium">{t.colLocale}</th>
                       <th className="px-3 py-2 text-right font-medium">
-                        {locale === "ru" ? "Статей" : "Posts"}
+                        {t.colPosts}
                       </th>
                       <th className="px-3 py-2 text-right font-medium">
-                        {locale === "ru" ? "Действия" : "Actions"}
+                        {t.colActions}
                       </th>
                     </tr>
                   </thead>
@@ -356,7 +469,7 @@ export default function AdminBlogTagsPage() {
                                 disabled={busy === tag.id || !dirty}
                                 className="rounded-md bg-[var(--ink)] px-2.5 py-1 text-[11px] font-medium text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-40"
                               >
-                                {locale === "ru" ? "Сохр." : "Save"}
+                                {t.saveShort}
                               </button>
                               <button
                                 type="button"
@@ -364,7 +477,7 @@ export default function AdminBlogTagsPage() {
                                 disabled={busy === tag.id}
                                 className="rounded-md px-2 py-1 text-[11px] text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
                               >
-                                {locale === "ru" ? "Удал." : "Delete"}
+                                {t.deleteShort}
                               </button>
                             </div>
                             {message?.id === tag.id && (
@@ -389,14 +502,14 @@ export default function AdminBlogTagsPage() {
           {/* New tag */}
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
             <p className="mb-3 text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Новый тег" : "New tag"}
+              {t.newTagTitle}
             </p>
             <div className="grid gap-3 sm:grid-cols-[1fr_180px_120px_auto]">
               <input
                 type="text"
                 value={newTag.displayName}
                 onChange={(e) => setNewTag((s) => ({ ...s, displayName: e.target.value }))}
-                placeholder={locale === "ru" ? "Название (например, Советы хостам)" : "Display name (e.g. Hosting tips)"}
+                placeholder={t.newTagNamePlaceholder}
                 maxLength={NAME_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
               />
@@ -404,7 +517,7 @@ export default function AdminBlogTagsPage() {
                 type="text"
                 value={newTag.slug}
                 onChange={(e) => setNewTag((s) => ({ ...s, slug: e.target.value }))}
-                placeholder={locale === "ru" ? "слаг (необязательно)" : "slug (optional)"}
+                placeholder={t.newTagSlugPlaceholder}
                 maxLength={SLUG_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 font-mono text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
               />
@@ -422,13 +535,7 @@ export default function AdminBlogTagsPage() {
                 disabled={creating || newTag.displayName.trim().length === 0}
                 className="h-9 rounded-md bg-[var(--ink)] px-4 text-sm font-medium text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                {creating
-                  ? locale === "ru"
-                    ? "Добавляется…"
-                    : "Adding…"
-                  : locale === "ru"
-                  ? "Добавить"
-                  : "Add"}
+                {creating ? t.adding : t.add}
               </button>
             </div>
             {createError && <p className="mt-2 text-xs text-rose-300">{createError}</p>}
@@ -437,12 +544,10 @@ export default function AdminBlogTagsPage() {
           {/* Merge tags */}
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
             <p className="mb-1 text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Объединить теги" : "Merge tags"}
+              {t.mergeTitle}
             </p>
             <p className="mb-4 text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Перенести все статьи с тега-источника на тег-назначение, потом удалить источник. Оба тега должны быть на одном языке."
-                : "Move every post from a source tag onto a destination tag, then delete the source. Both tags must share a locale."}
+              {t.mergeDescription}
             </p>
             <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
               <select
@@ -450,10 +555,10 @@ export default function AdminBlogTagsPage() {
                 onChange={(e) => setMergeSourceId(e.target.value)}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
               >
-                <option value="">{locale === "ru" ? "Источник…" : "Source tag…"}</option>
-                {tags.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.displayName} · {t.locale} · {t.postCount}
+                <option value="">{t.mergeSourcePlaceholder}</option>
+                {tags.map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.displayName} · {tag.locale} · {tag.postCount}
                   </option>
                 ))}
               </select>
@@ -462,10 +567,10 @@ export default function AdminBlogTagsPage() {
                 onChange={(e) => setMergeDestId(e.target.value)}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
               >
-                <option value="">{locale === "ru" ? "Назначение…" : "Destination tag…"}</option>
-                {tags.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.displayName} · {t.locale} · {t.postCount}
+                <option value="">{t.mergeDestPlaceholder}</option>
+                {tags.map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.displayName} · {tag.locale} · {tag.postCount}
                   </option>
                 ))}
               </select>
@@ -475,13 +580,7 @@ export default function AdminBlogTagsPage() {
                 disabled={merging || !mergeSourceId || !mergeDestId}
                 className="h-9 rounded-md bg-[var(--ink)] px-4 text-sm font-medium text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                {merging
-                  ? locale === "ru"
-                    ? "Объединение…"
-                    : "Merging…"
-                  : locale === "ru"
-                  ? "Объединить"
-                  : "Merge"}
+                {merging ? t.merging : t.mergeButton}
               </button>
             </div>
             {mergeError && <p className="mt-2 text-xs text-rose-300">{mergeError}</p>}

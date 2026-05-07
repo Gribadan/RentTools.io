@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 12 — Site settings sub-route at
 // /dashboard/admin/workspace/site-settings. Lifts the "Admin · Site
@@ -20,8 +21,8 @@ interface MeResponse {
 
 interface FieldDef {
   key: string;
-  label: { en: string; ru: string };
-  hint: { en: string; ru: string };
+  label: Record<Locale, string>;
+  hint: Record<Locale, string>;
   type: "toggle" | "number" | "text" | "email";
   defaultValue: string;
 }
@@ -69,8 +70,49 @@ const FIELDS: ReadonlyArray<FieldDef> = [
   },
 ];
 
+interface CopyShape {
+  saved: string;
+  failedToSave: string;
+  title: string;
+  subtitle: string;
+  loading: string;
+  notSuperadmin: string;
+  enabled: string;
+  disabled: string;
+  saving: string;
+  save: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    saved: "Saved. Cached settings refresh within 60s.",
+    failedToSave: "Failed to save",
+    title: "Site settings",
+    subtitle: "Instance-wide settings that affect public pages and user quotas.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can edit instance-wide site settings.",
+    enabled: "Enabled",
+    disabled: "Disabled",
+    saving: "Saving",
+    save: "Save",
+  },
+  ru: {
+    saved: "Сохранено. Кэш обновится в течение 60 сек.",
+    failedToSave: "Не удалось сохранить",
+    title: "Настройки сайта",
+    subtitle: "Глобальные настройки инстанса, влияющие на публичные страницы и квоты пользователей.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может изменять глобальные настройки сайта.",
+    enabled: "Включено",
+    disabled: "Отключено",
+    saving: "Сохр...",
+    save: "Сохранить",
+  },
+};
+
 export default function AdminSiteSettingsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [settings, setSettings] = useState<SiteSettingsMap>({});
@@ -117,7 +159,7 @@ export default function AdminSiteSettingsPage() {
     if (res.ok) {
       setMessage({
         key,
-        text: locale === "ru" ? "Сохранено. Кэш обновится в течение 60 сек." : "Saved. Cached settings refresh within 60s.",
+        text: t.saved,
         ok: true,
       });
       await load();
@@ -125,7 +167,7 @@ export default function AdminSiteSettingsPage() {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       setMessage({
         key,
-        text: data.error ?? (locale === "ru" ? "Не удалось сохранить" : "Failed to save"),
+        text: data.error ?? t.failedToSave,
         ok: false,
       });
     }
@@ -136,24 +178,20 @@ export default function AdminSiteSettingsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Настройки сайта" : "Site settings"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Глобальные настройки инстанса, влияющие на публичные страницы и квоты пользователей."
-            : "Instance-wide settings that affect public pages and user quotas."}
+          {t.subtitle}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может изменять глобальные настройки сайта."
-            : "Only superadmins can edit instance-wide site settings."}
+          {t.notSuperadmin}
         </div>
       ) : (
         <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
@@ -161,8 +199,8 @@ export default function AdminSiteSettingsPage() {
             const draft = drafts[f.key] ?? f.defaultValue;
             const saved = settings[f.key]?.value ?? f.defaultValue;
             const dirty = draft !== saved;
-            const label = locale === "ru" ? f.label.ru : f.label.en;
-            const hint = locale === "ru" ? f.hint.ru : f.hint.en;
+            const label = f.label[locale];
+            const hint = f.hint[locale];
             return (
               <div
                 key={f.key}
@@ -187,8 +225,8 @@ export default function AdminSiteSettingsPage() {
                       onChange={(e) => setDrafts((d) => ({ ...d, [f.key]: e.target.value }))}
                       className="h-10 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)]"
                     >
-                      <option value="true">{locale === "ru" ? "Включено" : "Enabled"}</option>
-                      <option value="false">{locale === "ru" ? "Отключено" : "Disabled"}</option>
+                      <option value="true">{t.enabled}</option>
+                      <option value="false">{t.disabled}</option>
                     </select>
                   ) : (
                     <input
@@ -205,13 +243,7 @@ export default function AdminSiteSettingsPage() {
                     disabled={!dirty || savingKey === f.key}
                     className="h-10 rounded-md bg-[var(--m-accent)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-60"
                   >
-                    {savingKey === f.key
-                      ? locale === "ru"
-                        ? "Сохр..."
-                        : "Saving"
-                      : locale === "ru"
-                      ? "Сохранить"
-                      : "Save"}
+                    {savingKey === f.key ? t.saving : t.save}
                   </button>
                 </div>
               </div>

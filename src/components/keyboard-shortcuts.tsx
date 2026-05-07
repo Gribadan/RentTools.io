@@ -2,11 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 interface Shortcut {
   keys: string[];
-  description: { en: string; ru: string };
+  description: Record<Locale, string>;
 }
+
+interface CopyShape {
+  title: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { title: "Keyboard shortcuts" },
+  ru: { title: "Горячие клавиши" },
+};
 
 const SHORTCUTS: Shortcut[] = [
   {
@@ -61,6 +71,7 @@ function isTypingTarget(t: EventTarget | null): boolean {
 
 export function KeyboardShortcuts() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -95,7 +106,7 @@ export function KeyboardShortcuts() {
       >
         <div className="flex items-center justify-between border-b border-[var(--line)] px-4 py-3">
           <h2 className="text-sm font-semibold text-[var(--ink)]">
-            {locale === "ru" ? "Горячие клавиши" : "Keyboard shortcuts"}
+            {t.title}
           </h2>
           <button
             onClick={() => setOpen(false)}
@@ -110,7 +121,7 @@ export function KeyboardShortcuts() {
         <ul className="divide-y divide-[#27272b]">
           {SHORTCUTS.map((s, i) => (
             <li key={i} className="flex items-center justify-between px-4 py-2.5 text-xs">
-              <span className="text-[var(--ink-2)]">{s.description[locale === "ru" ? "ru" : "en"]}</span>
+              <span className="text-[var(--ink-2)]">{s.description[locale]}</span>
               <span className="flex items-center gap-1">
                 {s.keys.map((k) => (
                   <kbd

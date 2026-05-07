@@ -2,6 +2,62 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  nameAndBodyRequired: string;
+  confirmDelete: string;
+  title: string;
+  newTemplate: string;
+  namePlaceholder: string;
+  subjectPlaceholder: string;
+  bodyPlaceholder: string;
+  variables: string;
+  offsetLabel: string;
+  preview: string;
+  cancel: string;
+  save: string;
+  empty: string;
+  edit: string;
+  remove: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    nameAndBodyRequired: "Name and body are required",
+    confirmDelete: "Delete this template?",
+    title: "Message templates",
+    newTemplate: "New template",
+    namePlaceholder: "Template name",
+    subjectPlaceholder: "Subject (optional)",
+    bodyPlaceholder: "Message body",
+    variables: "Variables:",
+    offsetLabel: "Offset days from check-in",
+    preview: "Preview",
+    cancel: "Cancel",
+    save: "Save",
+    empty: "No templates yet.",
+    edit: "Edit",
+    remove: "Delete",
+  },
+  ru: {
+    nameAndBodyRequired: "Имя и текст обязательны",
+    confirmDelete: "Удалить шаблон?",
+    title: "Шаблоны сообщений",
+    newTemplate: "Новый шаблон",
+    namePlaceholder: "Название",
+    subjectPlaceholder: "Тема (опц.)",
+    bodyPlaceholder: "Текст сообщения",
+    variables: "Переменные:",
+    offsetLabel: "Отправлять (дни до/после заезда)",
+    preview: "Превью",
+    cancel: "Отмена",
+    save: "Сохранить",
+    empty: "Шаблоны сообщений не созданы.",
+    edit: "Изменить",
+    remove: "Удалить",
+  },
+};
 
 interface MessageTemplate {
   id: number;
@@ -35,6 +91,7 @@ function renderTemplate(input: string, vars: Record<string, string>): string {
 
 export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps) {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [editingId, setEditingId] = useState<number | "new" | null>(null);
   const [name, setName] = useState("");
@@ -83,7 +140,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
 
   const save = async () => {
     if (!name.trim() || !bodyText.trim()) {
-      setError(locale === "ru" ? "Имя и текст обязательны" : "Name and body are required");
+      setError(c.nameAndBodyRequired);
       return;
     }
     setBusy(true);
@@ -128,7 +185,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
   };
 
   const remove = async (id: number) => {
-    if (!confirm(locale === "ru" ? "Удалить шаблон?" : "Delete this template?")) return;
+    if (!confirm(c.confirmDelete)) return;
     await fetch(`/api/message-templates/${id}`, { method: "DELETE" });
     await refresh();
   };
@@ -141,14 +198,14 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
     <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[var(--ink)]">
-          {locale === "ru" ? "Шаблоны сообщений" : "Message templates"}
+          {c.title}
         </h3>
         {editingId === null && (
           <button
             onClick={startCreate}
             className="rounded-md border border-[var(--line-2)] px-2 py-1 text-xs text-[var(--ink)] hover:bg-[var(--line-2)]"
           >
-            {locale === "ru" ? "Новый шаблон" : "New template"}
+            {c.newTemplate}
           </button>
         )}
       </div>
@@ -159,7 +216,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={locale === "ru" ? "Название" : "Template name"}
+              placeholder={c.namePlaceholder}
               className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
             />
             <select
@@ -174,19 +231,19 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder={locale === "ru" ? "Тема (опц.)" : "Subject (optional)"}
+            placeholder={c.subjectPlaceholder}
             className="h-8 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
           />
           <textarea
             value={bodyText}
             onChange={(e) => setBodyText(e.target.value)}
-            placeholder={locale === "ru" ? "Текст сообщения" : "Message body"}
+            placeholder={c.bodyPlaceholder}
             rows={5}
             className="w-full rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 py-1.5 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
           />
           <div className="flex flex-wrap gap-1.5 text-[11px]">
             <span className="text-[var(--ink-4)]">
-              {locale === "ru" ? "Переменные:" : "Variables:"}
+              {c.variables}
             </span>
             {VAR_HINTS.map((v) => (
               <button
@@ -200,7 +257,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
           </div>
           <div className="flex items-center gap-2 text-xs">
             <span className="text-[var(--ink-3)]">
-              {locale === "ru" ? "Отправлять (дни до/после заезда)" : "Offset days from check-in"}
+              {c.offsetLabel}
             </span>
             <input
               type="number"
@@ -213,7 +270,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
           {bodyText && (
             <div className="rounded-md border border-[var(--line)] bg-[var(--bg)] p-2 text-xs">
               <div className="mb-1 text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-                {locale === "ru" ? "Превью" : "Preview"}
+                {c.preview}
               </div>
               {subject && (
                 <div className="mb-1 font-semibold text-[var(--ink)]">
@@ -234,14 +291,14 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
               disabled={busy}
               className="rounded-md px-2 py-1 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]"
             >
-              {locale === "ru" ? "Отмена" : "Cancel"}
+              {c.cancel}
             </button>
             <button
               onClick={save}
               disabled={busy}
               className="rounded-md bg-[var(--m-accent)] px-3 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
-              {locale === "ru" ? "Сохранить" : "Save"}
+              {c.save}
             </button>
           </div>
         </div>
@@ -249,9 +306,7 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
 
       {templates.length === 0 ? (
         <p className="text-xs text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Шаблоны сообщений не созданы."
-            : "No templates yet."}
+          {c.empty}
         </p>
       ) : (
         <ul className="space-y-1.5">
@@ -274,13 +329,13 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
                   onClick={() => startEdit(t)}
                   className="rounded px-2 py-1 text-[var(--ink-3)] hover:text-[var(--ink)]"
                 >
-                  {locale === "ru" ? "Изменить" : "Edit"}
+                  {c.edit}
                 </button>
                 <button
                   onClick={() => remove(t.id)}
                   className="rounded px-2 py-1 text-rose-500 hover:bg-rose-500/10"
                 >
-                  {locale === "ru" ? "Удалить" : "Delete"}
+                  {c.remove}
                 </button>
               </div>
             </li>

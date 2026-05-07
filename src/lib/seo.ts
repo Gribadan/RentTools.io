@@ -17,7 +17,13 @@ export interface SeoData {
   canonical: string | null;
 }
 
-export type SeoLocale = "en" | "ru";
+// Aliased to the canonical `Locale` union so SEO override storage keys
+// and the i18n locale set never drift out of sync. Adding a new value
+// to Locale automatically widens SeoLocale and forces every caller of
+// isValidSeoLocale() below to keep accepting it.
+import type { Locale } from "@/lib/i18n/translations";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
+export type SeoLocale = Locale;
 
 const CACHE_TTL_MS = 60_000;
 
@@ -63,7 +69,7 @@ export function normalizeSeoPath(input: string): string {
 
 /** True iff the locale is one of the supported codes. */
 export function isValidSeoLocale(locale: string): locale is SeoLocale {
-  return locale === "en" || locale === "ru";
+  return (SUPPORTED_LOCALES as readonly string[]).includes(locale);
 }
 
 async function loadCache(): Promise<CacheState> {

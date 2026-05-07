@@ -43,6 +43,7 @@ const HOME_META: Record<Locale, { title: string; description: string }> = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const { localizedAlternates, SUPPORTED_LOCALES } = await import("@/lib/i18n/alternates");
+  const { toOgLocale } = await import("@/lib/i18n/locale-tags");
   const locale = await getLocale();
   const alts = localizedAlternates("/", locale);
   const meta = HOME_META[locale];
@@ -51,8 +52,8 @@ export async function generateMetadata(): Promise<Metadata> {
   // Google uses `<link rel="alternate" hreflang>`.
   const alternateLocale = SUPPORTED_LOCALES
     .filter((l) => l !== locale)
-    .map((l) => (l === "ru" ? "ru_RU" : "en_US"));
-  const ogLocale = locale === "ru" ? "ru_RU" : "en_US";
+    .map(toOgLocale);
+  const ogLocale = toOgLocale(locale);
   return applySeoOverrides<Metadata>(
     {
       title: meta.title,

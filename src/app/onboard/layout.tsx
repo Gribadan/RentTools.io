@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
 import { localizedAlternates } from "@/lib/i18n/alternates";
+import { toOgLocale } from "@/lib/i18n/locale-tags";
+import type { Locale } from "@/lib/i18n/translations";
 
 // Per-locale title/description so the SERP entry actually reads as
 // native copy in each market. Title length stays under ~60 chars
 // (Google truncation point) in both languages.
-const ONBOARD_COPY: Record<"en" | "ru", { title: string; description: string }> = {
+const ONBOARD_COPY: Record<Locale, { title: string; description: string }> = {
   en: {
     title: "Get started — sync your calendars in 30 seconds",
     description:
@@ -23,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await getLocale();
   const copy = ONBOARD_COPY[locale];
   const alts = localizedAlternates("/onboard", locale);
+  const ogLocale = toOgLocale(locale);
   const base: Metadata = {
     title: copy.title,
     description: copy.description,
@@ -33,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: copy.description,
       url: alts.canonical,
       siteName: "RentTools",
-      locale: locale === "ru" ? "ru_RU" : "en_US",
+      locale: ogLocale,
     },
     twitter: {
       card: "summary_large_image",

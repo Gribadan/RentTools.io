@@ -9,7 +9,97 @@ import { GuestFormBuilder } from "@/components/guest-form-builder";
 import { PropertySwitcher } from "@/components/property-switcher";
 import { PlatformInstructions } from "@/components/platform-instructions";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { CalendarLink, Property, SyncLogEntry } from "@/lib/types";
+
+interface CopyShape {
+  save: string;
+  cancel: string;
+  rename: string;
+  platformName: string;
+  custom: string;
+  remove: string;
+  draftImportHint: string;
+  addAnother: string;
+  daysShort: (n: number) => string;
+  nightsShort: (n: number) => string;
+  monthsShort: string;
+  feedTokenTitle: string;
+  feedTokenDesc: string;
+  feedTokenActiveNote: string;
+  feedTokenPublicNote: string;
+  makePublic: string;
+  rotate: string;
+  generateToken: string;
+  dangerZone: string;
+  dangerZoneDesc: string;
+  confirmDelete: (name: string) => string;
+  deleteProperty: string;
+  dateLocale: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    save: "Save",
+    cancel: "Cancel",
+    rename: "Rename",
+    platformName: "Platform name",
+    custom: "custom",
+    remove: "Remove",
+    draftImportHint: "Name the platform first to get its import URL.",
+    addAnother: "Add another platform",
+    daysShort: (n) => (n !== 1 ? "days" : "day"),
+    nightsShort: (n) => (n !== 1 ? "nights" : "night"),
+    monthsShort: "mo",
+    feedTokenTitle: "Feed access token",
+    feedTokenDesc:
+      "The feed URL lets external services that do not support iCal upload (e.g. price-management tools, channel managers, or your own scripts) read this property's combined Airbnb + Booking calendar in iCal format. Most hosts will not need this — leave the token blank to keep the feed public, or rotate the token to make the URL private.",
+    feedTokenActiveNote:
+      "Your feed URLs currently include a private token. Rotating invalidates the old URL — re-paste the new one wherever it's consumed.",
+    feedTokenPublicNote:
+      "Your feed URLs are currently public. Add a token to make them unguessable.",
+    makePublic: "Make public",
+    rotate: "Rotate",
+    generateToken: "Generate token",
+    dangerZone: "Danger zone",
+    dangerZoneDesc:
+      "Deleting this property removes all of its reservations, guests, passport documents, sync logs, and iCal links. This cannot be undone.",
+    confirmDelete: (name) =>
+      `Delete property "${name}"? This removes all reservations and related data. This cannot be undone.`,
+    deleteProperty: "Delete property",
+    dateLocale: "en-GB",
+  },
+  ru: {
+    save: "Сохранить",
+    cancel: "Отмена",
+    rename: "Переименовать",
+    platformName: "Название платформы",
+    custom: "своё",
+    remove: "Удалить",
+    draftImportHint: "Назовите платформу, чтобы получить ссылку для обратного импорта.",
+    addAnother: "Добавить другую платформу",
+    daysShort: () => "дн.",
+    nightsShort: () => "ноч.",
+    monthsShort: "мес.",
+    feedTokenTitle: "Токен доступа к фиду",
+    feedTokenDesc:
+      "URL фида позволяет внешним сервисам, не поддерживающим загрузку iCal (например, инструментам ценообразования, channel manager-ам или вашим собственным скриптам), читать общий календарь Airbnb + Booking этого объекта в формате iCal. Большинству хостов это не нужно — оставьте поле пустым, чтобы фид оставался публичным, или сгенерируйте токен, чтобы URL был приватным.",
+    feedTokenActiveNote:
+      "Сейчас URL содержит приватный токен. Ротация делает старый URL недействительным — переустановите новый в местах, где он используется.",
+    feedTokenPublicNote:
+      "Сейчас URL фида публичны. Сгенерируйте токен, чтобы их нельзя было угадать.",
+    makePublic: "Сделать публичным",
+    rotate: "Обновить",
+    generateToken: "Сгенерировать токен",
+    dangerZone: "Опасная зона",
+    dangerZoneDesc:
+      "Удаление объекта стирает все его брони, гостей, паспорта, журналы синхронизации и iCal-привязки. Действие необратимо.",
+    confirmDelete: (name) =>
+      `Удалить объект «${name}»? Это удалит все бронирования и связанные данные. Действие необратимо.`,
+    deleteProperty: "Удалить объект",
+    dateLocale: "ru-RU",
+  },
+};
 
 interface TestResult {
   success: boolean;
@@ -38,6 +128,7 @@ interface SyncSettingsProps {
 
 export function SyncSettings({ propertyId, propertyName, properties, minNights, checkInTime, checkOutTime, bookingWindow, ownerUserId, onUpdateProperty, onDeleteProperty }: SyncSettingsProps) {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [logs, setLogs] = useState<SyncLogEntry[]>([]);
   // First-load gate. Without this the page renders the empty-state for
@@ -418,10 +509,10 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 className="h-8 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-sm text-[var(--ink)] outline-none focus:border-[var(--m-accent)]"
               />
               <button type="submit" className="rounded-md bg-[var(--m-accent)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--m-accent-2)]">
-                {locale === "ru" ? "Сохранить" : "Save"}
+                {c.save}
               </button>
               <button type="button" onClick={() => { setRenaming(false); setRenameValue(propertyName); }} className="rounded-md px-3 py-1.5 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]">
-                {locale === "ru" ? "Отмена" : "Cancel"}
+                {c.cancel}
               </button>
             </form>
           ) : (
@@ -429,8 +520,8 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
               <p className="text-sm text-[var(--ink-3)] truncate">{propertyName}</p>
               <button
                 onClick={() => { setRenameValue(propertyName); setRenaming(true); }}
-                title={locale === "ru" ? "Переименовать" : "Rename"}
-                aria-label={locale === "ru" ? "Переименовать" : "Rename"}
+                title={c.rename}
+                aria-label={c.rename}
                 className="rounded p-0.5 text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-colors"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -488,7 +579,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                       autoFocus
                       value={draftRow?.displayName ?? ""}
                       onChange={(e) => updateCustomDraftName(rowId, e.target.value)}
-                      placeholder={locale === "ru" ? "Название платформы" : "Platform name"}
+                      placeholder={c.platformName}
                       className="h-7 min-w-0 flex-1 rounded border border-[var(--line-2)] bg-[var(--bg)] px-2 text-sm font-semibold text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                     />
                   ) : (
@@ -496,7 +587,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                   )}
                   {isCustom && !isDraft && !isPreset && (
                     <span className="rounded-md bg-[var(--bg-3)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
-                      {locale === "ru" ? "своё" : "custom"}
+                      {c.custom}
                     </span>
                   )}
                 </div>
@@ -512,7 +603,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                       type="button"
                       onClick={() => removeCustomDraft(rowId)}
                       className="rounded p-0.5 text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-rose-400"
-                      aria-label={locale === "ru" ? "Удалить" : "Remove"}
+                      aria-label={c.remove}
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -597,7 +688,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 {/* Last sync info */}
                 {link?.lastFetchedAt && (
                   <p className="text-xs text-[var(--ink-4)]">
-                    {t("sync.lastSynced")} {new Date(link.lastFetchedAt).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB")}
+                    {t("sync.lastSynced")} {new Date(link.lastFetchedAt).toLocaleString(c.dateLocale)}
                   </p>
                 )}
 
@@ -622,9 +713,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 </label>
                 {isDraft && !draftRow?.displayName.trim() ? (
                   <p className="text-[11px] italic text-[var(--ink-4)]">
-                    {locale === "ru"
-                      ? "Назовите платформу, чтобы получить ссылку для обратного импорта."
-                      : "Name the platform first to get its import URL."}
+                    {c.draftImportHint}
                   </p>
                 ) : (
                   <div className="flex items-center gap-1.5">
@@ -662,7 +751,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
           <path d="M7 1v12M1 7h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
-        {locale === "ru" ? "Добавить другую платформу" : "Add another platform"}
+        {c.addAnother}
       </button>
 
       {/* Buffer Settings — gated on `!loading` so it doesn't pop in
@@ -704,7 +793,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                           onChange={(e) => handleUpdateBuffer(platform, "bufferBefore", Number(e.target.value))}
                           className="h-7 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-2.5 pr-7 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                         >
-                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "дн." : (n !== 1 ? "days" : "day")}</option>)}
+                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n} {c.daysShort(n)}</option>)}
                         </select>
                         <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                       </div>
@@ -717,7 +806,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                           onChange={(e) => handleUpdateBuffer(platform, "bufferAfter", Number(e.target.value))}
                           className="h-7 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-2.5 pr-7 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                         >
-                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "дн." : (n !== 1 ? "days" : "day")}</option>)}
+                          {[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n} {c.daysShort(n)}</option>)}
                         </select>
                         <svg className="pointer-events-none absolute right-1.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
                       </div>
@@ -756,7 +845,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 onChange={(e) => onUpdateProperty(propertyId, { minNights: Number(e.target.value) })}
                 className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
               >
-                {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {locale === "ru" ? "ноч." : (n !== 1 ? "nights" : "night")}</option>)}
+                {[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n} value={n}>{n} {c.nightsShort(n)}</option>)}
               </select>
               <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
             </div>
@@ -825,7 +914,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
               >
                 {[90, 180, 270, 365, 548, 730].map((n) => (
-                  <option key={n} value={n}>{n} {t("sync.bookingWindowDays")} ({Math.round(n / 30)} {locale === "ru" ? "мес." : "mo"})</option>
+                  <option key={n} value={n}>{n} {t("sync.bookingWindowDays")} ({Math.round(n / 30)} {c.monthsShort})</option>
                 ))}
               </select>
               <svg className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-4)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
@@ -889,21 +978,13 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-sm font-semibold text-[var(--ink)]">
-                {locale === "ru" ? "Токен доступа к фиду" : "Feed access token"}
+                {c.feedTokenTitle}
               </h2>
               <p className="mt-1 text-xs leading-relaxed text-[var(--ink-3)]">
-                {locale === "ru"
-                  ? "URL фида позволяет внешним сервисам, не поддерживающим загрузку iCal (например, инструментам ценообразования, channel manager-ам или вашим собственным скриптам), читать общий календарь Airbnb + Booking этого объекта в формате iCal. Большинству хостов это не нужно — оставьте поле пустым, чтобы фид оставался публичным, или сгенерируйте токен, чтобы URL был приватным."
-                  : "The feed URL lets external services that do not support iCal upload (e.g. price-management tools, channel managers, or your own scripts) read this property's combined Airbnb + Booking calendar in iCal format. Most hosts will not need this — leave the token blank to keep the feed public, or rotate the token to make the URL private."}
+                {c.feedTokenDesc}
               </p>
               <p className="mt-2 text-xs text-[var(--ink-3)]">
-                {feedToken
-                  ? (locale === "ru"
-                      ? "Сейчас URL содержит приватный токен. Ротация делает старый URL недействительным — переустановите новый в местах, где он используется."
-                      : "Your feed URLs currently include a private token. Rotating invalidates the old URL — re-paste the new one wherever it's consumed.")
-                  : (locale === "ru"
-                      ? "Сейчас URL фида публичны. Сгенерируйте токен, чтобы их нельзя было угадать."
-                      : "Your feed URLs are currently public. Add a token to make them unguessable.")}
+                {feedToken ? c.feedTokenActiveNote : c.feedTokenPublicNote}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -913,7 +994,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                   disabled={rotating}
                   className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] hover:text-[var(--ink)] disabled:opacity-40"
                 >
-                  {locale === "ru" ? "Сделать публичным" : "Make public"}
+                  {c.makePublic}
                 </button>
               )}
               <button
@@ -921,11 +1002,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 disabled={rotating}
                 className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40"
               >
-                {rotating
-                  ? "..."
-                  : feedToken
-                    ? (locale === "ru" ? "Обновить" : "Rotate")
-                    : (locale === "ru" ? "Сгенерировать токен" : "Generate token")}
+                {rotating ? "..." : feedToken ? c.rotate : c.generateToken}
               </button>
             </div>
           </div>
@@ -943,26 +1020,20 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           fetchProperties, etc.). */}
       <section className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-5">
         <h2 className="text-sm font-semibold text-[var(--ink)]">
-          {locale === "ru" ? "Опасная зона" : "Danger zone"}
+          {c.dangerZone}
         </h2>
         <p className="mt-1 text-xs text-[var(--ink-3)] leading-relaxed">
-          {locale === "ru"
-            ? "Удаление объекта стирает все его брони, гостей, паспорта, журналы синхронизации и iCal-привязки. Действие необратимо."
-            : "Deleting this property removes all of its reservations, guests, passport documents, sync logs, and iCal links. This cannot be undone."}
+          {c.dangerZoneDesc}
         </p>
         <button
           type="button"
           onClick={() => {
-            const ok = window.confirm(
-              locale === "ru"
-                ? `Удалить объект «${propertyName}»? Это удалит все бронирования и связанные данные. Действие необратимо.`
-                : `Delete property "${propertyName}"? This removes all reservations and related data. This cannot be undone.`
-            );
+            const ok = window.confirm(c.confirmDelete(propertyName));
             if (ok) onDeleteProperty(propertyId);
           }}
           className="mt-3 rounded-md border border-rose-500/40 px-3 py-2 text-sm font-medium text-rose-500 transition-colors hover:bg-rose-500/10"
         >
-          {locale === "ru" ? "Удалить объект" : "Delete property"}
+          {c.deleteProperty}
         </button>
       </section>
     </div>

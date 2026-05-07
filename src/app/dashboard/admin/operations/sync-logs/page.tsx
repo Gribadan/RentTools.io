@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 17 — Sync logs sub-route at
 // /dashboard/admin/operations/sync-logs. Aggregates across all the
@@ -36,8 +37,49 @@ interface PropertyRow {
 
 type LevelFilter = "all" | "issues";
 
+interface CopyShape {
+  failedToLoad: string;
+  dateLocale: string;
+  title: string;
+  subtitle: string;
+  all: string;
+  issuesOnly: string;
+  loading: string;
+  noIssues: string;
+  noEntries: string;
+  global: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    failedToLoad: "Failed to load",
+    dateLocale: "en-GB",
+    title: "Sync logs",
+    subtitle: "Chronological feed of sync events across all your properties. Last 200 entries.",
+    all: "All",
+    issuesOnly: "Issues only",
+    loading: "Loading...",
+    noIssues: "No issues — every sync completed cleanly.",
+    noEntries: "No log entries yet. They'll appear after the first sync run.",
+    global: "global",
+  },
+  ru: {
+    failedToLoad: "Не удалось загрузить",
+    dateLocale: "ru-RU",
+    title: "Логи синхронизации",
+    subtitle: "Хронологическая лента событий синхронизации по всем вашим объектам. Последние 200 записей.",
+    all: "Все",
+    issuesOnly: "Только проблемы",
+    loading: "Загрузка...",
+    noIssues: "Проблем нет — все синхронизации проходят успешно.",
+    noEntries: "Записей пока нет. Они появятся после первой синхронизации.",
+    global: "глобально",
+  },
+};
+
 export default function AdminSyncLogsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [logs, setLogs] = useState<SyncLogRow[]>([]);
   const [props, setProps] = useState<PropertyRow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -59,9 +101,9 @@ export default function AdminSyncLogsPage() {
           setProps(propsData.map((p: { id: number; name: string }) => ({ id: p.id, name: p.name })));
         }
       })
-      .catch(() => setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load"))
+      .catch(() => setError(t.failedToLoad))
       .finally(() => setLoaded(true));
-  }, [locale]);
+  }, [t.failedToLoad]);
 
   const propNameById = useMemo(() => {
     const m = new Map<number, string>();
@@ -78,7 +120,7 @@ export default function AdminSyncLogsPage() {
   const warnCount = logs.filter((l) => l.level === "warn").length;
 
   const formatTime = (iso: string) =>
-    new Date(iso).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", {
+    new Date(iso).toLocaleString(t.dateLocale, {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -97,12 +139,10 @@ export default function AdminSyncLogsPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Логи синхронизации" : "Sync logs"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Хронологическая лента событий синхронизации по всем вашим объектам. Последние 200 записей."
-            : "Chronological feed of sync events across all your properties. Last 200 entries."}
+          {t.subtitle}
         </p>
       </div>
 
@@ -116,7 +156,7 @@ export default function AdminSyncLogsPage() {
               : "text-[var(--ink-3)] hover:bg-[var(--bg-3)]/60"
           }`}
         >
-          {locale === "ru" ? "Все" : "All"}
+          {t.all}
           <span className="ml-1 text-[var(--ink-4)]">({logs.length})</span>
         </button>
         <button
@@ -128,14 +168,14 @@ export default function AdminSyncLogsPage() {
               : "text-[var(--ink-3)] hover:bg-[var(--bg-3)]/60"
           }`}
         >
-          {locale === "ru" ? "Только проблемы" : "Issues only"}
+          {t.issuesOnly}
           <span className="ml-1 text-[var(--ink-4)]">({errorCount + warnCount})</span>
         </button>
       </div>
 
       {!loaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-5 text-sm text-rose-300">
@@ -143,13 +183,7 @@ export default function AdminSyncLogsPage() {
         </div>
       ) : visible.length === 0 ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {filter === "issues"
-            ? locale === "ru"
-              ? "Проблем нет — все синхронизации проходят успешно."
-              : "No issues — every sync completed cleanly."
-            : locale === "ru"
-            ? "Записей пока нет. Они появятся после первой синхронизации."
-            : "No log entries yet. They'll appear after the first sync run."}
+          {filter === "issues" ? t.noIssues : t.noEntries}
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
@@ -174,7 +208,7 @@ export default function AdminSyncLogsPage() {
                     </Link>
                   ) : (
                     <span className="shrink-0 text-xs text-[var(--ink-4)]">
-                      {locale === "ru" ? "глобально" : "global"}
+                      {t.global}
                     </span>
                   )}
                   <span className="min-w-0 flex-1 truncate text-[var(--ink-2)]" title={log.message}>

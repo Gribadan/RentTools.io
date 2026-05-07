@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 7 — Audit log sub-route at
 // /dashboard/admin/workspace/audit. Reuses the same /api/audit
@@ -22,6 +23,31 @@ interface AuditEntry {
 interface AuditResponse {
   entries?: AuditEntry[];
 }
+
+interface CopyShape {
+  dateLocale: string;
+  title: string;
+  subtitle: string;
+  loading: string;
+  empty: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    dateLocale: "en-GB",
+    title: "Audit log",
+    subtitle: "Recent actions tied to your session. The last 50 entries are kept.",
+    loading: "Loading...",
+    empty: "No activity yet.",
+  },
+  ru: {
+    dateLocale: "ru-RU",
+    title: "Журнал действий",
+    subtitle: "Последние действия, привязанные к вашей сессии. Хранится 50 последних записей.",
+    loading: "Загрузка...",
+    empty: "Действий пока нет.",
+  },
+};
 
 function summarize(e: AuditEntry): string {
   if (!e.payload) return `#${e.resourceId}`;
@@ -44,6 +70,7 @@ function actionTone(action: string): string {
 
 export default function AdminAuditPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -58,7 +85,7 @@ export default function AdminAuditPage() {
   }, []);
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", {
+    new Date(iso).toLocaleString(t.dateLocale, {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -69,23 +96,21 @@ export default function AdminAuditPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Журнал действий" : "Audit log"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Последние действия, привязанные к вашей сессии. Хранится 50 последних записей."
-            : "Recent actions tied to your session. The last 50 entries are kept."}
+          {t.subtitle}
         </p>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
         {!loaded ? (
           <div className="px-4 py-6 text-sm text-[var(--ink-4)]">
-            {locale === "ru" ? "Загрузка..." : "Loading..."}
+            {t.loading}
           </div>
         ) : entries.length === 0 ? (
           <div className="px-4 py-6 text-sm text-[var(--ink-4)]">
-            {locale === "ru" ? "Действий пока нет." : "No activity yet."}
+            {t.empty}
           </div>
         ) : (
           <ul className="divide-y divide-[var(--line)]/50">

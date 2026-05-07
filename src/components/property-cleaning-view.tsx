@@ -5,7 +5,27 @@ import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/clean
 import { CleanersPanel } from "@/components/cleaners-panel";
 import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
+
+interface CopyShape {
+  cleaning: string;
+  view: string;
+  includePotentialHint: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    cleaning: "Cleaning",
+    view: "View",
+    includePotentialHint: "Cleanings that only matter if a gap-fill guest books.",
+  },
+  ru: {
+    cleaning: "Уборки",
+    view: "Отображение",
+    includePotentialHint: "Уборки, которые понадобятся только если промежуток будет занят гостем.",
+  },
+};
 
 // View / display options live in the sidebar so they sit alongside the
 // other per-property settings (master toggle, cleaners). Copy + Print
@@ -33,7 +53,8 @@ interface PropertyCleaningViewProps {
 }
 
 export function PropertyCleaningView({ property, properties, onCleaningEnabledChanged }: PropertyCleaningViewProps) {
-  const { t, locale } = useI18n();
+  const { t: tr, locale } = useI18n();
+  const t = COPY[locale];
   const [syncedEvents, setSyncedEvents] = useState<CalendarEvent[]>([]);
   const [links, setLinks] = useState<CalendarLink[]>([]);
   const [overrides, setOverrides] = useState<DateOverride[]>([]);
@@ -147,10 +168,10 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-[var(--ink)]">
-                {t("cleaning.offTitle")}
+                {tr("cleaning.offTitle")}
               </h3>
               <p className="mx-auto mt-1 max-w-md text-xs text-[var(--ink-3)]">
-                {t("cleaning.offDesc")}
+                {tr("cleaning.offDesc")}
               </p>
             </div>
           )}
@@ -164,7 +185,7 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
           <div className="border-b border-[var(--line)] px-5 py-4 space-y-3">
             <div>
               <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">
-                {locale === "ru" ? "Уборки" : "Cleaning"}
+                {t.cleaning}
               </div>
               <div className="mt-0.5 text-base font-semibold text-[var(--ink)] truncate">
                 {property.name}
@@ -184,10 +205,10 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-sm font-medium text-[var(--ink)]">
-                  {t("cleaning.toggleLabel")}
+                  {tr("cleaning.toggleLabel")}
                 </div>
                 <p className="mt-0.5 text-xs text-[var(--ink-3)] leading-relaxed">
-                  {t("cleaning.toggleHint")}
+                  {tr("cleaning.toggleHint")}
                 </p>
               </div>
               <button
@@ -222,7 +243,7 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
           {cleaningEnabled && (
             <div className="px-5 py-4">
               <div className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-2.5">
-                {locale === "ru" ? "Отображение" : "View"}
+                {t.view}
               </div>
               <label className="flex items-start gap-2.5 cursor-pointer select-none">
                 <input
@@ -233,12 +254,10 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium text-[var(--ink)]">
-                    {t("cleaning.includePotential")}
+                    {tr("cleaning.includePotential")}
                   </span>
                   <span className="mt-0.5 block text-xs text-[var(--ink-3)] leading-relaxed">
-                    {locale === "ru"
-                      ? "Уборки, которые понадобятся только если промежуток будет занят гостем."
-                      : "Cleanings that only matter if a gap-fill guest books."}
+                    {t.includePotentialHint}
                   </span>
                 </span>
               </label>

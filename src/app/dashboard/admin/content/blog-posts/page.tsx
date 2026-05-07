@@ -2,6 +2,187 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  statusFilterLabel: string;
+  localeFilterLabel: string;
+  filterAll: string;
+  filterDraft: string;
+  filterPublished: string;
+  filterArchived: string;
+  refreshing: string;
+  refresh: string;
+  loadFailed: (status: number) => string;
+  loadFailedShort: string;
+  failedUpdate: string;
+  updated: string;
+  failedDelete: string;
+  failedCreate: string;
+  confirmDeleteWithComments: (title: string, count: number) => string;
+  confirmDelete: (title: string) => string;
+  selectedCount: (n: number) => string;
+  publish: string;
+  moveToDraft: string;
+  archive: string;
+  clear: string;
+  bulkConfirm: (action: "publish" | "draft" | "archive", count: number) => string;
+  bulkFailed: string;
+  bulkResult: (updated: number, skipped: number) => string;
+  selectAllAria: string;
+  colTitle: string;
+  colLocale: string;
+  colStatus: string;
+  colAuthor: string;
+  colCreated: string;
+  colPublished: string;
+  colComments: string;
+  colActions: string;
+  emptyAll: string;
+  emptyFiltered: string;
+  rowDraft: string;
+  rowPublished: string;
+  rowArchived: string;
+  edit: string;
+  delete: string;
+  shiftClickHint: string;
+  newPostTitle: string;
+  newPostDescription: string;
+  newPostTitlePlaceholder: string;
+  newPostSlugPlaceholder: string;
+  newPostExcerptPlaceholder: string;
+  creating: string;
+  createDraft: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Blog posts",
+    description:
+      "Manage posts: status, metadata, delete, bulk publish. Body, tags, and translation pairing are edited from each post's dedicated editor page.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can manage blog posts.",
+    statusFilterLabel: "Status",
+    localeFilterLabel: "Locale",
+    filterAll: "All",
+    filterDraft: "Draft",
+    filterPublished: "Published",
+    filterArchived: "Archived",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    loadFailed: (status) => `Failed to load blog posts (${status})`,
+    loadFailedShort: "Failed to load blog posts",
+    failedUpdate: "Failed to update",
+    updated: "Updated.",
+    failedDelete: "Failed to delete",
+    failedCreate: "Failed to create",
+    confirmDeleteWithComments: (title, count) =>
+      `Delete "${title}"? This will also remove ${count} comment(s). This cannot be undone.`,
+    confirmDelete: (title) => `Delete "${title}"? This cannot be undone.`,
+    selectedCount: (n) => `${n} selected`,
+    publish: "Publish",
+    moveToDraft: "Move to draft",
+    archive: "Archive",
+    clear: "Clear",
+    bulkConfirm: (action, count) => {
+      const verb = action === "publish" ? "Publish" : action === "archive" ? "Archive" : "Move to draft";
+      return `${verb} ${count} post(s)?`;
+    },
+    bulkFailed: "Bulk update failed",
+    bulkResult: (updated, skipped) =>
+      `Updated ${updated} post(s)${skipped > 0 ? `, skipped ${skipped}` : ""}.`,
+    selectAllAria: "Select all visible posts",
+    colTitle: "Title",
+    colLocale: "Locale",
+    colStatus: "Status",
+    colAuthor: "Author",
+    colCreated: "Created",
+    colPublished: "Published",
+    colComments: "Comments",
+    colActions: "Actions",
+    emptyAll: "No blog posts yet. Use the form below to create your first draft.",
+    emptyFiltered: "No posts match the current filters.",
+    rowDraft: "Draft",
+    rowPublished: "Published",
+    rowArchived: "Archived",
+    edit: "Edit",
+    delete: "Delete",
+    shiftClickHint: "Tip: shift-click a checkbox to select a range.",
+    newPostTitle: "New post",
+    newPostDescription:
+      "Creates a draft. Open the post afterwards to write the body, set tags, pick an OG image, and link a translation pair.",
+    newPostTitlePlaceholder: "Title",
+    newPostSlugPlaceholder: "Slug (optional — derived from title if blank)",
+    newPostExcerptPlaceholder: "Excerpt (140-160 chars, used as meta description)",
+    creating: "Creating…",
+    createDraft: "Create draft",
+  },
+  ru: {
+    title: "Статьи блога",
+    description:
+      "Управление статьями: статус, метаданные, удаление, массовая публикация. Содержимое и теги редактируются на странице редактора каждой статьи.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может управлять статьями блога.",
+    statusFilterLabel: "Статус",
+    localeFilterLabel: "Язык",
+    filterAll: "Все",
+    filterDraft: "Черновик",
+    filterPublished: "Опубликовано",
+    filterArchived: "Архив",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    loadFailed: (status) => `Не удалось загрузить статьи (${status})`,
+    loadFailedShort: "Не удалось загрузить статьи",
+    failedUpdate: "Не удалось обновить",
+    updated: "Обновлено.",
+    failedDelete: "Не удалось удалить",
+    failedCreate: "Не удалось создать",
+    confirmDeleteWithComments: (title, count) =>
+      `Удалить «${title}»? Будет также удалено ${count} комментариев. Действие необратимо.`,
+    confirmDelete: (title) => `Удалить «${title}»? Действие необратимо.`,
+    selectedCount: (n) => `Выбрано ${n}`,
+    publish: "Опубликовать",
+    moveToDraft: "В черновик",
+    archive: "Архив",
+    clear: "Очистить",
+    bulkConfirm: (action, count) => {
+      const verb = action === "publish" ? "Опубликовать" : action === "archive" ? "Архивировать" : "В черновик";
+      return `${verb} ${count} статей?`;
+    },
+    bulkFailed: "Массовое обновление не удалось",
+    bulkResult: (updated, skipped) =>
+      `Обновлено ${updated}${skipped > 0 ? `, пропущено ${skipped}` : ""}.`,
+    selectAllAria: "Выбрать всё видимое",
+    colTitle: "Заголовок",
+    colLocale: "Язык",
+    colStatus: "Статус",
+    colAuthor: "Автор",
+    colCreated: "Создано",
+    colPublished: "Опубл.",
+    colComments: "Комм.",
+    colActions: "Действия",
+    emptyAll: "Статей ещё нет. Создайте черновик ниже.",
+    emptyFiltered: "Нет статей под текущие фильтры.",
+    rowDraft: "Черновик",
+    rowPublished: "Опубл.",
+    rowArchived: "Архив",
+    edit: "Редакт.",
+    delete: "Удал.",
+    shiftClickHint: "Подсказка: shift-клик по чекбоксу выделяет диапазон.",
+    newPostTitle: "Новая статья",
+    newPostDescription:
+      "Создаётся черновик. Откройте статью, чтобы написать тело, выбрать теги, OG-картинку и связать перевод.",
+    newPostTitlePlaceholder: "Заголовок",
+    newPostSlugPlaceholder: "Слаг (необязательно — генерируется из заголовка)",
+    newPostExcerptPlaceholder: "Анонс (140-160 символов, используется как meta description)",
+    creating: "Создаётся…",
+    createDraft: "Создать черновик",
+  },
+};
 
 // RT-25.9 tick 23 — Blog posts sub-route at
 // /dashboard/admin/content/blog-posts. Final slice of the long-scroll
@@ -67,6 +248,7 @@ function formatDate(iso: string | null): string {
 
 export default function AdminBlogPostsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [posts, setPosts] = useState<BlogPostRow[]>([]);
@@ -107,17 +289,13 @@ export default function AdminBlogPostsPage() {
     try {
       const res = await fetch("/api/admin/blog-posts");
       if (!res.ok) {
-        setError(
-          locale === "ru"
-            ? `Не удалось загрузить статьи (${res.status})`
-            : `Failed to load blog posts (${res.status})`,
-        );
+        setError(t.loadFailed(res.status));
         return;
       }
       const data = (await res.json()) as BlogPostRow[];
       setPosts(data);
     } catch {
-      setError(locale === "ru" ? "Не удалось загрузить статьи" : "Failed to load blog posts");
+      setError(t.loadFailedShort);
     } finally {
       setLoading(false);
     }
@@ -137,14 +315,14 @@ export default function AdminBlogPostsPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           id: post.id,
-          text: data.error ?? (locale === "ru" ? "Не удалось обновить" : "Failed to update"),
+          text: data.error ?? t.failedUpdate,
           ok: false,
         });
         return;
       }
       setMessage({
         id: post.id,
-        text: locale === "ru" ? "Обновлено." : "Updated.",
+        text: t.updated,
         ok: true,
       });
       await load();
@@ -157,12 +335,8 @@ export default function AdminBlogPostsPage() {
   const remove = async (post: BlogPostRow) => {
     const warn =
       post.commentCount > 0
-        ? locale === "ru"
-          ? `Удалить «${post.title}»? Будет также удалено ${post.commentCount} комментариев. Действие необратимо.`
-          : `Delete "${post.title}"? This will also remove ${post.commentCount} comment(s). This cannot be undone.`
-        : locale === "ru"
-          ? `Удалить «${post.title}»? Действие необратимо.`
-          : `Delete "${post.title}"? This cannot be undone.`;
+        ? t.confirmDeleteWithComments(post.title, post.commentCount)
+        : t.confirmDelete(post.title);
     if (!confirm(warn)) return;
     setBusy(post.id);
     try {
@@ -171,7 +345,7 @@ export default function AdminBlogPostsPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           id: post.id,
-          text: data.error ?? (locale === "ru" ? "Не удалось удалить" : "Failed to delete"),
+          text: data.error ?? t.failedDelete,
           ok: false,
         });
         return;
@@ -193,9 +367,7 @@ export default function AdminBlogPostsPage() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setCreateError(
-          data.error ?? (locale === "ru" ? "Не удалось создать" : "Failed to create"),
-        );
+        setCreateError(data.error ?? t.failedCreate);
         return;
       }
       setNewPost(EMPTY_NEW_POST);
@@ -278,13 +450,8 @@ export default function AdminBlogPostsPage() {
   const bulkSetStatus = async (status: "draft" | "published" | "archived") => {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    const verbEn = status === "published" ? "Publish" : status === "archived" ? "Archive" : "Move to draft";
-    const verbRu = status === "published" ? "Опубликовать" : status === "archived" ? "Архивировать" : "В черновик";
-    const confirmText =
-      locale === "ru"
-        ? `${verbRu} ${ids.length} статей?`
-        : `${verbEn} ${ids.length} post(s)?`;
-    if (!confirm(confirmText)) return;
+    const action = status === "published" ? "publish" : status === "archived" ? "archive" : "draft";
+    if (!confirm(t.bulkConfirm(action, ids.length))) return;
     setBulkBusy(true);
     setBulkMessage(null);
     try {
@@ -296,17 +463,14 @@ export default function AdminBlogPostsPage() {
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setBulkMessage({
-          text: data.error ?? (locale === "ru" ? "Массовое обновление не удалось" : "Bulk update failed"),
+          text: data.error ?? t.bulkFailed,
           ok: false,
         });
         return;
       }
       const data = (await res.json()) as { updated: number; skipped: number[] };
       setBulkMessage({
-        text:
-          locale === "ru"
-            ? `Обновлено ${data.updated}${data.skipped.length > 0 ? `, пропущено ${data.skipped.length}` : ""}.`
-            : `Updated ${data.updated} post(s)${data.skipped.length > 0 ? `, skipped ${data.skipped.length}` : ""}.`,
+        text: t.bulkResult(data.updated, data.skipped.length),
         ok: true,
       });
       clearSelection();
@@ -321,31 +485,27 @@ export default function AdminBlogPostsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Статьи блога" : "Blog posts"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Управление статьями: статус, метаданные, удаление, массовая публикация. Содержимое и теги редактируются на странице редактора каждой статьи."
-            : "Manage posts: status, metadata, delete, bulk publish. Body, tags, and translation pairing are edited from each post's dedicated editor page."}
+          {t.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может управлять статьями блога."
-            : "Only superadmins can manage blog posts."}
+          {t.notSuperadmin}
         </div>
       ) : (
         <>
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-xs text-[var(--ink-4)]" htmlFor="post-status">
-              {locale === "ru" ? "Статус" : "Status"}
+              {t.statusFilterLabel}
             </label>
             <select
               id="post-status"
@@ -353,13 +513,13 @@ export default function AdminBlogPostsPage() {
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
               className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
             >
-              <option value="all">{locale === "ru" ? "Все" : "All"}</option>
-              <option value="draft">{locale === "ru" ? "Черновик" : "Draft"}</option>
-              <option value="published">{locale === "ru" ? "Опубликовано" : "Published"}</option>
-              <option value="archived">{locale === "ru" ? "Архив" : "Archived"}</option>
+              <option value="all">{t.filterAll}</option>
+              <option value="draft">{t.filterDraft}</option>
+              <option value="published">{t.filterPublished}</option>
+              <option value="archived">{t.filterArchived}</option>
             </select>
             <label className="ml-3 text-xs text-[var(--ink-4)]" htmlFor="post-locale">
-              {locale === "ru" ? "Язык" : "Locale"}
+              {t.localeFilterLabel}
             </label>
             <select
               id="post-locale"
@@ -367,7 +527,7 @@ export default function AdminBlogPostsPage() {
               onChange={(e) => setLocaleFilter(e.target.value as LocaleFilter)}
               className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
             >
-              <option value="all">{locale === "ru" ? "Все" : "All"}</option>
+              <option value="all">{t.filterAll}</option>
               <option value="en">en</option>
               <option value="ru">ru</option>
             </select>
@@ -380,13 +540,7 @@ export default function AdminBlogPostsPage() {
               disabled={loading}
               className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
             >
-              {loading
-                ? locale === "ru"
-                  ? "Обновляется..."
-                  : "Refreshing..."
-                : locale === "ru"
-                ? "Обновить"
-                : "Refresh"}
+              {loading ? t.refreshing : t.refresh}
             </button>
           </div>
 
@@ -394,9 +548,7 @@ export default function AdminBlogPostsPage() {
           {selected.size > 0 && (
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--ink)]/30 bg-[var(--bg-3)] px-3 py-2">
               <span className="text-xs font-medium text-[var(--ink)]">
-                {locale === "ru"
-                  ? `Выбрано ${selected.size}`
-                  : `${selected.size} selected`}
+                {t.selectedCount(selected.size)}
               </span>
               <button
                 type="button"
@@ -404,7 +556,7 @@ export default function AdminBlogPostsPage() {
                 disabled={bulkBusy}
                 className="rounded-md bg-[var(--ink)] px-3 py-1 text-xs font-medium text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                {locale === "ru" ? "Опубликовать" : "Publish"}
+                {t.publish}
               </button>
               <button
                 type="button"
@@ -412,7 +564,7 @@ export default function AdminBlogPostsPage() {
                 disabled={bulkBusy}
                 className="rounded-md px-3 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)] disabled:opacity-50"
               >
-                {locale === "ru" ? "В черновик" : "Move to draft"}
+                {t.moveToDraft}
               </button>
               <button
                 type="button"
@@ -420,7 +572,7 @@ export default function AdminBlogPostsPage() {
                 disabled={bulkBusy}
                 className="rounded-md px-3 py-1 text-xs text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
               >
-                {locale === "ru" ? "Архив" : "Archive"}
+                {t.archive}
               </button>
               <button
                 type="button"
@@ -428,7 +580,7 @@ export default function AdminBlogPostsPage() {
                 disabled={bulkBusy}
                 className="rounded-md px-3 py-1 text-xs text-[var(--ink-4)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--ink)] disabled:opacity-50"
               >
-                {locale === "ru" ? "Очистить" : "Clear"}
+                {t.clear}
               </button>
               {bulkMessage && (
                 <span
@@ -447,13 +599,7 @@ export default function AdminBlogPostsPage() {
             {error && <p className="px-3 py-2 text-xs text-rose-300">{error}</p>}
             {!error && filtered.length === 0 && !loading && (
               <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
-                {posts.length === 0
-                  ? locale === "ru"
-                    ? "Статей ещё нет. Создайте черновик ниже."
-                    : "No blog posts yet. Use the form below to create your first draft."
-                  : locale === "ru"
-                    ? "Нет статей под текущие фильтры."
-                    : "No posts match the current filters."}
+                {posts.length === 0 ? t.emptyAll : t.emptyFiltered}
               </p>
             )}
             {filtered.length > 0 && (
@@ -464,7 +610,7 @@ export default function AdminBlogPostsPage() {
                       <th className="w-8 px-3 py-2 font-medium">
                         <input
                           type="checkbox"
-                          aria-label={locale === "ru" ? "Выбрать всё видимое" : "Select all visible posts"}
+                          aria-label={t.selectAllAria}
                           checked={
                             filtered.length > 0 && filtered.every((p) => selected.has(p.id))
                           }
@@ -480,7 +626,7 @@ export default function AdminBlogPostsPage() {
                           onClick={() => toggleSort("title")}
                           className="text-left transition-colors hover:text-[var(--ink-2)]"
                         >
-                          {locale === "ru" ? "Заголовок" : "Title"}
+                          {t.colTitle}
                           {sortIndicator("title")}
                         </button>
                       </th>
@@ -490,7 +636,7 @@ export default function AdminBlogPostsPage() {
                           onClick={() => toggleSort("locale")}
                           className="text-left transition-colors hover:text-[var(--ink-2)]"
                         >
-                          {locale === "ru" ? "Язык" : "Locale"}
+                          {t.colLocale}
                           {sortIndicator("locale")}
                         </button>
                       </th>
@@ -500,18 +646,18 @@ export default function AdminBlogPostsPage() {
                           onClick={() => toggleSort("status")}
                           className="text-left transition-colors hover:text-[var(--ink-2)]"
                         >
-                          {locale === "ru" ? "Статус" : "Status"}
+                          {t.colStatus}
                           {sortIndicator("status")}
                         </button>
                       </th>
-                      <th className="px-3 py-2 font-medium">{locale === "ru" ? "Автор" : "Author"}</th>
+                      <th className="px-3 py-2 font-medium">{t.colAuthor}</th>
                       <th className="px-3 py-2 font-medium">
                         <button
                           type="button"
                           onClick={() => toggleSort("createdAt")}
                           className="text-left transition-colors hover:text-[var(--ink-2)]"
                         >
-                          {locale === "ru" ? "Создано" : "Created"}
+                          {t.colCreated}
                           {sortIndicator("createdAt")}
                         </button>
                       </th>
@@ -521,7 +667,7 @@ export default function AdminBlogPostsPage() {
                           onClick={() => toggleSort("publishedAt")}
                           className="text-left transition-colors hover:text-[var(--ink-2)]"
                         >
-                          {locale === "ru" ? "Опубл." : "Published"}
+                          {t.colPublished}
                           {sortIndicator("publishedAt")}
                         </button>
                       </th>
@@ -531,12 +677,12 @@ export default function AdminBlogPostsPage() {
                           onClick={() => toggleSort("commentCount")}
                           className="transition-colors hover:text-[var(--ink-2)]"
                         >
-                          {locale === "ru" ? "Комм." : "Comments"}
+                          {t.colComments}
                           {sortIndicator("commentCount")}
                         </button>
                       </th>
                       <th className="px-3 py-2 text-right font-medium">
-                        {locale === "ru" ? "Действия" : "Actions"}
+                        {t.colActions}
                       </th>
                     </tr>
                   </thead>
@@ -579,9 +725,9 @@ export default function AdminBlogPostsPage() {
                             disabled={busy === post.id}
                             className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
                           >
-                            <option value="draft">{locale === "ru" ? "Черновик" : "Draft"}</option>
-                            <option value="published">{locale === "ru" ? "Опубл." : "Published"}</option>
-                            <option value="archived">{locale === "ru" ? "Архив" : "Archived"}</option>
+                            <option value="draft">{t.rowDraft}</option>
+                            <option value="published">{t.rowPublished}</option>
+                            <option value="archived">{t.rowArchived}</option>
                           </select>
                         </td>
                         <td className="px-3 py-2 text-[var(--ink-3)]">
@@ -598,7 +744,7 @@ export default function AdminBlogPostsPage() {
                               href={`/admin/blog/${post.id}`}
                               className="text-[11px] text-[var(--ink-2)] transition-colors hover:text-[var(--ink)] hover:underline"
                             >
-                              {locale === "ru" ? "Редакт." : "Edit"}
+                              {t.edit}
                             </a>
                             <button
                               type="button"
@@ -606,7 +752,7 @@ export default function AdminBlogPostsPage() {
                               disabled={busy === post.id}
                               className="rounded-md px-2 py-1 text-[11px] text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
                             >
-                              {locale === "ru" ? "Удал." : "Delete"}
+                              {t.delete}
                             </button>
                           </div>
                           {message?.id === post.id && (
@@ -626,28 +772,24 @@ export default function AdminBlogPostsPage() {
               </div>
             )}
             <p className="mt-2 px-3 text-[10px] text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Подсказка: shift-клик по чекбоксу выделяет диапазон."
-                : "Tip: shift-click a checkbox to select a range."}
+              {t.shiftClickHint}
             </p>
           </div>
 
           {/* New post */}
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
             <p className="mb-3 text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Новая статья" : "New post"}
+              {t.newPostTitle}
             </p>
             <p className="mb-4 text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Создаётся черновик. Откройте статью, чтобы написать тело, выбрать теги, OG-картинку и связать перевод."
-                : "Creates a draft. Open the post afterwards to write the body, set tags, pick an OG image, and link a translation pair."}
+              {t.newPostDescription}
             </p>
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <input
                 type="text"
                 value={newPost.title}
                 onChange={(e) => setNewPost((s) => ({ ...s, title: e.target.value }))}
-                placeholder={locale === "ru" ? "Заголовок" : "Title"}
+                placeholder={t.newPostTitlePlaceholder}
                 maxLength={TITLE_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
               />
@@ -665,16 +807,14 @@ export default function AdminBlogPostsPage() {
                 type="text"
                 value={newPost.slug}
                 onChange={(e) => setNewPost((s) => ({ ...s, slug: e.target.value }))}
-                placeholder={locale === "ru" ? "Слаг (необязательно — генерируется из заголовка)" : "Slug (optional — derived from title if blank)"}
+                placeholder={t.newPostSlugPlaceholder}
                 maxLength={SLUG_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 font-mono text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
               />
               <textarea
                 value={newPost.excerpt}
                 onChange={(e) => setNewPost((s) => ({ ...s, excerpt: e.target.value }))}
-                placeholder={locale === "ru"
-                  ? "Анонс (140-160 символов, используется как meta description)"
-                  : "Excerpt (140-160 chars, used as meta description)"}
+                placeholder={t.newPostExcerptPlaceholder}
                 maxLength={EXCERPT_MAX}
                 rows={2}
                 className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
@@ -688,13 +828,7 @@ export default function AdminBlogPostsPage() {
                 disabled={creating || newPost.title.trim().length === 0}
                 className="h-9 rounded-md bg-[var(--ink)] px-4 text-sm font-medium text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-40"
               >
-                {creating
-                  ? locale === "ru"
-                    ? "Создаётся…"
-                    : "Creating…"
-                  : locale === "ru"
-                  ? "Создать черновик"
-                  : "Create draft"}
+                {creating ? t.creating : t.createDraft}
               </button>
             </div>
           </div>

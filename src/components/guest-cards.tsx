@@ -2,7 +2,18 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Guest } from "@/lib/types";
+
+interface CopyShape {
+  saving: string;
+  saved: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { saving: "Saving…", saved: "Saved" },
+  ru: { saving: "Сохранение…", saved: "Сохранено" },
+};
 
 // Age computed dynamically from DOB so it doesn't go stale across years.
 // Supports DD/MM/YYYY (extraction format) and YYYY-MM-DD.
@@ -180,7 +191,8 @@ function GuestCard({
   onDragStart: (e: React.DragEvent, childId: number) => void;
   onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
 }) {
-  const { t, locale } = useI18n();
+  const { t: tr, locale } = useI18n();
+  const t = COPY[locale];
   const [dragOver, setDragOver] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -333,7 +345,7 @@ function GuestCard({
     return isNaN(d.getTime()) ? checkIn : d.toISOString().split("T")[0];
   })();
   const guestFirstName = (guest.firstName || guest.fullName || "").trim();
-  const messengerPrefill = t("guest.messengerPrefill", {
+  const messengerPrefill = tr("guest.messengerPrefill", {
     name: guestFirstName,
     property: propertyName || "",
     checkIn: checkInDate,
@@ -406,15 +418,15 @@ function GuestCard({
         <div className="p-1.5">
           <div className="mb-1 flex items-center justify-between px-2 pt-1">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-primary/60">
-              {t("guest.phone")}
+              {tr("guest.phone")}
             </span>
             <span className={`text-[10px] transition-opacity ${phoneState === "idle" ? "opacity-0" : "opacity-100"} ${phoneState === "saved" ? "text-emerald-500" : phoneState === "error" ? "text-destructive" : "text-muted-foreground/60"}`}>
               {phoneState === "saving"
-                ? (locale === "ru" ? "Сохранение…" : "Saving…")
+                ? t.saving
                 : phoneState === "saved"
-                ? (locale === "ru" ? "Сохранено" : "Saved")
+                ? t.saved
                 : phoneState === "error"
-                ? t("guest.phoneInvalid")
+                ? tr("guest.phoneInvalid")
                 : ""}
             </span>
           </div>
@@ -428,7 +440,7 @@ function GuestCard({
                 if (phoneState === "saved" || phoneState === "error") setPhoneState("idle");
               }}
               onBlur={handlePhoneBlur}
-              placeholder={t("guest.phonePlaceholder")}
+              placeholder={tr("guest.phonePlaceholder")}
               className="min-w-0 flex-1 rounded-md border border-border/40 bg-background/50 px-2 py-1 text-sm text-[var(--ink)] placeholder-muted-foreground/30 focus:border-primary/60 focus:outline-none"
             />
             <a
@@ -438,7 +450,7 @@ function GuestCard({
               aria-disabled={!phoneEnabled}
               tabIndex={phoneEnabled ? 0 : -1}
               onClick={(e) => { if (!phoneEnabled) e.preventDefault(); }}
-              title={t("guest.messageOnWhatsApp")}
+              title={tr("guest.messageOnWhatsApp")}
               className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all ${
                 phoneEnabled
                   ? "bg-[#25D366]/15 text-[#25D366] hover:bg-[#25D366]/25"
@@ -456,7 +468,7 @@ function GuestCard({
               aria-disabled={!phoneEnabled}
               tabIndex={phoneEnabled ? 0 : -1}
               onClick={(e) => { if (!phoneEnabled) e.preventDefault(); }}
-              title={t("guest.messageOnTelegram")}
+              title={tr("guest.messageOnTelegram")}
               className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all ${
                 phoneEnabled
                   ? "bg-[#229ED9]/15 text-[#229ED9] hover:bg-[#229ED9]/25"
@@ -470,7 +482,7 @@ function GuestCard({
           </div>
           {phoneState === "idle" && phoneSavedValue === "" && (
             <p className="mt-1 px-2 text-[10px] text-muted-foreground/40">
-              {t("guest.phoneHelp")}
+              {tr("guest.phoneHelp")}
             </p>
           )}
         </div>
@@ -608,10 +620,10 @@ function GuestCard({
         <div className="p-1.5">
           <div className="mb-1 flex items-center justify-between px-2 pt-1">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-primary/60">
-              {t("guest.notes")}
+              {tr("guest.notes")}
             </span>
             <span className={`text-[10px] transition-opacity ${notesState === "idle" ? "opacity-0" : "opacity-100"} ${notesState === "saved" ? "text-emerald-500" : "text-muted-foreground/60"}`}>
-              {notesState === "saving" ? (locale === "ru" ? "Сохранение…" : "Saving…") : notesState === "saved" ? (locale === "ru" ? "Сохранено" : "Saved") : ""}
+              {notesState === "saving" ? t.saving : notesState === "saved" ? t.saved : ""}
             </span>
           </div>
           <textarea
@@ -621,7 +633,7 @@ function GuestCard({
               if (notesState === "saved") setNotesState("idle");
             }}
             onBlur={handleNotesBlur}
-            placeholder={t("guest.notesPlaceholder")}
+            placeholder={tr("guest.notesPlaceholder")}
             className="block w-full whitespace-pre-wrap rounded-md border border-border/40 bg-background/50 px-2 py-1.5 text-sm text-[var(--ink)] placeholder-muted-foreground/30 focus:border-primary/60 focus:outline-none"
             rows={2}
           />

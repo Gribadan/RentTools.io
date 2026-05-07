@@ -5,7 +5,28 @@ import { CleaningSchedule } from "@/components/cleaning-schedule";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { SupportFooter } from "@/components/support-footer";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
+
+interface CopyShape {
+  cleaningSchedule: string;
+  cleanerBadge: string;
+  noProperties: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    cleaningSchedule: "Cleaning schedule",
+    cleanerBadge: "cleaner",
+    noProperties: "No properties have been assigned to you for cleaning yet.",
+  },
+  ru: {
+    cleaningSchedule: "График уборок",
+    cleanerBadge: "уборщик",
+    noProperties: "Вам пока не назначили объекты для уборки.",
+  },
+};
 
 interface CalendarEvent {
   id: number;
@@ -21,7 +42,8 @@ interface CleanerAppProps {
 }
 
 export function CleanerApp({ user, onLogout }: CleanerAppProps) {
-  const { t, locale, setLocale } = useI18n();
+  const { t: tr, locale, setLocale } = useI18n();
+  const t = COPY[locale];
   const [properties, setProperties] = useState<Property[]>([]);
   const [syncedEvents, setSyncedEvents] = useState<Record<number, CalendarEvent[]>>({});
   const [links, setLinks] = useState<Record<number, CalendarLink[]>>({});
@@ -93,36 +115,35 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
             </svg>
           </div>
           <span className="text-sm font-semibold">
-            {locale === "ru" ? "График уборок" : "Cleaning schedule"}
+            {t.cleaningSchedule}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Language switcher — one button per supported locale.
+              Adding a 3rd locale auto-renders a 3rd button. */}
           <div className="flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
-            <button
-              onClick={() => setLocale("ru")}
-              className={`px-2 py-1 text-xs ${locale === "ru" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
-            >
-              RU
-            </button>
-            <button
-              onClick={() => setLocale("en")}
-              className={`px-2 py-1 text-xs ${locale === "en" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
-            >
-              EN
-            </button>
+            {SUPPORTED_LOCALES.map((loc) => (
+              <button
+                key={loc}
+                onClick={() => setLocale(loc)}
+                className={`px-2 py-1 text-xs ${locale === loc ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)]"}`}
+              >
+                {loc.toUpperCase()}
+              </button>
+            ))}
           </div>
           <span className="hidden sm:block text-xs text-[var(--ink-3)]">
             {user.username}{" "}
             <span className="rounded bg-[var(--line-2)] px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-[var(--ink-3)]">
-              {locale === "ru" ? "уборщик" : "cleaner"}
+              {t.cleanerBadge}
             </span>
           </span>
           <button
             onClick={onLogout}
             className="rounded-md px-2.5 py-1.5 text-xs text-rose-500 hover:bg-rose-500/10 transition-colors"
           >
-            {t("sidebar.logout")}
+            {tr("sidebar.logout")}
           </button>
         </div>
       </header>
@@ -136,9 +157,7 @@ export function CleanerApp({ user, onLogout }: CleanerAppProps) {
           ) : properties.length === 0 ? (
             <div className="rounded-lg border border-dashed border-[var(--line)] py-16 text-center">
               <p className="text-sm text-[var(--ink-4)]">
-                {locale === "ru"
-                  ? "Вам пока не назначили объекты для уборки."
-                  : "No properties have been assigned to you for cleaning yet."}
+                {t.noProperties}
               </p>
             </div>
           ) : (

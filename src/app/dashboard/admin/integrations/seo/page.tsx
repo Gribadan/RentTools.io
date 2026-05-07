@@ -2,6 +2,119 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  existingHeader: string;
+  refreshing: string;
+  refresh: string;
+  loadFailed: (status: number) => string;
+  loadFailedShort: string;
+  empty: string;
+  noTitleOverride: string;
+  titleLabel: string;
+  descriptionLabel: string;
+  ogImageLabel: string;
+  canonicalLabel: string;
+  failedSave: string;
+  saveFailed: string;
+  saved: string;
+  failedDelete: string;
+  failedCreate: string;
+  confirmDelete: (path: string, locale: string) => string;
+  delete: string;
+  saving: string;
+  save: string;
+  addOverrideTitle: string;
+  addOverrideDescription: string;
+  titlePlaceholder: (max: number) => string;
+  descriptionPlaceholder: (max: number) => string;
+  ogImagePlaceholder: string;
+  canonicalPlaceholder: string;
+  adding: string;
+  addOverrideButton: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "SEO overrides",
+    description:
+      "Per-page overrides for title, description, OG image, and canonical URL. Empty fields keep the page's built-in defaults.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can edit SEO overrides.",
+    existingHeader: "Existing",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    loadFailed: (status) => `Failed to load SEO overrides (${status})`,
+    loadFailedShort: "Failed to load SEO overrides",
+    empty:
+      "No per-page overrides yet. Add one below to override the default title / description / OG image emitted by the page.",
+    noTitleOverride: "(no title override)",
+    titleLabel: "Title (leave empty to keep page default)",
+    descriptionLabel: "Description",
+    ogImageLabel: "OG image URL",
+    canonicalLabel: "Canonical URL",
+    failedSave: "Failed to save",
+    saveFailed: "Failed to save",
+    saved: "Saved. Live within 60s.",
+    failedDelete: "Failed to delete",
+    failedCreate: "Failed to create",
+    confirmDelete: (path, l) => `Delete SEO override for ${path} (${l})?`,
+    delete: "Delete",
+    saving: "Saving...",
+    save: "Save",
+    addOverrideTitle: "Add an override",
+    addOverrideDescription:
+      "Path is the URL pathname (e.g. /about). Empty fields keep the page's built-in defaults.",
+    titlePlaceholder: (max) => `Title (max ${max} chars)`,
+    descriptionPlaceholder: (max) => `Description (max ${max} chars)`,
+    ogImagePlaceholder: "OG image URL",
+    canonicalPlaceholder: "Canonical URL (optional)",
+    adding: "Adding...",
+    addOverrideButton: "Add override",
+  },
+  ru: {
+    title: "SEO переопределения",
+    description:
+      "Точечно переопределяет title, description, OG-картинку и canonical для конкретного URL и языка. Пустые поля оставляют исходные значения страницы.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может изменять SEO переопределения.",
+    existingHeader: "Существующие",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    loadFailed: (status) => `Не удалось загрузить переопределения (${status})`,
+    loadFailedShort: "Не удалось загрузить переопределения",
+    empty:
+      "Переопределений ещё нет. Добавьте ниже, чтобы заменить мета-теги по умолчанию.",
+    noTitleOverride: "(нет заголовка)",
+    titleLabel: "Title (пусто — оставить значение страницы)",
+    descriptionLabel: "Описание",
+    ogImageLabel: "OG-картинка (URL)",
+    canonicalLabel: "Canonical URL",
+    failedSave: "Не удалось сохранить",
+    saveFailed: "Не удалось сохранить",
+    saved: "Сохранено. Применится в течение 60 сек.",
+    failedDelete: "Не удалось удалить",
+    failedCreate: "Не удалось создать",
+    confirmDelete: (path, l) => `Удалить переопределение для ${path} (${l})?`,
+    delete: "Удалить",
+    saving: "Сохр...",
+    save: "Сохранить",
+    addOverrideTitle: "Добавить переопределение",
+    addOverrideDescription:
+      "Path — это путь URL (например, /about). Пустые поля оставят значения страницы по умолчанию.",
+    titlePlaceholder: (max) => `Заголовок (макс. ${max})`,
+    descriptionPlaceholder: (max) => `Описание (макс. ${max})`,
+    ogImagePlaceholder: "OG-картинка (URL)",
+    canonicalPlaceholder: "Canonical URL (опционально)",
+    adding: "Добавление...",
+    addOverrideButton: "Добавить переопределение",
+  },
+};
 
 // RT-25.9 tick 13 — SEO overrides sub-route at
 // /dashboard/admin/integrations/seo. Lifts the "Admin · SEO overrides"
@@ -53,6 +166,7 @@ const URL_MAX = 512;
 
 export default function AdminSeoOverridesPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [rows, setRows] = useState<SeoRow[]>([]);
@@ -86,11 +200,7 @@ export default function AdminSeoOverridesPage() {
     try {
       const res = await fetch("/api/admin/seo");
       if (!res.ok) {
-        setError(
-          locale === "ru"
-            ? `Не удалось загрузить переопределения (${res.status})`
-            : `Failed to load SEO overrides (${res.status})`,
-        );
+        setError(t.loadFailed(res.status));
         return;
       }
       const data = (await res.json()) as SeoRow[];
@@ -99,11 +209,7 @@ export default function AdminSeoOverridesPage() {
       for (const r of data) next[r.id] = { ...r };
       setDrafts(next);
     } catch {
-      setError(
-        locale === "ru"
-          ? "Не удалось загрузить переопределения"
-          : "Failed to load SEO overrides",
-      );
+      setError(t.loadFailedShort);
     } finally {
       setLoading(false);
     }
@@ -144,14 +250,14 @@ export default function AdminSeoOverridesPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           id,
-          text: data.error ?? (locale === "ru" ? "Не удалось сохранить" : "Failed to save"),
+          text: data.error ?? t.saveFailed,
           ok: false,
         });
         return;
       }
       setMessage({
         id,
-        text: locale === "ru" ? "Сохранено. Применится в течение 60 сек." : "Saved. Live within 60s.",
+        text: t.saved,
         ok: true,
       });
       await load();
@@ -162,11 +268,7 @@ export default function AdminSeoOverridesPage() {
   };
 
   const remove = async (row: SeoRow) => {
-    const confirmText =
-      locale === "ru"
-        ? `Удалить переопределение для ${row.path} (${row.locale})?`
-        : `Delete SEO override for ${row.path} (${row.locale})?`;
-    if (!confirm(confirmText)) return;
+    if (!confirm(t.confirmDelete(row.path, row.locale))) return;
     setBusy(row.id);
     try {
       const res = await fetch(`/api/admin/seo/${row.id}`, { method: "DELETE" });
@@ -174,7 +276,7 @@ export default function AdminSeoOverridesPage() {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setMessage({
           id: row.id,
-          text: data.error ?? (locale === "ru" ? "Не удалось удалить" : "Failed to delete"),
+          text: data.error ?? t.failedDelete,
           ok: false,
         });
         return;
@@ -196,7 +298,7 @@ export default function AdminSeoOverridesPage() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setCreateError(data.error ?? (locale === "ru" ? "Не удалось создать" : "Failed to create"));
+        setCreateError(data.error ?? t.failedCreate);
         return;
       }
       setNewSeo(EMPTY_NEW_SEO);
@@ -210,24 +312,20 @@ export default function AdminSeoOverridesPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "SEO переопределения" : "SEO overrides"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Точечно переопределяет title, description, OG-картинку и canonical для конкретного URL и языка. Пустые поля оставляют исходные значения страницы."
-            : "Per-page overrides for title, description, OG image, and canonical URL. Empty fields keep the page's built-in defaults."}
+          {t.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может изменять SEO переопределения."
-            : "Only superadmins can edit SEO overrides."}
+          {t.notSuperadmin}
         </div>
       ) : (
         <>
@@ -235,7 +333,7 @@ export default function AdminSeoOverridesPage() {
           <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-2">
             <div className="flex items-center justify-between px-3 pb-1 pt-2">
               <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-                {locale === "ru" ? "Существующие" : "Existing"}
+                {t.existingHeader}
                 {rows.length > 0 && ` · ${rows.length}`}
               </span>
               <button
@@ -244,22 +342,14 @@ export default function AdminSeoOverridesPage() {
                 disabled={loading}
                 className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
               >
-                {loading
-                  ? locale === "ru"
-                    ? "Обновляется..."
-                    : "Refreshing..."
-                  : locale === "ru"
-                  ? "Обновить"
-                  : "Refresh"}
+                {loading ? t.refreshing : t.refresh}
               </button>
             </div>
 
             {error && <p className="px-3 py-2 text-xs text-rose-300">{error}</p>}
             {!error && rows.length === 0 && !loading && (
               <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
-                {locale === "ru"
-                  ? "Переопределений ещё нет. Добавьте ниже, чтобы заменить мета-теги по умолчанию."
-                  : "No per-page overrides yet. Add one below to override the default title / description / OG image emitted by the page."}
+                {t.empty}
               </p>
             )}
             {rows.length > 0 && (
@@ -281,7 +371,7 @@ export default function AdminSeoOverridesPage() {
                         </span>
                         <span className="truncate text-xs text-[var(--ink-4)]">
                           {row.title ?? (
-                            <em>{locale === "ru" ? "(нет заголовка)" : "(no title override)"}</em>
+                            <em>{t.noTitleOverride}</em>
                           )}
                         </span>
                       </summary>
@@ -290,9 +380,7 @@ export default function AdminSeoOverridesPage() {
                           className="text-xs text-[var(--ink-4)]"
                           htmlFor={`seo-title-${row.id}`}
                         >
-                          {locale === "ru"
-                            ? "Title (пусто — оставить значение страницы)"
-                            : "Title (leave empty to keep page default)"}
+                          {t.titleLabel}
                         </label>
                         <input
                           id={`seo-title-${row.id}`}
@@ -306,7 +394,7 @@ export default function AdminSeoOverridesPage() {
                           className="text-xs text-[var(--ink-4)]"
                           htmlFor={`seo-desc-${row.id}`}
                         >
-                          {locale === "ru" ? "Описание" : "Description"}
+                          {t.descriptionLabel}
                         </label>
                         <textarea
                           id={`seo-desc-${row.id}`}
@@ -322,7 +410,7 @@ export default function AdminSeoOverridesPage() {
                           className="text-xs text-[var(--ink-4)]"
                           htmlFor={`seo-og-${row.id}`}
                         >
-                          {locale === "ru" ? "OG-картинка (URL)" : "OG image URL"}
+                          {t.ogImageLabel}
                         </label>
                         <input
                           id={`seo-og-${row.id}`}
@@ -337,7 +425,7 @@ export default function AdminSeoOverridesPage() {
                           className="text-xs text-[var(--ink-4)]"
                           htmlFor={`seo-canon-${row.id}`}
                         >
-                          {locale === "ru" ? "Canonical URL" : "Canonical URL"}
+                          {t.canonicalLabel}
                         </label>
                         <input
                           id={`seo-canon-${row.id}`}
@@ -366,7 +454,7 @@ export default function AdminSeoOverridesPage() {
                             disabled={busy === row.id}
                             className="h-8 rounded-md px-3 text-xs text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
                           >
-                            {locale === "ru" ? "Удалить" : "Delete"}
+                            {t.delete}
                           </button>
                           <button
                             type="button"
@@ -374,13 +462,7 @@ export default function AdminSeoOverridesPage() {
                             disabled={!dirty || busy === row.id}
                             className="h-8 rounded-md bg-[var(--m-accent)] px-3 text-xs font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
                           >
-                            {busy === row.id
-                              ? locale === "ru"
-                                ? "Сохр..."
-                                : "Saving..."
-                              : locale === "ru"
-                              ? "Сохранить"
-                              : "Save"}
+                            {busy === row.id ? t.saving : t.save}
                           </button>
                         </div>
                       </div>
@@ -394,12 +476,10 @@ export default function AdminSeoOverridesPage() {
           {/* Add a new override */}
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
             <p className="mb-1 text-sm font-medium text-[var(--ink)]">
-              {locale === "ru" ? "Добавить переопределение" : "Add an override"}
+              {t.addOverrideTitle}
             </p>
             <p className="mb-4 text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Path — это путь URL (например, /about). Пустые поля оставят значения страницы по умолчанию."
-                : "Path is the URL pathname (e.g. /about). Empty fields keep the page's built-in defaults."}
+              {t.addOverrideDescription}
             </p>
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <input
@@ -425,20 +505,14 @@ export default function AdminSeoOverridesPage() {
                 type="text"
                 value={newSeo.title}
                 onChange={(e) => setNewSeo((s) => ({ ...s, title: e.target.value }))}
-                placeholder={
-                  locale === "ru" ? `Заголовок (макс. ${TITLE_MAX})` : `Title (max ${TITLE_MAX} chars)`
-                }
+                placeholder={t.titlePlaceholder(TITLE_MAX)}
                 maxLength={TITLE_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
               />
               <textarea
                 value={newSeo.description}
                 onChange={(e) => setNewSeo((s) => ({ ...s, description: e.target.value }))}
-                placeholder={
-                  locale === "ru"
-                    ? `Описание (макс. ${DESCRIPTION_MAX})`
-                    : `Description (max ${DESCRIPTION_MAX} chars)`
-                }
+                placeholder={t.descriptionPlaceholder(DESCRIPTION_MAX)}
                 maxLength={DESCRIPTION_MAX}
                 rows={2}
                 className="rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 py-1.5 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
@@ -447,7 +521,7 @@ export default function AdminSeoOverridesPage() {
                 type="text"
                 value={newSeo.ogImage}
                 onChange={(e) => setNewSeo((s) => ({ ...s, ogImage: e.target.value }))}
-                placeholder={locale === "ru" ? "OG-картинка (URL)" : "OG image URL"}
+                placeholder={t.ogImagePlaceholder}
                 maxLength={URL_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 font-mono text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
               />
@@ -455,7 +529,7 @@ export default function AdminSeoOverridesPage() {
                 type="text"
                 value={newSeo.canonical}
                 onChange={(e) => setNewSeo((s) => ({ ...s, canonical: e.target.value }))}
-                placeholder={locale === "ru" ? "Canonical URL (опционально)" : "Canonical URL (optional)"}
+                placeholder={t.canonicalPlaceholder}
                 maxLength={URL_MAX}
                 className="h-9 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 font-mono text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] focus:ring-1 focus:ring-[var(--ink)]/30"
               />
@@ -468,13 +542,7 @@ export default function AdminSeoOverridesPage() {
                 disabled={creating || newSeo.path.trim().length === 0}
                 className="h-9 rounded-md bg-[var(--m-accent)] px-4 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
               >
-                {creating
-                  ? locale === "ru"
-                    ? "Добавление..."
-                    : "Adding..."
-                  : locale === "ru"
-                  ? "Добавить переопределение"
-                  : "Add override"}
+                {creating ? t.adding : t.addOverrideButton}
               </button>
             </div>
           </div>

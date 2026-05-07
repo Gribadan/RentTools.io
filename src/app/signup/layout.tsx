@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
 import { localizedAlternates } from "@/lib/i18n/alternates";
+import { toOgLocale } from "@/lib/i18n/locale-tags";
+import type { Locale } from "@/lib/i18n/translations";
 
 // "RentTools" is appended automatically by the root layout's title template
 // (`%s · RentTools`) — keeping the brand off the per-page title avoids the
 // duplicated "Sign up — RentTools · RentTools" we shipped briefly.
-const SIGNUP_COPY: Record<"en" | "ru", { title: string; description: string }> = {
+const SIGNUP_COPY: Record<Locale, { title: string; description: string }> = {
   en: {
     title: "Sign up",
     description:
@@ -37,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
       description: copy.description,
       url: alts.canonical,
       siteName: "RentTools",
-      locale: locale === "ru" ? "ru_RU" : "en_US",
+      locale: toOgLocale(locale),
     },
     twitter: { card: "summary_large_image", title: copy.title, description: copy.description },
   };

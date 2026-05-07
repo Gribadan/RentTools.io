@@ -3,10 +3,21 @@
 import { useEffect, useState } from "react";
 import type { TocEntry } from "@/lib/markdown";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 interface Props {
   entries: TocEntry[];
 }
+
+interface CopyShape {
+  ariaLabel: string;
+  onThisPage: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { ariaLabel: "Table of contents", onThisPage: "On this page" },
+  ru: { ariaLabel: "Содержание", onThisPage: "На этой странице" },
+};
 
 /**
  * Sticky table-of-contents sidebar for the blog post page.
@@ -23,6 +34,7 @@ interface Props {
  */
 export function BlogToc({ entries }: Props) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [activeId, setActiveId] = useState<string>(entries[0]?.id ?? "");
 
   useEffect(() => {
@@ -86,11 +98,11 @@ export function BlogToc({ entries }: Props) {
 
   return (
     <nav
-      aria-label={locale === "ru" ? "Содержание" : "Table of contents"}
+      aria-label={t.ariaLabel}
       className="text-sm"
     >
       <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-4)]">
-        {locale === "ru" ? "На этой странице" : "On this page"}
+        {t.onThisPage}
       </p>
       <ul className="space-y-1.5 border-l border-[var(--line)]">
         {entries.map((entry) => {

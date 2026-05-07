@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 1 — CMS admin shell skeleton. Sidebar + content pane.
 // Sub-routes are added in subsequent ticks; for now only the admin
@@ -13,7 +14,7 @@ import { useI18n } from "@/lib/i18n/context";
 // complete without 404ing out of the shell.
 
 interface NavItem {
-  label: { en: string; ru: string };
+  label: Record<Locale, string>;
   href?: string;
   available?: boolean;
   // RT-25.9 tick 15 — hide entries non-superadmins can't use. The
@@ -25,9 +26,28 @@ interface NavItem {
 }
 
 interface NavGroup {
-  label: { en: string; ru: string };
+  label: Record<Locale, string>;
   items: NavItem[];
 }
+
+interface CopyShape {
+  backToDashboard: string;
+  admin: string;
+  soon: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    backToDashboard: "Back to dashboard",
+    admin: "Admin",
+    soon: "soon",
+  },
+  ru: {
+    backToDashboard: "К кабинету",
+    admin: "Администрирование",
+    soon: "скоро",
+  },
+};
 
 const NAV: NavGroup[] = [
   {
@@ -84,6 +104,7 @@ const NAV: NavGroup[] = [
 
 function AdminShell({ role, children }: { role: string; children: React.ReactNode }) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -123,11 +144,11 @@ function AdminShell({ role, children }: { role: string; children: React.ReactNod
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
-            <span className="hidden sm:inline">{locale === "ru" ? "К кабинету" : "Back to dashboard"}</span>
+            <span className="hidden sm:inline">{t.backToDashboard}</span>
           </Link>
         </div>
         <h1 className="text-base font-semibold text-[var(--ink)]">
-          {locale === "ru" ? "Администрирование" : "Admin"}
+          {t.admin}
         </h1>
         <div className="w-[40px] sm:w-[150px]" />
       </header>
@@ -151,11 +172,11 @@ function AdminShell({ role, children }: { role: string; children: React.ReactNod
             {visibleNav.map((group) => (
               <div key={group.label.en}>
                 <div className="mb-1.5 px-2 text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-                  {locale === "ru" ? group.label.ru : group.label.en}
+                  {group.label[locale]}
                 </div>
                 <ul className="space-y-0.5">
                   {group.items.map((item) => {
-                    const label = locale === "ru" ? item.label.ru : item.label.en;
+                    const label = item.label[locale];
                     const active = item.href && pathname === item.href;
                     if (!item.href) {
                       return (
@@ -163,7 +184,7 @@ function AdminShell({ role, children }: { role: string; children: React.ReactNod
                           <span className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm text-[var(--ink-4)]">
                             <span>{label}</span>
                             <span className="text-[10px] uppercase tracking-wide text-[var(--ink-4)]/70">
-                              {locale === "ru" ? "скоро" : "soon"}
+                              {t.soon}
                             </span>
                           </span>
                         </li>

@@ -2,10 +2,21 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 interface Props {
   url: string;
 }
+
+interface CopyShape {
+  copyLink: string;
+  copied: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { copyLink: "Copy link", copied: "Copied!" },
+  ru: { copyLink: "Скопировать ссылку", copied: "Скопировано!" },
+};
 
 /**
  * One-tap "Copy link" button for the share row. Falls back to a manual
@@ -14,6 +25,7 @@ interface Props {
  */
 export function BlogCopyLink({ url }: Props) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [copied, setCopied] = useState(false);
 
   const onClick = async () => {
@@ -46,13 +58,7 @@ export function BlogCopyLink({ url }: Props) {
       onClick={onClick}
       className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-2)]/40 px-2.5 py-1 text-xs font-medium text-[var(--ink-2)] transition-colors hover:border-[var(--line-2)] hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
     >
-      {copied
-        ? locale === "ru"
-          ? "Скопировано!"
-          : "Copied!"
-        : locale === "ru"
-          ? "Скопировать ссылку"
-          : "Copy link"}
+      {copied ? t.copied : t.copyLink}
     </button>
   );
 }

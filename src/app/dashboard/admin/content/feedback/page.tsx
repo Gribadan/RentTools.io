@@ -2,6 +2,70 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  filterAll: string;
+  filterNew: string;
+  filterRead: string;
+  filterArchived: string;
+  refreshing: string;
+  refresh: string;
+  empty: string;
+  anonymous: string;
+  markRead: string;
+  archive: string;
+  restore: string;
+  delete: string;
+  confirmDelete: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Feedback",
+    description:
+      "Messages from site visitors via the floating Feedback button. Spam-gated by 30-second per-IP rate limit + honeypot.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can review feedback.",
+    filterAll: "All",
+    filterNew: "New",
+    filterRead: "Read",
+    filterArchived: "Archived",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    empty: "No feedback yet.",
+    anonymous: "anonymous",
+    markRead: "Mark read",
+    archive: "Archive",
+    restore: "Restore",
+    delete: "Delete",
+    confirmDelete: "Permanently delete?",
+  },
+  ru: {
+    title: "Обратная связь",
+    description:
+      "Сообщения от посетителей сайта (кнопка «Feedback» в правом нижнем углу). Защита от спама — лимит 1 сообщение / 30 секунд по IP.",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор видит этот раздел.",
+    filterAll: "Все",
+    filterNew: "Новые",
+    filterRead: "Прочитанные",
+    filterArchived: "Архив",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    empty: "Сообщений нет.",
+    anonymous: "аноним",
+    markRead: "Прочитано",
+    archive: "В архив",
+    restore: "Восстановить",
+    delete: "Удалить",
+    confirmDelete: "Удалить навсегда?",
+  },
+};
 
 // Site-wide visitor feedback queue. Source: the floating
 // FeedbackButton mounted in the root layout. Super-admin only.
@@ -50,6 +114,7 @@ function formatDate(iso: string | null): string {
 
 export default function AdminFeedbackPage() {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [items, setItems] = useState<FeedbackRow[]>([]);
@@ -119,7 +184,7 @@ export default function AdminFeedbackPage() {
   };
 
   const remove = async (id: number) => {
-    if (!confirm(locale === "ru" ? "Удалить навсегда?" : "Permanently delete?")) return;
+    if (!confirm(c.confirmDelete)) return;
     setBusy(id);
     try {
       const res = await fetch(`/api/admin/feedback/${id}`, { method: "DELETE" });
@@ -144,24 +209,20 @@ export default function AdminFeedbackPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Обратная связь" : "Feedback"}
+          {c.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Сообщения от посетителей сайта (кнопка «Feedback» в правом нижнем углу). Защита от спама — лимит 1 сообщение / 30 секунд по IP."
-            : "Messages from site visitors via the floating Feedback button. Spam-gated by 30-second per-IP rate limit + honeypot."}
+          {c.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {c.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор видит этот раздел."
-            : "Only superadmins can review feedback."}
+          {c.notSuperadmin}
         </div>
       ) : (
         <div className="space-y-3">
@@ -173,15 +234,13 @@ export default function AdminFeedbackPage() {
                   : counts[f];
               const active = statusFilter === f;
               const label =
-                locale === "ru"
-                  ? f === "all"
-                    ? "Все"
-                    : f === "new"
-                      ? "Новые"
-                      : f === "read"
-                        ? "Прочитанные"
-                        : "Архив"
-                  : f.charAt(0).toUpperCase() + f.slice(1);
+                f === "all"
+                  ? c.filterAll
+                  : f === "new"
+                    ? c.filterNew
+                    : f === "read"
+                      ? c.filterRead
+                      : c.filterArchived;
               return (
                 <button
                   key={f}
@@ -204,13 +263,7 @@ export default function AdminFeedbackPage() {
               disabled={loading}
               className="ml-auto rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
             >
-              {loading
-                ? locale === "ru"
-                  ? "Обновляется..."
-                  : "Refreshing..."
-                : locale === "ru"
-                  ? "Обновить"
-                  : "Refresh"}
+              {loading ? c.refreshing : c.refresh}
             </button>
           </div>
 
@@ -218,7 +271,7 @@ export default function AdminFeedbackPage() {
             {error && <p className="px-3 py-2 text-xs text-rose-300">{error}</p>}
             {!error && items.length === 0 && !loading && (
               <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
-                {locale === "ru" ? "Сообщений нет." : "No feedback yet."}
+                {c.empty}
               </p>
             )}
             {items.length > 0 && (
@@ -245,7 +298,7 @@ export default function AdminFeedbackPage() {
                             <>
                               <span>·</span>
                               <span className="italic">
-                                {locale === "ru" ? "аноним" : "anonymous"}
+                                {c.anonymous}
                               </span>
                             </>
                           )}
@@ -294,7 +347,7 @@ export default function AdminFeedbackPage() {
                             disabled={busy === f.id}
                             className="rounded-md border border-[var(--line)] px-2 py-1 text-[11px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
                           >
-                            {locale === "ru" ? "Прочитано" : "Mark read"}
+                            {c.markRead}
                           </button>
                         )}
                         {f.status !== "archived" && (
@@ -304,7 +357,7 @@ export default function AdminFeedbackPage() {
                             disabled={busy === f.id}
                             className="rounded-md border border-[var(--line)] px-2 py-1 text-[11px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
                           >
-                            {locale === "ru" ? "В архив" : "Archive"}
+                            {c.archive}
                           </button>
                         )}
                         {f.status === "archived" && (
@@ -314,7 +367,7 @@ export default function AdminFeedbackPage() {
                             disabled={busy === f.id}
                             className="rounded-md border border-[var(--line)] px-2 py-1 text-[11px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
                           >
-                            {locale === "ru" ? "Восстановить" : "Restore"}
+                            {c.restore}
                           </button>
                         )}
                         <button
@@ -323,7 +376,7 @@ export default function AdminFeedbackPage() {
                           disabled={busy === f.id}
                           className="rounded-md border border-rose-500/30 px-2 py-1 text-[11px] text-rose-300 transition-colors hover:bg-rose-500/10 disabled:opacity-50"
                         >
-                          {locale === "ru" ? "Удалить" : "Delete"}
+                          {c.delete}
                         </button>
                       </div>
                     </div>

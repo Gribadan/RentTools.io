@@ -4,7 +4,83 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
 import type { Property } from "@/lib/types";
+
+interface CopyShape {
+  tabDashboard: string;
+  tabCalendar: string;
+  tabCleaning: string;
+  tabReports: string;
+  tabProperty: string;
+  allProperties: string;
+  dashboardAll: string;
+  countLabel: (resCount: number, guestCount: number) => string;
+  addProperty: string;
+  searchGuests: string;
+  searchGuestsTitle: string;
+  searchPlaceholder: string;
+  closeSearch: string;
+  searching: string;
+  noMatches: string;
+  userMenu: string;
+  personalAccount: string;
+  theme: string;
+  language: string;
+  admin: string;
+  syncTasks: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    tabDashboard: "Dashboard",
+    tabCalendar: "Calendar",
+    tabCleaning: "Cleaning",
+    tabReports: "Reports",
+    tabProperty: "Property",
+    allProperties: "All properties",
+    dashboardAll: "Dashboard (all)",
+    countLabel: (resCount, guestCount) =>
+      `${resCount} ${resCount === 1 ? "reservation" : "reservations"}, ${guestCount} ${guestCount === 1 ? "guest" : "guests"}`,
+    addProperty: "Add property",
+    searchGuests: "Search guests",
+    searchGuestsTitle: "Search guests (⌘K)",
+    searchPlaceholder: "Name, passport, country…",
+    closeSearch: "Close search",
+    searching: "Searching...",
+    noMatches: "No matches",
+    userMenu: "User menu",
+    personalAccount: "Personal account",
+    theme: "Theme",
+    language: "Language",
+    admin: "Admin",
+    syncTasks: "Sync tasks",
+  },
+  ru: {
+    tabDashboard: "Обзор",
+    tabCalendar: "Календарь",
+    tabCleaning: "Уборки",
+    tabReports: "Отчёты",
+    tabProperty: "Объект",
+    allProperties: "Все объекты",
+    dashboardAll: "Обзор (все объекты)",
+    countLabel: (resCount, guestCount) => `${resCount} брон., ${guestCount} гостей`,
+    addProperty: "Добавить объект",
+    searchGuests: "Поиск гостей",
+    searchGuestsTitle: "Поиск гостей (⌘K)",
+    searchPlaceholder: "Имя, паспорт, страна…",
+    closeSearch: "Закрыть поиск",
+    searching: "Поиск...",
+    noMatches: "Ничего не найдено",
+    userMenu: "Меню пользователя",
+    personalAccount: "Личный кабинет",
+    theme: "Тема",
+    language: "Язык",
+    admin: "Админ",
+    syncTasks: "Задачи синхронизации",
+  },
+};
 
 export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guests" | "settings" | "tasks" | "reports" | "profile";
 
@@ -52,6 +128,7 @@ export function TopBar({
 }: TopBarProps) {
   const isSuperAdmin = userRole === "superadmin";
   const { t, locale, setLocale } = useI18n();
+  const c = COPY[locale];
   const [propDropdown, setPropDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -166,11 +243,11 @@ export function TopBar({
   // that scope, so they don't need to vanish based on selection.
   // Stripe / Linear / GitHub all use the same stable-header pattern.
   const tabs: { key: AppView; label: string; show: boolean }[] = [
-    { key: "dashboard", label: locale === "ru" ? "Обзор" : "Dashboard", show: true },
-    { key: "calendar", label: locale === "ru" ? "Календарь" : "Calendar", show: true },
-    { key: "cleaning", label: locale === "ru" ? "Уборки" : "Cleaning", show: true },
-    { key: "reports", label: locale === "ru" ? "Отчёты" : "Reports", show: true },
-    { key: "sync", label: locale === "ru" ? "Объект" : "Property", show: true },
+    { key: "dashboard", label: c.tabDashboard, show: true },
+    { key: "calendar", label: c.tabCalendar, show: true },
+    { key: "cleaning", label: c.tabCleaning, show: true },
+    { key: "reports", label: c.tabReports, show: true },
+    { key: "sync", label: c.tabProperty, show: true },
   ];
 
   return (
@@ -249,7 +326,7 @@ export function TopBar({
               className="flex items-center gap-2 rounded-full border border-[var(--line-2)] bg-[var(--bg)] px-3 py-1.5 text-sm text-[var(--ink)] hover:border-[var(--ink)]/40 transition-colors min-w-0 max-w-[180px] sm:max-w-[220px]"
             >
               <span className="flex-1 text-left truncate">
-                {selectedProperty ? selectedProperty.name : (locale === "ru" ? "Все объекты" : "All properties")}
+                {selectedProperty ? selectedProperty.name : c.allProperties}
               </span>
               <svg className={`h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform ${propDropdown ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -278,7 +355,7 @@ export function TopBar({
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                     </svg>
-                    {locale === "ru" ? "Обзор (все объекты)" : "Dashboard (all)"}
+                    {c.dashboardAll}
                   </button>
 
                   <div className="my-1 h-px bg-[var(--line-2)]" />
@@ -289,9 +366,7 @@ export function TopBar({
                       (sum, r) => sum + (r._count?.guests ?? 0),
                       0
                     );
-                    const countLabel = locale === "ru"
-                      ? `${resCount} брон., ${guestCount} гостей`
-                      : `${resCount} ${resCount === 1 ? "reservation" : "reservations"}, ${guestCount} ${guestCount === 1 ? "guest" : "guests"}`;
+                    const countLabel = c.countLabel(resCount, guestCount);
                     return (
                       <button
                         key={p.id}
@@ -347,7 +422,7 @@ export function TopBar({
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
-                    {locale === "ru" ? "Добавить объект" : "Add property"}
+                    {c.addProperty}
                   </Link>
                 </div>
               </div>
@@ -389,8 +464,8 @@ export function TopBar({
                 className={`flex h-9 w-9 items-center justify-center rounded-full text-[var(--ink-3)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)] transition-all ${
                   searchOpen ? "opacity-0 pointer-events-none -mr-9" : "opacity-100"
                 }`}
-                aria-label={locale === "ru" ? "Поиск гостей" : "Search guests"}
-                title={locale === "ru" ? "Поиск гостей (⌘K)" : "Search guests (⌘K)"}
+                aria-label={c.searchGuests}
+                title={c.searchGuestsTitle}
               >
                 <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -410,16 +485,12 @@ export function TopBar({
                     ref={searchInputRef}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={
-                      locale === "ru"
-                        ? "Имя, паспорт, страна…"
-                        : "Name, passport, country…"
-                    }
+                    placeholder={c.searchPlaceholder}
                     className="ml-2 flex-1 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
                   />
                   <button
                     onClick={() => { setSearchQuery(""); setSearchOpen(false); }}
-                    aria-label={locale === "ru" ? "Закрыть поиск" : "Close search"}
+                    aria-label={c.closeSearch}
                     className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--ink-4)] hover:bg-[var(--bg-3)] hover:text-[var(--ink)]"
                   >
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -438,11 +509,11 @@ export function TopBar({
                   <div className="max-h-80 overflow-y-auto">
                     {searchLoading ? (
                       <p className="px-3 py-4 text-center text-[11px] text-[var(--ink-4)]">
-                        {locale === "ru" ? "Поиск..." : "Searching..."}
+                        {c.searching}
                       </p>
                     ) : searchResults.length === 0 ? (
                       <p className="px-3 py-4 text-center text-[11px] text-[var(--ink-4)]">
-                        {locale === "ru" ? "Ничего не найдено" : "No matches"}
+                        {c.noMatches}
                       </p>
                     ) : (
                       <ul className="py-1">
@@ -486,7 +557,7 @@ export function TopBar({
             <button
               onClick={() => setUserDropdown(!userDropdown)}
               className="flex items-center gap-2 rounded-full border border-[var(--line-2)] bg-[var(--bg)] py-1 pl-2.5 pr-1 text-[var(--ink-3)] hover:shadow-md hover:border-[var(--line-2)] transition-all"
-              aria-label={locale === "ru" ? "Меню пользователя" : "User menu"}
+              aria-label={c.userMenu}
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -502,7 +573,7 @@ export function TopBar({
                 <div className="px-3 pt-2 pb-2.5">
                   <p className="text-sm font-semibold text-[var(--ink)] truncate">{username}</p>
                   <p className="text-[11px] text-[var(--ink-4)]">
-                    {locale === "ru" ? "Личный кабинет" : "Personal account"}
+                    {c.personalAccount}
                   </p>
                 </div>
 
@@ -510,22 +581,23 @@ export function TopBar({
 
                 {/* Theme row */}
                 <div className="flex items-center justify-between px-3 py-2 text-sm text-[var(--ink-2)]">
-                  <span>{locale === "ru" ? "Тема" : "Theme"}</span>
+                  <span>{c.theme}</span>
                   <ThemeToggle />
                 </div>
 
-                {/* Language row */}
+                {/* Language row — render one button per supported locale.
+                    Adding a 3rd locale to SUPPORTED_LOCALES auto-renders a
+                    3rd button; previously this was hardcoded EN/RU. */}
                 <div className="flex items-center justify-between px-3 py-2 text-sm text-[var(--ink-2)]">
-                  <span>{locale === "ru" ? "Язык" : "Language"}</span>
+                  <span>{c.language}</span>
                   <div className="flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
-                    <button
-                      onClick={() => setLocale("ru")}
-                      className={`px-2 py-1 text-xs transition-colors ${locale === "ru" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
-                    >RU</button>
-                    <button
-                      onClick={() => setLocale("en")}
-                      className={`px-2 py-1 text-xs transition-colors ${locale === "en" ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
-                    >EN</button>
+                    {SUPPORTED_LOCALES.map((loc) => (
+                      <button
+                        key={loc}
+                        onClick={() => setLocale(loc)}
+                        className={`px-2 py-1 text-xs transition-colors ${locale === loc ? "bg-[var(--bg-3)] text-[var(--ink)]" : "text-[var(--ink-4)] hover:text-[var(--ink-2)]"}`}
+                      >{loc.toUpperCase()}</button>
+                    ))}
                   </div>
                 </div>
 
@@ -560,7 +632,7 @@ export function TopBar({
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 1.5l9 4.5v6c0 5-3.5 9.5-9 11-5.5-1.5-9-6-9-11v-6l9-4.5z" />
                     </svg>
-                    {locale === "ru" ? "Админ" : "Admin"}
+                    {c.admin}
                   </Link>
                 )}
 
@@ -577,7 +649,7 @@ export function TopBar({
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    {locale === "ru" ? "Задачи синхронизации" : "Sync tasks"}
+                    {c.syncTasks}
                   </button>
                 )}
 

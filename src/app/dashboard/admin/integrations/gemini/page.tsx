@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 4 — Gemini AI key sub-route. The first slice off the
 // long-scroll SettingsPanel: the Gemini API key card now lives at
@@ -13,8 +14,36 @@ interface MeResponse {
   user?: { id: number; username: string; role: string } | null;
 }
 
+interface CopyShape {
+  description: string;
+  loading: string;
+  saved: string;
+  saveFailed: string;
+  apiKeyLabel: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    description:
+      "Used for guest passport data extraction. Stored in site_settings and applied instance-wide.",
+    loading: "Loading...",
+    saved: "Saved",
+    saveFailed: "Failed to save",
+    apiKeyLabel: "API key:",
+  },
+  ru: {
+    description:
+      "Используется для извлечения данных из паспортов гостей. Хранится в site_settings и применяется ко всему инстансу.",
+    loading: "Загрузка...",
+    saved: "Сохранено",
+    saveFailed: "Не удалось сохранить",
+    apiKeyLabel: "API ключ:",
+  },
+};
+
 export default function AdminGeminiPage() {
   const { t, locale } = useI18n();
+  const c = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [key, setKey] = useState("");
@@ -47,15 +76,7 @@ export default function AdminGeminiPage() {
       body: JSON.stringify({ key: "gemini_api_key", value: key }),
     });
     setSaving(false);
-    setMessage(
-      res.ok
-        ? locale === "ru"
-          ? "Сохранено"
-          : "Saved"
-        : locale === "ru"
-        ? "Не удалось сохранить"
-        : "Failed to save"
-    );
+    setMessage(res.ok ? c.saved : c.saveFailed);
     setTimeout(() => setMessage(""), 2000);
   };
 
@@ -68,16 +89,14 @@ export default function AdminGeminiPage() {
           {t("settings.geminiKey")}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Используется для извлечения данных из паспортов гостей. Хранится в site_settings и применяется ко всему инстансу."
-            : "Used for guest passport data extraction. Stored in site_settings and applied instance-wide."}
+          {c.description}
         </p>
       </div>
 
       <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5">
         {!loaded ? (
           <p className="text-sm text-[var(--ink-4)]">
-            {locale === "ru" ? "Загрузка..." : "Loading..."}
+            {c.loading}
           </p>
         ) : isSuperAdmin ? (
           <div className="space-y-3">
@@ -107,7 +126,7 @@ export default function AdminGeminiPage() {
           </div>
         ) : (
           <p className="text-sm text-[var(--ink-3)]">
-            {locale === "ru" ? "API ключ:" : "API key:"}{" "}
+            {c.apiKeyLabel}{" "}
             {key ? (
               <span className="text-[var(--ink)]">••••••••</span>
             ) : (

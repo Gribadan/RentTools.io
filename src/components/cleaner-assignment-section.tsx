@@ -2,6 +2,35 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  cleaners: string;
+  remove: string;
+  noneAssigned: string;
+  noneAvailable: string;
+  selectCleaner: string;
+  add: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    cleaners: "Cleaners",
+    remove: "Remove",
+    noneAssigned: "No cleaners assigned yet.",
+    noneAvailable: "No cleaner accounts available",
+    selectCleaner: "Select a cleaner…",
+    add: "Add",
+  },
+  ru: {
+    cleaners: "Уборщики",
+    remove: "Убрать",
+    noneAssigned: "Уборщики ещё не назначены.",
+    noneAvailable: "Нет доступных уборщиков",
+    selectCleaner: "Выберите уборщика…",
+    add: "Добавить",
+  },
+};
 
 interface Assignment {
   id: number;
@@ -21,6 +50,7 @@ interface CleanerAssignmentSectionProps {
 
 export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectionProps) {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [cleaners, setCleaners] = useState<CleanerOption[]>([]);
   const [selected, setSelected] = useState<string>("");
@@ -89,7 +119,7 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4">
       <h3 className="mb-3 text-sm font-semibold text-[var(--ink)]">
-        {locale === "ru" ? "Уборщики" : "Cleaners"}
+        {t.cleaners}
       </h3>
 
       {loading ? (
@@ -109,16 +139,14 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
                     disabled={busy}
                     className="text-rose-500 hover:underline disabled:opacity-50"
                   >
-                    {locale === "ru" ? "Убрать" : "Remove"}
+                    {t.remove}
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="mb-3 text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? "Уборщики ещё не назначены."
-                : "No cleaners assigned yet."}
+              {t.noneAssigned}
             </p>
           )}
 
@@ -130,13 +158,7 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
               className="h-8 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-50"
             >
               <option value="">
-                {available.length === 0
-                  ? locale === "ru"
-                    ? "Нет доступных уборщиков"
-                    : "No cleaner accounts available"
-                  : locale === "ru"
-                  ? "Выберите уборщика…"
-                  : "Select a cleaner…"}
+                {available.length === 0 ? t.noneAvailable : t.selectCleaner}
               </option>
               {available.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -149,7 +171,7 @@ export function CleanerAssignmentSection({ propertyId }: CleanerAssignmentSectio
               disabled={!selected || busy}
               className="rounded-md bg-[var(--m-accent)] px-3 text-xs text-white hover:bg-[var(--m-accent-2)] disabled:opacity-50"
             >
-              {locale === "ru" ? "Добавить" : "Add"}
+              {t.add}
             </button>
           </div>
 

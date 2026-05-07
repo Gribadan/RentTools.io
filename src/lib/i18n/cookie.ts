@@ -1,10 +1,11 @@
 import type { Locale } from "./translations";
+import { SUPPORTED_LOCALES } from "./alternates";
 
 export const LOCALE_COOKIE_NAME = "rt-locale";
 export const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export function isLocale(value: unknown): value is Locale {
-  return value === "en" || value === "ru";
+  return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
 export function parseLocaleFromCookieHeader(

@@ -13,6 +13,35 @@ import { addDaysStr } from "@/components/calendar/utils";
 import { EmptyState } from "@/components/empty-state";
 import { PropertySwitcher } from "@/components/property-switcher";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  weekdays: string[];
+  connectCalendar: string;
+  dateLocale: string;
+  syncNow: string;
+  pickADay: string;
+  pickADayHint: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    weekdays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    connectCalendar: "Connect a calendar",
+    dateLocale: "en",
+    syncNow: "Sync now",
+    pickADay: "Pick a day",
+    pickADayHint: "Click any date in the calendar to open its actions or create a reservation.",
+  },
+  ru: {
+    weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    connectCalendar: "Подключить календарь",
+    dateLocale: "ru-RU",
+    syncNow: "Синхронизировать сейчас",
+    pickADay: "Выберите день",
+    pickADayHint: "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь.",
+  },
+};
 
 interface PropertyCalendarProps {
   property: Property;
@@ -44,6 +73,7 @@ export function PropertyCalendar({
   onAddReservation: _onAddReservation,
 }: PropertyCalendarProps) {
   const { locale, t } = useI18n();
+  const c = COPY[locale];
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
   const [claimAnchor, setClaimAnchor] = useState<DOMRect | null>(null);
@@ -267,9 +297,7 @@ export function PropertyCalendar({
   // pins ONCE and never swaps; only the month label text reacts to
   // scroll. Z-index 30 so it paints above booking bars (z-10 hover-
   // bleeds).
-  const WEEKDAYS = locale === "ru"
-    ? ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
-    : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const WEEKDAYS = c.weekdays;
 
   const activeMonth = months[activeMonthIdx] ?? months[0];
   const activeMonthShowYear = activeMonthIdx === 0 || activeMonth.getMonth() === 0;
@@ -312,7 +340,7 @@ export function PropertyCalendar({
                 title={t("empty.calendar.title")}
                 description={t("empty.calendar.desc")}
                 link={{
-                  label: locale === "ru" ? "Подключить календарь" : "Connect a calendar",
+                  label: c.connectCalendar,
                   href: `/dashboard?property=${property.id}&view=sync`,
                 }}
               />
@@ -338,7 +366,7 @@ export function PropertyCalendar({
           >
             <div className="flex items-center justify-between gap-3 pt-2 sm:pt-3 pb-1">
               <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-[var(--ink)] truncate">
-                {activeMonth.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+                {activeMonth.toLocaleDateString(c.dateLocale, {
                   month: "long",
                   year: activeMonthShowYear ? "numeric" : undefined,
                 })}
@@ -346,8 +374,8 @@ export function PropertyCalendar({
               <button
                 onClick={handleSyncNow}
                 disabled={syncing}
-                title={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
-                aria-label={locale === "ru" ? "Синхронизировать сейчас" : "Sync now"}
+                title={c.syncNow}
+                aria-label={c.syncNow}
                 className="shrink-0 rounded-full p-1.5 sm:p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
               >
                 <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -372,7 +400,7 @@ export function PropertyCalendar({
 
           {months.map((m, i) => {
             const showYear = i === 0 || m.getMonth() === 0;
-            const monthLabel = m.toLocaleDateString(locale === "ru" ? "ru-RU" : "en", {
+            const monthLabel = m.toLocaleDateString(c.dateLocale, {
               month: "long",
               year: showYear ? "numeric" : undefined,
             });
@@ -492,12 +520,10 @@ export function PropertyCalendar({
                 </svg>
               </div>
               <p className="text-base font-semibold tracking-tight text-[var(--ink)]">
-                {locale === "ru" ? "Выберите день" : "Pick a day"}
+                {c.pickADay}
               </p>
               <p className="text-sm text-[var(--ink-3)] leading-relaxed max-w-[260px]">
-                {locale === "ru"
-                  ? "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь."
-                  : "Click any date in the calendar to open its actions or create a reservation."}
+                {c.pickADayHint}
               </p>
             </div>
           </div>

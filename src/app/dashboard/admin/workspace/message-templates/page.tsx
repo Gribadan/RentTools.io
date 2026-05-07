@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 25 — Message templates sub-route at
 // /dashboard/admin/workspace/message-templates. Cross-property overview
@@ -31,8 +32,50 @@ interface ApiResponse {
   templates?: MessageTemplateRow[];
 }
 
+interface CopyShape {
+  failedToLoad: string;
+  onCheckIn: string;
+  beforeCheckIn: (n: number) => string;
+  afterCheckIn: (n: number) => string;
+  title: string;
+  subtitle: string;
+  loading: string;
+  empty: string;
+  summary: (total: number, properties: number) => string;
+  openSync: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    failedToLoad: "Failed to load",
+    onCheckIn: "on check-in day",
+    beforeCheckIn: (n) => `${n}d before check-in`,
+    afterCheckIn: (n) => `${n}d after check-in`,
+    title: "Message templates",
+    subtitle: "All message templates across your properties. Click a property to open its Sync settings, where templates are edited.",
+    loading: "Loading...",
+    empty: "No templates yet. Open a property and add them on its Sync settings tab.",
+    summary: (total, properties) =>
+      `${total} template${total === 1 ? "" : "s"} across ${properties} propert${properties === 1 ? "y" : "ies"}.`,
+    openSync: "Open Sync",
+  },
+  ru: {
+    failedToLoad: "Не удалось загрузить",
+    onCheckIn: "в день заезда",
+    beforeCheckIn: (n) => `за ${n} дн до заезда`,
+    afterCheckIn: (n) => `через ${n} дн после заезда`,
+    title: "Шаблоны сообщений",
+    subtitle: "Все шаблоны сообщений по объектам. Нажмите на объект, чтобы открыть настройки синхронизации, где шаблоны редактируются.",
+    loading: "Загрузка...",
+    empty: "Шаблоны сообщений ещё не созданы. Откройте объект и добавьте их во вкладке настроек синхронизации.",
+    summary: (total, properties) => `${total} шаблон(ов) в ${properties} объект(ах).`,
+    openSync: "Открыть синхронизацию",
+  },
+};
+
 export default function AdminMessageTemplatesPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [rows, setRows] = useState<MessageTemplateRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,11 +87,9 @@ export default function AdminMessageTemplatesPage() {
         const list = Array.isArray(data?.templates) ? data!.templates! : [];
         setRows(list);
       })
-      .catch(() =>
-        setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load"),
-      )
+      .catch(() => setError(t.failedToLoad))
       .finally(() => setLoaded(true));
-  }, [locale]);
+  }, [t.failedToLoad]);
 
   // Group templates by property — mirrors the iCal-links + feed-tokens
   // overview shape so the shell reads consistently across these
@@ -72,30 +113,27 @@ export default function AdminMessageTemplatesPage() {
   const propertyCount = grouped.length;
 
   const formatOffset = (days: number): string => {
-    if (days === 0) return locale === "ru" ? "в день заезда" : "on check-in day";
+    if (days === 0) return t.onCheckIn;
     if (days < 0) {
-      const n = Math.abs(days);
-      return locale === "ru" ? `за ${n} дн до заезда` : `${n}d before check-in`;
+      return t.beforeCheckIn(Math.abs(days));
     }
-    return locale === "ru" ? `через ${days} дн после заезда` : `${days}d after check-in`;
+    return t.afterCheckIn(days);
   };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Шаблоны сообщений" : "Message templates"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Все шаблоны сообщений по объектам. Нажмите на объект, чтобы открыть настройки синхронизации, где шаблоны редактируются."
-            : "All message templates across your properties. Click a property to open its Sync settings, where templates are edited."}
+          {t.subtitle}
         </p>
       </div>
 
       {!loaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-5 text-sm text-rose-300">
@@ -103,18 +141,12 @@ export default function AdminMessageTemplatesPage() {
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Шаблоны сообщений ещё не созданы. Откройте объект и добавьте их во вкладке настроек синхронизации."
-            : "No templates yet. Open a property and add them on its Sync settings tab."}
+          {t.empty}
         </div>
       ) : (
         <>
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-3 text-sm text-[var(--ink-3)]">
-            {locale === "ru"
-              ? `${totalCount} шаблон(ов) в ${propertyCount} объект(ах).`
-              : `${totalCount} template${totalCount === 1 ? "" : "s"} across ${propertyCount} propert${
-                  propertyCount === 1 ? "y" : "ies"
-                }.`}
+            {t.summary(totalCount, propertyCount)}
           </div>
           <div className="space-y-4">
             {grouped.map((g) => (
@@ -128,7 +160,7 @@ export default function AdminMessageTemplatesPage() {
                 >
                   <span>{g.property.name}</span>
                   <span className="flex items-center gap-1 text-xs text-[var(--ink-4)]">
-                    {locale === "ru" ? "Открыть синхронизацию" : "Open Sync"}
+                    {t.openSync}
                     <svg
                       className="h-3.5 w-3.5"
                       fill="none"

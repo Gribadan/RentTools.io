@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
-import { LOCALE_COOKIE_NAME } from "@/lib/i18n/cookie";
+import { LOCALE_COOKIE_NAME, isLocale } from "@/lib/i18n/cookie";
+import { DEFAULT_LOCALE } from "@/lib/i18n/alternates";
 import type { Locale } from "@/lib/i18n/translations";
 
 /**
@@ -37,8 +38,7 @@ export async function getLocale(): Promise<Locale> {
   try {
     const h = await headers();
     const fromHeader = h.get("x-locale");
-    if (fromHeader === "ru") return "ru";
-    if (fromHeader === "en") return "en";
+    if (isLocale(fromHeader)) return fromHeader;
   } catch {
     // headers() throws when called outside a request scope (e.g. during
     // static asset generation). Fall through to cookie.
@@ -46,9 +46,10 @@ export async function getLocale(): Promise<Locale> {
   try {
     const store = await cookies();
     const value = store.get(LOCALE_COOKIE_NAME)?.value;
-    return value === "ru" ? "ru" : "en";
+    if (isLocale(value)) return value;
+    return DEFAULT_LOCALE;
   } catch {
-    return "en";
+    return DEFAULT_LOCALE;
   }
 }
 

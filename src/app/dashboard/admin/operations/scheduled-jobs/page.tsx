@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 27 — Scheduled jobs sub-route at
 // /dashboard/admin/operations/scheduled-jobs. Read-only reference of
@@ -17,11 +18,11 @@ import { useI18n } from "@/lib/i18n/context";
 
 interface ScheduledJob {
   id: string;
-  name: { en: string; ru: string };
+  name: Record<Locale, string>;
   schedule: string;
-  schedulePretty: { en: string; ru: string };
-  description: { en: string; ru: string };
-  link?: { href: string; label: { en: string; ru: string } };
+  schedulePretty: Record<Locale, string>;
+  description: Record<Locale, string>;
+  link?: { href: string; label: Record<Locale, string> };
 }
 
 const JOBS: ReadonlyArray<ScheduledJob> = [
@@ -71,19 +72,34 @@ const JOBS: ReadonlyArray<ScheduledJob> = [
   },
 ];
 
+interface CopyShape {
+  title: string;
+  subtitle: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Scheduled jobs",
+    subtitle: "Cron jobs configured on the host (deploy/cron/rent-tool.cron). Controlled from crontab on the droplet — this page is reference only. Calendar sync history is available on its own page.",
+  },
+  ru: {
+    title: "Запланированные задачи",
+    subtitle: "Задачи cron, настроенные на сервере (deploy/cron/rent-tool.cron). Управляются из crontab на хосте — здесь только справочник. История синхронизации календарей доступна на отдельной странице.",
+  },
+};
+
 export default function AdminScheduledJobsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Запланированные задачи" : "Scheduled jobs"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Задачи cron, настроенные на сервере (deploy/cron/rent-tool.cron). Управляются из crontab на хосте — здесь только справочник. История синхронизации календарей доступна на отдельной странице."
-            : "Cron jobs configured on the host (deploy/cron/rent-tool.cron). Controlled from crontab on the droplet — this page is reference only. Calendar sync history is available on its own page."}
+          {t.subtitle}
         </p>
       </div>
 
@@ -95,17 +111,17 @@ export default function AdminScheduledJobsPage() {
           >
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <h3 className="text-sm font-semibold text-[var(--ink)]">
-                {locale === "ru" ? job.name.ru : job.name.en}
+                {job.name[locale]}
               </h3>
               <span className="rounded bg-[var(--bg-3)] px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-[var(--ink-3)]">
                 {job.schedule}
               </span>
             </div>
             <p className="mt-1 text-xs text-[var(--ink-4)]">
-              {locale === "ru" ? job.schedulePretty.ru : job.schedulePretty.en}
+              {job.schedulePretty[locale]}
             </p>
             <p className="mt-2 text-sm text-[var(--ink-2)]">
-              {locale === "ru" ? job.description.ru : job.description.en}
+              {job.description[locale]}
             </p>
             {job.link && (
               <div className="mt-2">
@@ -113,7 +129,7 @@ export default function AdminScheduledJobsPage() {
                   href={job.link.href}
                   className="inline-flex items-center gap-1 text-xs text-[var(--ink-3)] hover:text-[var(--ink)]"
                 >
-                  {locale === "ru" ? job.link.label.ru : job.link.label.en}
+                  {job.link.label[locale]}
                   <svg
                     className="h-3 w-3"
                     fill="none"

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 26 — Guest form templates sub-route at
 // /dashboard/admin/content/guest-forms. Cross-property overview of
@@ -12,6 +13,57 @@ import { useI18n } from "@/lib/i18n/context";
 // a deep-link. Surfaces field-count + submission-count per template so
 // hosts can spot which properties have an active template and how
 // often guests are filling it.
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loadFailed: string;
+  loading: string;
+  empty: string;
+  loadingEllipsis: string;
+  summary: (totalCount: number, propertyCount: number, totalSubmissions: number) => string;
+  openSync: string;
+  untitled: string;
+  fields: (n: number) => string;
+  submissions: (n: number) => string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Guest form templates",
+    description:
+      "All guest pre-arrival form templates across your properties. Click a property to open its Sync settings, where the template is edited.",
+    loadFailed: "Failed to load",
+    loading: "Loading...",
+    empty:
+      "No guest forms configured yet. Open a property and build a template on its Sync settings tab.",
+    loadingEllipsis: "Loading...",
+    summary: (totalCount, propertyCount, totalSubmissions) =>
+      `${totalCount} template${totalCount === 1 ? "" : "s"} across ${propertyCount} propert${
+        propertyCount === 1 ? "y" : "ies"
+      } · ${totalSubmissions} submission${totalSubmissions === 1 ? "" : "s"}.`,
+    openSync: "Open Sync",
+    untitled: "Untitled template",
+    fields: (n) => `${n} field${n === 1 ? "" : "s"}`,
+    submissions: (n) => `${n} submission${n === 1 ? "" : "s"}`,
+  },
+  ru: {
+    title: "Шаблоны анкет гостей",
+    description:
+      "Все шаблоны анкет гостей по объектам. Нажмите на объект, чтобы открыть настройки синхронизации, где шаблон редактируется.",
+    loadFailed: "Не удалось загрузить",
+    loading: "Загрузка...",
+    empty:
+      "Шаблоны анкет ещё не настроены. Откройте объект и создайте шаблон во вкладке настроек синхронизации.",
+    loadingEllipsis: "Загрузка...",
+    summary: (totalCount, propertyCount, totalSubmissions) =>
+      `${totalCount} шаблон(ов) в ${propertyCount} объект(ах) · ${totalSubmissions} ответ(ов).`,
+    openSync: "Открыть синхронизацию",
+    untitled: "Без названия",
+    fields: (n) => `${n} пол(ей)`,
+    submissions: (n) => `${n} ответ(ов)`,
+  },
+};
 
 interface TemplateRow {
   id: number;
@@ -30,6 +82,7 @@ interface ApiResponse {
 
 export default function AdminGuestFormsPage() {
   const { locale } = useI18n();
+  const c = COPY[locale];
   const [rows, setRows] = useState<TemplateRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,11 +94,9 @@ export default function AdminGuestFormsPage() {
         const list = Array.isArray(data?.templates) ? data!.templates! : [];
         setRows(list);
       })
-      .catch(() =>
-        setError(locale === "ru" ? "Не удалось загрузить" : "Failed to load"),
-      )
+      .catch(() => setError(c.loadFailed))
       .finally(() => setLoaded(true));
-  }, [locale]);
+  }, [c.loadFailed]);
 
   const grouped = useMemo(() => {
     const m = new Map<
@@ -70,18 +121,16 @@ export default function AdminGuestFormsPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Шаблоны анкет гостей" : "Guest form templates"}
+          {c.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Все шаблоны анкет гостей по объектам. Нажмите на объект, чтобы открыть настройки синхронизации, где шаблон редактируется."
-            : "All guest pre-arrival form templates across your properties. Click a property to open its Sync settings, where the template is edited."}
+          {c.description}
         </p>
       </div>
 
       {!loaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {c.loading}
         </div>
       ) : error ? (
         <div className="rounded-xl border border-rose-500/40 bg-rose-500/5 p-5 text-sm text-rose-300">
@@ -89,18 +138,12 @@ export default function AdminGuestFormsPage() {
         </div>
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Шаблоны анкет ещё не настроены. Откройте объект и создайте шаблон во вкладке настроек синхронизации."
-            : "No guest forms configured yet. Open a property and build a template on its Sync settings tab."}
+          {c.empty}
         </div>
       ) : (
         <>
           <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-3 text-sm text-[var(--ink-3)]">
-            {locale === "ru"
-              ? `${totalCount} шаблон(ов) в ${propertyCount} объект(ах) · ${totalSubmissions} ответ(ов).`
-              : `${totalCount} template${totalCount === 1 ? "" : "s"} across ${propertyCount} propert${
-                  propertyCount === 1 ? "y" : "ies"
-                } · ${totalSubmissions} submission${totalSubmissions === 1 ? "" : "s"}.`}
+            {c.summary(totalCount, propertyCount, totalSubmissions)}
           </div>
           <div className="space-y-4">
             {grouped.map((g) => (
@@ -114,7 +157,7 @@ export default function AdminGuestFormsPage() {
                 >
                   <span>{g.property.name}</span>
                   <span className="flex items-center gap-1 text-xs text-[var(--ink-4)]">
-                    {locale === "ru" ? "Открыть синхронизацию" : "Open Sync"}
+                    {c.openSync}
                     <svg
                       className="h-3.5 w-3.5"
                       fill="none"
@@ -138,13 +181,10 @@ export default function AdminGuestFormsPage() {
                     >
                       <div className="min-w-0 flex-1">
                         <div className="font-medium text-[var(--ink)]">
-                          {tpl.name ||
-                            (locale === "ru" ? "Без названия" : "Untitled template")}
+                          {tpl.name || c.untitled}
                         </div>
                         <div className="text-[11px] text-[var(--ink-4)]">
-                          {locale === "ru"
-                            ? `${tpl.fieldCount} пол(ей)`
-                            : `${tpl.fieldCount} field${tpl.fieldCount === 1 ? "" : "s"}`}
+                          {c.fields(tpl.fieldCount)}
                         </div>
                       </div>
                       <span
@@ -154,11 +194,7 @@ export default function AdminGuestFormsPage() {
                             : "bg-[var(--bg-3)] text-[var(--ink-3)]"
                         }`}
                       >
-                        {locale === "ru"
-                          ? `${tpl.submissionCount} ответ(ов)`
-                          : `${tpl.submissionCount} submission${
-                              tpl.submissionCount === 1 ? "" : "s"
-                            }`}
+                        {c.submissions(tpl.submissionCount)}
                       </span>
                     </li>
                   ))}

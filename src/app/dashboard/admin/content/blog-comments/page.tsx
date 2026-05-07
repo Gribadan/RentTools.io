@@ -2,6 +2,76 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+
+interface CopyShape {
+  title: string;
+  description: string;
+  loading: string;
+  notSuperadmin: string;
+  statusLabel: string;
+  filterAll: string;
+  filterVisible: string;
+  filterHidden: string;
+  filterDeleted: string;
+  refreshing: string;
+  refresh: string;
+  loadFailed: (status: number) => string;
+  loadFailedShort: string;
+  commentsCount: (n: number) => string;
+  empty: string;
+  confirmDelete: string;
+  restore: string;
+  hide: string;
+  delete: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    title: "Blog comments",
+    description:
+      "Moderation: hide, restore, or soft-delete. Soft-deleted comments stay in the DB for audit.",
+    loading: "Loading...",
+    notSuperadmin: "Only superadmins can moderate comments.",
+    statusLabel: "Status",
+    filterAll: "All",
+    filterVisible: "Visible",
+    filterHidden: "Hidden",
+    filterDeleted: "Deleted",
+    refreshing: "Refreshing...",
+    refresh: "Refresh",
+    loadFailed: (status) => `Failed to load comments (${status})`,
+    loadFailedShort: "Failed to load comments",
+    commentsCount: (n) => `${n} comment${n === 1 ? "" : "s"}`,
+    empty: "No comments to moderate.",
+    confirmDelete: "Soft-delete this comment? It will be hidden but kept for audit.",
+    restore: "Restore",
+    hide: "Hide",
+    delete: "Delete",
+  },
+  ru: {
+    title: "Комментарии блога",
+    description:
+      "Модерация: скрыть / восстановить / удалить (мягкое удаление сохраняет запись для аудита).",
+    loading: "Загрузка...",
+    notSuperadmin: "Только суперадминистратор может модерировать комментарии.",
+    statusLabel: "Статус",
+    filterAll: "Все",
+    filterVisible: "Видимые",
+    filterHidden: "Скрытые",
+    filterDeleted: "Удалённые",
+    refreshing: "Обновляется...",
+    refresh: "Обновить",
+    loadFailed: (status) => `Не удалось загрузить комментарии (${status})`,
+    loadFailedShort: "Не удалось загрузить комментарии",
+    commentsCount: (n) => `${n} комментариев`,
+    empty: "Нет комментариев для модерации.",
+    confirmDelete: "Удалить комментарий? Он будет скрыт, но сохранён для аудита.",
+    restore: "Восстановить",
+    hide: "Скрыть",
+    delete: "Удалить",
+  },
+};
 
 // RT-25.9 tick 21 — Blog comments sub-route at
 // /dashboard/admin/content/blog-comments. Second slice off the
@@ -37,6 +107,7 @@ function formatDate(iso: string | null): string {
 
 export default function AdminBlogCommentsPage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [role, setRole] = useState<string | null>(null);
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [comments, setComments] = useState<BlogCommentRow[]>([]);
@@ -69,19 +140,13 @@ export default function AdminBlogCommentsPage() {
       if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
       const res = await fetch(url.toString());
       if (!res.ok) {
-        setError(
-          locale === "ru"
-            ? `Не удалось загрузить комментарии (${res.status})`
-            : `Failed to load comments (${res.status})`,
-        );
+        setError(t.loadFailed(res.status));
         return;
       }
       const data = (await res.json()) as BlogCommentRow[];
       setComments(data);
     } catch {
-      setError(
-        locale === "ru" ? "Не удалось загрузить комментарии" : "Failed to load comments",
-      );
+      setError(t.loadFailedShort);
     } finally {
       setLoading(false);
     }
@@ -103,11 +168,7 @@ export default function AdminBlogCommentsPage() {
   };
 
   const remove = async (id: number) => {
-    const confirmText =
-      locale === "ru"
-        ? "Удалить комментарий? Он будет скрыт, но сохранён для аудита."
-        : "Soft-delete this comment? It will be hidden but kept for audit.";
-    if (!confirm(confirmText)) return;
+    if (!confirm(t.confirmDelete)) return;
     setBusy(id);
     try {
       const res = await fetch(`/api/blog-comments/${id}`, { method: "DELETE" });
@@ -128,30 +189,26 @@ export default function AdminBlogCommentsPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Комментарии блога" : "Blog comments"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Модерация: скрыть / восстановить / удалить (мягкое удаление сохраняет запись для аудита)."
-            : "Moderation: hide, restore, or soft-delete. Soft-deleted comments stay in the DB for audit."}
+          {t.description}
         </p>
       </div>
 
       {!roleLoaded ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-4)]">
-          {locale === "ru" ? "Загрузка..." : "Loading..."}
+          {t.loading}
         </div>
       ) : !isSuperadmin ? (
         <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-sm text-[var(--ink-3)]">
-          {locale === "ru"
-            ? "Только суперадминистратор может модерировать комментарии."
-            : "Only superadmins can moderate comments."}
+          {t.notSuperadmin}
         </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <label className="text-xs text-[var(--ink-4)]" htmlFor="comment-status">
-              {locale === "ru" ? "Статус" : "Status"}
+              {t.statusLabel}
             </label>
             <select
               id="comment-status"
@@ -159,15 +216,13 @@ export default function AdminBlogCommentsPage() {
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
               className="h-8 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 text-xs text-[var(--ink)] outline-none transition-colors focus:border-[var(--ink)]"
             >
-              <option value="all">{locale === "ru" ? "Все" : "All"}</option>
-              <option value="visible">{locale === "ru" ? "Видимые" : "Visible"}</option>
-              <option value="hidden">{locale === "ru" ? "Скрытые" : "Hidden"}</option>
-              <option value="deleted">{locale === "ru" ? "Удалённые" : "Deleted"}</option>
+              <option value="all">{t.filterAll}</option>
+              <option value="visible">{t.filterVisible}</option>
+              <option value="hidden">{t.filterHidden}</option>
+              <option value="deleted">{t.filterDeleted}</option>
             </select>
             <span className="ml-auto text-xs text-[var(--ink-4)]">
-              {locale === "ru"
-                ? `${comments.length} комментариев`
-                : `${comments.length} comment${comments.length === 1 ? "" : "s"}`}
+              {t.commentsCount(comments.length)}
             </span>
             <button
               type="button"
@@ -175,13 +230,7 @@ export default function AdminBlogCommentsPage() {
               disabled={loading}
               className="rounded-md px-2.5 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
             >
-              {loading
-                ? locale === "ru"
-                  ? "Обновляется..."
-                  : "Refreshing..."
-                : locale === "ru"
-                ? "Обновить"
-                : "Refresh"}
+              {loading ? t.refreshing : t.refresh}
             </button>
           </div>
 
@@ -189,7 +238,7 @@ export default function AdminBlogCommentsPage() {
             {error && <p className="px-3 py-2 text-xs text-rose-300">{error}</p>}
             {!error && comments.length === 0 && !loading && (
               <p className="px-3 py-2 text-xs text-[var(--ink-4)]">
-                {locale === "ru" ? "Нет комментариев для модерации." : "No comments to moderate."}
+                {t.empty}
               </p>
             )}
             {comments.length > 0 && (
@@ -229,7 +278,7 @@ export default function AdminBlogCommentsPage() {
                             disabled={busy === c.id}
                             className="rounded-md px-2 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
                           >
-                            {locale === "ru" ? "Восстановить" : "Restore"}
+                            {t.restore}
                           </button>
                         )}
                         {c.status === "visible" && (
@@ -239,7 +288,7 @@ export default function AdminBlogCommentsPage() {
                             disabled={busy === c.id}
                             className="rounded-md px-2 py-1 text-xs text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
                           >
-                            {locale === "ru" ? "Скрыть" : "Hide"}
+                            {t.hide}
                           </button>
                         )}
                         {c.status !== "deleted" && (
@@ -249,7 +298,7 @@ export default function AdminBlogCommentsPage() {
                             disabled={busy === c.id}
                             className="rounded-md px-2 py-1 text-xs text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200 disabled:opacity-50"
                           >
-                            {locale === "ru" ? "Удалить" : "Delete"}
+                            {t.delete}
                           </button>
                         )}
                       </div>

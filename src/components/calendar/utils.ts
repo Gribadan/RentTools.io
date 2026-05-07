@@ -22,9 +22,12 @@ export function dayCount(start: string, end: string): number {
   return Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export function formatDate(d: string, locale: string): string {
+import { toBcp47 } from "@/lib/i18n/locale-tags";
+import type { Locale } from "@/lib/i18n/translations";
+
+export function formatDate(d: string, locale: Locale): string {
   return new Date(d + "T12:00:00").toLocaleDateString(
-    locale === "ru" ? "ru-RU" : "en-GB",
+    toBcp47(locale),
     { day: "2-digit", month: "short" }
   );
 }

@@ -5,7 +5,18 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DateSlider } from "@/components/date-slider";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
 import type { Property, Reservation } from "@/lib/types";
+
+interface CopyShape {
+  dateLocale: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { dateLocale: "en-GB" },
+  ru: { dateLocale: "ru-RU" },
+};
 
 interface SidebarProps {
   properties: Property[];
@@ -59,7 +70,8 @@ export function Sidebar({
   showCalendarSync,
   showTasks,
 }: SidebarProps) {
-  const { t, locale, setLocale } = useI18n();
+  const { t: tr, locale, setLocale } = useI18n();
+  const c = COPY[locale];
   const [newPropertyName, setNewPropertyName] = useState("");
   const [showPropertyInput, setShowPropertyInput] = useState(false);
   const [showReservationForm, setShowReservationForm] = useState<number | null>(null);
@@ -94,7 +106,7 @@ export function Sidebar({
   };
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", { day: "2-digit", month: "short" });
+    new Date(dateStr).toLocaleDateString(c.dateLocale, { day: "2-digit", month: "short" });
 
   const getColor = (id: number) => COLORS[id % COLORS.length];
 
@@ -109,8 +121,8 @@ export function Sidebar({
             </svg>
           </div>
           <div>
-            <div className="text-sm font-semibold text-[#f0f6fc]">{t("sidebar.title")}</div>
-            <div className="text-xs text-[#9198a1]">{t("sidebar.subtitle")}</div>
+            <div className="text-sm font-semibold text-[#f0f6fc]">{tr("sidebar.title")}</div>
+            <div className="text-xs text-[#9198a1]">{tr("sidebar.subtitle")}</div>
           </div>
         </div>
       </div>
@@ -130,7 +142,7 @@ export function Sidebar({
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
           </svg>
-          {t("sidebar.dashboard")}
+          {tr("sidebar.dashboard")}
         </button>
         <button
           onClick={onTasks}
@@ -143,13 +155,13 @@ export function Sidebar({
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          {t("sidebar.tasks")}
+          {tr("sidebar.tasks")}
         </button>
       </div>
 
       {/* Properties label + add */}
       <div className="flex items-center justify-between px-4 pt-4 pb-1">
-        <span className="text-xs font-medium text-[#9198a1]">{t("sidebar.properties")}</span>
+        <span className="text-xs font-medium text-[#9198a1]">{tr("sidebar.properties")}</span>
         <button
           onClick={() => setShowPropertyInput(!showPropertyInput)}
           className="rounded-md p-1 text-[#9198a1] hover:bg-[#1c2128] hover:text-[#f0f6fc] transition-colors"
@@ -165,14 +177,14 @@ export function Sidebar({
         <div className="px-3 pb-2">
           <form onSubmit={(e) => { e.preventDefault(); handleAddProperty(); }} className="flex gap-1.5">
             <input
-              placeholder={t("sidebar.propertyPlaceholder")}
+              placeholder={tr("sidebar.propertyPlaceholder")}
               value={newPropertyName}
               onChange={(e) => setNewPropertyName(e.target.value)}
               className="h-8 flex-1 rounded-md border border-[#30363d] bg-[#0d1117] px-2.5 text-sm text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff]"
               autoFocus
             />
             <Button type="submit" size="sm" className="h-8 rounded-md bg-[#238636] px-3 text-xs font-medium text-white hover:bg-[#2ea043]">
-              {t("common.add")}
+              {tr("common.add")}
             </Button>
           </form>
         </div>
@@ -183,7 +195,7 @@ export function Sidebar({
         <div className="px-2 py-1">
           {properties.length === 0 && (
             <p className="px-3 py-8 text-center text-xs text-[#7d8590]">
-              {t("sidebar.noProperties")}
+              {tr("sidebar.noProperties")}
             </p>
           )}
 
@@ -268,7 +280,7 @@ export function Sidebar({
                         className="space-y-2 rounded-md bg-[#161b22] p-2.5 mt-1"
                       >
                         <input
-                          placeholder={t("sidebar.guestName")}
+                          placeholder={tr("sidebar.guestName")}
                           value={resName}
                           onChange={(e) => setResName(e.target.value)}
                           className="h-7 w-full rounded border border-[#30363d] bg-[#0d1117] px-2 text-xs text-[#f0f6fc] placeholder-[#7d8590] outline-none focus:border-[#58a6ff]"
@@ -301,11 +313,11 @@ export function Sidebar({
                         />
                         <div className="flex gap-1.5">
                           <Button type="submit" size="sm" className="h-7 flex-1 rounded bg-[#238636] text-xs text-white hover:bg-[#2ea043]">
-                            {t("common.add")}
+                            {tr("common.add")}
                           </Button>
                           <button type="button" onClick={() => setShowReservationForm(null)}
                             className="h-7 rounded px-2.5 text-xs text-[#9198a1] hover:text-[#f0f6fc]">
-                            {t("common.cancel")}
+                            {tr("common.cancel")}
                           </button>
                         </div>
                       </form>
@@ -317,7 +329,7 @@ export function Sidebar({
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        {t("sidebar.addReservation")}
+                        {tr("sidebar.addReservation")}
                       </button>
                     )}
 
@@ -333,7 +345,7 @@ export function Sidebar({
                       <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
                       </svg>
-                      {t("sidebar.calendarSync")}
+                      {tr("sidebar.calendarSync")}
                     </button>
                   </div>
                 )}
@@ -345,21 +357,21 @@ export function Sidebar({
 
       {/* Bottom: language + user + settings + logout */}
       <div className="border-t border-[#21262d] px-3 py-3 space-y-1">
-        {/* Language selector */}
+        {/* Language selector — one button per supported locale, joined
+            by | dividers. Adding a 3rd locale auto-renders a 3rd
+            button; previously hardcoded EN/RU. */}
         <div className="flex items-center justify-center gap-1 px-3 py-1">
-          <button
-            onClick={() => setLocale("ru")}
-            className={`rounded px-2 py-0.5 text-xs transition-colors ${locale === "ru" ? "bg-[#1c2128] text-[#f0f6fc]" : "text-[#7d8590] hover:text-[#c9d1d9]"}`}
-          >
-            RU
-          </button>
-          <span className="text-[#30363d]">|</span>
-          <button
-            onClick={() => setLocale("en")}
-            className={`rounded px-2 py-0.5 text-xs transition-colors ${locale === "en" ? "bg-[#1c2128] text-[#f0f6fc]" : "text-[#7d8590] hover:text-[#c9d1d9]"}`}
-          >
-            EN
-          </button>
+          {SUPPORTED_LOCALES.map((loc, idx) => (
+            <span key={loc} className="contents">
+              {idx > 0 && <span className="text-[#30363d]">|</span>}
+              <button
+                onClick={() => setLocale(loc)}
+                className={`rounded px-2 py-0.5 text-xs transition-colors ${locale === loc ? "bg-[#1c2128] text-[#f0f6fc]" : "text-[#7d8590] hover:text-[#c9d1d9]"}`}
+              >
+                {loc.toUpperCase()}
+              </button>
+            </span>
+          ))}
         </div>
         <button
           onClick={onSettings}
@@ -371,7 +383,7 @@ export function Sidebar({
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
-          {t("sidebar.settings")}
+          {tr("sidebar.settings")}
         </button>
         <div className="flex items-center justify-between px-3 py-1.5">
           <span className="text-xs text-[#7d8590]">{username}</span>
@@ -379,7 +391,7 @@ export function Sidebar({
             onClick={onLogout}
             className="text-xs text-[#7d8590] hover:text-[#f85149] transition-colors"
           >
-            {t("sidebar.logout")}
+            {tr("sidebar.logout")}
           </button>
         </div>
       </div>

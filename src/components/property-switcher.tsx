@@ -2,7 +2,18 @@
 
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Property } from "@/lib/types";
+
+interface CopyShape {
+  property: string;
+  all: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: { property: "Property", all: "All" },
+  ru: { property: "Объект", all: "Все" },
+};
 
 interface PropertySwitcherProps {
   properties: Property[];
@@ -36,9 +47,8 @@ export function PropertySwitcher({
   label,
 }: PropertySwitcherProps) {
   const { locale } = useI18n();
-  const eyebrow = label === null
-    ? null
-    : (label ?? (locale === "ru" ? "Объект" : "Property"));
+  const t = COPY[locale];
+  const eyebrow = label === null ? null : (label ?? t.property);
 
   if (properties.length === 0) return null;
 
@@ -62,7 +72,7 @@ export function PropertySwitcher({
             href={`/dashboard?view=${view}`}
             className={`${pillBase} ${selectedPropertyId === null ? pillActive : pillIdle}`}
           >
-            {locale === "ru" ? "Все" : "All"}
+            {t.all}
           </Link>
         )}
         {properties.map((p) => (

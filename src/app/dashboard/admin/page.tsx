@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 // RT-25.9 tick 6 — admin home upgrade. Replaces the tick-1 placeholder
 // with (a) a tile grid of the migrated sub-routes so the admin shell
@@ -30,8 +31,8 @@ interface MeResponse {
 
 interface Tile {
   href: string;
-  label: { en: string; ru: string };
-  desc: { en: string; ru: string };
+  label: Record<Locale, string>;
+  desc: Record<Locale, string>;
   // RT-25.9 tick 15 — match the sidebar gating in layout.tsx so the
   // admin home only surfaces tiles whose underlying API the user can
   // actually call.
@@ -39,7 +40,7 @@ interface Tile {
 }
 
 const TILES: ReadonlyArray<{
-  group: { en: string; ru: string };
+  group: Record<Locale, string>;
   items: ReadonlyArray<Tile>;
 }> = [
   {
@@ -228,8 +229,49 @@ const TILES: ReadonlyArray<{
   },
 ];
 
+interface CopyShape {
+  justNow: string;
+  minutesAgo: (n: number) => string;
+  hoursAgo: (n: number) => string;
+  daysAgo: (n: number) => string;
+  dateLocale: string;
+  title: string;
+  subtitle: string;
+  recentActivity: string;
+  loading: string;
+  noActivity: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    justNow: "just now",
+    minutesAgo: (n) => `${n}m ago`,
+    hoursAgo: (n) => `${n}h ago`,
+    daysAgo: (n) => `${n}d ago`,
+    dateLocale: "en-GB",
+    title: "Admin",
+    subtitle: "Consolidated settings home. More sections light up as they migrate from the legacy long-scroll settings page.",
+    recentActivity: "Recent activity",
+    loading: "Loading...",
+    noActivity: "No activity yet.",
+  },
+  ru: {
+    justNow: "только что",
+    minutesAgo: (n) => `${n} мин назад`,
+    hoursAgo: (n) => `${n} ч назад`,
+    daysAgo: (n) => `${n} д назад`,
+    dateLocale: "ru-RU",
+    title: "Администрирование",
+    subtitle: "Все настройки в одном месте. Разделы появляются по мере переноса со старой страницы настроек.",
+    recentActivity: "Последние действия",
+    loading: "Загрузка...",
+    noActivity: "Действий пока нет.",
+  },
+};
+
 export default function AdminHomePage() {
   const { locale } = useI18n();
+  const t = COPY[locale];
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [auditLoaded, setAuditLoaded] = useState(false);
   const [role, setRole] = useState<string | null>(null);
@@ -255,20 +297,20 @@ export default function AdminHomePage() {
   const isSuperadmin = role === "superadmin";
   const visibleTiles = TILES.map((group) => ({
     ...group,
-    items: group.items.filter((t) => isSuperadmin || !t.requiresSuperadmin),
+    items: group.items.filter((tile) => isSuperadmin || !tile.requiresSuperadmin),
   })).filter((group) => group.items.length > 0);
 
   const formatRelative = (iso: string): string => {
     const then = new Date(iso).getTime();
     const now = Date.now();
     const diffMin = Math.floor((now - then) / 60000);
-    if (diffMin < 1) return locale === "ru" ? "только что" : "just now";
-    if (diffMin < 60) return locale === "ru" ? `${diffMin} мин назад` : `${diffMin}m ago`;
+    if (diffMin < 1) return t.justNow;
+    if (diffMin < 60) return t.minutesAgo(diffMin);
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return locale === "ru" ? `${diffHr} ч назад` : `${diffHr}h ago`;
+    if (diffHr < 24) return t.hoursAgo(diffHr);
     const diffDay = Math.floor(diffHr / 24);
-    if (diffDay < 7) return locale === "ru" ? `${diffDay} д назад` : `${diffDay}d ago`;
-    return new Date(iso).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-GB", {
+    if (diffDay < 7) return t.daysAgo(diffDay);
+    return new Date(iso).toLocaleDateString(t.dateLocale, {
       day: "2-digit",
       month: "short",
     });
@@ -278,12 +320,10 @@ export default function AdminHomePage() {
     <div className="mx-auto max-w-4xl space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-[var(--ink)]">
-          {locale === "ru" ? "Администрирование" : "Admin"}
+          {t.title}
         </h2>
         <p className="mt-1 text-sm text-[var(--ink-4)]">
-          {locale === "ru"
-            ? "Все настройки в одном месте. Разделы появляются по мере переноса со старой страницы настроек."
-            : "Consolidated settings home. More sections light up as they migrate from the legacy long-scroll settings page."}
+          {t.subtitle}
         </p>
       </div>
 
@@ -291,7 +331,7 @@ export default function AdminHomePage() {
       {visibleTiles.map((group) => (
         <section key={group.group.en} className="space-y-3">
           <h3 className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-            {locale === "ru" ? group.group.ru : group.group.en}
+            {group.group[locale]}
           </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {group.items.map((item) => (
@@ -302,14 +342,14 @@ export default function AdminHomePage() {
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-[var(--ink)]">
-                    {locale === "ru" ? item.label.ru : item.label.en}
+                    {item.label[locale]}
                   </h4>
                   <svg className="h-4 w-4 text-[var(--ink-4)] transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </div>
                 <p className="mt-1.5 text-xs text-[var(--ink-4)]">
-                  {locale === "ru" ? item.desc.ru : item.desc.en}
+                  {item.desc[locale]}
                 </p>
               </Link>
             ))}
@@ -320,16 +360,16 @@ export default function AdminHomePage() {
       {/* Recent activity strip */}
       <section className="space-y-3">
         <h3 className="text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)]">
-          {locale === "ru" ? "Последние действия" : "Recent activity"}
+          {t.recentActivity}
         </h3>
         <div className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--bg-2)]">
           {!auditLoaded ? (
             <div className="px-4 py-5 text-sm text-[var(--ink-4)]">
-              {locale === "ru" ? "Загрузка..." : "Loading..."}
+              {t.loading}
             </div>
           ) : entries.length === 0 ? (
             <div className="px-4 py-5 text-sm text-[var(--ink-4)]">
-              {locale === "ru" ? "Действий пока нет." : "No activity yet."}
+              {t.noActivity}
             </div>
           ) : (
             <ul className="divide-y divide-[var(--line)]/50">
