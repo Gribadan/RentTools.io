@@ -14,7 +14,7 @@ import { extractToc, readingMinutes, renderMarkdown, stripLeadingH1 } from "@/li
 import { getSession } from "@/lib/auth";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
-import { SUPPORTED_LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/alternates";
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, localePath } from "@/lib/i18n/alternates";
 import type { Locale } from "@/lib/i18n/translations";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
@@ -440,7 +440,7 @@ export default async function BlogPostPage({
                     {tags.slice(0, 4).map((t) => (
                       <Link
                         key={t}
-                        href={`/blog/tag/${encodeURIComponent(t)}`}
+                        href={localePath(`/blog/tag/${encodeURIComponent(t)}`, locale)}
                         className="rounded-full border border-[var(--line)] bg-[var(--bg)]/60 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-[var(--ink-3)] transition-colors hover:border-[var(--line-2)] hover:text-[var(--ink)]"
                       >
                         {t}
@@ -524,7 +524,7 @@ export default async function BlogPostPage({
                   {related.map((r) => (
                     <li key={r.id}>
                       <Link
-                        href={`/blog/${r.slug}`}
+                        href={localePath(`/blog/${r.slug}`, locale)}
                         className="group block rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/30 p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
                       >
                         <h3 className="text-[15px] font-semibold leading-snug text-[var(--ink)]">
@@ -555,11 +555,11 @@ export default async function BlogPostPage({
               comments={comments}
               isSignedIn={!!session}
               isSuperadmin={isSuperadmin}
-              loginHref={`/login?next=${encodeURIComponent(`/blog/${slug}`)}`}
+              loginHref={localePath(`/login?next=${encodeURIComponent(`/blog/${slug}`)}`, locale)}
             />
 
             <nav className="mt-12 border-t border-[var(--line)] pt-6 text-sm">
-              <Link href="/blog" className="text-[var(--ink-3)] hover:text-[var(--ink)]">
+              <Link href={localePath("/blog", locale)} className="text-[var(--ink-3)] hover:text-[var(--ink)]">
                 {locale === "ru" ? "← Все статьи" : "← All posts"}
               </Link>
             </nav>

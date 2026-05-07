@@ -265,7 +265,7 @@ export default async function BlogIndexPage({
               return (
                 <Link
                   key={t.slug}
-                  href={`/blog/tag/${encodeURIComponent(t.slug)}`}
+                  href={localePath(`/blog/tag/${encodeURIComponent(t.slug)}`, locale)}
                   className={`rounded-full border px-3 py-1 transition-colors ${
                     active
                       ? "border-[var(--m-accent)] text-[var(--m-accent)]"

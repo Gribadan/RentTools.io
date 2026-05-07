@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { PlatformInstructions } from "@/components/platform-instructions";
 import { MarketingHeader } from "@/components/marketing-header";
 import { useI18n } from "@/lib/i18n/context";
+import { localePath } from "@/lib/i18n/alternates";
 
 /* ────────────────────────────────────────────────────────────────────
    Types
@@ -429,12 +430,12 @@ export default function OnboardPage() {
                     {locale === "ru" ? (
                       <>
                         Бесплатно навсегда, без карты. Уже есть аккаунт?{" "}
-                        <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Войти</Link>.
+                        <Link href={localePath("/login", locale)} className="text-[var(--ink)] underline-offset-2 hover:underline">Войти</Link>.
                       </>
                     ) : (
                       <>
                         Forever free, no credit card. Already have an account?{" "}
-                        <Link href="/login" className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
+                        <Link href={localePath("/login", locale)} className="text-[var(--ink)] underline-offset-2 hover:underline">Sign in</Link>.
                       </>
                     )}
                   </p>
