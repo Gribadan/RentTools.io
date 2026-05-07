@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingHeader } from "@/components/marketing-header";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { JsonLd } from "@/components/json-ld";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
@@ -165,11 +166,22 @@ export default async function BlogIndexPage({
       <MarketingHeader sticky />
 
       <main className="mx-auto max-w-[1180px] px-6">
+        <Breadcrumbs
+          className="pt-6 sm:pt-8"
+          navLabel={locale === "ru" ? "Хлебные крошки" : "Breadcrumb"}
+          items={[
+            {
+              label: locale === "ru" ? "Главная" : "Home",
+              href: locale === "ru" ? "/ru" : "/",
+            },
+            { label: locale === "ru" ? "Блог" : "Blog" },
+          ]}
+        />
         {/* Index hero — same accent gradient as the post pages so the
             shell reads as one product. Headline + intro pitch the section
             in copy that has actual keywords (Google reads this for the
             blog hub's own ranking). */}
-        <section className="relative mt-6 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-10 pt-10 sm:px-10 sm:pb-12 sm:pt-14">
+        <section className="relative mt-4 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-10 pt-10 sm:px-10 sm:pb-12 sm:pt-14">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-70"

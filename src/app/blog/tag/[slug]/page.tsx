@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { MarketingHeader } from "@/components/marketing-header";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { prisma } from "@/lib/prisma";
 import { applySeoOverrides } from "@/lib/seo";
 import { getLocale } from "@/lib/i18n/server";
-import { DEFAULT_LOCALE } from "@/lib/i18n/alternates";
+import { DEFAULT_LOCALE, localePath } from "@/lib/i18n/alternates";
+import type { Locale } from "@/lib/i18n/translations";
 
 const PAGE_SIZE = 12;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://renttools.io";
@@ -68,22 +69,22 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  // Tag pages are EN-only today (the post library is EN-only). The page
-  // body redirects /<locale>/blog/tag/<slug> to /blog/tag/<slug>; this
-  // metadata branch only ever runs for the default locale, but we still
-  // gate it just in case the redirect is bypassed somehow.
   const resolvedLocale = await getLocale();
-  if (resolvedLocale !== DEFAULT_LOCALE) {
-    return { title: "Not found", robots: { index: false, follow: false } };
-  }
   const cleanSlug = normaliseSlug(slug);
   const tag = await findTag(cleanSlug);
   if (!tag) {
     return { title: "Tag not found", robots: { index: false, follow: false } };
   }
   const postCount = await countPostsForTag(cleanSlug);
-  const indexable = postCount >= TAG_INDEX_MIN_POSTS;
+  const indexable =
+    postCount >= TAG_INDEX_MIN_POSTS && resolvedLocale === DEFAULT_LOCALE;
 
+  // Tag pages are EN-only — the post library is EN-only, and even when a
+  // post gets translated, the tag aggregator stays default-locale until
+  // the locale's post library independently crosses the indexability
+  // threshold. So canonical always points at the EN URL regardless of
+  // the URL we're being rendered under (Stripe model). On non-default
+  // locale URLs, noindex is hard-set to keep the duplicate out of SERPs.
   const title = `${tag.displayName} — RentTools blog`;
   const description = `Posts tagged ${tag.displayName} on the RentTools blog.`;
   const base: Metadata = {
@@ -105,8 +106,22 @@ export async function generateMetadata({
     },
     twitter: { card: "summary_large_image", title, description },
   };
-  return applySeoOverrides(base, `/blog/tag/${tag.slug}`, "en");
+  return applySeoOverrides(base, `/blog/tag/${tag.slug}`, DEFAULT_LOCALE);
 }
+
+// Per-locale banner shown above the tag-page hero on non-default-locale
+// URLs. Tells the visitor the post library + tag taxonomy is English-
+// only today. Same pattern as the untranslated-blog-post fallback.
+const TAG_UNTRANSLATED_BANNER: Record<Locale, { line1: string; line2: string }> = {
+  en: {
+    line1: "Tag pages are English-only.",
+    line2: "Post titles and bodies on the RentTools blog ship in English.",
+  },
+  ru: {
+    line1: "Страницы по тегам пока только на английском.",
+    line2: "Заголовки и тексты статей в блоге RentTools — на английском.",
+  },
+};
 
 export default async function BlogTagPage({
   params,
@@ -120,15 +135,15 @@ export default async function BlogTagPage({
   const slug = normaliseSlug(rawSlug);
   if (!slug) notFound();
 
-  // Tag pages are EN-only until the post library goes multilingual.
-  // Redirect /<locale>/blog/tag/<slug> to the canonical /blog/tag/<slug>
-  // so the user lands on the page that actually exists, instead of
-  // hitting a 404. The 308 also tells Google to consolidate any external
-  // links pointing at the localised URL onto the canonical.
+  // Stripe-model fallback: render EN content under any locale URL.
+  // We don't redirect /<locale>/blog/tag/<slug> to /blog/tag/<slug>
+  // — that would loop with the cookie-based middleware redirect that
+  // sends /blog/tag/<slug> + rt-locale=ru back to /ru/blog/tag/<slug>.
+  // Instead, render normally; metadata sets canonical→EN + noindex
+  // when the URL prefix isn't default, so Google still consolidates.
   const resolvedLocale = await getLocale();
-  if (resolvedLocale !== DEFAULT_LOCALE) {
-    redirect(`/blog/tag/${slug}`);
-  }
+  const isUntranslated = resolvedLocale !== DEFAULT_LOCALE;
+  const localeForLinks = resolvedLocale;
 
   const tag = await findTag(slug);
   if (!tag) notFound();
@@ -166,8 +181,15 @@ export default async function BlogTagPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
-  const prevHref = page - 1 > 1 ? `/blog/tag/${slug}?page=${page - 1}` : `/blog/tag/${slug}`;
-  const nextHref = `/blog/tag/${slug}?page=${page + 1}`;
+  // Pagination links keep the user on whatever locale URL they're
+  // already viewing. Tag page is EN-only at the body level, but the
+  // URL prefix is preserved so the user doesn't bounce out of their
+  // locale just by clicking next.
+  const prevHref = localePath(
+    page - 1 > 1 ? `/blog/tag/${slug}?page=${page - 1}` : `/blog/tag/${slug}`,
+    localeForLinks,
+  );
+  const nextHref = localePath(`/blog/tag/${slug}?page=${page + 1}`, localeForLinks);
 
   return (
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
@@ -176,12 +198,45 @@ export default async function BlogTagPage({
       <main className="mx-auto max-w-[1180px] px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
+          navLabel={localeForLinks === "ru" ? "Хлебные крошки" : "Breadcrumb"}
           items={[
-            { label: "Home", href: "/" },
-            { label: "Blog", href: "/blog" },
+            {
+              label: localeForLinks === "ru" ? "Главная" : "Home",
+              href: localePath("/", localeForLinks),
+            },
+            {
+              label: localeForLinks === "ru" ? "Блог" : "Blog",
+              href: localePath("/blog", localeForLinks),
+            },
             { label: tag.displayName },
           ]}
         />
+        {isUntranslated && (
+          <div
+            role="status"
+            className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm"
+          >
+            <svg
+              className="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <path strokeLinecap="round" d="M12 8v4M12 16h.01" />
+            </svg>
+            <div>
+              <p className="font-medium text-[var(--ink)]">
+                {TAG_UNTRANSLATED_BANNER[localeForLinks].line1}
+              </p>
+              <p className="mt-0.5 text-[var(--ink-3)]">
+                {TAG_UNTRANSLATED_BANNER[localeForLinks].line2}
+              </p>
+            </div>
+          </div>
+        )}
         {/* Tag hero — same shape as the /blog index hero so the surface
             stays visually consistent across the section. The hero
             is intentionally smaller than the blog-index one because a
@@ -212,7 +267,7 @@ export default async function BlogTagPage({
           {posts.length === 0 ? (
             <p className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-4 py-12 text-center text-sm text-[var(--ink-3)]">
               Nothing here yet —{" "}
-              <Link href="/blog" className="text-[var(--m-accent)] hover:underline">
+              <Link href={localePath("/blog", localeForLinks)} className="text-[var(--m-accent)] hover:underline">
                 browse all posts
               </Link>
               .
@@ -224,7 +279,7 @@ export default async function BlogTagPage({
                 return (
                   <li key={p.id}>
                     <Link
-                      href={`/blog/${p.slug}`}
+                      href={localePath(`/blog/${p.slug}`, localeForLinks)}
                       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--bg-2)]/30 transition-all hover:-translate-y-0.5 hover:border-[var(--line-2)] hover:bg-[var(--bg-2)]/60 hover:shadow-lg"
                     >
                       <div className="aspect-[1.91/1] overflow-hidden bg-[var(--bg-3)]">
@@ -317,8 +372,8 @@ export default async function BlogTagPage({
         <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
-            <Link href="/" className="hover:text-[var(--ink)]">Home</Link>
-            <Link href="/blog" className="hover:text-[var(--ink)]">Blog</Link>
+            <Link href={localePath("/", localeForLinks)} className="hover:text-[var(--ink)]">Home</Link>
+            <Link href={localePath("/blog", localeForLinks)} className="hover:text-[var(--ink)]">Blog</Link>
             <Link href="/privacy" className="hover:text-[var(--ink)]">Privacy</Link>
             <Link href="/terms" className="hover:text-[var(--ink)]">Terms</Link>
           </nav>
