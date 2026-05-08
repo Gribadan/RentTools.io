@@ -26,11 +26,19 @@ function localizedUrl(defaultPath: string, locale: Locale): string {
 // Used as the per-row `alternates: { languages: ... }` so Google sees
 // each entry's hreflang siblings inside the sitemap itself
 // (matches `<xhtml:link rel="alternate" hreflang="…">` in raw XML).
+//
+// `x-default` is added so the sitemap signals match what the per-page
+// `generateMetadata` already emits via `localizedAlternates` —
+// without it, Google sees inconsistent hreflang declarations between
+// the page head and the sitemap and falls back to its own heuristics.
+// `x-default` always points at the default-locale URL (the canonical
+// fallback when Google can't determine the visitor's preference).
 function altLanguages(defaultPath: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const loc of SUPPORTED_LOCALES) {
     result[loc] = localizedUrl(defaultPath, loc);
   }
+  result["x-default"] = localizedUrl(defaultPath, DEFAULT_LOCALE);
   return result;
 }
 
@@ -134,12 +142,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let postEntries: MetadataRoute.Sitemap = [];
   let tagEntries: MetadataRoute.Sitemap = [];
   try {
-    // Blog posts are stored per-locale in the DB (BlogPost.locale).
-    // For now only EN posts exist — the post URL exists at `/blog/<slug>`
-    // (default locale) only. We still emit hreflang alternates for
-    // potential future RU translations, but with a caveat: an alternate
-    // pointing at a 404'd URL hurts. Until the BlogPost row for that
-    // (slug, ru) pair exists, the alternate must be omitted.
+    // Blog posts are stored per-locale in the DB (BlogPost.locale). The
+    // grouping below builds, for every distinct slug, the set of locales
+    // that have a published row. The hreflang siblings emitted for each
+    // entry list ONLY those locales — pointing hreflang at a URL whose
+    // row doesn't exist would feed Google a 404 and tank the canonical's
+    // ranking signal alongside it. As of the catalog backfill (commit
+    // f14a1b4), every active locale has a row for every slug, so each
+    // post emits a full 5-language alternates map plus x-default.
     const posts = await prisma.blogPost.findMany({
       where: { status: "published", publishedAt: { lte: now } },
       select: {
@@ -168,6 +178,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         if (availableLocales.has(loc)) {
           languages[loc] = localizedUrl(path, loc);
         }
+      }
+      // x-default points at the EN URL when an EN row exists. EN is the
+      // canonical fallback in our content model (the default locale,
+      // every Stripe-style untranslated fallback consolidates onto it).
+      // Skip x-default if for some edge case there's no EN row — that
+      // would mean the slug exists only in non-default locales, in which
+      // case there's no obvious fallback URL to declare.
+      if (availableLocales.has(DEFAULT_LOCALE)) {
+        languages["x-default"] = localizedUrl(path, DEFAULT_LOCALE);
       }
       return {
         url: localizedUrl(path, p.locale as Locale),
