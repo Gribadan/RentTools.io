@@ -625,7 +625,7 @@ export default function OnboardPage() {
 
       {/* ── Main ── */}
       <main className="flex-1">
-        <div className="mx-auto max-w-[1180px] px-6 py-6 sm:py-14">
+        <div className="mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-14">
           {/* Intro hero — RT-25.8: hidden on <sm so the user lands
               directly on Step 1 above the fold. Free-for-everything
               wording replaces the old "1 property" line that read like

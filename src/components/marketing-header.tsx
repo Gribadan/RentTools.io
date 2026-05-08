@@ -61,8 +61,8 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
           : "border-b border-[var(--line)]"
       }
     >
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-4">
-        <Link href={localized("/")} className="group flex items-center gap-2">
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4">
+        <Link href={localized("/")} className="group flex shrink-0 items-center gap-2 min-w-0">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
             <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
               <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
@@ -101,10 +101,18 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-1 sm:gap-2">
+        {/* Right cluster — uses shrink-0 + whitespace-nowrap on every
+            child so the auth labels never wrap onto a second line at
+            ~375px (previously "Sign in" wrapped to two lines because
+            the cluster ran out of space). The Blog link is hidden on
+            the smallest viewports — the brand mark + the primary CTA
+            + the chrome (theme/locale) win precedence over a
+            discoverable nav link the user can still reach via the
+            footer or the dashboard side panel. */}
+        <nav className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           <Link
             href={localized("/blog")}
-            className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
+            className="hidden whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)] sm:inline-flex sm:px-3"
           >
             {t.blog}
           </Link>
@@ -128,7 +136,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
             // header that they hit while exploring blog/onboard pages.
             <Link
               href={localized("/dashboard")}
-              className="rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)]"
+              className="whitespace-nowrap rounded-md bg-[var(--ink)] px-2.5 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:px-3"
             >
               {t.dashboard}
             </Link>
@@ -136,19 +144,22 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
             <>
               <Link
                 href={localized("/login")}
-                className="rounded-md px-3 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
+                className="whitespace-nowrap rounded-md px-2 py-1.5 text-[13px] text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)] sm:px-3"
               >
                 {t.signIn}
               </Link>
               <Link
                 href={localized("/onboard")}
-                className="hidden rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:inline-flex"
+                className="hidden whitespace-nowrap rounded-md bg-[var(--ink)] px-3 py-1.5 text-[13px] font-medium text-[var(--bg)] transition-colors hover:bg-[var(--ink-2)] sm:inline-flex"
               >
                 {t.getStarted}
               </Link>
             </>
           )}
-          <span className="mx-1 h-4 w-px bg-[var(--line)]" />
+          {/* Divider hidden on mobile — every pixel matters and the
+              auth pill / locale switcher already provide visual
+              separation via their own borders. */}
+          <span className="mx-1 hidden h-4 w-px bg-[var(--line)] sm:block" />
           <ThemeToggle />
           <LocaleSwitcher />
         </nav>

@@ -124,7 +124,14 @@ export function FeedbackButton() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
-        className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg)]/95 px-4 py-2.5 text-[13px] font-medium text-[var(--ink-2)] shadow-[0_6px_24px_-6px_rgba(0,0,0,0.18),0_2px_8px_-4px_rgba(0,0,0,0.12)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--bg-2)] hover:text-[var(--ink)] hover:shadow-[0_10px_32px_-8px_rgba(0,0,0,0.22),0_4px_12px_-4px_rgba(0,0,0,0.14)] sm:bottom-6 sm:right-6"
+        // Position uses CSS env() for the iOS Safari home-indicator
+        // safe-area inset; without it, the pill sits behind the
+        // dynamic bottom toolbar on iPhone and is half-tappable.
+        // Also: px-3 + smaller text on mobile so the floating pill
+        // doesn't crowd the bottom-right of a 375px viewport when the
+        // user is scrolling content.
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)", right: "calc(env(safe-area-inset-right, 0px) + 16px)" }}
+        className="fixed z-40 inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--bg)]/95 px-3 py-2 text-[12px] font-medium text-[var(--ink-2)] shadow-[0_6px_24px_-6px_rgba(0,0,0,0.18),0_2px_8px_-4px_rgba(0,0,0,0.12)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--bg-2)] hover:text-[var(--ink)] hover:shadow-[0_10px_32px_-8px_rgba(0,0,0,0.22),0_4px_12px_-4px_rgba(0,0,0,0.14)] sm:px-4 sm:py-2.5 sm:text-[13px]"
       >
         <svg
           aria-hidden
@@ -146,7 +153,11 @@ export function FeedbackButton() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="feedback-heading"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4 backdrop-blur-sm sm:items-center"
+          // Modal: items-end on mobile so it slides up from the bottom
+          // of the viewport (sheet behaviour, native to iOS / Android),
+          // items-center on sm+ where there's room to center it.
+          // p-3 on mobile so the modal can be wider, p-4 elsewhere.
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-3 backdrop-blur-sm sm:items-center sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}

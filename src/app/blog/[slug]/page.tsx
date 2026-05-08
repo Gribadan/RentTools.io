@@ -516,7 +516,7 @@ export default async function BlogPostPage({
           sidebar. The two-column grid inside lets the hero + article live
           in the same column (the right TOC sidebar floats alongside them on
           lg+), so the hero is always exactly as wide as the prose. */}
-      <main className="mx-auto max-w-[1180px] px-6">
+      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
           navLabel={t.breadcrumbNav}
@@ -560,7 +560,7 @@ export default async function BlogPostPage({
                 </div>
               </div>
             )}
-            <header className="relative mb-10 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-8 pt-9 sm:px-10 sm:pb-10 sm:pt-12">
+            <header className="relative mb-10 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-5 pb-7 pt-7 sm:px-10 sm:pb-10 sm:pt-12">
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 opacity-70"
@@ -711,7 +711,7 @@ export default async function BlogPostPage({
       </main>
 
       <footer className="border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href="/" className="hover:text-[var(--ink)]">

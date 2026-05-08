@@ -218,7 +218,7 @@ export default async function BlogTagPage({
     <div className="editorial min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <MarketingHeader sticky />
 
-      <main className="mx-auto max-w-[1180px] px-6">
+      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
           navLabel={TAG_CHROME[localeForLinks].breadcrumbNav}

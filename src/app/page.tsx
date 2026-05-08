@@ -817,7 +817,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <div className="grid-bg absolute inset-0 pointer-events-none opacity-60" aria-hidden="true" />
         <div className="calendar-pills absolute inset-0 pointer-events-none" aria-hidden="true" />
-        <div className="relative mx-auto max-w-[1180px] px-6 pt-16 pb-16 text-center sm:pt-20 sm:pb-20">
+        <div className="relative mx-auto max-w-[1180px] px-4 pt-16 sm:px-6 pb-16 text-center sm:pt-20 sm:pb-20">
           <p className="hero-in mono mb-5 inline-block rounded-full bg-[var(--bg-2)] px-3 py-1 text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
             {t.hero.eyebrow}
           </p>
@@ -872,7 +872,7 @@ export default async function HomePage() {
 
       {/* ─────────────── How it works ─────────────── */}
       <section id="how-it-works" className="border-t border-[var(--line)] bg-[var(--bg-2)]">
-        <div className="mx-auto max-w-[1180px] px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-[1180px] px-4 py-20 sm:px-6 sm:py-24">
           <div className="mx-auto max-w-[640px] text-center">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">{t.how.eyebrow}</p>
             <h2 className="display-tight mt-3 text-[32px] font-semibold tracking-tight text-[var(--ink)] sm:text-[42px]">
@@ -900,7 +900,7 @@ export default async function HomePage() {
 
       {/* ─────────────── Features ─────────────── */}
       <section className="border-t border-[var(--line)]">
-        <div className="mx-auto max-w-[1180px] px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-[1180px] px-4 py-20 sm:px-6 sm:py-24">
           <div className="mx-auto max-w-[640px] text-center">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">{t.features.eyebrow}</p>
             <h2 className="display-tight mt-3 text-[32px] font-semibold tracking-tight text-[var(--ink)] sm:text-[42px]">
@@ -917,7 +917,7 @@ export default async function HomePage() {
 
       {/* ─────────────── Compatible with strip ─────────────── */}
       <section className="border-t border-[var(--line)]">
-        <div className="mx-auto max-w-[1180px] px-6 py-12 sm:py-16">
+        <div className="mx-auto max-w-[1180px] px-4 py-12 sm:px-6 sm:py-16">
           <p className="mono text-center text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">
             {t.compatible.label}
           </p>
@@ -943,7 +943,7 @@ export default async function HomePage() {
 
       {/* ─────────────── Trust ─────────────── */}
       <section className="border-t border-[var(--line)] bg-[var(--bg-2)]">
-        <div className="mx-auto max-w-[1180px] px-6 py-16 sm:py-20">
+        <div className="mx-auto max-w-[1180px] px-4 py-16 sm:px-6 sm:py-20">
           <div className="grid gap-8 sm:grid-cols-2 sm:gap-12">
             <Trust
               title={t.trust.open.title}
@@ -961,7 +961,7 @@ export default async function HomePage() {
 
       {/* ─────────────── FAQ ─────────────── */}
       <section className="border-t border-[var(--line)]">
-        <div className="mx-auto max-w-[760px] px-6 py-20 sm:py-24">
+        <div className="mx-auto max-w-[760px] px-4 py-20 sm:px-6 sm:py-24">
           <div className="text-center">
             <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--ink-3)]">{t.faq.eyebrow}</p>
             <h2 className="display-tight mt-3 text-[32px] font-semibold tracking-tight text-[var(--ink)] sm:text-[40px]">
@@ -980,7 +980,7 @@ export default async function HomePage() {
 
       {/* ─────────────── Final CTA ─────────────── */}
       <section className="border-t border-[var(--line)] bg-[var(--bg-2)]">
-        <div className="mx-auto max-w-[1180px] px-6 py-20 sm:py-28">
+        <div className="mx-auto max-w-[1180px] px-4 py-20 sm:px-6 sm:py-28">
           <div className="mx-auto max-w-[680px] text-center">
             <h2 className="display text-[36px] font-semibold tracking-[-0.03em] text-[var(--ink)] sm:text-[52px]">
               {t.finalCta.titleA} <span className="italic font-normal">{t.finalCta.titleB}</span>
@@ -1010,7 +1010,7 @@ export default async function HomePage() {
 
       {/* ─────────────── Footer ─────────────── */}
       <footer className="mt-auto border-t border-[var(--line)]">
-        <div className="mx-auto max-w-[1180px] px-6 py-8">
+        <div className="mx-auto max-w-[1180px] px-4 py-8 sm:px-6">
           <div className="flex flex-col items-center justify-between gap-4 text-[12.5px] text-[var(--ink-3)] sm:flex-row">
             <p>{t.footer.copyright}</p>
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

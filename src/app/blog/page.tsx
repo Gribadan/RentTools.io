@@ -317,7 +317,7 @@ export default async function BlogIndexPage({
       {blogJsonLd && <JsonLd data={blogJsonLd} />}
       <MarketingHeader sticky />
 
-      <main className="mx-auto max-w-[1180px] px-6">
+      <main className="mx-auto max-w-[1180px] px-4 sm:px-6">
         <Breadcrumbs
           className="pt-6 sm:pt-8"
           navLabel={t.breadcrumbNav}
@@ -333,7 +333,7 @@ export default async function BlogIndexPage({
             shell reads as one product. Headline + intro pitch the section
             in copy that has actual keywords (Google reads this for the
             blog hub's own ranking). */}
-        <section className="relative mt-4 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-6 pb-10 pt-10 sm:px-10 sm:pb-12 sm:pt-14">
+        <section className="relative mt-4 overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--bg-2)]/40 px-5 pb-8 pt-8 sm:px-10 sm:pb-12 sm:pt-14">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 opacity-70"
@@ -573,7 +573,7 @@ export default async function BlogIndexPage({
       </main>
 
       <footer className="mt-16 border-t border-[var(--line)]">
-        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-[var(--ink-4)] sm:flex-row">
+        <div className="mx-auto flex max-w-[1180px] flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-[var(--ink-4)] sm:flex-row sm:px-6">
           <p>© 2026 RentTools · MIT License</p>
           <nav className="flex gap-4">
             <Link href={localePath("/", locale)} className="hover:text-[var(--ink)]">

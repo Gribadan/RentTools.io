@@ -546,7 +546,13 @@ export function TopBar({
 
               <div
                 className={`flex items-center overflow-hidden transition-[width,opacity] duration-300 ease-out ${
-                  searchOpen ? "w-[280px] opacity-100" : "w-0 opacity-0"
+                  // 200px on mobile so the input + close button still
+                  // fit on a 375px header next to the property selector
+                  // and avatar; 280px from sm+ where the chrome has
+                  // breathing room. Without the responsive narrowing,
+                  // tapping search on a phone pushed the property
+                  // dropdown clean off the left edge.
+                  searchOpen ? "w-[200px] opacity-100 sm:w-[280px]" : "w-0 opacity-0"
                 }`}
               >
                 <div className="relative flex items-center w-full rounded-full border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-1 h-9">
@@ -743,8 +749,18 @@ export function TopBar({
       </div>
 
       {/* Mobile / medium tabs row — visible whenever the centered
-          desktop nav above is hidden. Same labels, scrollable. */}
-      <nav className="lg:hidden flex items-center justify-center gap-1 px-3 sm:px-5 overflow-x-auto whitespace-nowrap" aria-label="Primary mobile">
+          desktop nav above is hidden. Same labels, horizontally
+          scrollable. justify-start (was justify-center) so the user
+          can SEE the leftmost tab as their starting point — centered
+          tabs on a 375px viewport pushed Dashboard / Calendar partway
+          off the left edge with no visible scroll affordance.
+          scrollbar-none keeps the row tidy on browsers that show a
+          permanent scrollbar; the fade-on-edge gradient hints at
+          horizontal overflow without taking vertical space. */}
+      <nav
+        className="flex items-center gap-1 overflow-x-auto whitespace-nowrap px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 lg:hidden"
+        aria-label="Primary mobile"
+      >
         {tabs.filter(tab => tab.show).map(tab => (
           <NavTab
             key={tab.key}
