@@ -204,7 +204,17 @@ export function CalendarGrid({
               const isConflict = conflictDates.has(ds);
               const segments = segmentsForDay(dayNum);
               const hasBar = hasBarOnDay(dayNum);
-              const isManualCleaning = cleaningOverrides.has(ds) && !hasBar;
+              // Two flavours of manual-cleaning state:
+              //   * hasManualCleaning — host explicitly set a cleaning
+              //     override for this date, regardless of whether a bar
+              //     covers it. Used for the always-visible top chip
+              //     below so a host who scheduled cleaning on a booked
+              //     check-in day can SEE the chip they just created.
+              //   * isManualCleaning — only true when no bar covers the
+              //     date. Used for the middle-of-cell indicator (which
+              //     would visually collide with a bar otherwise).
+              const hasManualCleaning = cleaningOverrides.has(ds);
+              const isManualCleaning = hasManualCleaning && !hasBar;
               const isBuffer = bufferDates.has(ds) && !hasBar && !isManualCleaning;
               const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer && !isManualCleaning;
               const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential && !isManualCleaning;
@@ -390,6 +400,25 @@ export function CalendarGrid({
                           <span>{defaultCleanerName ?? t("calendar.cleaning")}</span>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Manual-cleaning chip on a booked day.
+                      The middle-indicator path is suppressed when a bar
+                      covers the cell (top-7/9 would collide with the
+                      bar's z-10 layer). The host needs visual
+                      confirmation that their explicit cleaning override
+                      took effect, so we show a top-center chip in the
+                      same slot as the same-day cleaning chip. The
+                      isSameDayCleaning chip block above already covers
+                      the auto-cleaning case; this only fires for the
+                      explicit-override case on a booked day. */}
+                  {hasManualCleaning && hasBar && !isSameDayCleaning && !isOpen && !isClosed && (
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                      <div title={defaultCleanerName ? `${t("calendar.manualCleaning")} · ${defaultCleanerName}` : undefined} className="rounded px-1.5 h-[18px] flex items-center gap-0.5 text-[10px] text-[var(--cleaning-fg)] bg-[var(--cleaning-bg)] border border-[var(--cleaning-border)] font-semibold leading-none shadow-sm whitespace-nowrap">
+                        <CleaningIcon />
+                        <span>{defaultCleanerName ?? t("calendar.manualCleaning")}</span>
+                      </div>
                     </div>
                   )}
                 </div>
