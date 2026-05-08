@@ -325,10 +325,46 @@ export function PropertyCalendar({
   };
 
   const extendBooking = async (rangeStart: string, rangeEnd: string, booking: ExtendableBooking) => {
+    // Two flavours of "extend":
+    //
+    //   1. Manual reservation (booking.reservationId is set, no
+    //      eventUid). PATCH the existing reservation's checkIn /
+    //      checkOut so the original and the added nights share one
+    //      DB row + one continuous bar. POSTing a separate extension
+    //      reservation here would leave the host with two rows in the
+    //      reservation list and two un-merged bar segments — manual
+    //      reservations don't have an eventUid for the bar dedup
+    //      / linked-pair logic to hook into.
+    //
+    //   2. iCal-sourced event (booking.eventUid is set, no
+    //      reservationId). The source feed can't be mutated, so POST
+    //      a new reservation with linkedEventUid = the iCal event's
+    //      uid. The calendar's linked-pair pass sees the matching
+    //      uids, drops the gap between the two bars, and the host
+    //      sees one continuous stay even though there are two rows
+    //      under the hood.
+    if (booking.reservationId) {
+      const patchBody = booking.side === "before"
+        ? { checkIn: rangeStart }
+        : { checkOut: rangeEnd };
+      const res = await fetch(`/api/reservations/${booking.reservationId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patchBody),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        window.alert(data?.error || "Couldn't extend reservation");
+        return;
+      }
+      clearSelection();
+      window.location.reload();
+      return;
+    }
     // For a contiguous selection covering N nights, the extension
     // reservation runs from the first selected date to the last + 1
-    // day. linkedEventUid still points at the original booking so
-    // the calendar pairs them as one continuous stay.
+    // day. linkedEventUid points at the iCal event so the calendar
+    // pairs them as one continuous stay.
     await fetch(`/api/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

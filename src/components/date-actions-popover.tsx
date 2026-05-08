@@ -425,6 +425,16 @@ export interface DateBarInfo {
 export interface ExtendableBooking {
   name: string;
   platform: string;
+  /** Set when this entry is a manual reservation (DB row). The
+   *  parent handler PATCHes the existing reservation's checkIn /
+   *  checkOut instead of creating a separate extension row, so
+   *  the original and the added nights share one DB row + one
+   *  visually continuous bar. */
+  reservationId?: number;
+  /** Set when this entry mirrors an iCal-imported event. The
+   *  parent handler creates a new reservation with this as
+   *  linkedEventUid so the calendar pairs it with the source
+   *  bar. */
   eventUid?: string;
   /** Original stay window of the booking we're appending to —
    *  shown in the panel so the host sees the full context (e.g.
