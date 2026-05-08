@@ -1434,7 +1434,7 @@ function ReservationRow({ res, isLast, hideProperty, formatDate, dayCount, local
   return (
     <div
       onClick={onClick}
-      className={`flex cursor-pointer items-center gap-4 px-4 py-3 transition-colors hover:bg-[var(--bg-3)] ${
+      className={`flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors hover:bg-[var(--bg-3)] sm:gap-4 sm:px-4 ${
         !isLast ? "border-b border-[var(--line)]/50" : ""
       } ${muted ? "opacity-60" : ""}`}
     >
@@ -1443,35 +1443,51 @@ function ReservationRow({ res, isLast, hideProperty, formatDate, dayCount, local
         style={{ backgroundColor: platformColor(res.platform) }}
       />
 
+      {/* Two-line stack on mobile (name above, dates below) so the
+          row collapses to ~140px content width — the flat horizontal
+          layout used to push name/dates/platform/day-count/guest-count
+          all on one line, and at 375px the guest name was truncating
+          to 2-3 letters behind the platform pill. The sm+ row keeps
+          the original side-by-side layout. */}
       <div className="min-w-0 flex-1">
-        <span className="text-sm font-medium text-[var(--ink)]">{res.name}</span>
+        <div className="flex items-center gap-2">
+          <span className="truncate text-sm font-medium text-[var(--ink)]">{res.name}</span>
+          {!hideProperty && (
+            <span className="hidden truncate text-sm text-[var(--ink-3)] sm:block">
+              {res.propertyName}
+            </span>
+          )}
+        </div>
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--ink-4)] sm:hidden">
+          <span className="truncate">
+            {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
+          </span>
+          <span aria-hidden>·</span>
+          <span>{dayCount(res.checkIn, res.checkOut)}{c.daysShort}</span>
+        </div>
       </div>
-
-      {!hideProperty && (
-        <span className="hidden text-sm text-[var(--ink-3)] sm:block">
-          {res.propertyName}
-        </span>
-      )}
 
       {/* Brand pill — solid platform color + white text, matches the
           date-actions popover and Reports's Top-source pill so the
-          chromatic language stays uniform across surfaces. */}
+          chromatic language stays uniform across surfaces. Hidden on
+          mobile because the color dot at the row start already
+          identifies the source. */}
       <span
-        className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
+        className="hidden shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white sm:inline"
         style={{ backgroundColor: platformColor(res.platform) }}
       >
         {platformDisplayName(res.platform)}
       </span>
 
-      <span className="shrink-0 text-sm text-[var(--ink-3)]">
+      <span className="hidden shrink-0 text-sm text-[var(--ink-3)] sm:inline">
         {formatDate(res.checkIn)} — {formatDate(res.checkOut)}
       </span>
 
-      <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
+      <span className="hidden shrink-0 w-10 text-right text-xs text-[var(--ink-4)] sm:inline">
         {dayCount(res.checkIn, res.checkOut)}{c.daysShort}
       </span>
 
-      <span className="shrink-0 w-10 text-right text-xs text-[var(--ink-4)]">
+      <span className="hidden shrink-0 w-10 text-right text-xs text-[var(--ink-4)] sm:inline">
         {res._count?.guests || 0}
         <span className="ml-0.5 text-[var(--ink-4)]">{c.guestShort}</span>
       </span>
