@@ -128,3 +128,10 @@ authorized_keys
 # Local design references (Airbnb page saves used as visual references)
 # Contains third-party API keys embedded in vendor JS — never commit.
 design/
+
+# Mobile audit screenshots — Playwright drops these at the repo
+# root during debug passes. Scoped to the root so /public/icon-192.png,
+# blog-covers/*.webp, etc. still ship.
+/mob-*.png
+/screenshot-*.png
+/page-*.png
