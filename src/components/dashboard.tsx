@@ -353,6 +353,15 @@ function detectDoubleBookings(stays: UnifiedStay[], today: Date): Array<{
 
 interface DashboardProps {
   properties: Property[];
+  /**
+   * True while the parent is fetching the properties list. Used to
+   * suppress the zero-property onboarding wizard during the loading
+   * window — without it, a returning user (who DOES have properties)
+   * sees an empty list for ~100–500ms after page mount and gets the
+   * "Name your first property" wizard, which creates a duplicate
+   * property if they start typing before the fetch resolves.
+   */
+  loadingProperties?: boolean;
   selectedProperty: Property | null;
   onSelectProperty: (id: number) => void;
   onSelectReservation: (id: number) => void;
@@ -373,6 +382,7 @@ interface DashboardProps {
 
 export function Dashboard({
   properties,
+  loadingProperties = false,
   selectedProperty,
   onSelectProperty,
   onSelectReservation,
@@ -815,7 +825,15 @@ export function Dashboard({
   // the onboarding wizard until the user has named one property AND
   // saved at least one calendar feed (or used the sample-property
   // escape, or chose to add reservations manually).
-  const isZeroProperties = !selectedProperty && properties.length === 0;
+  //
+  // The `!loadingProperties` gate matters: without it, a returning
+  // user who already has properties sees the wizard for the ~100-500ms
+  // it takes the parent to fetch /api/properties (initial state is
+  // []). If they start typing before the fetch resolves, the wizard
+  // creates a duplicate "My first property" alongside their real
+  // properties.
+  const isZeroProperties =
+    !loadingProperties && !selectedProperty && properties.length === 0;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

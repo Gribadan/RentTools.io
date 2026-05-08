@@ -36,8 +36,16 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
   const dateOverrides = await prisma.dateOverride.findMany({
     where: { propertyId },
   });
-  const openOverrides = new Set(dateOverrides.filter(o => o.type === "open").map(o => o.date));
   const closedOverrides = dateOverrides.filter(o => o.type === "closed");
+  // Effective open overrides exclude any date now covered by a reservation
+  // — a host who marked 21-24 May as 'open' and then created a manual
+  // reservation on those same dates expects the reservation to win.
+  // Without this guard, the override-removal pass below would strip the
+  // reservation out of the feed, double-exposing those dates on Airbnb /
+  // Booking. Resolved here at read time so the data layer's existing
+  // override row stays intact (the host can still un-mark the dates as
+  // 'open' explicitly).
+  const reservationCoveredDates = new Set<string>();
 
   // Booking window cutoff — ignore events starting beyond this date
   const windowDays = property.bookingWindow ?? 365;
@@ -59,6 +67,36 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
     where: { propertyId, checkOut: { gte: new Date() } },
     orderBy: { checkIn: "asc" },
   });
+
+  // Walk every reservation and every synced calendar event, marking
+  // every covered date in `reservationCoveredDates`. The override-removal
+  // pass below will exclude these from the open-overrides set so a
+  // reservation always wins.
+  for (const r of allReservations) {
+    let d = new Date(r.checkIn).toISOString().substring(0, 10);
+    const end = new Date(r.checkOut).toISOString().substring(0, 10);
+    while (d < end) {
+      reservationCoveredDates.add(d);
+      d = addDays(d, 1);
+    }
+  }
+  for (const e of allEvents) {
+    let d = e.startDate;
+    while (d < e.endDate) {
+      reservationCoveredDates.add(d);
+      d = addDays(d, 1);
+    }
+  }
+
+  // Open-override set used for the feed-strip pass: any date covered
+  // by a reservation or synced event is silently dropped from the
+  // override (the data row stays — only the in-memory effective set
+  // is filtered).
+  const openOverrides = new Set(
+    dateOverrides
+      .filter((o) => o.type === "open" && !reservationCoveredDates.has(o.date))
+      .map((o) => o.date),
+  );
 
   const targetLink = links.find((l) => l.platform === forPlatform);
   const bufferBefore = targetLink?.bufferBefore ?? 1;

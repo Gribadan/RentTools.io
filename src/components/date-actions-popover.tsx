@@ -571,22 +571,26 @@ export function DateActionsPopover({
     const createAction: ResolvedAction = { kind: "createReservation", label: lCreate, description: lCreateDesc, tone: "primary", onClick: () => setCreating(true) };
 
     if (singleStatus.hasBar) {
-      // On a booked day the only meaningful action is around the
-      // cleaning chip. Three cases, all surfaced as "Cancel
-      // cleaning" with different underlying writes:
+      // On a booked day the only meaningful actions are around the
+      // cleaning chip. Cases:
       //
-      //   * Manual cleaning override → DELETE override (back to
-      //     auto-detected state, which on a turnover or end-of-stay
-      //     day still shows the Cleaning chip via sameDayCleaning).
-      //   * Auto sameDayCleaning chip (turnover OR end-of-stay) →
-      //     SET an `open` override that suppresses the auto chip.
-      //
-      // Previously the turnover branch surfaced "Schedule cleaning"
-      // (which writes a cleaning override on top of the existing
-      // auto chip) — confusing because cleaning was already shown.
-      // Now we collapse to a single Cancel-cleaning action that
-      // matches the host's mental model: "the cleaner can't make
-      // this day, free it up so I can schedule another day".
+      //   * Manual cleaning override → "Cancel cleaning" deletes the
+      //     override (back to auto-detected state, which on a turnover
+      //     or end-of-stay day still shows the Cleaning chip via
+      //     sameDayCleaning).
+      //   * Auto sameDayCleaning chip → "Cancel cleaning" sets an
+      //     `open` override that suppresses the auto chip.
+      //   * Booked day with no cleaning chip at all (e.g. mid-stay
+      //     day, OR a check-in day where the next guest's bar covers
+      //     the date but auto-cleaning didn't pick it because it's
+      //     a check-in) → host should still be able to schedule a
+      //     manual cleaning. Auto-cleaning can't go on a check-in
+      //     day, but the host knows their cleaner's calendar best
+      //     and may want the cleaner there before the next check-in.
+      //     Previously this case returned [] — no actions at all,
+      //     so the host had no UI path to schedule cleaning on a
+      //     booked day. Now it surfaces "Schedule cleaning" as a
+      //     manual override that overrides the auto-cleaning logic.
       const lRemoveCleaningDesc = c.removeCleaningDescAuto;
       const lCancelCleaning = c.cancelCleaningOnBooked;
       const lCancelCleaningDesc = c.cancelCleaningOnBookedDesc;
@@ -596,7 +600,9 @@ export function DateActionsPopover({
       if (singleStatus.isSameDayCleaning) {
         return [{ kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
       }
-      return [];
+      // Booked day, no cleaning chip — give the host the manual
+      // override action so they can force a cleaning here.
+      return [{ kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
     }
     if (singleStatus.isManualCleaning) {
       return [createAction, { kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride }, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }];

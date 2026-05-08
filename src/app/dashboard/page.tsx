@@ -383,6 +383,7 @@ function AppContent({
     return (
       <Dashboard
         properties={properties}
+        loadingProperties={loadingProperties}
         selectedProperty={null}
         onSelectProperty={handleSelectProperty}
         onSelectReservation={handleSelectReservation}

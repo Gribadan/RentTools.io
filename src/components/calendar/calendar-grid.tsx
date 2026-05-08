@@ -209,8 +209,15 @@ export function CalendarGrid({
               const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer && !isManualCleaning;
               const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential && !isManualCleaning;
               const isSameDayCleaning = sameDayCleaningDates.has(ds);
-              const isOpen = openOverrides.has(ds);
-              const isClosed = closedOverrides.has(ds);
+              // Effective open/closed overrides — suppressed when a
+              // reservation bar already covers the cell. The override
+              // row still exists in the DB; we just hide the visual
+              // signal so the host doesn't see a green "open" tint
+              // (or ring) under a confirmed booking. Same for closed
+              // overrides — once a reservation lands the override is
+              // moot, the bar already says "occupied".
+              const isOpen = openOverrides.has(ds) && !hasBar;
+              const isClosed = closedOverrides.has(ds) && !hasBar;
               const isSelected = selectedDates.has(ds);
               const bg = isOpen ? "bg-emerald-500/8"
                 : isClosed ? "bg-rose-500/8"
@@ -330,10 +337,21 @@ export function CalendarGrid({
                           }
                         }}
                         className={`absolute top-7 sm:top-9 h-5 sm:h-6 flex items-center px-1.5 sm:px-2.5 text-[10.5px] sm:text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${radiusClass} ${
+                          // Per-platform colour. Manual / direct / custom
+                          // bookings get a neutral slate so they're visually
+                          // distinct from Airbnb's coral — previously every
+                          // non-Booking bar fell through to the m-accent
+                          // colour which made manual reservations look
+                          // like Airbnb ones.
                           isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
-                          seg.platform === "booking"
-                            ? "bg-[#003580]"
-                            : "bg-[var(--m-accent)]"
+                          seg.platform === "booking" ? "bg-[#003580]" :
+                          seg.platform === "airbnb" ? "bg-[var(--m-accent)]" :
+                          seg.platform === "vrbo" ? "bg-[#2c5da9]" :
+                          // direct / manual / custom / unknown — slate
+                          // neutral with a dashed ring so the user can
+                          // see at a glance "this is mine, not from a
+                          // platform feed".
+                          "bg-slate-500 ring-1 ring-slate-300/30"
                         } ${(seg.reservationId || seg.eventUid) ? "hover:brightness-110" : ""} ${seg.isExtension ? "ring-1 ring-white/30 ring-dashed" : ""}`}
                         style={{
                           left: leftStyle,
