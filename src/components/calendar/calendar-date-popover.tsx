@@ -26,6 +26,9 @@ interface CalendarDatePopoverProps {
   onRemoveBulkOverride: () => void;
   onExtendBooking: (rangeStart: string, rangeEnd: string, b: ExtendableBooking) => void;
   onCreateReservation: (data: { name: string; platform: string }) => void;
+  /** Trim a manual reservation's checkOut. Wired to PATCH
+   *  /api/reservations/:id by the parent. */
+  onTrimReservation?: (reservationId: number, newCheckOut: string) => void;
 }
 
 // Build the ordered bar list for a given date.
@@ -44,6 +47,8 @@ function buildDateBars(date: string, bars: CalendarBar[]): DateBarInfo[] {
         name: b.name,
         platform: b.platform,
         role,
+        startDate: b.startDate,
+        endDate: b.endDate,
         reservationId: b.reservationId,
         eventUid: b.eventUid,
         linkedEventUid: b.linkedEventUid,
@@ -75,6 +80,7 @@ export function CalendarDatePopover({
   onRemoveBulkOverride,
   onExtendBooking,
   onCreateReservation,
+  onTrimReservation,
 }: CalendarDatePopoverProps) {
   // Snapshot of every selected date's status — feeds the side panel
   // header and lets the panel decide whether each bulk action makes
@@ -186,6 +192,7 @@ export function CalendarDatePopover({
         onExtendBooking(sortedDates[0], sortedDates[sortedDates.length - 1], b)
       }
       onCreateReservation={onCreateReservation}
+      onTrimReservation={onTrimReservation}
     />
   );
 }

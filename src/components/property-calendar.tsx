@@ -350,6 +350,33 @@ export function PropertyCalendar({
     setClaimAnchor(null);
   };
 
+  // Trim an existing manual reservation by setting its checkOut to
+  // the host-picked day. Surfaced from the date-actions popover when
+  // the host clicks one date inside a single reservation's bar (e.g.
+  // a 21-25 booking, click May 24, "End reservation on 24 May" →
+  // PATCH { checkOut: "2026-05-24" }). The PATCH endpoint already
+  // excludes the same reservation from its overlap guard, and a
+  // custom (no linkedEventUid) reservation doesn't trip the
+  // synced-event check either, so shrinking just works. After the
+  // request resolves we full-reload so every dependent surface
+  // (dashboard rows, cleaning schedule, sidebar counts) re-renders
+  // against the fresh range — same pattern claimSyncedBooking and
+  // extendBooking already use.
+  const trimReservation = async (reservationId: number, newCheckOut: string) => {
+    const res = await fetch(`/api/reservations/${reservationId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ checkOut: newCheckOut }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({} as { error?: string }));
+      window.alert(data?.error || "Couldn't trim reservation");
+      return;
+    }
+    clearSelection();
+    window.location.reload();
+  };
+
   const claimSyncedBooking = async (name: string) => {
     if (!claimBar) return;
     await fetch(`/api/reservations`, {
@@ -606,6 +633,7 @@ export function PropertyCalendar({
             onRemoveBulkOverride={removeBulkOverride}
             onExtendBooking={extendBooking}
             onCreateReservation={createReservationFromSelection}
+            onTrimReservation={trimReservation}
           />
         ) : (
           <div className="flex h-full min-h-[320px] flex-col gap-5 px-6 py-8">

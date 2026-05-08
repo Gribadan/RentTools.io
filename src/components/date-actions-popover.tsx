@@ -62,6 +62,15 @@ interface CopyShape {
   cancel: string;
   saving: string;
   save: string;
+  /** Trim a manual reservation by clicking a date INSIDE its bar.
+   *  Two flavours: clicking a midstay day shortens the bar to end on
+   *  that day; clicking the existing checkout day removes that one
+   *  day from the booking. The {date} token is replaced with a
+   *  short-format date label by the caller. */
+  trimToDate: (date: string) => string;
+  trimToDateDesc: string;
+  trimRemoveDate: (date: string) => string;
+  trimRemoveDateDesc: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -124,6 +133,10 @@ const COPY: Record<Locale, CopyShape> = {
     cancel: "Cancel",
     saving: "Saving…",
     save: "Save",
+    trimToDate: (date) => `End reservation on ${date}`,
+    trimToDateDesc: "Shorten this booking so the chosen day is the last one.",
+    trimRemoveDate: (date) => `Remove ${date} from reservation`,
+    trimRemoveDateDesc: "Drop this last day from the booking.",
   },
   ru: {
     dateLocale: "ru-RU",
@@ -184,6 +197,10 @@ const COPY: Record<Locale, CopyShape> = {
     cancel: "Отмена",
     saving: "Сохраняю…",
     save: "Сохранить",
+    trimToDate: (date) => `Закончить бронь ${date}`,
+    trimToDateDesc: "Сократить бронь так, чтобы выбранный день был последним.",
+    trimRemoveDate: (date) => `Убрать ${date} из брони`,
+    trimRemoveDateDesc: "Удалить этот последний день из брони.",
   },
   de: {
     dateLocale: "de-DE",
@@ -244,6 +261,10 @@ const COPY: Record<Locale, CopyShape> = {
     cancel: "Abbrechen",
     saving: "Wird gespeichert…",
     save: "Speichern",
+    trimToDate: (date) => `Buchung am ${date} beenden`,
+    trimToDateDesc: "Buchung so kürzen, dass der gewählte Tag der letzte ist.",
+    trimRemoveDate: (date) => `${date} aus Buchung entfernen`,
+    trimRemoveDateDesc: "Diesen letzten Tag aus der Buchung streichen.",
   },
   fr: {
     dateLocale: "fr-FR",
@@ -304,6 +325,10 @@ const COPY: Record<Locale, CopyShape> = {
     cancel: "Annuler",
     saving: "Enregistrement…",
     save: "Enregistrer",
+    trimToDate: (date) => `Terminer la réservation le ${date}`,
+    trimToDateDesc: "Raccourcir la réservation pour que le jour choisi soit le dernier.",
+    trimRemoveDate: (date) => `Retirer le ${date} de la réservation`,
+    trimRemoveDateDesc: "Supprimer ce dernier jour de la réservation.",
   },
   es: {
     dateLocale: "es-ES",
@@ -364,6 +389,10 @@ const COPY: Record<Locale, CopyShape> = {
     cancel: "Cancelar",
     saving: "Guardando…",
     save: "Guardar",
+    trimToDate: (date) => `Terminar la reserva el ${date}`,
+    trimToDateDesc: "Acorta la reserva para que el día elegido sea el último.",
+    trimRemoveDate: (date) => `Quitar ${date} de la reserva`,
+    trimRemoveDateDesc: "Elimina este último día de la reserva.",
   },
 };
 
@@ -382,6 +411,12 @@ export interface DateBarInfo {
   name: string;
   platform: string;
   role: "checkout" | "checkin" | "midstay" | "fullday";
+  /** Bar's spanning range — needed by the trim action so it can guard
+   *  against shrinking a 1-night booking to 0 nights and produce the
+   *  correct new checkOut date (clicked date for midstay, clicked-1
+   *  for checkout). */
+  startDate: string;
+  endDate: string;
   reservationId?: number;
   eventUid?: string;
   linkedEventUid?: string;
@@ -438,6 +473,11 @@ interface DateActionsPanelProps {
   onRemoveOverride: () => void;
   onExtendBooking: (booking: ExtendableBooking) => void;
   onCreateReservation: (data: { name: string; platform: string }) => void;
+  /** Shrink an existing manual reservation by setting its checkOut to
+   *  `newCheckOut` (YYYY-MM-DD). Surfaced when the host clicks one date
+   *  inside the bar of a reservation they own. The wrapper resolves
+   *  the reservationId from the clicked bar before calling. */
+  onTrimReservation?: (reservationId: number, newCheckOut: string) => void;
 }
 
 type ActionKind =
@@ -447,7 +487,8 @@ type ActionKind =
   | "removeOverride"
   | "removeBlock"
   | "removeCleaning"
-  | "createReservation";
+  | "createReservation"
+  | "trimReservation";
 
 interface ResolvedAction {
   kind: ActionKind;
@@ -473,6 +514,7 @@ export function DateActionsPopover({
   onRemoveOverride,
   onExtendBooking,
   onCreateReservation,
+  onTrimReservation,
 }: DateActionsPanelProps) {
   const { t, locale } = useI18n();
   const c = COPY[locale];
@@ -594,15 +636,77 @@ export function DateActionsPopover({
       const lRemoveCleaningDesc = c.removeCleaningDescAuto;
       const lCancelCleaning = c.cancelCleaningOnBooked;
       const lCancelCleaningDesc = c.cancelCleaningOnBookedDesc;
+
+      // Trim action — surfaced when the host clicks one date INSIDE a
+      // single manual reservation's bar. The bar's endDate IS the
+      // reservation's checkOut. Two click positions both produce the
+      // intended trim:
+      //   * midstay click on day X → new checkOut = X
+      //   * checkout-day click → new checkOut = X − 1 day
+      // Skipped on turnover days (multiple bars on the date) because
+      // it would be ambiguous which booking to shrink. Skipped when
+      // the bar has no reservationId (raw iCal-only event — has to be
+      // edited at the source feed, RentTools can't mutate it). And
+      // skipped when shrinking would yield a zero-night stay
+      // (1-night booking + checkout-click).
+      const trimAction: ResolvedAction | null = (() => {
+        if (!onTrimReservation) return null;
+        if (!singleDate) return null;
+        if (singleDateBars.length !== 1) return null;
+        const bar = singleDateBars[0];
+        if (!bar.reservationId) return null;
+        const dateLabel = formatShort(singleDate);
+        if (bar.role === "midstay") {
+          return {
+            kind: "trimReservation",
+            label: c.trimToDate(dateLabel),
+            description: c.trimToDateDesc,
+            tone: "block",
+            onClick: () => onTrimReservation(bar.reservationId!, singleDate),
+          };
+        }
+        if (bar.role === "checkout") {
+          // Subtract one day from the click. Guard against zero-night:
+          // only meaningful when the bar covers more than one day.
+          const prevDay = (() => {
+            const d = new Date(singleDate + "T12:00:00");
+            d.setDate(d.getDate() - 1);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const day = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${day}`;
+          })();
+          if (prevDay <= bar.startDate) return null;
+          return {
+            kind: "trimReservation",
+            label: c.trimRemoveDate(dateLabel),
+            description: c.trimRemoveDateDesc,
+            tone: "block",
+            onClick: () => onTrimReservation(bar.reservationId!, prevDay),
+          };
+        }
+        return null;
+      })();
+
       if (singleStatus.isManualCleaning) {
-        return [{ kind: "removeCleaning", label: lCancelCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride }];
+        return [
+          { kind: "removeCleaning", label: lCancelCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride },
+          ...(trimAction ? [trimAction] : []),
+        ];
       }
       if (singleStatus.isSameDayCleaning) {
-        return [{ kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
+        return [
+          { kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate },
+          ...(trimAction ? [trimAction] : []),
+        ];
       }
       // Booked day, no cleaning chip — give the host the manual
-      // override action so they can force a cleaning here.
-      return [{ kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
+      // override action so they can force a cleaning here, plus the
+      // trim action when applicable.
+      return [
+        { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning },
+        ...(trimAction ? [trimAction] : []),
+      ];
     }
     if (singleStatus.isManualCleaning) {
       return [createAction, { kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride }, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }];
@@ -716,6 +820,15 @@ export function DateActionsPopover({
         return (
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+          </svg>
+        );
+      case "trimReservation":
+        // Scissors glyph — reads as "cut / shorten this booking" and
+        // pairs with the rose tone the action uses to signal it's a
+        // destructive-leaning change to existing data.
+        return (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.848 8.25l1.536.887M7.848 8.25a3 3 0 11-5.196-3 3 3 0 015.196 3zm1.536.887a2.165 2.165 0 011.083 1.839c.005.351.054.695.14 1.024M9.384 9.137l2.077 1.199M7.848 15.75l1.536-.887m-1.536.887a3 3 0 11-5.196 3 3 3 0 015.196-3zm1.536-.887a2.165 2.165 0 001.083-1.838c.005-.352.054-.695.14-1.025m-1.223 2.863l2.077-1.199m0-3.328a4.323 4.323 0 012.068-1.379l5.325-1.628a4.5 4.5 0 012.48-.044l.803.215-7.794 4.5m-2.882-1.664A4.331 4.331 0 0010.607 12m3.736 0l7.794 4.5-.802.215a4.5 4.5 0 01-2.48-.043l-5.326-1.629a4.324 4.324 0 01-2.068-1.379M14.343 12l-2.882 1.664" />
           </svg>
         );
     }
