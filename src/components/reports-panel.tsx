@@ -1073,15 +1073,23 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                       {c.byPropertyHint}
                     </p>
                   </div>
+                  {/* overflow-x-auto wrapper so the 6-column table can
+                      horizontally scroll on phones rather than being
+                      clipped by the rounded panel's overflow-hidden.
+                      Property + Past Occ % + Upcoming nights are
+                      enough to scan a property at a glance, and the
+                      remaining columns are reachable by swiping the
+                      table left. */}
+                  <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="border-b border-[var(--line)] text-[10px] uppercase tracking-wider text-[var(--ink-4)]">
                       <tr>
-                        <th className="px-4 py-2 text-left font-medium">{c.colProperty}</th>
-                        <th className="px-4 py-2 text-right font-medium">{c.colPastOcc}</th>
-                        <th className="px-4 py-2 text-right font-medium">{c.colUpcoming}</th>
-                        <th className="px-4 py-2 text-right font-medium">{c.colBookings}</th>
-                        <th className="px-4 py-2 text-right font-medium">{c.colCleanings}</th>
-                        <th className="px-4 py-2 text-left font-medium hidden sm:table-cell">{c.colTopSource}</th>
+                        <th className="px-3 py-2 text-left font-medium sm:px-4">{c.colProperty}</th>
+                        <th className="px-3 py-2 text-right font-medium sm:px-4">{c.colPastOcc}</th>
+                        <th className="px-3 py-2 text-right font-medium sm:px-4">{c.colUpcoming}</th>
+                        <th className="px-3 py-2 text-right font-medium sm:px-4">{c.colBookings}</th>
+                        <th className="px-3 py-2 text-right font-medium sm:px-4">{c.colCleanings}</th>
+                        <th className="px-3 py-2 text-left font-medium hidden sm:table-cell sm:px-4">{c.colTopSource}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1089,16 +1097,16 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                         .sort((a, b) => b.pastOccupancy - a.pastOccupancy)
                         .map((k) => (
                           <tr key={k.property.id} className="border-b border-[var(--line)]/50 last:border-0 hover:bg-[var(--bg-3)]">
-                            <td className="px-4 py-2.5 text-[var(--ink)] font-medium">
+                            <td className="px-3 py-2.5 text-[var(--ink)] font-medium sm:px-4">
                               <Link href={`/dashboard?property=${k.property.id}&view=reports`} className="hover:underline">
                                 {k.property.name}
                               </Link>
                             </td>
-                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.pastOccupancy}%</td>
-                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.upcomingNights}</td>
-                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.totalBookings}</td>
-                            <td className="px-4 py-2.5 text-right text-[var(--ink-2)] tabular-nums">{k.cleaningsUpcoming}</td>
-                            <td className="px-4 py-2.5 hidden sm:table-cell">
+                            <td className="px-3 py-2.5 text-right text-[var(--ink-2)] tabular-nums sm:px-4">{k.pastOccupancy}%</td>
+                            <td className="px-3 py-2.5 text-right text-[var(--ink-2)] tabular-nums sm:px-4">{k.upcomingNights}</td>
+                            <td className="px-3 py-2.5 text-right text-[var(--ink-2)] tabular-nums sm:px-4">{k.totalBookings}</td>
+                            <td className="px-3 py-2.5 text-right text-[var(--ink-2)] tabular-nums sm:px-4">{k.cleaningsUpcoming}</td>
+                            <td className="px-3 py-2.5 hidden sm:table-cell sm:px-4">
                               {k.topPlatform ? (
                                 <span
                                   className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
@@ -1114,6 +1122,7 @@ export function ReportsPanel({ property, properties }: ReportsPanelProps) {
                         ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </>
