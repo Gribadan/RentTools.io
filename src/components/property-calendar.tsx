@@ -378,12 +378,14 @@ export function PropertyCalendar({
   const WEEKDAYS = c.weekdays;
 
   const activeMonth = months[activeMonthIdx] ?? months[0];
-  // Show the year on the active-month label whenever it differs from
-  // the current year (i.e. scrolled into past months from a previous
-  // year, or scrolled forward into next year). Inside the current year,
-  // only January shows the year — same behaviour as the in-flow labels.
-  const activeMonthShowYear =
-    activeMonth.getFullYear() !== today.getFullYear() || activeMonth.getMonth() === 0;
+  // Year is always shown next to the month label per user preference —
+  // hosts working with reservations across year boundaries (long stays,
+  // bookings months in advance) shouldn't have to infer the year from
+  // context. The month-only label was technically clean, but "May" is
+  // ambiguous between May 2026 and May 2027 for someone on a year-end
+  // booking. Always-on year removes the ambiguity at every scroll
+  // position.
+  const activeMonthShowYear = true;
 
   return (
     /* Two layers of layout:
@@ -498,10 +500,11 @@ export function PropertyCalendar({
           </header>
 
           {months.map((m, i) => {
-            // Show the year on each month's in-flow label whenever it
-            // differs from the current year, plus on January as a
-            // year-boundary anchor inside the current year.
-            const showYear = m.getFullYear() !== today.getFullYear() || m.getMonth() === 0;
+            // Year is always shown — same rationale as the sticky-header
+            // active-month label above. Hosts skim past months for
+            // returning guests / cleaner audits where the year is
+            // load-bearing context.
+            const showYear = true;
             const monthLabel = m.toLocaleDateString(c.dateLocale, {
               month: "long",
               year: showYear ? "numeric" : undefined,

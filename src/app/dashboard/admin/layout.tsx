@@ -101,6 +101,7 @@ const NAV: NavGroup[] = [
     items: [
       { label: { en: "Sync logs", ru: "Логи синхронизации", de: "Sync-Logs", fr: "Logs de sync", es: "Logs de sync" }, href: "/dashboard/admin/operations/sync-logs" },
       { label: { en: "Scheduled jobs", ru: "Задачи", de: "Aufgaben", fr: "Tâches", es: "Tareas" }, href: "/dashboard/admin/operations/scheduled-jobs" },
+      { label: { en: "Property audit", ru: "Аудит объекта", de: "Unterkunfts-Audit", fr: "Audit du logement", es: "Auditoría del alojamiento" }, href: "/dashboard/admin/operations/property-audit" },
       { label: { en: "Status page", ru: "Статус", de: "Status", fr: "Statut", es: "Estado" }, href: "/dashboard/admin/operations/status" },
     ],
   },
