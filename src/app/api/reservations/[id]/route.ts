@@ -115,6 +115,33 @@ export async function PATCH(
       where: { id: numId },
       data,
     });
+
+    // Same cleanup as the POST path — clear open/closed overrides on
+    // the reservation's current date range so they don't shadow the
+    // booking. We do this even if the date range didn't change in
+    // this PATCH (cheap deleteMany, idempotent), so a host who first
+    // creates an override and then later edits a reservation that
+    // already covered those dates also gets the cleanup.
+    {
+      const datesToClear: string[] = [];
+      const start = new Date(reservation.checkIn);
+      const end = new Date(reservation.checkOut);
+      const d = new Date(start);
+      while (d < end) {
+        datesToClear.push(d.toISOString().substring(0, 10));
+        d.setDate(d.getDate() + 1);
+      }
+      if (datesToClear.length > 0) {
+        await prisma.dateOverride.deleteMany({
+          where: {
+            propertyId: reservation.propertyId,
+            date: { in: datesToClear },
+            type: { in: ["open", "closed"] },
+          },
+        });
+      }
+    }
+
     await logAudit(session.userId, "update", "reservation", numId, data);
     return NextResponse.json(reservation);
   } catch (err) {

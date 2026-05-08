@@ -119,6 +119,39 @@ export async function POST(request: NextRequest) {
         propertyId,
       },
     });
+
+    // Clean up open / closed overrides that the new reservation just
+    // made obsolete. The iCal feed already silently filters them
+    // (commit a629700), but leaving them in the DB is a footgun:
+    // when the reservation is later deleted, the overrides "wake up"
+    // and the dates revert to force-open / force-closed — almost
+    // certainly not what the host wants. Cleaning at write time keeps
+    // the data model honest.
+    //
+    // Only OPEN and CLOSED override types are cleared. CLEANING
+    // overrides are kept — those are deliberate scheduling for the
+    // cleaner that's independent of whether a reservation exists
+    // (the host may have manually scheduled cleaning for the next
+    // guest's check-in day, which is exactly the scenario commit
+    // cd71074 enabled).
+    const datesToClear: string[] = [];
+    {
+      const d = new Date(checkInDate);
+      while (d < checkOutDate) {
+        datesToClear.push(d.toISOString().substring(0, 10));
+        d.setDate(d.getDate() + 1);
+      }
+    }
+    if (datesToClear.length > 0) {
+      await prisma.dateOverride.deleteMany({
+        where: {
+          propertyId,
+          date: { in: datesToClear },
+          type: { in: ["open", "closed"] },
+        },
+      });
+    }
+
     await logAudit(session.userId, "create", "reservation", reservation.id, {
       name: reservation.name,
       propertyId,
