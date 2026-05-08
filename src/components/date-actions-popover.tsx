@@ -648,16 +648,34 @@ export function DateActionsPopover({
       const lCancelCleaningDesc = c.cancelCleaningOnBookedDesc;
 
       // Trim action — surfaced when the host clicks one date INSIDE a
-      // single manual reservation's bar. The bar's endDate IS the
-      // reservation's checkOut. Two click positions both produce the
-      // intended trim:
+      // single PURE-MANUAL reservation's bar. The bar's endDate IS
+      // the reservation's checkOut. Two click positions both produce
+      // the intended trim:
       //   * midstay click on day X → new checkOut = X
       //   * checkout-day click → new checkOut = X − 1 day
+      //
       // Skipped on turnover days (multiple bars on the date) because
-      // it would be ambiguous which booking to shrink. Skipped when
-      // the bar has no reservationId (raw iCal-only event — has to be
-      // edited at the source feed, RentTools can't mutate it). And
-      // skipped when shrinking would yield a zero-night stay
+      // it would be ambiguous which booking to shrink.
+      //
+      // Skipped when the bar has no reservationId (raw iCal-only
+      // event — RentTools can't mutate the source feed).
+      //
+      // Skipped when the bar has eventUid (= bar comes from an iCal
+      // event, including claims where the host has attached a guest
+      // name to a fetched reservation). The platform owns the date
+      // range; PATCHing our local row would silently fail to update
+      // the bar (use-calendar-data uses the iCal dates when the
+      // reservation + iCal event overlap) and would diverge our
+      // state from the platform's iCal feed, which we then re-emit
+      // to OTHER platforms — silent double-booking risk.
+      //
+      // bar.linkedEventUid alone (without eventUid) is the
+      // EXTENSION case — the host added a manual row next to a
+      // fetched booking via "Add 1 night before/after". Those rows
+      // are pure custom additions; trimming them only modifies the
+      // local segment. Allowed.
+      //
+      // Skipped when shrinking would yield a zero-night stay
       // (1-night booking + checkout-click).
       const trimAction: ResolvedAction | null = (() => {
         if (!onTrimReservation) return null;
@@ -665,6 +683,7 @@ export function DateActionsPopover({
         if (singleDateBars.length !== 1) return null;
         const bar = singleDateBars[0];
         if (!bar.reservationId) return null;
+        if (bar.eventUid) return null;
         const dateLabel = formatShort(singleDate);
         if (bar.role === "midstay") {
           return {

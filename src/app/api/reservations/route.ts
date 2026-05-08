@@ -84,6 +84,14 @@ export async function POST(request: NextRequest) {
     // the API would silently accept the double-booking, and the iCal
     // feed would expose both events to other platforms. The host
     // wanted to be warned upfront.
+    //
+    // EXCEPT when the new reservation IS a claim of one specific iCal
+    // event (linkedEventUid in the request body). The bar-claim flow
+    // POSTs with the same dates as the iCal event being named, so the
+    // event would always match its own overlap check and 409. Excluding
+    // the linked event by uid lets the claim succeed while still
+    // catching genuine double-bookings against OTHER overlapping
+    // events.
     const startDateStr = checkInDate.toISOString().substring(0, 10);
     const endDateStr = checkOutDate.toISOString().substring(0, 10);
     const syncedOverlap = await prisma.calendarEvent.findFirst({
@@ -91,6 +99,7 @@ export async function POST(request: NextRequest) {
         propertyId,
         startDate: { lt: endDateStr },
         endDate: { gt: startDateStr },
+        ...(linkedEventUid ? { uid: { not: linkedEventUid } } : {}),
       },
       select: { summary: true, platform: true, startDate: true, endDate: true },
     });

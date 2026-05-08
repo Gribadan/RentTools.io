@@ -65,6 +65,29 @@ export function getExtendableBookings(
   for (const res of reservations) {
     const rStart = toDateStr(new Date(res.checkIn));
     const rEnd = toDateStr(new Date(res.checkOut));
+
+    // Skip CLAIMS — manual rows whose dates OVERLAP a linked iCal
+    // event (host attached a guest name to a fetched reservation).
+    // PATCHing our local checkIn/checkOut would diverge from the
+    // iCal event's dates, the bar uses the iCal dates anyway (so
+    // the change would silently fail to show), and we'd re-emit the
+    // new dates on our outbound iCal feed while the source feed
+    // still has the original — silent double-booking risk.
+    //
+    // EXTENSIONS — manual rows whose dates ABUT (not overlap) a
+    // linked iCal event (added via "Add 1 night before / after") —
+    // are still pure custom additions. The PATCH only modifies the
+    // extension's own segment. Allowed.
+    //
+    // Pure-manual rows (no linkedEventUid) — always allowed.
+    if (res.linkedEventUid) {
+      const linkedEv = syncedEvents.find((ev) => ev.uid === res.linkedEventUid);
+      if (linkedEv) {
+        const overlapsLinked = linkedEv.startDate < rEnd && linkedEv.endDate > rStart;
+        if (overlapsLinked) continue; // claim — locked
+      }
+    }
+
     const dayAfterReservation = addDaysStr(rEnd, 1);
     if (rStart === dayAfterRange) {
       result.push({
