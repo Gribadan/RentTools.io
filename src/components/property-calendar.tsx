@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
@@ -22,6 +22,7 @@ interface CopyShape {
   syncNow: string;
   pickADay: string;
   pickADayHint: string;
+  today: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -32,6 +33,7 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Sync now",
     pickADay: "Pick a day",
     pickADayHint: "Click any date in the calendar to open its actions or create a reservation.",
+    today: "Today",
   },
   ru: {
     weekdays: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
@@ -40,6 +42,7 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Синхронизировать сейчас",
     pickADay: "Выберите день",
     pickADayHint: "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь.",
+    today: "Сегодня",
   },
   de: {
     weekdays: ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"],
@@ -48,6 +51,7 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Jetzt synchronisieren",
     pickADay: "Tag auswählen",
     pickADayHint: "Klicken Sie auf ein Datum im Kalender, um Aktionen zu öffnen oder eine Buchung anzulegen.",
+    today: "Heute",
   },
   fr: {
     weekdays: ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"],
@@ -56,6 +60,7 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Synchroniser maintenant",
     pickADay: "Choisissez un jour",
     pickADayHint: "Cliquez sur une date du calendrier pour ouvrir les actions ou créer une réservation.",
+    today: "Aujourd’hui",
   },
   es: {
     weekdays: ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
@@ -64,6 +69,7 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Sincronizar ahora",
     pickADay: "Elija un día",
     pickADayHint: "Haga clic en cualquier fecha del calendario para abrir sus acciones o crear una reserva.",
+    today: "Hoy",
   },
 };
 
@@ -86,7 +92,17 @@ interface PropertyCalendarProps {
 
 // How many months to render in the vertical stack. The user scrolls
 // through them airbnb-style instead of paging via prev/next arrows.
-const VISIBLE_MONTHS = 12;
+//
+// Past months matter for: looking up a returning guest's stay, auditing
+// a cleaner's previous schedule, copy-pasting an old reservation,
+// reviewing how a buffer rule played out historically. Six months back
+// covers most "recent past" lookups; deeper history lives in the
+// reservation list / reports views, not the calendar.
+//
+// Future months: 12 covers the typical Airbnb 12-month booking window.
+const PAST_MONTHS = 6;
+const FUTURE_MONTHS = 12;
+const VISIBLE_MONTHS = PAST_MONTHS + FUTURE_MONTHS;
 
 export function PropertyCalendar({
   property,
@@ -112,8 +128,12 @@ export function PropertyCalendar({
   }, []);
 
   const months = useMemo(() => {
+    // Build a contiguous month list spanning [today - PAST_MONTHS,
+    // today + FUTURE_MONTHS). Index `PAST_MONTHS` is today's month —
+    // we scroll to it on mount so the default view stays "today first"
+    // even with past months rendered above.
     return Array.from({ length: VISIBLE_MONTHS }, (_, i) =>
-      new Date(today.getFullYear(), today.getMonth() + i, 1)
+      new Date(today.getFullYear(), today.getMonth() - PAST_MONTHS + i, 1)
     );
   }, [today]);
 
@@ -121,7 +141,9 @@ export function PropertyCalendar({
   // weekday row and sync button literally never move — only the month
   // label inside <h2> swaps as the user scrolls. activeMonthIdx tracks
   // which month section is currently visible just below the sticky.
-  const [activeMonthIdx, setActiveMonthIdx] = useState(0);
+  // Initial active month is today's, which lives at index PAST_MONTHS
+  // after the past-months extension above.
+  const [activeMonthIdx, setActiveMonthIdx] = useState(PAST_MONTHS);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const stickyHeaderRef = useRef<HTMLDivElement>(null);
 
@@ -156,6 +178,38 @@ export function PropertyCalendar({
       if (frame) cancelAnimationFrame(frame);
     };
   }, [months.length]);
+
+  // Scroll today's month into view on demand. Used twice:
+  //   1. On mount (instant) — past months render above today, so the
+  //      default scroll position would be 6 months in the past. The
+  //      user explicitly liked "default = current month", so we
+  //      restore that view immediately.
+  //   2. From the "Today" button (smooth) — quick way back when the
+  //      user has scrolled away to look up old data.
+  // We compute the offset manually instead of using scrollIntoView so
+  // the sticky header doesn't overlap the section — the section lands
+  // flush below the sticky chrome.
+  const scrollToToday = useCallback((behavior: ScrollBehavior) => {
+    const stickyEl = stickyHeaderRef.current;
+    if (!stickyEl) return;
+    const main = stickyEl.closest("main");
+    if (!main) return;
+    const todayMonthEl = sectionRefs.current[PAST_MONTHS];
+    if (!todayMonthEl) return;
+    const stickyHeight = stickyEl.getBoundingClientRect().height;
+    const sectionTop = todayMonthEl.getBoundingClientRect().top;
+    const mainTop = main.getBoundingClientRect().top;
+    const targetScroll = main.scrollTop + (sectionTop - mainTop) - stickyHeight;
+    main.scrollTo({ top: targetScroll, behavior });
+  }, []);
+
+  const didInitialScrollRef = useRef(false);
+  useEffect(() => {
+    if (didInitialScrollRef.current) return;
+    if (!sectionRefs.current[PAST_MONTHS]) return;
+    scrollToToday("instant" as ScrollBehavior);
+    didInitialScrollRef.current = true;
+  }, [months.length, scrollToToday]);
 
   const data = useCalendarData(property, syncedEvents, links, overrides);
 
@@ -324,7 +378,12 @@ export function PropertyCalendar({
   const WEEKDAYS = c.weekdays;
 
   const activeMonth = months[activeMonthIdx] ?? months[0];
-  const activeMonthShowYear = activeMonthIdx === 0 || activeMonth.getMonth() === 0;
+  // Show the year on the active-month label whenever it differs from
+  // the current year (i.e. scrolled into past months from a previous
+  // year, or scrolled forward into next year). Inside the current year,
+  // only January shows the year — same behaviour as the in-flow labels.
+  const activeMonthShowYear =
+    activeMonth.getFullYear() !== today.getFullYear() || activeMonth.getMonth() === 0;
 
   return (
     /* Two layers of layout:
@@ -395,17 +454,33 @@ export function PropertyCalendar({
                   year: activeMonthShowYear ? "numeric" : undefined,
                 })}
               </h2>
-              <button
-                onClick={handleSyncNow}
-                disabled={syncing}
-                title={c.syncNow}
-                aria-label={c.syncNow}
-                className="shrink-0 rounded-full p-1.5 sm:p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
-              >
-                <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-1 shrink-0">
+                {/* "Today" — quick return to the current month from
+                    anywhere in the past/future scroll range. Hidden
+                    while the user is already viewing today's month so
+                    it doesn't clutter the chrome on first load. */}
+                {activeMonthIdx !== PAST_MONTHS && (
+                  <button
+                    onClick={() => scrollToToday("smooth")}
+                    title={c.today}
+                    aria-label={c.today}
+                    className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2.5 py-1 text-xs font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)]"
+                  >
+                    {c.today}
+                  </button>
+                )}
+                <button
+                  onClick={handleSyncNow}
+                  disabled={syncing}
+                  title={c.syncNow}
+                  aria-label={c.syncNow}
+                  className="rounded-full p-1.5 sm:p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
+                >
+                  <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                </button>
+              </div>
             </div>
             <div className="grid grid-cols-7 pb-2">
               {WEEKDAYS.map((wd) => (
@@ -423,7 +498,10 @@ export function PropertyCalendar({
           </header>
 
           {months.map((m, i) => {
-            const showYear = i === 0 || m.getMonth() === 0;
+            // Show the year on each month's in-flow label whenever it
+            // differs from the current year, plus on January as a
+            // year-boundary anchor inside the current year.
+            const showYear = m.getFullYear() !== today.getFullYear() || m.getMonth() === 0;
             const monthLabel = m.toLocaleDateString(c.dateLocale, {
               month: "long",
               year: showYear ? "numeric" : undefined,
@@ -434,15 +512,18 @@ export function PropertyCalendar({
               ref={(el) => { sectionRefs.current[i] = el; }}
               className="mb-5 sm:mb-8"
             >
-              {/* In-flow month label so each upcoming month is visible
-                  at its natural position. When the section reaches the
-                  frozen header, this label scrolls behind it (the header
-                  is opaque + z-30) and the frozen header's <h2> already
+              {/* In-flow month label so each month is visible at its
+                  natural position. When the section reaches the frozen
+                  header, this label scrolls behind it (the header is
+                  opaque + z-30) and the frozen header's <h2> already
                   shows the same name — no visual duplication.
-                  Skipped for i === 0 because that month is already the
-                  active one in the frozen header at scroll=0; rendering
-                  it again here is a redundant duplicate for the user. */}
-              {i > 0 && (
+                  Skipped only for today's month (PAST_MONTHS index)
+                  because the calendar lands there on initial scroll
+                  and the frozen header already shows the same name —
+                  rendering it again at scroll=0 is a redundant
+                  duplicate. Past months and future months always get
+                  their in-flow label. */}
+              {i !== PAST_MONTHS && (
                 <h3 className="mb-2 sm:mb-3 text-base sm:text-xl font-semibold tracking-tight text-[var(--ink-2)]">
                   {monthLabel}
                 </h3>

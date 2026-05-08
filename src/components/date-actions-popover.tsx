@@ -646,7 +646,6 @@ export function DateActionsPopover({
     }
     if (allUnbooked) {
       out.push({ kind: "block", label: lBlockAll, tone: "block", onClick: onCloseDate });
-      out.push({ kind: "scheduleCleaning", label: lScheduleAll, tone: "cleaning", onClick: onScheduleCleaning });
       // "Make available" only when at least one selected date is
       // actually unavailable — otherwise the action is a no-op on
       // already-free days.
@@ -654,6 +653,14 @@ export function DateActionsPopover({
         out.push({ kind: "openForBooking", label: lOpenAll, tone: "open", onClick: onOpenDate });
       }
     }
+    // Bulk "Schedule cleaning" is allowed regardless of whether the
+    // selection includes booked dates. Same rationale as the
+    // single-mode fix in commit a629700: a manual cleaning override
+    // creates a chip on top of the reservation bar (the host knows
+    // their cleaner's calendar best, e.g. early-morning before next
+    // check-in). Block / Make-available remain gated on allUnbooked
+    // because they conflict with the existing booking.
+    out.push({ kind: "scheduleCleaning", label: lScheduleAll, tone: "cleaning", onClick: onScheduleCleaning });
     if (bulkCounts.openOverride + bulkCounts.closedOverride + bulkCounts.cleaningOverride > 0) {
       out.push({ kind: "removeOverride", label: lResetAll, tone: "neutral", onClick: onRemoveOverride });
     }

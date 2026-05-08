@@ -79,6 +79,35 @@ export async function PATCH(
             { status: 409 },
           );
         }
+
+        // Same synced-event check the POST endpoint runs — a host
+        // editing a reservation's dates can't extend / shift it into
+        // a range already covered by an iCal-imported event from
+        // another platform.
+        const newStartStr = newCheckIn.toISOString().substring(0, 10);
+        const newEndStr = newCheckOut.toISOString().substring(0, 10);
+        const syncedOverlap = await prisma.calendarEvent.findFirst({
+          where: {
+            propertyId: current.propertyId,
+            startDate: { lt: newEndStr },
+            endDate: { gt: newStartStr },
+          },
+          select: { summary: true, platform: true, startDate: true, endDate: true },
+        });
+        if (syncedOverlap) {
+          return NextResponse.json(
+            {
+              error: "Overlapping booking from another platform",
+              existing: {
+                name: syncedOverlap.summary || syncedOverlap.platform,
+                checkIn: syncedOverlap.startDate,
+                checkOut: syncedOverlap.endDate,
+                platform: syncedOverlap.platform,
+              },
+            },
+            { status: 409 },
+          );
+        }
       }
     }
 

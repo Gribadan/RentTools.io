@@ -52,6 +52,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "checkOut must be after checkIn" }, { status: 400 });
     }
 
+    // Check overlap with existing RentTools reservations on the same
+    // property. The host can't have two reservations covering the same
+    // night.
     const overlap = await prisma.reservation.findFirst({
       where: {
         propertyId,
@@ -68,6 +71,38 @@ export async function POST(request: NextRequest) {
             name: overlap.name,
             checkIn: overlap.checkIn,
             checkOut: overlap.checkOut,
+          },
+        },
+        { status: 409 }
+      );
+    }
+
+    // Check overlap with synced calendar events (iCal-imported bookings
+    // from Airbnb / Booking / Vrbo). Without this guard a host can
+    // create a manual reservation on dates already booked from another
+    // platform — the calendar grid would render it as a conflict but
+    // the API would silently accept the double-booking, and the iCal
+    // feed would expose both events to other platforms. The host
+    // wanted to be warned upfront.
+    const startDateStr = checkInDate.toISOString().substring(0, 10);
+    const endDateStr = checkOutDate.toISOString().substring(0, 10);
+    const syncedOverlap = await prisma.calendarEvent.findFirst({
+      where: {
+        propertyId,
+        startDate: { lt: endDateStr },
+        endDate: { gt: startDateStr },
+      },
+      select: { summary: true, platform: true, startDate: true, endDate: true },
+    });
+    if (syncedOverlap) {
+      return NextResponse.json(
+        {
+          error: "Overlapping booking from another platform",
+          existing: {
+            name: syncedOverlap.summary || syncedOverlap.platform,
+            checkIn: syncedOverlap.startDate,
+            checkOut: syncedOverlap.endDate,
+            platform: syncedOverlap.platform,
           },
         },
         { status: 409 }
