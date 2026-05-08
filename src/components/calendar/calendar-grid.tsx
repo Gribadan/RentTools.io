@@ -171,10 +171,19 @@ export function CalendarGrid({
   return (
     /* overflow-visible so wrap-around bars can bleed ~8px past their
        last cell into the parent wrapper's overflow-clip-margin (Airbnb
-       continues-to-next-row pattern). The calendar is `hidden sm:block`
-       so we never need horizontal scroll on small screens. */
+       continues-to-next-row pattern). The grid itself has no min-width
+       so the 7 cells reflow to fill whatever the dashboard column gives
+       them — at 360px that's ~51px columns (still above Apple's 44pt
+       tap-target floor); on lg+ the dashboard column is 600-1000px and
+       cells settle at the desktop spacing. The previous `min-w-[640px]`
+       was a leftover from when this wrapper was `overflow-x-auto` (the
+       calendar used to horizontal-scroll on phones). After 34bf4af
+       switched the wrapper to `overflow-visible` and the section panel
+       above it to `[overflow:clip]`, that 640px started silently
+       clipping Fri/Sat/Sun off-screen on every mobile dashboard view —
+       the calendar looked like a 4-day week. */
     <div className="overflow-visible">
-      <div className="min-w-[640px]">
+      <div>
       <div key={monthKey} className="relative">
         {/* Skeleton bars while events are still being fetched. We park them
             at deterministic row offsets (top = row * 72 + 36 px so they sit
