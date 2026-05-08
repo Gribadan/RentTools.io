@@ -549,13 +549,23 @@ export function TopBar({
                   // 200px on mobile so the input + close button still
                   // fit on a 375px header next to the property selector
                   // and avatar; 280px from sm+ where the chrome has
-                  // breathing room. Without the responsive narrowing,
-                  // tapping search on a phone pushed the property
-                  // dropdown clean off the left edge.
+                  // breathing room.
+                  // min-w-0 + the matching min-w-0 on the inner wrapper
+                  // and input below are what actually let `w-0`
+                  // collapse to zero. Without them the input's CSS-
+                  // default `min-width: auto` (resolved as min-content)
+                  // forces the children to their intrinsic width even
+                  // inside an overflow-hidden parent — `overflow-hidden`
+                  // clips paint, NOT layout, so the children still push
+                  // the document's scrollWidth past the viewport. That
+                  // surfaced as horizontal scroll on every dashboard
+                  // page at 375px (visible scrollbar on mobile screen,
+                  // invisible offscreen tabs to the right of the
+                  // expected layout).
                   searchOpen ? "w-[200px] opacity-100 sm:w-[280px]" : "w-0 opacity-0"
-                }`}
+                } min-w-0`}
               >
-                <div className="relative flex items-center w-full rounded-full border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-1 h-9">
+                <div className="relative flex min-w-0 items-center w-full rounded-full border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-1 h-9">
                   <svg className="h-4 w-4 shrink-0 text-[var(--ink-3)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                   </svg>
@@ -564,7 +574,7 @@ export function TopBar({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={c.searchPlaceholder}
-                    className="ml-2 flex-1 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
+                    className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
                   />
                   <button
                     onClick={() => { setSearchQuery(""); setSearchOpen(false); }}
