@@ -160,14 +160,26 @@ function AppContent({
 
   const handleUpdateReservation = async (
     id: number,
-    data: { name?: string; checkIn?: string; checkOut?: string; platform?: string }
+    data: {
+      name?: string;
+      checkIn?: string;
+      checkOut?: string;
+      platform?: string;
+      tgGroupUrl?: string | null;
+      waGroupUrl?: string | null;
+    }
   ) => {
     const res = await fetch(`/api/reservations/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (res.ok) await fetchProperties();
+    if (res.ok) {
+      await fetchProperties();
+      return { ok: true as const };
+    }
+    const errBody = await res.json().catch(() => ({} as { error?: string }));
+    return { ok: false as const, error: errBody?.error || `Request failed (${res.status})` };
   };
 
   const handleUpdateProperty = async (id: number, data: { name?: string; minNights?: number; checkInTime?: string; checkOutTime?: string; bookingWindow?: number }) => {

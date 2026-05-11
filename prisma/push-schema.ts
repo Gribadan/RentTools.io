@@ -225,6 +225,12 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "BlogPost" ADD COLUMN "faqJson" TEXT NOT NULL DEFAULT '[]'`,
     `ALTER TABLE "BlogPost" ADD COLUMN "ogImageWidth" INTEGER`,
     `ALTER TABLE "BlogPost" ADD COLUMN "ogImageHeight" INTEGER`,
+    // Per-reservation messenger group URLs. Distinct from User.tg/wa
+    // GroupInviteUrl (those are host-wide invite links sent TO the guest);
+    // these are URLs of one-off groups the host created FOR this specific
+    // booking, so they can re-open the right group in one click later.
+    `ALTER TABLE "Reservation" ADD COLUMN "tgGroupUrl" TEXT`,
+    `ALTER TABLE "Reservation" ADD COLUMN "waGroupUrl" TEXT`,
   ];
 
   // Feedback table — site-wide visitor feedback queue. New table, so we

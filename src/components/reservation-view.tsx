@@ -24,6 +24,75 @@ interface MessageTemplate {
   sendOffsetDays: number;
 }
 
+/** Short platform label matching how hosts name messenger groups by
+ *  hand — "Airbnb", "Booking" (without the .com), "Vrbo", etc. Distinct
+ *  from `platformDisplayName` elsewhere in the app, which renders
+ *  "Booking.com" with the TLD for SEO-facing surfaces. */
+function platformShortLabel(slug: string): string {
+  const map: Record<string, string> = {
+    airbnb: "Airbnb",
+    booking: "Booking",
+    vrbo: "Vrbo",
+    expedia: "Expedia",
+    hostaway: "Hostaway",
+    lodgify: "Lodgify",
+    hospitable: "Hospitable",
+    smoobu: "Smoobu",
+    direct: "Direct",
+    custom: "Direct",
+  };
+  if (map[slug]) return map[slug];
+  if (!slug) return "Booking";
+  return slug.charAt(0).toUpperCase() + slug.slice(1);
+}
+
+/** Stay date range formatted the way a host names a messenger group:
+ *    same year + month         → "12-19 May 2026"
+ *    same year, diff months    → "22 May-12 June 2026"
+ *    different years           → "29 Dec 2026-3 Jan 2027"
+ *  Months are full English names (matches the examples the user gave).
+ */
+function formatStayRange(checkInIso: string, checkOutIso: string): string {
+  const ci = new Date(checkInIso);
+  const co = new Date(checkOutIso);
+  const ciDay = ci.getDate();
+  const coDay = co.getDate();
+  const ciMon = ci.toLocaleDateString("en-GB", { month: "long" });
+  const coMon = co.toLocaleDateString("en-GB", { month: "long" });
+  const ciYear = ci.getFullYear();
+  const coYear = co.getFullYear();
+  if (ciYear !== coYear) {
+    return `${ciDay} ${ciMon} ${ciYear}-${coDay} ${coMon} ${coYear}`;
+  }
+  if (ci.getMonth() !== co.getMonth()) {
+    return `${ciDay} ${ciMon}-${coDay} ${coMon} ${ciYear}`;
+  }
+  return `${ciDay}-${coDay} ${ciMon} ${ciYear}`;
+}
+
+/** Format the standard group-chat name string the "Copy group name"
+ *  button writes to the clipboard. Picks the lead guest's first name
+ *  (registered guests beat the reservation's free-text name field),
+ *  falls back to the reservation name's first token, and lastly to
+ *  "Guest" so we never copy an empty placeholder. */
+function formatGroupName(
+  reservation: Reservation,
+  guests: Guest[],
+  propertyName: string | undefined,
+): string {
+  const platform = platformShortLabel(reservation.platform);
+  const dates = formatStayRange(reservation.checkIn, reservation.checkOut);
+  const leadGuest = guests.find((g) => g.firstName?.trim()) ?? guests[0];
+  const guestName = (
+    leadGuest?.firstName?.trim() ||
+    leadGuest?.fullName?.trim() ||
+    reservation.name.split(" ")[0] ||
+    "Guest"
+  ).trim();
+  const prop = (propertyName ?? "Property").trim();
+  return `${platform} ${dates} | ${guestName} | ${prop}`;
+}
+
 function renderTemplate(input: string, vars: Record<string, string>): string {
   return input.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) =>
     Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : `{{${k}}}`
@@ -39,8 +108,15 @@ interface ReservationViewProps {
   onDeleteReservation: (id: number) => void | Promise<void>;
   onUpdateReservation: (
     id: number,
-    data: { name?: string; checkIn?: string; checkOut?: string; platform?: string }
-  ) => void;
+    data: {
+      name?: string;
+      checkIn?: string;
+      checkOut?: string;
+      platform?: string;
+      tgGroupUrl?: string | null;
+      waGroupUrl?: string | null;
+    }
+  ) => void | Promise<{ ok: true } | { ok: false; error: string }>;
   onUpdateParent: (childId: number, parentId: number | null) => void;
   onUpdateGuest: (id: number, fields: Partial<Guest>) => Promise<void>;
 }
@@ -80,6 +156,17 @@ export function ReservationView({
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<MessageTemplate | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
+  // Per-reservation group-chat state: a button to copy the standardised
+  // group-name string and an inline editor for the two messenger group
+  // URLs the host saves once they've created the chat. Both come back
+  // through the same PATCH /api/reservations/:id endpoint as the rest
+  // of the editable fields.
+  const [groupNameCopyState, setGroupNameCopyState] = useState<"idle" | "copied">("idle");
+  const [editingGroupUrls, setEditingGroupUrls] = useState(false);
+  const [editTgGroupUrl, setEditTgGroupUrl] = useState("");
+  const [editWaGroupUrl, setEditWaGroupUrl] = useState("");
+  const [savingGroupUrls, setSavingGroupUrls] = useState(false);
+  const [groupUrlsError, setGroupUrlsError] = useState<string | null>(null);
   // RT-25.2 — pre-arrival guest form share link. hasGuestForm gates
   // the "Copy form link" button so it only shows when the property
   // actually has a template configured. The action is link-generation
@@ -391,6 +478,35 @@ export function ReservationView({
     setFiles([]);
     setLoading(false);
     onGuestsUpdated();
+  };
+
+  const handleCopyGroupName = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(formatGroupName(reservation, guests, propertyName));
+      setGroupNameCopyState("copied");
+      setTimeout(() => setGroupNameCopyState("idle"), 2000);
+    } catch {
+      // Clipboard write can fail in non-secure contexts. Silent — the
+      // visible group-name preview right below the button is the
+      // fallback the host can manually select.
+    }
+  }, [reservation, guests, propertyName]);
+
+  const handleSaveGroupUrls = async () => {
+    setSavingGroupUrls(true);
+    setGroupUrlsError(null);
+    const result = await Promise.resolve(
+      onUpdateReservation(reservation.id, {
+        tgGroupUrl: editTgGroupUrl.trim() ? editTgGroupUrl.trim() : null,
+        waGroupUrl: editWaGroupUrl.trim() ? editWaGroupUrl.trim() : null,
+      }),
+    );
+    setSavingGroupUrls(false);
+    if (result && typeof result === "object" && "ok" in result && !result.ok) {
+      setGroupUrlsError(result.error);
+      return;
+    }
+    setEditingGroupUrls(false);
   };
 
   const handleSaveEdit = () => {
@@ -707,6 +823,132 @@ export function ReservationView({
           </div>
         );
       })()}
+
+      {/* Reservation group chat — host-only convenience. Copy a
+          standardised group-name string (so chats across all bookings
+          look consistent in your messenger list) and save the group's
+          URL once you've created it, so clicking back into the right
+          chat from a reservation is one click. Distinct from the
+          "Group invite" section above, which sends a HOST-WIDE invite
+          link TO the guest's phone. */}
+      <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Group chat</p>
+            <p className="text-xs text-muted-foreground">
+              Copy a standard group name for messenger, then save the group&rsquo;s link to jump back in one click.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleCopyGroupName}
+            className="rounded-lg text-xs"
+          >
+            {groupNameCopyState === "copied" ? "Copied!" : "Copy group name"}
+          </Button>
+        </div>
+
+        {/* Preview of the formatted name so the host sees exactly what
+            went onto the clipboard — saves a paste-into-scratch round
+            trip when they're double-checking the format. */}
+        <code className="block w-full overflow-x-auto rounded-md bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground">
+          {formatGroupName(reservation, guests, propertyName)}
+        </code>
+
+        {!editingGroupUrls ? (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {reservation.tgGroupUrl && (
+              <a
+                href={reservation.tgGroupUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#229ED9]/30 bg-[#229ED9]/10 px-3 py-1.5 text-xs font-medium text-[#229ED9] transition-colors hover:bg-[#229ED9]/20"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden="true">
+                  <path d="M11.94.5C5.62.5.5 5.62.5 11.94s5.12 11.44 11.44 11.44 11.44-5.12 11.44-11.44S18.26.5 11.94.5zm5.31 7.86l-1.78 8.4c-.13.6-.49.74-.99.46l-2.74-2.02-1.32 1.27c-.15.15-.27.27-.55.27l.2-2.79 5.07-4.58c.22-.2-.05-.31-.34-.11l-6.27 3.95-2.7-.84c-.59-.18-.6-.59.12-.87l10.55-4.07c.49-.18.92.12.75.93z" />
+                </svg>
+                Open Telegram group
+              </a>
+            )}
+            {reservation.waGroupUrl && (
+              <a
+                href={reservation.waGroupUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-md border border-[#25D366]/30 bg-[#25D366]/10 px-3 py-1.5 text-xs font-medium text-[#25D366] transition-colors hover:bg-[#25D366]/20"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden="true">
+                  <path d="M20.52 3.48A11.78 11.78 0 0012.05 0C5.5 0 .2 5.3.2 11.85c0 2.09.55 4.13 1.6 5.93L0 24l6.39-1.67a11.85 11.85 0 005.66 1.44h.01c6.55 0 11.85-5.3 11.85-11.85 0-3.16-1.23-6.13-3.39-8.44zM12.06 21.7h-.01a9.84 9.84 0 01-5.02-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.83 9.83 0 01-1.5-5.19c0-5.44 4.42-9.86 9.87-9.86 2.63 0 5.11 1.03 6.97 2.89a9.79 9.79 0 012.89 6.97c-.01 5.45-4.43 9.85-9.83 9.85zm5.4-7.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.07-.3-.15-1.25-.46-2.38-1.46a8.92 8.92 0 01-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.66-1.6-.91-2.18-.24-.58-.49-.5-.66-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.07 4.47.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.75-.71 2-1.4.25-.69.25-1.27.17-1.4-.07-.13-.27-.2-.57-.35z" />
+                </svg>
+                Open WhatsApp group
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setEditTgGroupUrl(reservation.tgGroupUrl ?? "");
+                setEditWaGroupUrl(reservation.waGroupUrl ?? "");
+                setGroupUrlsError(null);
+                setEditingGroupUrls(true);
+              }}
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {reservation.tgGroupUrl || reservation.waGroupUrl ? "Edit links" : "Add group links"}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2 pt-1">
+            <label className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-[11px] font-medium text-muted-foreground">Telegram</span>
+              <input
+                type="url"
+                value={editTgGroupUrl}
+                onChange={(e) => setEditTgGroupUrl(e.target.value)}
+                placeholder="https://t.me/+abcdef…"
+                className="h-8 flex-1 rounded-md border border-border/50 bg-background/50 px-2 text-xs outline-none focus:border-primary/50"
+              />
+            </label>
+            <label className="flex items-center gap-2">
+              <span className="w-20 shrink-0 text-[11px] font-medium text-muted-foreground">WhatsApp</span>
+              <input
+                type="url"
+                value={editWaGroupUrl}
+                onChange={(e) => setEditWaGroupUrl(e.target.value)}
+                placeholder="https://chat.whatsapp.com/…"
+                className="h-8 flex-1 rounded-md border border-border/50 bg-background/50 px-2 text-xs outline-none focus:border-primary/50"
+              />
+            </label>
+            <p className="text-[11px] text-muted-foreground">
+              Leave a field blank to remove the saved link.
+            </p>
+            {groupUrlsError && (
+              <p className="text-[11px] text-rose-500">{groupUrlsError}</p>
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSaveGroupUrls}
+                disabled={savingGroupUrls}
+                className="rounded-lg text-xs"
+              >
+                {savingGroupUrls ? "Saving…" : "Save"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setEditingGroupUrls(false)}
+                className="rounded-lg text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Drop Zone */}
       <div

@@ -41,6 +41,38 @@ export async function PATCH(
     if (body.checkOut !== undefined) data.checkOut = new Date(body.checkOut);
     if (body.platform !== undefined) data.platform = body.platform;
 
+    // Per-reservation messenger group URLs. Empty string clears the
+    // value (null in DB); a real URL must start with the platform's
+    // canonical public prefix so we don't accidentally save a chat
+    // deep-link, an Android intent URL, or anything that won't open
+    // a group page in the desktop / mobile messenger.
+    if (body.tgGroupUrl !== undefined) {
+      const v = typeof body.tgGroupUrl === "string" ? body.tgGroupUrl.trim() : "";
+      if (v === "") {
+        data.tgGroupUrl = null;
+      } else if (!/^https:\/\/t\.me\//i.test(v)) {
+        return NextResponse.json(
+          { error: "Telegram group URL must start with https://t.me/" },
+          { status: 400 },
+        );
+      } else {
+        data.tgGroupUrl = v;
+      }
+    }
+    if (body.waGroupUrl !== undefined) {
+      const v = typeof body.waGroupUrl === "string" ? body.waGroupUrl.trim() : "";
+      if (v === "") {
+        data.waGroupUrl = null;
+      } else if (!/^https:\/\/chat\.whatsapp\.com\//i.test(v)) {
+        return NextResponse.json(
+          { error: "WhatsApp group URL must start with https://chat.whatsapp.com/" },
+          { status: 400 },
+        );
+      } else {
+        data.waGroupUrl = v;
+      }
+    }
+
     // If the date range is changing, check for overlap with OTHER
     // reservations on the same property. The POST endpoint already
     // does this for new reservations; PATCH was missing the same

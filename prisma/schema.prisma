@@ -256,6 +256,14 @@ model Reservation {
   checkOut        DateTime
   platform        String   @default("airbnb")
   linkedEventUid  String?  // UID of a synced CalendarEvent this reservation extends (for direct-pay extensions)
+  // Per-reservation messenger group chat. The host creates a one-off
+  // group for THIS booking (different from User.tgGroupInviteUrl, which
+  // is a host-wide invite link sent to every guest) and saves the URL
+  // here so they can jump back into it in one click from the reservation
+  // view. Validated to start with the platform's public URL prefix at
+  // both the UI and the PATCH endpoint.
+  tgGroupUrl      String?  // must start with https://t.me/ when set
+  waGroupUrl      String?  // must start with https://chat.whatsapp.com/ when set
   propertyId      Int
   property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests          Guest[]
