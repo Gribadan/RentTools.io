@@ -267,6 +267,20 @@ function isGenericIcalName(summary: string): boolean {
   );
 }
 
+/** Display-safe name for an iCal-imported event. Falls back to the
+ *  platform brand name ("Booking.com" / "Airbnb" / …) when the raw
+ *  summary is generic-marker text — surfacing "CLOSED - Not available"
+ *  as the upcoming-guest label on the dashboard is confusing for the
+ *  host. They know it's a fetched stay; the platform name is the
+ *  truthful answer until the host claims the bar and gives it a real
+ *  guest name. Matches what the calendar grid already does for bar
+ *  labels (use-calendar-data.ts swaps generic labels for "Airbnb"
+ *  / "Booking" before rendering). */
+function friendlyIcalName(summary: string | null | undefined, platform: string): string {
+  if (!summary || isGenericIcalName(summary)) return platformDisplayName(platform);
+  return summary;
+}
+
 /** Build a deduped list of stays for one property from Reservation rows
  *  + iCal-synced events. Three layers of dedup so the dashboard never
  *  double-counts the SAME booking represented in two places:
@@ -316,7 +330,7 @@ function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] 
     start.setHours(0, 0, 0, 0);
     const end = new Date(ev.endDate);
     end.setHours(0, 0, 0, 0);
-    stays.push({ start, end, name: ev.summary, platform: ev.platform });
+    stays.push({ start, end, name: friendlyIcalName(ev.summary, ev.platform), platform: ev.platform });
   }
   stays.sort((a, b) => a.start.getTime() - b.start.getTime());
   return stays;
@@ -737,7 +751,7 @@ export function Dashboard({
       if (ev.startDate < formCheckOut && ev.endDate > formCheckIn) {
         out.push({
           key: `e-${ev.id}`,
-          name: ev.summary || platformDisplayName(ev.platform),
+          name: friendlyIcalName(ev.summary, ev.platform),
           platform: ev.platform,
           from: ev.startDate,
           to: ev.endDate,
