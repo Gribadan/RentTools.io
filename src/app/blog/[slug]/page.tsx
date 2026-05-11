@@ -450,7 +450,14 @@ export default async function BlogPostPage({
       "@type": "Organization",
       name: "RentTools",
       url: SITE_URL,
-      logo: { "@type": "ImageObject", url: `${SITE_URL}/icon.svg` },
+      // MUST be a raster image (PNG/JPG/GIF). Google's structured-data
+      // spec for the Organization.logo property explicitly rejects SVG.
+      // When the URL is unreachable or the format is unsupported, the
+      // Knowledge Panel / search-result favicon falls back to whatever
+      // Google last crawled — which on a domain previously hosted on
+      // Vercel ends up being the Vercel triangle. Matches what the
+      // root layout's ORGANIZATION_JSON_LD now does.
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
     },
     commentCount: visibleCommentRows.length,
     comment: visibleCommentRows.length > 0
