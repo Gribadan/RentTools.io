@@ -17,7 +17,7 @@ En diciembre de 2024, una Anfitriona que conozco pasó un fin de semana entero i
 
 Ese es el hueco que cubre este artículo. Casi todos los Anfitriones saben que existe el RGPD. Casi ninguno sabe que la misma UE que escribió el RGPD mantiene también un conjunto de leyes paralelas que le obligan a recoger la documentación del viajero y *entregarla a la policía*. Aquí tiene la realidad, país por país, de los cinco mayores mercados de alquiler vacacional — con los plazos y las reglas de conservación que de verdad muerden.
 
-## En breve
+## TL;DR
 
 - El registro de viajeros y el RGPD tiran en sentidos opuestos: uno dice recoge y comunica, el otro recoge lo mínimo posible. Hay que cumplir los dos a la vez.
 - **España** es la más estricta: SES.HOSPEDAJES, unos 40 campos por viajero, envío en **24 horas** tras la entrada, conservación **3 años**.
@@ -89,7 +89,7 @@ Las leyes de registro cambian *qué* recoge. No cambian las reglas del RGPD sobr
 
 Transcribir cuarenta campos de un pasaporte a un portal de la Administración es exactamente el trabajo en el que el software es bueno. Use lo que use — RentTools, una hoja de cálculo, el complemento de un Channel Manager — el objetivo es el mismo: leer el documento una vez, guardarlo una vez, enviarlo una vez, borrarlo a tiempo. Para la primera mitad de ese flujo, vea nuestra nota sobre los [formularios de viajero previos a la llegada](/blog/pre-arrival-guest-forms): recoger el documento antes de la llegada convierte una carrera de 20 horas en una subida de 5 minutos.
 
-## Preguntas frecuentes
+## FAQ
 
 **¿Tengo que registrar a los viajeros si solo alquilo a compatriotas?**
 Normalmente sí, pero varía. España e Italia exigen el registro de todos los viajeros con independencia de la nacionalidad. Los formularios policiales de Francia y Portugal apuntan sobre todo a extranjeros. El Meldeschein alemán cubre a todos, pero la comprobación del documento es más estricta para viajeros extranjeros. En caso de duda, registre a todos: sobrerrecoger para una obligación legal es defendible, infrarrecoger no.

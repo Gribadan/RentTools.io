@@ -17,7 +17,7 @@ Im Dezember 2024 hat eine Gastgeberin, die ich kenne, in Málaga ein ganzes Woch
 
 Genau diese Lücke füllt dieser Beitrag. Dass es die DSGVO gibt, wissen fast alle Gastgeber. Kaum jemand weiß, dass dieselbe EU, die die DSGVO geschrieben hat, ein paralleles Regelwerk betreibt, das Sie zwingt, Gäste-Ausweise zu erheben und *der Polizei zu übergeben*. Hier ist die Realität, Land für Land, für die fünf größten Kurzzeitvermietungsmärkte — mit den Fristen und Aufbewahrungsregeln, die wirklich zubeißen.
 
-## Kurz gefasst
+## TL;DR
 
 - Gästemeldepflicht und DSGVO ziehen in entgegengesetzte Richtungen: die eine sagt erheben und melden, die andere so wenig wie möglich erheben. Sie erfüllen beide gleichzeitig.
 - **Spanien** ist am strengsten: SES.HOSPEDAJES, rund 40 Felder pro Gast, Übermittlung innerhalb von **24 Stunden** nach Check-in, Aufbewahrung **3 Jahre**.
@@ -89,7 +89,7 @@ Die Meldegesetze ändern, *was* Sie erheben. Sie ändern nicht die DSGVO-Regeln 
 
 Die Arbeit, vierzig Felder aus einem Pass in ein Behördenportal zu übertragen, ist genau die Arbeit, in der Software gut ist. Was Sie auch nutzen — RentTools, eine Tabelle, das Add-on eines Channel Managers —, das Ziel ist dasselbe: das Dokument einmal lesen, einmal speichern, einmal übermitteln, planmäßig löschen. Zur vorderen Hälfte dieses Ablaufs siehe unseren Hinweis zu [Gästeformularen vor Anreise](/blog/pre-arrival-guest-forms): den Ausweis vor der Ankunft einzusammeln verwandelt eine 20-Stunden-Hektik in einen 5-Minuten-Upload.
 
-## Häufige Fragen
+## FAQ
 
 **Muss ich Gäste melden, wenn ich nur an Landsleute vermiete?**
 Meist ja, aber es variiert. Spanien und Italien verlangen die Meldung aller Gäste unabhängig von der Staatsangehörigkeit. Die Polizeiformulare Frankreichs und Portugals zielen vor allem auf Ausländer. Deutschlands Meldeschein deckt alle ab, aber die Ausweisprüfung ist bei ausländischen Gästen strenger. Im Zweifel: alle melden — Übererhebung für eine rechtliche Verpflichtung ist vertretbar, Untererhebung nicht.

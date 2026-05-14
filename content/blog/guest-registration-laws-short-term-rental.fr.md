@@ -17,7 +17,7 @@ En décembre 2024, une hôte que je connais a passé un week-end entier à enreg
 
 C'est cette lacune que comble cet article. Presque tous les hôtes savent que le RGPD existe. Presque aucun ne sait que la même UE qui a écrit le RGPD applique aussi un ensemble de lois parallèles qui vous obligent à collecter les pièces d'identité des voyageurs et à *les remettre à la police*. Voici la réalité, pays par pays, pour les cinq plus grands marchés de la location courte durée — avec les délais et les règles de conservation qui mordent vraiment.
 
-## En bref
+## TL;DR
 
 - La déclaration des voyageurs et le RGPD tirent dans des sens opposés : l'une dit collecter et déclarer, l'autre collecter le moins possible. Vous respectez les deux à la fois.
 - L'**Espagne** est la plus stricte : SES.HOSPEDAJES, environ 40 champs par voyageur, transmission sous **24 heures** après l'arrivée, conservation **3 ans**.
@@ -89,7 +89,7 @@ Les lois de déclaration changent *ce que* vous collectez. Elles ne changent pas
 
 Recopier quarante champs depuis un passeport vers un portail administratif, c'est exactement le travail où un logiciel est bon. Quel que soit votre outil — RentTools, un tableur, le module d'un Channel Manager — l'objectif est le même : lire le document une fois, le stocker une fois, le transmettre une fois, le supprimer dans les temps. Pour la première moitié de ce flux, voyez notre note sur les [formulaires voyageurs avant arrivée](/blog/pre-arrival-guest-forms) : récupérer la pièce avant l'arrivée transforme une course de 20 heures en un téléversement de 5 minutes.
 
-## Questions fréquentes
+## FAQ
 
 **Dois-je déclarer les voyageurs si je ne loue qu'à des compatriotes ?**
 En général oui, mais cela varie. L'Espagne et l'Italie exigent la déclaration de tous les voyageurs, quelle que soit la nationalité. Les formulaires de police français et portugais visent surtout les étrangers. Le Meldeschein allemand couvre tout le monde, mais le contrôle de la pièce est plus strict pour les voyageurs étrangers. Dans le doute, déclarez tout le monde : sur-collecter pour une obligation légale se défend, sous-collecter non.
