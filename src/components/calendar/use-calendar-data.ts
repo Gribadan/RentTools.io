@@ -75,8 +75,18 @@ export function useCalendarData(
         stayDates.add(d);
         d = addDaysStr(d, 1);
       }
-      if (!evMap.has(ev.startDate) || evMap.get(ev.startDate)!.startDate > ev.startDate) {
-        evMap.set(ev.startDate, {
+      // evMap key is `<startDate>|<platform>` so cross-platform events on
+      // the same start day coexist. The old key was just startDate, which
+      // silently dropped every second event with a same-day twin from a
+      // different platform — symptom reported by zlovew820929 (commit
+      // before this one): Booking Jun 1-10 + Airbnb Jun 1 rendered as a
+      // single one-day bar, because Airbnb's event won the map slot and
+      // Booking's 10-day range disappeared. Composite key fixes that
+      // without changing render order (startDate is still the first sort
+      // segment).
+      const evKey = `${ev.startDate}|${platform}`;
+      if (!evMap.has(evKey)) {
+        evMap.set(evKey, {
           name: ev.summary || "Reserved",
           platform,
           startDate: ev.startDate,
@@ -153,7 +163,10 @@ export function useCalendarData(
           stayDates.add(d);
           d = addDaysStr(d, 1);
         }
-        evMap.set(start, {
+        // Same composite key as the iCal write path above — keeps the
+        // Map's key format consistent so the sort + iterate downstream
+        // (bars memo at L411 onward) sees one homogeneous keyspace.
+        evMap.set(`${start}|${platform}`, {
           name: res.name,
           platform,
           startDate: start,
