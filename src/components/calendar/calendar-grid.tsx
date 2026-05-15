@@ -202,11 +202,45 @@ export function CalendarGrid({
             <div className="absolute h-5 sm:h-6 rounded-md bg-[var(--ink-4)]/10 top-[196px] sm:top-[252px] left-[48%] w-[28%]" />
           </div>
         )}
-        {weeks.map((week, wi) => (
+        {weeks.map((week, wi) => {
+          // Per-week stacking detection. We only enlarge cells and
+          // compress bar height when at least one bar in this week has
+          // rowIdx >= 1 (i.e. two bookings overlap on some date here).
+          // Calendars with no conflicts render exactly as they did
+          // before the stacking work — same cell height, same bar
+          // height — so adding the stacking feature doesn't visually
+          // regress the common case.
+          const monthStr = String(month + 1).padStart(2, "0");
+          const weekDateStrs = week
+            .filter((d): d is number => d !== null)
+            .map((d) => `${year}-${monthStr}-${String(d).padStart(2, "0")}`);
+          const weekFirst = weekDateStrs[0];
+          const weekLast = weekDateStrs[weekDateStrs.length - 1];
+          let weekMaxRowIdx = 0;
+          if (weekFirst && weekLast) {
+            for (const bar of bars) {
+              if (bar.startDate <= weekLast && bar.endDate >= weekFirst) {
+                const ri = bar.rowIdx ?? 0;
+                if (ri > weekMaxRowIdx) weekMaxRowIdx = ri;
+              }
+            }
+          }
+          const weekStacks = weekMaxRowIdx >= 1;
+          // Single-bar week: original sizing, identical to pre-stacking
+          // behaviour. Multi-bar week: cell grows to ~80/100 px so the
+          // second bar row fits without bleeding into the next week,
+          // and bar height compresses slightly so two bars sit side-
+          // by-side cleanly.
+          const cellHeightClass = weekStacks
+            ? "h-[80px] sm:h-[100px]"
+            : "h-[56px] sm:h-[72px]";
+          const barHeightClass = weekStacks ? "h-4 sm:h-5" : "h-5 sm:h-6";
+
+          return (
           <div key={`${monthKey}-w${wi}`} className="grid grid-cols-7 border-b border-[var(--line)] last:border-b-0">
             {week.map((dayNum, di) => {
               if (dayNum === null) {
-                return <div key={`c-${di}`} className="h-[56px] sm:h-[72px] border-r border-[var(--line)] last:border-r-0" />;
+                return <div key={`c-${di}`} className={`${cellHeightClass} border-r border-[var(--line)] last:border-r-0`} />;
               }
               const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(dayNum).padStart(2, "0")}`;
               const isToday = year === today.getFullYear() && month === today.getMonth() && dayNum === today.getDate();
@@ -255,7 +289,7 @@ export function CalendarGrid({
                   onClick={(e) => {
                     onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
-                  className={`relative h-[56px] sm:h-[72px] border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} ${isSelected ? "bg-[var(--m-accent)]/10 ring-2 ring-inset ring-[var(--m-accent)]" : "hover:bg-[var(--bg-3)]/60"} ${isOpen && !isSelected ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed && !isSelected ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
+                  className={`relative ${cellHeightClass} border-r border-[var(--line)] last:border-r-0 cursor-pointer transition-colors ${bg} ${isSelected ? "bg-[var(--m-accent)]/10 ring-2 ring-inset ring-[var(--m-accent)]" : "hover:bg-[var(--bg-3)]/60"} ${isOpen && !isSelected ? "ring-1 ring-inset ring-emerald-500/40" : ""} ${isClosed && !isSelected ? "ring-1 ring-inset ring-rose-500/40" : ""}`}
                 >
                   <div className="absolute top-1 left-1.5 sm:top-1.5 sm:left-2 z-20 pointer-events-none">
                     <span className={`text-[12px] sm:text-sm font-medium leading-none ${
@@ -303,19 +337,20 @@ export function CalendarGrid({
                   )}
 
                   {segments.map((seg, si) => {
-                    // Vertical stacking: rowIdx 0 sits at the original
-                    // top-7 sm:top-9 position. rowIdx 1+ sits below by
-                    // (rowIdx × 16px mobile / 20px desktop). Cell is
-                    // 56px / 72px tall; bars compress from h-5 sm:h-6
-                    // (current) to h-4 sm:h-5 universally so two bars
-                    // stacked fit cleanly (mobile: bars at 28-44 + 44-60,
-                    // 4px bleeds past cell bottom but lands in the next
-                    // row's day-number-empty area at the top).
+                    // Vertical stacking: rowIdx 0 keeps the original
+                    // top-7 sm:top-9 position. rowIdx 1 sits below by
+                    // ~16/22 px so it lands cleanly in the enlarged
+                    // (80/100 px) cell that the week-level
+                    // weekStacks check already grew. Height comes from
+                    // the parent loop — h-5 sm:h-6 when the week has
+                    // no stacking (single-bar weeks render exactly as
+                    // before), h-4 sm:h-5 when stacking is needed so
+                    // two bars fit in the enlarged cell.
                     const rowIdx = seg.rowIdx ?? 0;
                     const topClass = rowIdx === 0
                       ? "top-7 sm:top-9"
                       : "top-[44px] sm:top-[58px]";
-                    const heightClass = "h-4 sm:h-5";
+                    const heightClass = barHeightClass;
                     // A segment's edge is treated as "shared" when the
                     // bar either continues into another week (wrap) OR
                     // abuts a linked partner bar (manual extension of
@@ -447,7 +482,8 @@ export function CalendarGrid({
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </div>
       </div>
     </div>
