@@ -518,6 +518,75 @@ export function useCalendarData(
       }
     }
 
+    // Vertical stacking — interval-graph coloring. When two bars cover
+    // the same date (different platforms — see the bar dedup above
+    // which only merges same-platform overlap), they need to render at
+    // different Y positions in the calendar cell or the second one is
+    // invisible (covered by the first). Without this pass every bar
+    // landed at the same top-7 sm:top-9 offset and a cross-platform
+    // overlap like Booking 15-24 + Trip.com 19-22 only showed Booking;
+    // the user (zlovew820929) reported the symptom in feedback id=3.
+    //
+    // Greedy assignment: sort by startDate, then for each bar pick the
+    // lowest row index where the previously-assigned bar in that row
+    // has already ended (endDate < this bar's startDate). New row only
+    // when no existing row is free.
+    //
+    // Linked pairs (manual extension before/after an iCal event) MUST
+    // share a row index so the visual continuation stays on one
+    // horizontal line. We handle that by treating already-paired bars
+    // as a unit when assigning — the second bar in the pair inherits
+    // the first's rowIdx instead of being checked independently.
+    const sortedForRows = [...deduped].sort((a, b) => {
+      // Sort by startDate first; on ties, by endDate descending so
+      // longer bars get the top row (cosmetic — keeps the primary
+      // booking visible at the natural Y on overlap cells).
+      const c1 = a.startDate.localeCompare(b.startDate);
+      if (c1 !== 0) return c1;
+      return b.endDate.localeCompare(a.endDate);
+    });
+    const rowEnds: string[] = []; // endDate of the latest bar in each row
+    const assigned = new Map<CalendarBar, number>();
+    for (const bar of sortedForRows) {
+      // Linked-partner: inherit row from the partner that's already
+      // been assigned (the earlier-starting one of the pair).
+      let inheritedIdx: number | undefined;
+      if (bar.linkedEventUid) {
+        for (const other of sortedForRows) {
+          if (other === bar) continue;
+          if (other.eventUid && other.eventUid === bar.linkedEventUid && assigned.has(other)) {
+            inheritedIdx = assigned.get(other);
+            break;
+          }
+        }
+      }
+      let idx: number;
+      if (inheritedIdx !== undefined) {
+        idx = inheritedIdx;
+        // Extend the row's tracked endDate so subsequent bars know
+        // this row is now occupied through bar.endDate.
+        if (rowEnds[idx] === undefined || rowEnds[idx] < bar.endDate) {
+          rowEnds[idx] = bar.endDate;
+        }
+      } else {
+        // Find the first row whose latest bar ENDS strictly before
+        // this bar STARTS. The bar dedup at L461 only treated SAME-
+        // platform overlap as "same bar"; bars from DIFFERENT
+        // platforms that touch on the same checkin/checkout day are
+        // still considered overlapping for stacking purposes, so we
+        // use strict `<` here.
+        idx = rowEnds.findIndex((end) => end < bar.startDate);
+        if (idx === -1) {
+          idx = rowEnds.length;
+          rowEnds.push(bar.endDate);
+        } else {
+          rowEnds[idx] = bar.endDate;
+        }
+      }
+      assigned.set(bar, idx);
+      bar.rowIdx = idx;
+    }
+
     return deduped;
   }, [computed.dateToEvent, property.reservations]);
 

@@ -30,6 +30,12 @@ export interface CalendarBar {
   /** Symmetric: a linked partner abuts on the RIGHT. */
   linkedAfter?: boolean;
   isExtension?: boolean;
+  /** Vertical stacking row assigned by the interval-graph coloring
+   *  pass in use-calendar-data.ts. 0 = primary row (top of cell), 1 =
+   *  stacked below, etc. Computed so that two bars overlapping on any
+   *  date get different rowIdx values and the renderer can show both
+   *  at different Y positions instead of one covering the other. */
+  rowIdx?: number;
 }
 
 export interface BarSegment extends CalendarBar {

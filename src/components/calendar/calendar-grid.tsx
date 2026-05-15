@@ -303,6 +303,19 @@ export function CalendarGrid({
                   )}
 
                   {segments.map((seg, si) => {
+                    // Vertical stacking: rowIdx 0 sits at the original
+                    // top-7 sm:top-9 position. rowIdx 1+ sits below by
+                    // (rowIdx × 16px mobile / 20px desktop). Cell is
+                    // 56px / 72px tall; bars compress from h-5 sm:h-6
+                    // (current) to h-4 sm:h-5 universally so two bars
+                    // stacked fit cleanly (mobile: bars at 28-44 + 44-60,
+                    // 4px bleeds past cell bottom but lands in the next
+                    // row's day-number-empty area at the top).
+                    const rowIdx = seg.rowIdx ?? 0;
+                    const topClass = rowIdx === 0
+                      ? "top-7 sm:top-9"
+                      : "top-[44px] sm:top-[58px]";
+                    const heightClass = "h-4 sm:h-5";
                     // A segment's edge is treated as "shared" when the
                     // bar either continues into another week (wrap) OR
                     // abuts a linked partner bar (manual extension of
@@ -355,7 +368,7 @@ export function CalendarGrid({
                             onClaimBar(seg, rect);
                           }
                         }}
-                        className={`absolute top-7 sm:top-9 h-5 sm:h-6 flex items-center px-1.5 sm:px-2.5 text-[10.5px] sm:text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${radiusClass} ${
+                        className={`absolute ${topClass} ${heightClass} flex items-center px-1.5 sm:px-2.5 text-[10.5px] sm:text-[12.5px] font-semibold text-white/95 truncate shadow-[0_1px_2px_rgba(0,0,0,0.06)] cursor-pointer ${radiusClass} ${
                           // Per-platform colour. Manual / direct / custom
                           // bookings get a neutral slate so they're visually
                           // distinct from Airbnb's coral — previously every

@@ -266,14 +266,28 @@ export async function middleware(request: NextRequest) {
     const role = typeof (payload as { role?: unknown }).role === "string"
       ? (payload as { role: string }).role
       : undefined;
+    const impersonatorId = typeof (payload as { impersonatorId?: unknown }).impersonatorId === "number"
+      ? (payload as { impersonatorId: number }).impersonatorId
+      : undefined;
 
-    // Gate /api/admin/* at the boundary — only superadmins can reach any admin route.
+    // Gate /api/admin/* at the boundary — only superadmins can reach
+    // any admin route, with ONE exception: the exit-impersonation
+    // endpoint. When the current session is an impersonation, the JWT
+    // identifies as the target user (role="user") so a naive
+    // role !== "superadmin" check would lock the admin OUT of their
+    // own exit path. Allow it when impersonatorId is set — that field
+    // only appears on tokens minted by the impersonate endpoint, which
+    // already validated superadmin at issue time.
     if (pathname.startsWith("/api/admin/") && role !== "superadmin") {
-      const r = withSecurityHeaders(
-        NextResponse.json({ error: "Forbidden" }, { status: 403 })
-      );
-      logRequest(request, r, startedAt, userId);
-      return r;
+      const isExitImpersonation =
+        pathname === "/api/admin/exit-impersonation" && impersonatorId !== undefined;
+      if (!isExitImpersonation) {
+        const r = withSecurityHeaders(
+          NextResponse.json({ error: "Forbidden" }, { status: 403 })
+        );
+        logRequest(request, r, startedAt, userId);
+        return r;
+      }
     }
 
     const r = withSecurityHeaders(NextResponse.next({ request: { headers: i18nHeaders } }));
