@@ -78,12 +78,11 @@ export function useCalendarData(
       // evMap key is `<startDate>|<platform>` so cross-platform events on
       // the same start day coexist. The old key was just startDate, which
       // silently dropped every second event with a same-day twin from a
-      // different platform — symptom reported by zlovew820929 (commit
-      // before this one): Booking Jun 1-10 + Airbnb Jun 1 rendered as a
-      // single one-day bar, because Airbnb's event won the map slot and
-      // Booking's 10-day range disappeared. Composite key fixes that
-      // without changing render order (startDate is still the first sort
-      // segment).
+      // different platform — symptom reported via the in-product feedback
+      // form: Booking Jun 1-10 + Airbnb Jun 1 rendered as a single one-day
+      // bar, because Airbnb's event won the map slot and Booking's 10-day
+      // range disappeared. Composite key fixes that without changing
+      // render order (startDate is still the first sort segment).
       const evKey = `${ev.startDate}|${platform}`;
       if (!evMap.has(evKey)) {
         evMap.set(evKey, {
@@ -563,8 +562,8 @@ export function useCalendarData(
     // different Y positions in the calendar cell or the second one is
     // invisible (covered by the first). Without this pass every bar
     // landed at the same top-7 sm:top-9 offset and a cross-platform
-    // overlap like Booking 15-24 + Trip.com 19-22 only showed Booking;
-    // the user (zlovew820929) reported the symptom in feedback id=3.
+    // overlap like Booking + Trip.com mid-stay only showed Booking;
+    // surfaced via in-product feedback from a multi-platform host.
     //
     // Greedy assignment: sort by startDate, then for each bar pick the
     // lowest row index where the previously-assigned bar in that row
