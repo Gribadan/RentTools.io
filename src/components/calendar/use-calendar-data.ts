@@ -445,7 +445,25 @@ export function useCalendarData(
       // added.
       const isExtension = !!matchingResForExt?.linkedEventUid && !ev.eventUid;
 
-      if (label.includes("Reserved") || label.includes("CLOSED") || label.includes("Not available")) {
+      // Generic-iCal-summary detection. Different platforms send
+      // different "this is a block, not a guest name" strings:
+      //   Airbnb        — "Reserved", "Not available", "Blocked"
+      //   Booking.com   — "CLOSED - Not available"
+      //   Trip.com/Ctrip — "RoomStatus Fully booked"
+      //   Agoda         — often empty summary or "Booked"
+      // Substring match covers all of them (lowercase compare so we
+      // don't have to enumerate capitalisation variants).
+      const labelLower = label.toLowerCase();
+      const isGenericSummary =
+        !label ||
+        labelLower.includes("reserved") ||
+        labelLower.includes("closed") ||
+        labelLower.includes("not available") ||
+        labelLower.includes("blocked") ||
+        labelLower.includes("fully booked") ||
+        labelLower.includes("roomstatus") ||
+        labelLower === "booked";
+      if (isGenericSummary) {
         const matchingRes = property.reservations.find(r => {
           const rStart = toDateStr(new Date(r.checkIn));
           const rEnd = toDateStr(new Date(r.checkOut));
@@ -455,7 +473,28 @@ export function useCalendarData(
           label = matchingRes.name;
           resId = matchingRes.id;
         } else {
-          label = ev.platform === "airbnb" ? "Airbnb" : "Booking";
+          // Fall back to the platform brand — "Airbnb", "Booking",
+          // "Trip.com", "Agoda", etc. Hardcoded brand names where
+          // there's a canonical capitalisation; capitalize-first
+          // for anything else. Previously this was hardcoded to
+          // "Airbnb" vs "Booking" only, so Trip.com and Agoda bars
+          // fell through to "Booking" (wrong) when their summary
+          // matched the substring filter.
+          const brandLabels: Record<string, string> = {
+            airbnb: "Airbnb",
+            booking: "Booking",
+            vrbo: "Vrbo",
+            "trip-com": "Trip.com",
+            agoda: "Agoda",
+            expedia: "Expedia",
+            hostaway: "Hostaway",
+            lodgify: "Lodgify",
+          };
+          label = brandLabels[ev.platform] ?? (
+            ev.platform
+              ? ev.platform.charAt(0).toUpperCase() + ev.platform.slice(1)
+              : "Booked"
+          );
         }
       }
 
@@ -569,13 +608,20 @@ export function useCalendarData(
           rowEnds[idx] = bar.endDate;
         }
       } else {
-        // Find the first row whose latest bar ENDS strictly before
-        // this bar STARTS. The bar dedup at L461 only treated SAME-
-        // platform overlap as "same bar"; bars from DIFFERENT
-        // platforms that touch on the same checkin/checkout day are
-        // still considered overlapping for stacking purposes, so we
-        // use strict `<` here.
-        idx = rowEnds.findIndex((end) => end < bar.startDate);
+        // Find the first row whose latest bar's endDate is <= this
+        // bar's startDate. The <= (not strict <) is deliberate: a
+        // booking that ends on day X (checkout, guest leaves morning
+        // of X) and a booking that starts on day X (checkin, guest
+        // arrives afternoon of X) are a turnover, not a conflict —
+        // the calendar already handles them visually via per-cell
+        // checkInPct / checkOutPct timing so they meet in the middle
+        // of the cell without overlap. Using strict `<` here would
+        // force the second booking into row 1, expanding the entire
+        // week's cell height even though there's no real double-
+        // booking. Strict `<` belongs in conflict detection (the
+        // conflictSet at L173+, which already uses `<`); the row
+        // assignment is about visual stacking.
+        idx = rowEnds.findIndex((end) => end <= bar.startDate);
         if (idx === -1) {
           idx = rowEnds.length;
           rowEnds.push(bar.endDate);
