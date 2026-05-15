@@ -1,7 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { log } from "@/lib/logger";
 
-export type AuditAction = "create" | "update" | "delete";
+export type AuditAction =
+  | "create"
+  | "update"
+  | "delete"
+  // Superadmin impersonation start/exit — record both ends of the
+  // session so a paper trail exists for which admin viewed which
+  // user's data, and when.
+  | "impersonate"
+  | "exit-impersonate";
 export type AuditResource =
   | "property"
   | "reservation"

@@ -11,6 +11,12 @@ export interface ClientSession {
   userId: number;
   username: string;
   role: string;
+  /** Present when the current session is a superadmin impersonating
+   *  another user. The banner reads this to render its exit pill;
+   *  every other client component reads userId/username/role as
+   *  normal and renders the target user's view. */
+  impersonatorId?: number;
+  impersonatorUsername?: string;
 }
 
 const SessionContext = createContext<ClientSession | null>(null);

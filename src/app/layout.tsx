@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Providers } from "@/components/providers";
 import { FeedbackButton } from "@/components/feedback-button";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { JsonLd } from "@/components/json-ld";
 import { getLocale } from "@/lib/i18n/server";
 import { getSession } from "@/lib/auth";
@@ -155,7 +156,13 @@ export default async function RootLayout({
   // because Prisma's request-scoped cache reuses the result.
   const session = await getSession();
   const clientSession = session
-    ? { userId: session.userId, username: session.username, role: session.role }
+    ? {
+        userId: session.userId,
+        username: session.username,
+        role: session.role,
+        impersonatorId: session.impersonatorId,
+        impersonatorUsername: session.impersonatorUsername,
+      }
     : null;
   return (
     <html
@@ -170,7 +177,15 @@ export default async function RootLayout({
         <JsonLd data={WEBSITE_JSON_LD} />
       </head>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-sans)]">
-        <Providers initialLocale={lang} initialSession={clientSession}>{children}</Providers>
+        {/* Impersonation banner — renders only when a superadmin is
+            viewing AS another user. Outside the Providers tree so it
+            doesn't depend on any client context other than its own
+            session read; inside the body so it sticks above all page
+            chrome via z-index. */}
+        <Providers initialLocale={lang} initialSession={clientSession}>
+          <ImpersonationBanner />
+          {children}
+        </Providers>
         {/* Floating feedback pill — site-wide on public pages. The
             component itself opts out on /dashboard, /admin, /g/, /invite/
             via usePathname so signed-in app surfaces stay uncluttered. */}
