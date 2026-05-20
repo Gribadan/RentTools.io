@@ -17,7 +17,7 @@ Durante dos años estuve orgulloso de un solo número: mi estudio en Taskent ron
 
 El número que me lo habría dicho años antes es el RevPAR. La ocupación por sí sola miente. El ADR por sí solo miente. El RevPAR es la única magnitud que pilla a ambos con las manos en la masa.
 
-## En resumen
+## TL;DR
 
 - **RevPAR = ingreso de alojamiento ÷ noches disponibles.** Equivale a ocupación × ADR — un solo número que contiene a los dos.
 - La ocupación es una métrica de vanidad. Un objeto al **91 % de ocupación puede rendir menos por noche disponible** que uno al 71 %.
@@ -111,7 +111,7 @@ Sobre la mecánica de mover el precio a lo largo de la semana y de la temporada 
 
 **Tratar la ocupación como el objetivo.** La ocupación es una entrada del RevPAR, no una meta. Un anfitrión que optimiza puramente la ocupación bajará el precio hasta que el calendario esté lleno y la cuenta, flaca. La meta es el RevPAR. La ocupación es solo uno de los dos diales que gira para moverlo.
 
-## Preguntas frecuentes
+## FAQ
 
 **¿Qué RevPAR es bueno para un alquiler vacacional?**
 No hay un número universal — el RevPAR solo tiene sentido frente a una referencia. La comparación correcta es su propio objeto de un mes contra el mismo mes un año antes, y objetos realmente parecidos al suyo, en la misma ciudad y la misma temporada. Un RevPAR de 90 $ es excelente en un mercado y flojo en otro. Siga la tendencia de su propio RevPAR antes de preocuparse por la cifra absoluta de nadie.

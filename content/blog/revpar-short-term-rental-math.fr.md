@@ -17,7 +17,7 @@ Pendant deux ans, j'ai été fier d'un seul chiffre : mon studio à Tachkent aff
 
 Le chiffre qui m'aurait dit cela des années plus tôt, c'est le RevPAR. Le taux d'occupation seul ment. L'ADR seul ment. Le RevPAR est la seule grandeur qui prend les deux la main dans le sac.
 
-## En bref
+## TL;DR
 
 - **RevPAR = revenu d'hébergement ÷ nuits disponibles.** Il égale taux d'occupation × ADR — un seul chiffre qui contient les deux.
 - Le taux d'occupation est une mesure de vanité. Un objet à **91 % d'occupation peut rapporter moins par nuit disponible** qu'un objet à 71 %.
@@ -111,7 +111,7 @@ Pour la mécanique du déplacement du prix sur la semaine et sur la saison plut�
 
 **Traiter l'occupation comme l'objectif.** L'occupation est une entrée du RevPAR, pas une cible. Un hôte qui optimise purement l'occupation baissera le prix jusqu'à ce que le calendrier soit plein et le compte maigre. L'objectif, c'est le RevPAR. L'occupation n'est que l'un des deux cadrans que vous tournez pour le déplacer.
 
-## Questions fréquentes
+## FAQ
 
 **Quel est un bon RevPAR pour une location courte durée ?**
 Il n'y a pas de chiffre universel — le RevPAR n'a de sens que face à un point de référence. La bonne comparaison, c'est votre propre objet d'un mois au même mois un an plus tôt, et des objets réellement semblables au vôtre, dans la même ville et la même saison. Un RevPAR de 90 $ est excellent sur un marché et faible sur un autre. Suivez la tendance de votre propre RevPAR avant de vous soucier du chiffre absolu d'autrui.

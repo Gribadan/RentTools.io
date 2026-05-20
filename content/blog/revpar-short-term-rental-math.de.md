@@ -17,7 +17,7 @@ Zwei Jahre lang war ich stolz auf eine einzige Zahl: Mein Apartment in Taschkent
 
 Die Zahl, die mir das schon Jahre früher gesagt hätte, ist RevPAR. Die Auslastung allein lügt. Der ADR allein lügt. RevPAR ist die einzige Größe, die beide auf frischer Tat ertappt.
 
-## Kurzfassung
+## TL;DR
 
 - **RevPAR = Beherbergungsumsatz ÷ verfügbare Nächte.** Er entspricht Auslastung × ADR — eine Zahl, die beide enthält.
 - Auslastung ist eine Eitelkeitskennzahl. Ein Objekt mit **91% Auslastung kann pro verfügbarer Nacht weniger verdienen** als eines mit 71%.
@@ -111,7 +111,7 @@ Zur Mechanik, den Preis über die Woche und die Saison statt als eine flache Zah
 
 **Auslastung als Ziel behandeln.** Auslastung ist eine Eingangsgröße für RevPAR, kein Ziel. Ein Gastgeber, der rein auf Auslastung optimiert, senkt den Preis, bis der Kalender voll und das Konto dünn ist. Das Ziel ist RevPAR. Auslastung ist nur einer der zwei Regler, die Sie drehen, um ihn zu bewegen.
 
-## Häufige Fragen
+## FAQ
 
 **Was ist ein guter RevPAR für eine Kurzzeitvermietung?**
 Es gibt keine universelle Zahl — RevPAR ist nur gegen einen Vergleichswert aussagekräftig. Der richtige Vergleich ist Ihr eigenes Objekt Monat zum selben Monat des Vorjahres und Objekte, die Ihrem wirklich ähnlich sind, in derselben Stadt und derselben Saison. Ein RevPAR von 90 $ ist in einem Markt ausgezeichnet und in einem anderen schwach. Verfolgen Sie den Trend Ihres eigenen RevPAR, bevor Sie sich um die absolute Zahl eines anderen sorgen.
