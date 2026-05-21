@@ -132,7 +132,19 @@ export function BlogComments({ postId, comments, isSignedIn, isSuperadmin, login
         </form>
       ) : (
         <p className="mt-4 text-sm text-[var(--ink-3)]">
-          <Link href={loginHref} className="font-semibold text-[var(--m-accent)] hover:underline">
+          {/* rel="nofollow": loginHref carries ?next=<post-path>, so
+              without this Googlebot follows it from every blog post in
+              every locale and ends up crawling ~100 /login?next=… +
+              /signup?next=… permutations. They all canonical-tag back
+              to bare /login, so Google never indexes them — but the
+              crawl is pure waste and clutters GSC's "Alternate page
+              with proper canonical tag" report. nofollow stops the
+              discovery at the source. */}
+          <Link
+            href={loginHref}
+            rel="nofollow"
+            className="font-semibold text-[var(--m-accent)] hover:underline"
+          >
             Sign in
           </Link>{" "}
           to comment.

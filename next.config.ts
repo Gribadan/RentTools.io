@@ -47,6 +47,22 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  // The web app manifest is served by src/app/manifest.ts, which Next's
+  // App Router exposes at /manifest.webmanifest. Crawlers (and some
+  // browser / devtools probes) guess the more common /manifest.json
+  // filename and were hitting a 404 — surfaced in Search Console.
+  // Permanent-redirect the conventional name to the real route so the
+  // 404 clears and any external /manifest.json reference resolves.
+  async redirects() {
+    return [
+      {
+        source: "/manifest.json",
+        destination: "/manifest.webmanifest",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
