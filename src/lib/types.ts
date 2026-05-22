@@ -33,9 +33,7 @@ export interface Reservation {
   /** Per-reservation messenger group URLs. Set when the host has
    *  created a one-off group chat for this booking (Telegram or
    *  WhatsApp) and saved its URL here, so the "Open group" button in
-   *  the reservation view can deep-link straight into it. Distinct
-   *  from User.tg/waGroupInviteUrl, which are host-wide invite links
-   *  used in the "Send group invite" guest-facing flow. */
+   *  the reservation view can deep-link straight into it. */
   tgGroupUrl?: string | null;
   waGroupUrl?: string | null;
   /** Host-editable override for the messenger group-chat name. When

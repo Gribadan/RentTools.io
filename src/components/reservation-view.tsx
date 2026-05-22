@@ -247,18 +247,8 @@ export function ReservationView({
     submittedAt: string | null;
     answers: { fieldId: string; type: string; label: string; value: unknown }[];
   } | null>(null);
-  // RT-25.13 tick 2 — host's pre-saved Telegram / WhatsApp group invite
-  // URLs (set under Profile). When at least one is set AND the
-  // reservation has a guest with a phone, the "Send group invite"
-  // split button renders alongside the pre-arrival CTA.
-  const [groupInvites, setGroupInvites] = useState<{ tg: string | null; wa: string | null }>({
-    tg: null,
-    wa: null,
-  });
-  const [groupInvitePickerOpen, setGroupInvitePickerOpen] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const templateMenuRef = useRef<HTMLDivElement>(null);
-  const groupInviteMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -299,38 +289,6 @@ export function ReservationView({
       cancelled = true;
     };
   }, [reservation.propertyId]);
-
-  // RT-25.13 tick 2 — read host-saved messenger group invite URLs.
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : { user: null }))
-      .then((d) => {
-        if (cancelled) return;
-        setGroupInvites({
-          tg: d.user?.tgGroupInviteUrl ?? null,
-          wa: d.user?.waGroupInviteUrl ?? null,
-        });
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!groupInvitePickerOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (
-        groupInviteMenuRef.current &&
-        !groupInviteMenuRef.current.contains(e.target as Node)
-      ) {
-        setGroupInvitePickerOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [groupInvitePickerOpen]);
 
   const refreshGuestFormSubmission = useCallback(async () => {
     try {
@@ -834,113 +792,11 @@ export function ReservationView({
         </div>
       )}
 
-      {/* RT-25.13 tick 2 — Send group invite. Renders only when the host
-          has saved at least one messenger invite URL in their profile.
-          Disabled (with explanatory tooltip) when no guest has a phone. */}
-      {(groupInvites.tg || groupInvites.wa) && (() => {
-        const leadGuest = guests.find((g) => g.phone && g.phone.trim().length > 0);
-        const phoneRaw = (leadGuest?.phone ?? "").trim();
-        const phoneOk = /^\+?\d{7,15}$/.test(phoneRaw);
-        const waDigits = phoneRaw.replace(/^\+/, "");
-        const tmePath = phoneRaw.startsWith("+") ? phoneRaw : `+${phoneRaw}`;
-        const monthShort = (iso: string) =>
-          new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-        const guestFirst =
-          (leadGuest?.firstName || leadGuest?.fullName?.split(" ")[0] || reservation.name.split(" ")[0] || "").trim();
-        const groupName = `${propertyName ?? ""} · ${guestFirst} · ${monthShort(reservation.checkIn)}–${monthShort(reservation.checkOut)}`.replace(/^ · /, "");
-        const buildPrefill = (url: string) =>
-          `Group for your stay: ${groupName}\n\n${url}`;
-        const tgHref =
-          phoneOk && groupInvites.tg
-            ? `https://t.me/${tmePath}?text=${encodeURIComponent(buildPrefill(groupInvites.tg))}`
-            : undefined;
-        const waHref =
-          phoneOk && groupInvites.wa
-            ? `https://wa.me/${waDigits}?text=${encodeURIComponent(buildPrefill(groupInvites.wa))}`
-            : undefined;
-        return (
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium">Group invite</p>
-              <p className="text-xs text-muted-foreground">
-                {phoneOk
-                  ? `Open chat with ${guestFirst || "guest"} in your messenger and prefill the invite link.`
-                  : "Add a phone to a guest to enable group invites."}
-              </p>
-            </div>
-            <div className="relative" ref={groupInviteMenuRef}>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={!phoneOk}
-                onClick={() => setGroupInvitePickerOpen((v) => !v)}
-                className="rounded-lg text-xs"
-                title={
-                  phoneOk
-                    ? "Send the saved group invite to this guest"
-                    : "Add a phone to a guest to enable group invites"
-                }
-              >
-                Send group invite
-                <svg className="ml-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                </svg>
-              </Button>
-              {groupInvitePickerOpen && phoneOk && (
-                <div className="absolute right-0 z-20 mt-1 w-56 overflow-hidden rounded-md border border-[var(--line)] bg-[var(--bg)] shadow-lg">
-                  <ul className="py-1">
-                    {tgHref && (
-                      <li>
-                        <a
-                          href={tgHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setGroupInvitePickerOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-xs text-[var(--ink)] hover:bg-[var(--bg-2)]"
-                        >
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-[#229ED9]/15 text-[#229ED9]">
-                            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden="true">
-                              <path d="M11.94.5C5.62.5.5 5.62.5 11.94s5.12 11.44 11.44 11.44 11.44-5.12 11.44-11.44S18.26.5 11.94.5zm5.31 7.86l-1.78 8.4c-.13.6-.49.74-.99.46l-2.74-2.02-1.32 1.27c-.15.15-.27.27-.55.27l.2-2.79 5.07-4.58c.22-.2-.05-.31-.34-.11l-6.27 3.95-2.7-.84c-.59-.18-.6-.59.12-.87l10.55-4.07c.49-.18.92.12.75.93z" />
-                            </svg>
-                          </span>
-                          Send via Telegram
-                        </a>
-                      </li>
-                    )}
-                    {waHref && (
-                      <li>
-                        <a
-                          href={waHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => setGroupInvitePickerOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-xs text-[var(--ink)] hover:bg-[var(--bg-2)]"
-                        >
-                          <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-[#25D366]/15 text-[#25D366]">
-                            <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden="true">
-                              <path d="M20.52 3.48A11.78 11.78 0 0012.05 0C5.5 0 .2 5.3.2 11.85c0 2.09.55 4.13 1.6 5.93L0 24l6.39-1.67a11.85 11.85 0 005.66 1.44h.01c6.55 0 11.85-5.3 11.85-11.85 0-3.16-1.23-6.13-3.39-8.44zM12.06 21.7h-.01a9.84 9.84 0 01-5.02-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.83 9.83 0 01-1.5-5.19c0-5.44 4.42-9.86 9.87-9.86 2.63 0 5.11 1.03 6.97 2.89a9.79 9.79 0 012.89 6.97c-.01 5.45-4.43 9.85-9.83 9.85zm5.4-7.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.07-.3-.15-1.25-.46-2.38-1.46a8.92 8.92 0 01-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.66-1.6-.91-2.18-.24-.58-.49-.5-.66-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.07 4.47.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.75-.71 2-1.4.25-.69.25-1.27.17-1.4-.07-.13-.27-.2-.57-.35z" />
-                            </svg>
-                          </span>
-                          Send via WhatsApp
-                        </a>
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Reservation group chat — host-only convenience. Copy a
           standardised group-name string (so chats across all bookings
           look consistent in your messenger list) and save the group's
           URL once you've created it, so clicking back into the right
-          chat from a reservation is one click. Distinct from the
-          "Group invite" section above, which sends a HOST-WIDE invite
-          link TO the guest's phone. */}
+          chat from a reservation is one click. */}
       <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">

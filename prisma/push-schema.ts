@@ -209,12 +209,6 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // Stored as E.164 (`+CCNNNNNN…`) but we accept any leading `+` followed
     // by 7-15 digits, or empty.
     `ALTER TABLE "Guest" ADD COLUMN "phone" TEXT NOT NULL DEFAULT ''`,
-    // RT-25.13 tick 2 — host-managed group invite links surfaced as a
-    // "Send group invite" CTA on every reservation. Nullable: the host
-    // pre-creates the group manually in the messenger and pastes the
-    // invite URL once into their profile.
-    `ALTER TABLE "User" ADD COLUMN "tgGroupInviteUrl" TEXT`,
-    `ALTER TABLE "User" ADD COLUMN "waGroupInviteUrl" TEXT`,
     // Blog structured fields — RT-blog SEO pass. tldr renders as a
     // callout above the article body; faqJson drives both the on-page
     // Q/A section and the FAQPage JSON-LD that makes posts eligible for
@@ -225,10 +219,9 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     `ALTER TABLE "BlogPost" ADD COLUMN "faqJson" TEXT NOT NULL DEFAULT '[]'`,
     `ALTER TABLE "BlogPost" ADD COLUMN "ogImageWidth" INTEGER`,
     `ALTER TABLE "BlogPost" ADD COLUMN "ogImageHeight" INTEGER`,
-    // Per-reservation messenger group URLs. Distinct from User.tg/wa
-    // GroupInviteUrl (those are host-wide invite links sent TO the guest);
-    // these are URLs of one-off groups the host created FOR this specific
-    // booking, so they can re-open the right group in one click later.
+    // Per-reservation messenger group URLs — the host saves the URL of
+    // the one-off group they created for this specific booking, so they
+    // can re-open the right group in one click later.
     `ALTER TABLE "Reservation" ADD COLUMN "tgGroupUrl" TEXT`,
     `ALTER TABLE "Reservation" ADD COLUMN "waGroupUrl" TEXT`,
     // Host-editable override for the messenger group-chat name. NULL =

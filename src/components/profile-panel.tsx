@@ -38,11 +38,7 @@ interface ProfileUser {
   username: string;
   role: string;
   createdAt: string;
-  tgGroupInviteUrl: string | null;
-  waGroupInviteUrl: string | null;
 }
-
-type InviteSaveState = "idle" | "saving" | "saved" | "error";
 
 // Renders as a routed dashboard view (no modal overlay) — was a drawer
 // but felt like a popup. Lives at activeView === "profile" inside the
@@ -62,65 +58,13 @@ export function ProfilePanel() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
-  // RT-25.13 tick 2 — host-managed messenger group invite URLs.
-  const [tgInviteDraft, setTgInviteDraft] = useState("");
-  const [waInviteDraft, setWaInviteDraft] = useState("");
-  const [tgInviteState, setTgInviteState] = useState<InviteSaveState>("idle");
-  const [waInviteState, setWaInviteState] = useState<InviteSaveState>("idle");
-  const [tgInviteError, setTgInviteError] = useState("");
-  const [waInviteError, setWaInviteError] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const u = data?.user ?? null;
-        setUser(u);
-        if (u) {
-          setTgInviteDraft(u.tgGroupInviteUrl ?? "");
-          setWaInviteDraft(u.waGroupInviteUrl ?? "");
-        }
-      })
+      .then((data) => setUser(data?.user ?? null))
       .catch(() => setUser(null));
   }, []);
-
-  const saveInvite = async (
-    field: "tgGroupInviteUrl" | "waGroupInviteUrl",
-    raw: string,
-  ) => {
-    const isTg = field === "tgGroupInviteUrl";
-    const setState = isTg ? setTgInviteState : setWaInviteState;
-    const setErr = isTg ? setTgInviteError : setWaInviteError;
-    const trimmed = raw.trim();
-    const previous = isTg ? user?.tgGroupInviteUrl ?? "" : user?.waGroupInviteUrl ?? "";
-    if (trimmed === previous) {
-      setState("idle");
-      setErr("");
-      return;
-    }
-    setState("saving");
-    setErr("");
-    try {
-      const res = await fetch("/api/auth/me", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: trimmed === "" ? null : trimmed }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setErr(data.error || (isTg ? tr("profile.invitesInvalidTg") : tr("profile.invitesInvalidWa")));
-        setState("error");
-        return;
-      }
-      const data = await res.json();
-      setUser(data.user ?? null);
-      setState("saved");
-      setTimeout(() => setState((s) => (s === "saved" ? "idle" : s)), 1800);
-    } catch {
-      setErr(isTg ? tr("profile.invitesInvalidTg") : tr("profile.invitesInvalidWa"));
-      setState("error");
-    }
-  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,92 +157,6 @@ export function ProfilePanel() {
             {tr("profile.save")}
           </button>
         </form>
-
-        {/* RT-25.13 tick 2 — Messenger group invite URLs. Save on blur;
-            an empty value clears the field (the per-reservation CTA hides
-            unless at least one platform has a URL saved). */}
-        <div className="mt-6 space-y-3 border-t border-[var(--line)] pt-4">
-          <div>
-            <h3 className="text-sm font-semibold text-[var(--ink)]">{tr("profile.messengerInvites")}</h3>
-            <p className="mt-1 text-xs text-[var(--ink-3)]">{tr("profile.messengerInvitesHint")}</p>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs text-[var(--ink-3)]" htmlFor="tg-invite">
-                {tr("profile.tgInviteUrl")}
-              </label>
-              <span
-                className={`text-[10px] transition-opacity ${
-                  tgInviteState === "idle" ? "opacity-0" : "opacity-100"
-                } ${
-                  tgInviteState === "saved"
-                    ? "text-emerald-500"
-                    : tgInviteState === "error"
-                      ? "text-rose-500"
-                      : "text-[var(--ink-3)]"
-                }`}
-              >
-                {tgInviteState === "saving"
-                  ? tr("profile.invitesSaving")
-                  : tgInviteState === "saved"
-                    ? tr("profile.invitesSaved")
-                    : tgInviteState === "error"
-                      ? tgInviteError
-                      : ""}
-              </span>
-            </div>
-            <input
-              id="tg-invite"
-              type="url"
-              value={tgInviteDraft}
-              onChange={(e) => {
-                setTgInviteDraft(e.target.value);
-                if (tgInviteState === "saved" || tgInviteState === "error") setTgInviteState("idle");
-              }}
-              onBlur={() => saveInvite("tgGroupInviteUrl", tgInviteDraft)}
-              placeholder={tr("profile.tgInvitePlaceholder")}
-              className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs text-[var(--ink-3)]" htmlFor="wa-invite">
-                {tr("profile.waInviteUrl")}
-              </label>
-              <span
-                className={`text-[10px] transition-opacity ${
-                  waInviteState === "idle" ? "opacity-0" : "opacity-100"
-                } ${
-                  waInviteState === "saved"
-                    ? "text-emerald-500"
-                    : waInviteState === "error"
-                      ? "text-rose-500"
-                      : "text-[var(--ink-3)]"
-                }`}
-              >
-                {waInviteState === "saving"
-                  ? tr("profile.invitesSaving")
-                  : waInviteState === "saved"
-                    ? tr("profile.invitesSaved")
-                    : waInviteState === "error"
-                      ? waInviteError
-                      : ""}
-              </span>
-            </div>
-            <input
-              id="wa-invite"
-              type="url"
-              value={waInviteDraft}
-              onChange={(e) => {
-                setWaInviteDraft(e.target.value);
-                if (waInviteState === "saved" || waInviteState === "error") setWaInviteState("idle");
-              }}
-              onBlur={() => saveInvite("waGroupInviteUrl", waInviteDraft)}
-              placeholder={tr("profile.waInvitePlaceholder")}
-              className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
-          </div>
-        </div>
 
         <button
           type="button"

@@ -111,23 +111,6 @@ export const translations = {
   "profile.save": { en: "Save", ru: "Сохранить", de: "Speichern", fr: "Enregistrer", es: "Guardar" },
   "profile.saved": { en: "Password updated", ru: "Пароль обновлён", de: "Passwort aktualisiert", fr: "Mot de passe mis à jour", es: "Contraseña actualizada" },
   "profile.close": { en: "Close", ru: "Закрыть", de: "Schließen", fr: "Fermer", es: "Cerrar" },
-  // RT-25.13 tick 2 — host-managed messenger group invite URLs
-  "profile.messengerInvites": { en: "Messenger group invites", ru: "Приглашения в группы мессенджеров", de: "Messenger-Gruppeneinladungen", fr: "Invitations aux groupes de messagerie", es: "Invitaciones a grupos de mensajería" },
-  "profile.messengerInvitesHint": {
-    en: "Create a group in your messenger ahead of time, save its invite link here, and we'll surface a “Send group invite” button on every reservation.",
-    ru: "Создайте группу в мессенджере заранее, сохраните ссылку-приглашение здесь — и кнопка «Отправить приглашение в группу» появится на каждом бронировании.",
-    de: "Legen Sie die Gruppe in Ihrem Messenger vorab an, speichern Sie hier den Einladungslink — und wir blenden bei jeder Reservierung einen „Gruppeneinladung senden“-Button ein.",
-    fr: "Créez le groupe dans votre messagerie à l'avance, enregistrez ici son lien d'invitation — un bouton « Envoyer l'invitation au groupe » apparaîtra sur chaque réservation.",
-    es: "Cree el grupo en su mensajería con antelación, guarde aquí el enlace de invitación y mostraremos un botón «Enviar invitación al grupo» en cada reserva.",
-  },
-  "profile.tgInviteUrl": { en: "Telegram group invite URL", ru: "Ссылка на группу в Telegram", de: "Einladungslink Telegram-Gruppe", fr: "Lien d'invitation au groupe Telegram", es: "Enlace de invitación al grupo de Telegram" },
-  "profile.waInviteUrl": { en: "WhatsApp group invite URL", ru: "Ссылка на группу в WhatsApp", de: "Einladungslink WhatsApp-Gruppe", fr: "Lien d'invitation au groupe WhatsApp", es: "Enlace de invitación al grupo de WhatsApp" },
-  "profile.tgInvitePlaceholder": { en: "https://t.me/+abcdef…", ru: "https://t.me/+abcdef…", de: "https://t.me/+abcdef…", fr: "https://t.me/+abcdef…", es: "https://t.me/+abcdef…" },
-  "profile.waInvitePlaceholder": { en: "https://chat.whatsapp.com/abcdef…", ru: "https://chat.whatsapp.com/abcdef…", de: "https://chat.whatsapp.com/abcdef…", fr: "https://chat.whatsapp.com/abcdef…", es: "https://chat.whatsapp.com/abcdef…" },
-  "profile.invitesSaved": { en: "Saved", ru: "Сохранено", de: "Gespeichert", fr: "Enregistré", es: "Guardado" },
-  "profile.invitesSaving": { en: "Saving…", ru: "Сохранение…", de: "Wird gespeichert…", fr: "Enregistrement…", es: "Guardando…" },
-  "profile.invitesInvalidTg": { en: "Telegram URL must start with https://t.me/", ru: "Ссылка Telegram должна начинаться с https://t.me/", de: "Telegram-Link muss mit https://t.me/ beginnen", fr: "Le lien Telegram doit commencer par https://t.me/", es: "El enlace de Telegram debe empezar por https://t.me/" },
-  "profile.invitesInvalidWa": { en: "WhatsApp URL must start with https://chat.whatsapp.com/", ru: "Ссылка WhatsApp должна начинаться с https://chat.whatsapp.com/", de: "WhatsApp-Link muss mit https://chat.whatsapp.com/ beginnen", fr: "Le lien WhatsApp doit commencer par https://chat.whatsapp.com/", es: "El enlace de WhatsApp debe empezar por https://chat.whatsapp.com/" },
 
   // Sidebar
   "sidebar.title": { en: "RentTools", ru: "RentTools", de: "RentTools", fr: "RentTools", es: "RentTools" },
