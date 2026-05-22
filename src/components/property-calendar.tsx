@@ -7,7 +7,7 @@ import { CalendarGrid } from "@/components/calendar/calendar-grid";
 import { CalendarDatePopover } from "@/components/calendar/calendar-date-popover";
 import { BarClaimPopover, type ClaimableBar } from "@/components/calendar/bar-claim-popover";
 import { ConflictBanner } from "@/components/calendar/conflict-banner";
-import { useCalendarFetch } from "@/components/calendar/use-calendar-fetch";
+import { useCalendarFetch, SYNC_COOLDOWN_MS } from "@/components/calendar/use-calendar-fetch";
 import { useCalendarData } from "@/components/calendar/use-calendar-data";
 import { addDaysStr } from "@/components/calendar/utils";
 import { EmptyState } from "@/components/empty-state";
@@ -20,6 +20,9 @@ interface CopyShape {
   connectCalendar: string;
   dateLocale: string;
   syncNow: string;
+  syncing: string;
+  syncDone: string;
+  syncCooldown: (seconds: number) => string;
   pickADay: string;
   pickADayHint: string;
   today: string;
@@ -31,6 +34,9 @@ const COPY: Record<Locale, CopyShape> = {
     connectCalendar: "Connect a calendar",
     dateLocale: "en",
     syncNow: "Sync now",
+    syncing: "Syncing…",
+    syncDone: "Calendar updated",
+    syncCooldown: (s) => `Sync available in ${s}s`,
     pickADay: "Pick a day",
     pickADayHint: "Click any date in the calendar to open its actions or create a reservation.",
     today: "Today",
@@ -40,6 +46,9 @@ const COPY: Record<Locale, CopyShape> = {
     connectCalendar: "Подключить календарь",
     dateLocale: "ru-RU",
     syncNow: "Синхронизировать сейчас",
+    syncing: "Синхронизация…",
+    syncDone: "Календарь обновлён",
+    syncCooldown: (s) => `Синхронизация будет доступна через ${s} с`,
     pickADay: "Выберите день",
     pickADayHint: "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь.",
     today: "Сегодня",
@@ -49,6 +58,9 @@ const COPY: Record<Locale, CopyShape> = {
     connectCalendar: "Kalender verbinden",
     dateLocale: "de-DE",
     syncNow: "Jetzt synchronisieren",
+    syncing: "Wird synchronisiert…",
+    syncDone: "Kalender aktualisiert",
+    syncCooldown: (s) => `Synchronisierung in ${s} s möglich`,
     pickADay: "Tag auswählen",
     pickADayHint: "Klicken Sie auf ein Datum im Kalender, um Aktionen zu öffnen oder eine Buchung anzulegen.",
     today: "Heute",
@@ -58,6 +70,9 @@ const COPY: Record<Locale, CopyShape> = {
     connectCalendar: "Connecter un calendrier",
     dateLocale: "fr-FR",
     syncNow: "Synchroniser maintenant",
+    syncing: "Synchronisation…",
+    syncDone: "Calendrier mis à jour",
+    syncCooldown: (s) => `Synchronisation possible dans ${s} s`,
     pickADay: "Choisissez un jour",
     pickADayHint: "Cliquez sur une date du calendrier pour ouvrir les actions ou créer une réservation.",
     today: "Aujourd’hui",
@@ -67,6 +82,9 @@ const COPY: Record<Locale, CopyShape> = {
     connectCalendar: "Conectar un calendario",
     dateLocale: "es-ES",
     syncNow: "Sincronizar ahora",
+    syncing: "Sincronizando…",
+    syncDone: "Calendario actualizado",
+    syncCooldown: (s) => `Sincronización disponible en ${s} s`,
     pickADay: "Elija un día",
     pickADayHint: "Haga clic en cualquier fecha del calendario para abrir sus acciones o crear una reserva.",
     today: "Hoy",
@@ -118,8 +136,25 @@ export function PropertyCalendar({
   const [claimBar, setClaimBar] = useState<ClaimableBar | null>(null);
   const [claimAnchor, setClaimAnchor] = useState<DOMRect | null>(null);
 
-  const { syncedEvents, links, overrides, loadingEvents, syncing, refetchOverrides, handleSyncNow } =
+  const { syncedEvents, links, overrides, loadingEvents, syncing, lastSyncAt, syncJustDone, refetchOverrides, handleSyncNow } =
     useCalendarFetch(property.id);
+
+  // Live cooldown countdown for the "Sync now" button. `nowTick` is
+  // bumped once a second only while a cooldown is active, so the
+  // remaining-seconds label re-renders without a permanent interval.
+  const [nowTick, setNowTick] = useState(0);
+  const syncCooldownRemaining = lastSyncAt
+    ? Math.max(0, Math.ceil((lastSyncAt + SYNC_COOLDOWN_MS - Date.now()) / 1000))
+    : 0;
+  useEffect(() => {
+    if (syncCooldownRemaining <= 0) return;
+    const id = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [syncCooldownRemaining]);
+  // nowTick is read so the effect's dependency on syncCooldownRemaining
+  // recomputes each tick; reference it to satisfy the linter.
+  void nowTick;
+  const syncDisabled = syncing || syncCooldownRemaining > 0;
 
   const today = useMemo(() => {
     const d = new Date();
@@ -534,12 +569,42 @@ export function PropertyCalendar({
                     {c.today}
                   </button>
                 )}
+                {/* Transient confirmation after a manual sync — UI
+                    best practice: tell the host the action completed.
+                    Auto-clears after a few seconds (syncJustDone). On
+                    sm+ it sits inline; the icon's spin already covers
+                    the in-progress state on mobile. */}
+                {(syncing || syncJustDone) && (
+                  <span
+                    className={`hidden sm:inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
+                      syncJustDone
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : "text-[var(--ink-4)]"
+                    }`}
+                    role="status"
+                  >
+                    {syncJustDone && (
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.4}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {syncJustDone ? c.syncDone : c.syncing}
+                  </span>
+                )}
                 <button
                   onClick={handleSyncNow}
-                  disabled={syncing}
-                  title={c.syncNow}
-                  aria-label={c.syncNow}
-                  className="rounded-full p-1.5 sm:p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:opacity-50"
+                  disabled={syncDisabled}
+                  title={
+                    syncCooldownRemaining > 0
+                      ? c.syncCooldown(syncCooldownRemaining)
+                      : c.syncNow
+                  }
+                  aria-label={
+                    syncCooldownRemaining > 0
+                      ? c.syncCooldown(syncCooldownRemaining)
+                      : c.syncNow
+                  }
+                  className="rounded-full p-1.5 sm:p-2 text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-3)] hover:text-[var(--ink)] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                 >
                   <svg className={`h-5 w-5 ${syncing ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
