@@ -572,7 +572,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   }));
 
   return (
-    <div className="cls-isolate mx-auto max-w-3xl space-y-6">
+    <div className="cls-isolate mx-auto max-w-5xl space-y-6">
       {/* Property switcher — top-of-page pill row so the user can
           jump between properties without using the top-bar dropdown.
           Hidden when only one property exists (PropertySwitcher
@@ -732,7 +732,12 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
 
               {/* Step 1: Export URL from platform */}
               <div className="space-y-2">
-                {platform === "airbnb" && !isConnected ? (
+                {/* The "paste your iCal URL" onboarding tooltip is only
+                    for a genuinely fresh property — gated on !loading so
+                    it can't flash before the saved links arrive, and on
+                    links.length === 0 so a host who already connected
+                    some other platform (Booking, Vrbo…) isn't nagged. */}
+                {platform === "airbnb" && !loading && links.length === 0 ? (
                   <OnboardingTooltip id={`ical-url:${propertyId}`} text={t("tooltip.icalUrl")}>
                     <label className="text-xs text-[var(--ink-3)]">
                       {t("sync.icalLabel")} {label}
