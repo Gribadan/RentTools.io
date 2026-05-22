@@ -423,7 +423,7 @@ export function TopBar({
                 </g>
               </svg>
             </div>
-            <span className="hidden sm:block text-[17px] font-semibold tracking-tight transition-colors duration-200 group-hover:text-[var(--m-accent)]">RentTools</span>
+            <span className="hidden sm:block text-[17px] font-semibold tracking-tight">RentTools</span>
           </button>
 
           {/* Property selector */}
@@ -709,11 +709,14 @@ export function TopBar({
                 </div>
 
                 {/* Language row — render one button per supported locale.
-                    Adding a 3rd locale to SUPPORTED_LOCALES auto-renders a
-                    3rd button; previously this was hardcoded EN/RU. */}
-                <div className="flex items-center justify-between px-3 py-2 text-sm text-[var(--ink-2)]">
+                    Adding a 4th locale to SUPPORTED_LOCALES auto-renders
+                    another button. Stacked (label above the buttons)
+                    rather than side-by-side: with 5 locale buttons the
+                    inline layout left no room for a longer label like
+                    "Language" / "Sprache" and they crowded together. */}
+                <div className="flex flex-col gap-1.5 px-3 py-2 text-sm text-[var(--ink-2)]">
                   <span>{c.language}</span>
-                  <div className="flex items-center rounded-md border border-[var(--line-2)] overflow-hidden">
+                  <div className="flex items-center self-start rounded-md border border-[var(--line-2)] overflow-hidden">
                     {SUPPORTED_LOCALES.map((loc) => (
                       <button
                         key={loc}

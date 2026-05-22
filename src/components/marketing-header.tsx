@@ -107,7 +107,7 @@ export function MarketingHeader({ sticky = false, softLocaleSwitch = false }: Ma
               </g>
             </svg>
           </div>
-          <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)] transition-colors duration-200 group-hover:text-[var(--m-accent)]">
+          <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">
             RentTools
           </span>
         </Link>
