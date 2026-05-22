@@ -260,7 +260,7 @@ function SignupPageInner() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t("login.passwordPlaceholder")}
                     required
-                    minLength={12}
+                    minLength={8}
                   />
                 </div>
 

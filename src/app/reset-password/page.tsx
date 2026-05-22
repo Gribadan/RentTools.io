@@ -146,7 +146,7 @@ function ResetPasswordInner() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder={t("reset.newPasswordPlaceholder")}
                     required
-                    minLength={12}
+                    minLength={8}
                   />
                 </div>
                 {error && <AuthError message={error} />}

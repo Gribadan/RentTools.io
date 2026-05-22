@@ -1,7 +1,7 @@
 // Password strength validator (RT-21.3).
 //
 // Rules:
-//   1. >= 12 characters
+//   1. >= 8 characters
 //   2. case-insensitive comparison: must NOT match (or contain as a sole
 //      substring of length >= 8) any entry in top-passwords-1000.json
 //   3. case-insensitive comparison: must NOT equal the username
@@ -24,7 +24,11 @@ export interface PasswordCheck {
   reason: string;
 }
 
-const MIN_LENGTH = 12;
+// 8 is the NIST SP 800-63B minimum and matches what people actually
+// use — 12 was turning real users away at signup. The breach-list
+// check below is the substantive guard against weak passwords, not
+// raw length.
+const MIN_LENGTH = 8;
 
 export function checkPasswordStrength(
   password: string,
