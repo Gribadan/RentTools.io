@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { PropertySwitcher } from "@/components/property-switcher";
+import { useIncludePotential } from "@/lib/use-include-potential";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
@@ -115,7 +116,7 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
   const [links, setLinks] = useState<Record<number, CalendarLink[]>>({});
   const [overrides, setOverrides] = useState<Record<number, DateOverride[]>>({});
   const [assignmentsByProperty, setAssignmentsByProperty] = useState<Record<number, CleanerAssignmentInfo[]>>({});
-  const [includePotential, setIncludePotential] = useState(true);
+  const [includePotential, setIncludePotential] = useIncludePotential();
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {

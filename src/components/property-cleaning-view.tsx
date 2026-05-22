@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { CleanersPanel } from "@/components/cleaners-panel";
 import { PropertySwitcher } from "@/components/property-switcher";
+import { useIncludePotential } from "@/lib/use-include-potential";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
@@ -76,7 +77,7 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
   const [assignments, setAssignments] = useState<CleanerAssignmentInfo[]>([]);
   const [cleaningEnabled, setCleaningEnabled] = useState<boolean>(property.cleaningEnabled !== false);
   const [toggling, setToggling] = useState(false);
-  const [includePotential, setIncludePotential] = useState(true);
+  const [includePotential, setIncludePotential] = useIncludePotential();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

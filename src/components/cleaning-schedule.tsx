@@ -460,8 +460,11 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
 }, ref) {
   const { t, locale } = useI18n();
   const c = COPY[locale];
-  const [copied, setCopied] = useState(false);
-  const [internalIncludePotential, setInternalIncludePotential] = useState(true);
+  // Which copy button last fired — "all" for the full Copy button, or a
+  // cleaner's identityKey for a per-cleaner button. Drives the transient
+  // "Copied!" label so only the pressed button flips.
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [internalIncludePotential, setInternalIncludePotential] = useState(false);
   // Controlled when the prop is provided; otherwise fall back to local state
   // so existing inline call sites keep working unchanged.
   const includePotential = controlledIncludePotential ?? internalIncludePotential;
@@ -759,7 +762,11 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
   // than chip-style annotations. Notes / reason text are deliberately
   // dropped — the cleaner only needs WHEN, WHERE, and how (quick vs
   // full day, with a precise arrival time on quick turnovers).
-  const buildScheduleLines = (): string[] => {
+  // Pass a cleanerKey to scope the export to one cleaner's rows and drop
+  // the cleaner-name suffix (redundant once the list is for that one
+  // person) — used by the per-cleaner copy buttons. No key = the full
+  // schedule with names, as the plain Copy button produces.
+  const buildScheduleLines = (cleanerKey?: string): string[] => {
     const targetProperties = mode === "property" && selectedPropertyId
       ? properties.filter(p => p.id === selectedPropertyId)
       : properties;
@@ -778,6 +785,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     lines.push(c.scheduleHeader + headerSuffix);
     lines.push("");
     for (const day of visibleDays) {
+      if (cleanerKey && day.cleanerKey !== cleanerKey) continue;
       const dateStr = formatDate(day.date);
       const propLabel = mode === "dashboard" ? ` — ${day.property}` : "";
       const prop = propertyById.get(day.propertyId);
@@ -797,7 +805,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
       // recipient already knows the row is theirs because it sits
       // in the cleaning schedule, and the prefix reads as cold
       // when forwarded over messengers.
-      const cleanerLabel = day.cleanerName ? ` — ${day.cleanerName}` : "";
+      const cleanerLabel = (!cleanerKey && day.cleanerName) ? ` — ${day.cleanerName}` : "";
       // RT-25.10 tick 3 — cleaner-conflict suffix. Mirrors the in-app
       // warning so a pasted/printed schedule still surfaces the clash.
       const conflictForCleaner = day.cleanerKey ? conflictByDateAndKey.get(day.date)?.get(day.cleanerKey) : undefined;
@@ -817,8 +825,16 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
 
   const handleCopySchedule = () => {
     navigator.clipboard.writeText(buildScheduleLines().join("\n"));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedKey("all");
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Copy one cleaner's rows only, with their name stripped — a list
+  // ready to forward straight to that cleaner.
+  const handleCopyForCleaner = (cleanerKey: string) => {
+    navigator.clipboard.writeText(buildScheduleLines(cleanerKey).join("\n"));
+    setCopiedKey(cleanerKey);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const handlePrintSchedule = () => {
@@ -859,6 +875,18 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
     copy: handleCopySchedule,
     print: handlePrintSchedule,
   }));
+
+  // Distinct cleaners across the currently-visible rows — one copy
+  // button each. [identityKey, name] pairs, first-seen order.
+  const scheduleCleaners: Array<[string, string]> = (() => {
+    const seen = new Map<string, string>();
+    for (const d of visibleDays) {
+      if (d.cleanerKey && d.cleanerName && !seen.has(d.cleanerKey)) {
+        seen.set(d.cleanerKey, d.cleanerName);
+      }
+    }
+    return [...seen.entries()];
+  })();
 
   return (
     <div className="space-y-4">
@@ -981,7 +1009,7 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                     </svg>
-                    {copied ? t("common.copied") : t("cleaning.copySchedule")}
+                    {copiedKey === "all" ? t("common.copied") : t("cleaning.copySchedule")}
                   </button>
                   <button
                     onClick={handlePrintSchedule}
@@ -992,6 +1020,24 @@ export const CleaningSchedule = forwardRef<CleaningScheduleHandle, CleaningSched
                     </svg>
                     {t("cleaning.printSchedule")}
                   </button>
+                  {/* Per-cleaner copy buttons — one per cleaner with
+                      visible rows. Copies just that cleaner's days with
+                      the name stripped, ready to forward to them. */}
+                  {scheduleCleaners.map(([key, name]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleCopyForCleaner(key)}
+                      title={t("cleaning.copySchedule")}
+                      className="flex items-center gap-1.5 rounded-md border border-[var(--line-2)] bg-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)] transition-colors hover:bg-[var(--line-2)]"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
+                      </svg>
+                      <span className="max-w-[9rem] truncate">
+                        {copiedKey === key ? t("common.copied") : `🧹 ${name}`}
+                      </span>
+                    </button>
+                  ))}
                 </>
               )}
             </div>
