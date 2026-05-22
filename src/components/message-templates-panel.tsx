@@ -13,7 +13,6 @@ interface CopyShape {
   subjectPlaceholder: string;
   bodyPlaceholder: string;
   variables: string;
-  offsetLabel: string;
   preview: string;
   cancel: string;
   save: string;
@@ -32,7 +31,6 @@ const COPY: Record<Locale, CopyShape> = {
     subjectPlaceholder: "Subject (optional)",
     bodyPlaceholder: "Message body",
     variables: "Variables:",
-    offsetLabel: "Offset days from check-in",
     preview: "Preview",
     cancel: "Cancel",
     save: "Save",
@@ -49,7 +47,6 @@ const COPY: Record<Locale, CopyShape> = {
     subjectPlaceholder: "Тема (опц.)",
     bodyPlaceholder: "Текст сообщения",
     variables: "Переменные:",
-    offsetLabel: "Отправлять (дни до/после заезда)",
     preview: "Превью",
     cancel: "Отмена",
     save: "Сохранить",
@@ -66,7 +63,6 @@ const COPY: Record<Locale, CopyShape> = {
     subjectPlaceholder: "Betreff (optional)",
     bodyPlaceholder: "Nachrichtentext",
     variables: "Variablen:",
-    offsetLabel: "Tage vor/nach Check-in",
     preview: "Vorschau",
     cancel: "Abbrechen",
     save: "Speichern",
@@ -83,7 +79,6 @@ const COPY: Record<Locale, CopyShape> = {
     subjectPlaceholder: "Objet (facultatif)",
     bodyPlaceholder: "Contenu du message",
     variables: "Variables :",
-    offsetLabel: "Jours avant/après l’arrivée",
     preview: "Aperçu",
     cancel: "Annuler",
     save: "Enregistrer",
@@ -100,7 +95,6 @@ const COPY: Record<Locale, CopyShape> = {
     subjectPlaceholder: "Asunto (opcional)",
     bodyPlaceholder: "Cuerpo del mensaje",
     variables: "Variables:",
-    offsetLabel: "Días antes/después de la entrada",
     preview: "Vista previa",
     cancel: "Cancelar",
     save: "Guardar",
@@ -117,7 +111,6 @@ interface MessageTemplate {
   language: string;
   subject: string;
   body: string;
-  sendOffsetDays: number;
 }
 
 interface MessageTemplatesPanelProps {
@@ -149,7 +142,6 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
   const [language, setLanguage] = useState("en");
   const [subject, setSubject] = useState("");
   const [bodyText, setBodyText] = useState("");
-  const [sendOffsetDays, setSendOffsetDays] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -170,7 +162,6 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
     setLanguage("en");
     setSubject("");
     setBodyText("");
-    setSendOffsetDays(0);
     setError(null);
   };
 
@@ -180,7 +171,6 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
     setLanguage(t.language);
     setSubject(t.subject);
     setBodyText(t.body);
-    setSendOffsetDays(t.sendOffsetDays);
     setError(null);
   };
 
@@ -203,7 +193,6 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
         language,
         subject,
         body: bodyText,
-        sendOffsetDays,
       };
       if (editingId === "new") {
         const res = await fetch("/api/message-templates", {
@@ -306,18 +295,6 @@ export function MessageTemplatesPanel({ propertyId }: MessageTemplatesPanelProps
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-[var(--ink-3)]">
-              {c.offsetLabel}
-            </span>
-            <input
-              type="number"
-              value={sendOffsetDays}
-              onChange={(e) => setSendOffsetDays(Number(e.target.value) || 0)}
-              className="h-7 w-16 rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] px-2 text-xs text-[var(--ink)] outline-none focus:border-[var(--ink)]"
-            />
-          </div>
-
           {bodyText && (
             <div className="rounded-md border border-[var(--line)] bg-[var(--bg)] p-2 text-xs">
               <div className="mb-1 text-[10px] uppercase tracking-wider text-[var(--ink-4)]">

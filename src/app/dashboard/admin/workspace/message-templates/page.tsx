@@ -23,7 +23,6 @@ interface MessageTemplateRow {
   language: string;
   subject: string;
   body: string;
-  sendOffsetDays: number;
   createdAt: string;
   property: { id: number; name: string };
 }
@@ -34,9 +33,6 @@ interface ApiResponse {
 
 interface CopyShape {
   failedToLoad: string;
-  onCheckIn: string;
-  beforeCheckIn: (n: number) => string;
-  afterCheckIn: (n: number) => string;
   title: string;
   subtitle: string;
   loading: string;
@@ -48,9 +44,6 @@ interface CopyShape {
 const COPY: Record<Locale, CopyShape> = {
   en: {
     failedToLoad: "Failed to load",
-    onCheckIn: "on check-in day",
-    beforeCheckIn: (n) => `${n}d before check-in`,
-    afterCheckIn: (n) => `${n}d after check-in`,
     title: "Message templates",
     subtitle: "All message templates across your properties. Click a property to open its Sync settings, where templates are edited.",
     loading: "Loading...",
@@ -61,9 +54,6 @@ const COPY: Record<Locale, CopyShape> = {
   },
   ru: {
     failedToLoad: "Не удалось загрузить",
-    onCheckIn: "в день заезда",
-    beforeCheckIn: (n) => `за ${n} дн до заезда`,
-    afterCheckIn: (n) => `через ${n} дн после заезда`,
     title: "Шаблоны сообщений",
     subtitle: "Все шаблоны сообщений по объектам. Нажмите на объект, чтобы открыть настройки синхронизации, где шаблоны редактируются.",
     loading: "Загрузка...",
@@ -73,9 +63,6 @@ const COPY: Record<Locale, CopyShape> = {
   },
   de: {
     failedToLoad: "Laden fehlgeschlagen",
-    onCheckIn: "am Anreisetag",
-    beforeCheckIn: (n) => `${n} T. vor Anreise`,
-    afterCheckIn: (n) => `${n} T. nach Anreise`,
     title: "Nachrichtenvorlagen",
     subtitle: "Alle Nachrichtenvorlagen Ihrer Objekte. Klicken Sie auf ein Objekt, um die Sync-Einstellungen zu öffnen, in denen die Vorlagen bearbeitet werden.",
     loading: "Wird geladen...",
@@ -86,9 +73,6 @@ const COPY: Record<Locale, CopyShape> = {
   },
   fr: {
     failedToLoad: "Échec du chargement",
-    onCheckIn: "le jour de l'arrivée",
-    beforeCheckIn: (n) => `${n} j avant l'arrivée`,
-    afterCheckIn: (n) => `${n} j après l'arrivée`,
     title: "Modèles de messages",
     subtitle: "Tous les modèles de messages sur vos logements. Cliquez sur un logement pour ouvrir ses paramètres Sync, où les modèles se modifient.",
     loading: "Chargement...",
@@ -99,9 +83,6 @@ const COPY: Record<Locale, CopyShape> = {
   },
   es: {
     failedToLoad: "Error al cargar",
-    onCheckIn: "el día de la llegada",
-    beforeCheckIn: (n) => `${n} d antes de la llegada`,
-    afterCheckIn: (n) => `${n} d después de la llegada`,
     title: "Plantillas de mensajes",
     subtitle: "Todas las plantillas de mensajes en sus alojamientos. Pulse en un alojamiento para abrir sus ajustes de Sync, donde se editan las plantillas.",
     loading: "Cargando...",
@@ -150,14 +131,6 @@ export default function AdminMessageTemplatesPage() {
 
   const totalCount = rows.length;
   const propertyCount = grouped.length;
-
-  const formatOffset = (days: number): string => {
-    if (days === 0) return t.onCheckIn;
-    if (days < 0) {
-      return t.beforeCheckIn(Math.abs(days));
-    }
-    return t.afterCheckIn(days);
-  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -226,9 +199,6 @@ export default function AdminMessageTemplatesPage() {
                           <span className="font-medium text-[var(--ink)]">{tpl.name}</span>
                           <span className="rounded bg-[var(--bg-3)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ink-3)]">
                             {tpl.language}
-                          </span>
-                          <span className="text-[11px] text-[var(--ink-4)]">
-                            {formatOffset(tpl.sendOffsetDays)}
                           </span>
                         </div>
                         <div

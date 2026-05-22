@@ -36,7 +36,6 @@ export async function PATCH(
     if (typeof body.language === "string") data.language = body.language;
     if (typeof body.subject === "string") data.subject = body.subject;
     if (typeof body.body === "string") data.body = body.body;
-    if (Number.isInteger(body.sendOffsetDays)) data.sendOffsetDays = body.sendOffsetDays;
     data.updatedAt = new Date();
 
     const updated = await prisma.messageTemplate.update({

@@ -78,7 +78,6 @@ export async function POST(request: NextRequest) {
         language: typeof body.language === "string" ? body.language : "en",
         subject: typeof body.subject === "string" ? body.subject : "",
         body: body.body,
-        sendOffsetDays: Number.isInteger(body.sendOffsetDays) ? body.sendOffsetDays : 0,
       },
     });
     return NextResponse.json(template);
