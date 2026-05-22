@@ -36,6 +36,7 @@ interface CopyShape {
   confirmDelete: (name: string) => string;
   deleteProperty: string;
   dateLocale: string;
+  hubNote: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -68,6 +69,8 @@ const COPY: Record<Locale, CopyShape> = {
       `Delete property "${name}"? This removes all reservations and related data. This cannot be undone.`,
     deleteProperty: "Delete property",
     dateLocale: "en-GB",
+    hubNote:
+      "Keep RentTools as your only hub. Connect each platform here — and turn off any calendar links you set up directly between platforms (e.g. Airbnb → Booking). When every platform syncs only through RentTools, each booking is counted once. If platforms also sync to each other, the same booking echoes around and can show up as a phantom double-booking.",
   },
   ru: {
     save: "Сохранить",
@@ -98,6 +101,8 @@ const COPY: Record<Locale, CopyShape> = {
       `Удалить объект «${name}»? Это удалит все бронирования и связанные данные. Действие необратимо.`,
     deleteProperty: "Удалить объект",
     dateLocale: "ru-RU",
+    hubNote:
+      "Пусть RentTools будет единственным узлом. Подключайте каждую платформу здесь — и отключите прямые связи календарей между платформами (например, Airbnb → Booking). Когда все платформы синхронизируются только через RentTools, каждая бронь учитывается один раз. Если платформы синхронизируются ещё и друг с другом, одна бронь «отражается» по кругу и может выглядеть как двойное бронирование.",
   },
   de: {
     save: "Speichern",
@@ -128,6 +133,8 @@ const COPY: Record<Locale, CopyShape> = {
       `Unterkunft „${name}" löschen? Damit werden alle Buchungen und zugehörigen Daten gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`,
     deleteProperty: "Unterkunft löschen",
     dateLocale: "de-DE",
+    hubNote:
+      "Behalten Sie RentTools als einzigen Knotenpunkt. Verbinden Sie jede Plattform hier — und schalten Sie direkte Kalender-Verknüpfungen zwischen den Plattformen ab (z. B. Airbnb → Booking). Wenn alle Plattformen nur über RentTools synchronisieren, wird jede Buchung einmal gezählt. Synchronisieren sich die Plattformen zusätzlich untereinander, läuft dieselbe Buchung im Kreis und kann als Doppelbuchung erscheinen.",
   },
   fr: {
     save: "Enregistrer",
@@ -158,6 +165,8 @@ const COPY: Record<Locale, CopyShape> = {
       `Supprimer le logement « ${name} » ? Cela effacera toutes les réservations et données associées. Action irréversible.`,
     deleteProperty: "Supprimer le logement",
     dateLocale: "fr-FR",
+    hubNote:
+      "Gardez RentTools comme unique point central. Connectez chaque plateforme ici — et désactivez les liens de calendrier créés directement entre plateformes (par ex. Airbnb → Booking). Quand toutes les plateformes ne se synchronisent qu’à travers RentTools, chaque réservation est comptée une seule fois. Si les plateformes se synchronisent aussi entre elles, la même réservation tourne en boucle et peut apparaître comme une double réservation.",
   },
   es: {
     save: "Guardar",
@@ -188,6 +197,8 @@ const COPY: Record<Locale, CopyShape> = {
       `¿Eliminar el alojamiento «${name}»? Se borrarán todas las reservas y datos relacionados. La acción no se puede deshacer.`,
     deleteProperty: "Eliminar alojamiento",
     dateLocale: "es-ES",
+    hubNote:
+      "Mantenga RentTools como su único punto central. Conecte cada plataforma aquí — y desactive los enlaces de calendario que haya creado directamente entre plataformas (p. ej. Airbnb → Booking). Cuando todas las plataformas se sincronizan solo a través de RentTools, cada reserva se cuenta una vez. Si las plataformas también se sincronizan entre sí, la misma reserva da vueltas en bucle y puede aparecer como una reserva doble.",
   },
 };
 
@@ -643,6 +654,22 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           title={t("empty.sync.title")}
           description={t("empty.sync.desc")}
         />
+      )}
+
+      {/* Hub-and-spoke guidance. Shown once the host has at least one
+          calendar connected — that's the point they're wiring sync and
+          most at risk of also cross-linking platforms directly, which
+          causes the same booking to echo around and surface as a
+          phantom double-booking. Friendly tip tone, not a warning. */}
+      {!loading && links.length > 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-[var(--m-accent)]/20 bg-[var(--m-accent)]/[0.04] px-3 py-2.5">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <p className="text-[13px] leading-relaxed text-[var(--ink-3)]">
+            {c.hubNote}
+          </p>
+        </div>
       )}
 
       {/* Platform Cards — now dynamic. Renders every preset (airbnb,
