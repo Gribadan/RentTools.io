@@ -43,16 +43,16 @@ export function Breadcrumbs({
         {items.map((item, idx) => {
           const isLast = idx === items.length - 1;
           return (
-            <li key={`${idx}-${item.label}`} className="flex items-center gap-1.5">
+            <li key={`${idx}-${item.label}`} className="flex min-w-0 items-center gap-1.5">
               {idx > 0 && (
-                <span aria-hidden className="text-[var(--ink-4)]/60">
+                <span aria-hidden className="shrink-0 text-[var(--ink-4)]/60">
                   /
                 </span>
               )}
               {isLast || !item.href ? (
                 <span
                   aria-current={isLast ? "page" : undefined}
-                  className="truncate text-[var(--ink-2)]"
+                  className="min-w-0 break-words text-[var(--ink-2)]"
                 >
                   {item.label}
                 </span>
