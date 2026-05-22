@@ -53,10 +53,18 @@ async function log(
 }
 
 /**
- * Run a full sync for all properties with calendar links.
- * Returns a summary of what happened.
+ * Sync calendar links and return a summary of what happened.
+ *
+ * With no options it syncs every calendar link in the system — this is
+ * what the background cron does. Pass `propertyIds` to restrict the
+ * sync to a specific set of properties: the manual "Sync now" button
+ * uses this so a host's click only refreshes their own property (or
+ * properties), not every other host's feeds. Scoping it keeps a manual
+ * press cheap on the small droplet.
  */
-export async function syncAllCalendars(): Promise<{
+export async function syncAllCalendars(opts?: {
+  propertyIds?: number[];
+}): Promise<{
   propertiesSynced: number;
   newEvents: number;
   removedEvents: number;
@@ -64,8 +72,14 @@ export async function syncAllCalendars(): Promise<{
 }> {
   const summary = { propertiesSynced: 0, newEvents: 0, removedEvents: 0, errors: 0 };
 
-  // Get all calendar links grouped by property
+  // An empty (but present) propertyIds list means "nothing to sync" —
+  // return early rather than letting `in: []` fall through.
+  if (opts?.propertyIds && opts.propertyIds.length === 0) return summary;
+
+  // Get the calendar links to sync, grouped by property. When scoped,
+  // only the requested properties' links are fetched.
   const links = await prisma.calendarLink.findMany({
+    where: opts?.propertyIds ? { propertyId: { in: opts.propertyIds } } : undefined,
     include: { property: true },
   });
 

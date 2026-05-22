@@ -4,15 +4,38 @@ import { syncAllCalendars } from "@/lib/calendar-sync";
 import { getSession } from "@/lib/auth";
 import { canReadProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 
-// POST /api/calendar/sync — trigger a manual sync
-// NOTE: this still triggers a sync across all calendar links in the system; downstream
-// reads enforce per-user filtering. RT-7.x can refine to a user-scoped sync if needed.
-export async function POST() {
+// POST /api/calendar/sync — trigger a manual sync.
+//
+// Scoped to the caller: a manual press never syncs other hosts' feeds.
+//  - body { propertyId } → sync just that one property (the calendar
+//    view's "Sync now" button sends this).
+//  - no body            → sync every property the caller can access
+//    (the top-bar "Refresh all" button).
+// The 10-minute background cron remains the only system-wide sync.
+export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const result = await syncAllCalendars();
+    let propertyId: number | null = null;
+    try {
+      const body = await request.json();
+      if (body && body.propertyId != null) propertyId = Number(body.propertyId);
+    } catch {
+      // No / empty body — fall through to the "all my properties" path.
+    }
+
+    let propertyIds: number[];
+    if (propertyId != null && !Number.isNaN(propertyId)) {
+      if (!(await canReadProperty(propertyId, session.userId, session.role))) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      propertyIds = [propertyId];
+    } else {
+      propertyIds = await listAccessiblePropertyIds(session.userId, session.role);
+    }
+
+    const result = await syncAllCalendars({ propertyIds });
 
     // Record run
     const now = new Date().toISOString();

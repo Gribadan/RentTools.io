@@ -30,6 +30,9 @@ interface CopyShape {
   language: string;
   admin: string;
   syncTasks: string;
+  refreshAll: string;
+  refreshingAll: string;
+  refreshAllDone: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -56,6 +59,9 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Language",
     admin: "Admin",
     syncTasks: "Sync tasks",
+    refreshAll: "Refresh all calendars",
+    refreshingAll: "Refreshing…",
+    refreshAllDone: "Calendars updated",
   },
   ru: {
     tabDashboard: "Обзор",
@@ -79,6 +85,9 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Язык",
     admin: "Админ",
     syncTasks: "Задачи синхронизации",
+    refreshAll: "Обновить все календари",
+    refreshingAll: "Обновляем…",
+    refreshAllDone: "Календари обновлены",
   },
   de: {
     tabDashboard: "Übersicht",
@@ -103,6 +112,9 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Sprache",
     admin: "Admin",
     syncTasks: "Sync-Aufgaben",
+    refreshAll: "Alle Kalender aktualisieren",
+    refreshingAll: "Wird aktualisiert…",
+    refreshAllDone: "Kalender aktualisiert",
   },
   fr: {
     tabDashboard: "Tableau de bord",
@@ -127,6 +139,9 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Langue",
     admin: "Admin",
     syncTasks: "Tâches de synchronisation",
+    refreshAll: "Actualiser tous les calendriers",
+    refreshingAll: "Actualisation…",
+    refreshAllDone: "Calendriers actualisés",
   },
   es: {
     tabDashboard: "Panel",
@@ -151,6 +166,9 @@ const COPY: Record<Locale, CopyShape> = {
     language: "Idioma",
     admin: "Admin",
     syncTasks: "Tareas de sincronización",
+    refreshAll: "Actualizar todos los calendarios",
+    refreshingAll: "Actualizando…",
+    refreshAllDone: "Calendarios actualizados",
   },
 };
 
@@ -203,6 +221,9 @@ export function TopBar({
   const c = COPY[locale];
   const [propDropdown, setPropDropdown] = useState(false);
   const [userDropdown, setUserDropdown] = useState(false);
+  // "Refresh all calendars" — syncs every property the current user can
+  // access (never other hosts'). idle → running → done (auto-resets).
+  const [refreshState, setRefreshState] = useState<"idle" | "running" | "done">("idle");
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<GuestSearchResult[]>([]);
@@ -306,6 +327,20 @@ export function TopBar({
   };
 
   const selectedProperty = properties.find(p => p.id === selectedPropertyId);
+
+  // Refresh all of the current user's calendars. POST with no body —
+  // the sync route scopes it to the caller's accessible properties.
+  const handleRefreshAll = async () => {
+    if (refreshState === "running") return;
+    setRefreshState("running");
+    try {
+      await fetch("/api/calendar/sync", { method: "POST" });
+      setRefreshState("done");
+      setTimeout(() => setRefreshState("idle"), 3000);
+    } catch {
+      setRefreshState("idle");
+    }
+  };
 
   // All five tabs render at every scope so the header stays put.
   // Property-required tabs (Calendar, Property) auto-pick the first
@@ -740,6 +775,32 @@ export function TopBar({
                     {c.syncTasks}
                   </button>
                 )}
+
+                <div className="my-1 h-px bg-[var(--line)]" />
+
+                {/* Refresh all calendars — syncs every property this
+                    user can access. The cron handles the system-wide
+                    pass; this is the on-demand version for the host. */}
+                <button
+                  onClick={handleRefreshAll}
+                  disabled={refreshState === "running"}
+                  className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-[var(--ink-2)] transition-colors hover:bg-[var(--bg-3)] disabled:opacity-60"
+                >
+                  <svg
+                    className={`h-4 w-4 ${refreshState === "running" ? "animate-spin" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                  </svg>
+                  {refreshState === "running"
+                    ? c.refreshingAll
+                    : refreshState === "done"
+                      ? c.refreshAllDone
+                      : c.refreshAll}
+                </button>
 
                 <div className="my-1 h-px bg-[var(--line)]" />
 

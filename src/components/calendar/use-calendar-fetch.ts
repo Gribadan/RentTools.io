@@ -110,7 +110,14 @@ export function useCalendarFetch(propertyId: number): UseCalendarFetchResult {
     if (lastSyncAt && Date.now() - lastSyncAt < SYNC_COOLDOWN_MS) return;
     setSyncing(true);
     try {
-      await fetch("/api/calendar/sync", { method: "POST" });
+      // Scope the manual sync to THIS property — a host pressing
+      // "Sync now" on one calendar shouldn't refetch every other
+      // host's feeds. The cron still handles the system-wide pass.
+      await fetch("/api/calendar/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId }),
+      });
       await refetchCalendarData();
       setLastSyncAt(Date.now());
       setSyncJustDone(true);
@@ -121,7 +128,7 @@ export function useCalendarFetch(propertyId: number): UseCalendarFetchResult {
     } finally {
       setSyncing(false);
     }
-  }, [syncing, lastSyncAt, refetchCalendarData]);
+  }, [syncing, lastSyncAt, propertyId, refetchCalendarData]);
 
   return {
     syncedEvents,
