@@ -62,8 +62,12 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
       }
     >
       <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4">
-        <Link href={localized("/")} className="group flex shrink-0 items-center gap-2 min-w-0">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
+        <Link
+          href={localized("/")}
+          aria-label="RentTools home"
+          className="group flex shrink-0 items-center gap-2 min-w-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--m-accent)]/50"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30 transition-all duration-200 ease-out group-hover:scale-110 group-hover:shadow-md group-hover:shadow-[var(--m-accent)]/50 group-active:scale-90 group-active:duration-75">
             <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
               <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
                 <path d="M3.4 11.6 L12 4.5 L20.6 11.6 L19 11.6 L19 19.5 L5 19.5 L5 11.6 Z" />
@@ -96,7 +100,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
               </g>
             </svg>
           </div>
-          <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)]">
+          <span className="display text-[17px] font-semibold tracking-tight text-[var(--ink)] transition-colors duration-200 group-hover:text-[var(--m-accent)]">
             RentTools
           </span>
         </Link>

@@ -372,7 +372,7 @@ export function TopBar({
         <div className="flex items-center gap-3 min-w-0 z-10 max-w-[55%] sm:max-w-none">
           <button
             onClick={() => onNavigate({ property: null, reservation: null, view: "dashboard" })}
-            className="flex items-center gap-2 shrink-0 text-[var(--ink)] hover:opacity-90 transition-opacity"
+            className="group flex items-center gap-2 shrink-0 rounded-xl text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--m-accent)]/50"
             aria-label="Dashboard home"
           >
             {/* Brand mark: white house silhouette on coral pill, with
@@ -382,7 +382,7 @@ export function TopBar({
                 pure SVG <animate> so no framer-motion dep, no
                 entrance shake / scale-rotate spring — the mark just
                 paints in place on first render. */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--m-accent)] shadow-sm shadow-[var(--m-accent)]/30 transition-all duration-200 ease-out group-hover:scale-110 group-hover:shadow-md group-hover:shadow-[var(--m-accent)]/50 group-active:scale-90 group-active:duration-75">
               <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
                 <g fill="white" stroke="white" strokeWidth="0.4" strokeLinejoin="round">
                   {/* Roof + walls outline as one shape */}
@@ -423,7 +423,7 @@ export function TopBar({
                 </g>
               </svg>
             </div>
-            <span className="hidden sm:block text-[17px] font-semibold tracking-tight">RentTools</span>
+            <span className="hidden sm:block text-[17px] font-semibold tracking-tight transition-colors duration-200 group-hover:text-[var(--m-accent)]">RentTools</span>
           </button>
 
           {/* Property selector */}
