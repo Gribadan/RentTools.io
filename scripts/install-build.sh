@@ -18,6 +18,7 @@
 #  3. atomically replace .next/ and src/generated/prisma/ with extracted artifact
 #  4. apply schema if prisma/schema.prisma changed
 #  5. install systemd unit if it changed (then daemon-reload)
+#  5b. sync nginx maintenance.html if it changed (then reload nginx)
 #  6. systemctl restart rent-tool
 #  7. smoke-test /api/health
 
@@ -48,6 +49,10 @@ SCHEMA_BEFORE=$(sha256sum prisma/schema.prisma 2>/dev/null | awk '{print $1}' ||
 # seed below 500s on a missing column.
 PUSH_SCRIPT_BEFORE=$(sha256sum prisma/push-schema.ts 2>/dev/null | awk '{print $1}' || echo "")
 SYSTEMD_BEFORE=$(sha256sum deploy/systemd/rent-tool.service 2>/dev/null | awk '{print $1}' || echo "")
+# nginx serves the maintenance page from /etc/nginx/html/ — outside the
+# repo, so `git reset` never touches it. Track the repo copy's hash so a
+# change to it gets pushed to nginx below instead of silently drifting.
+MAINT_BEFORE=$(sha256sum deploy/nginx/maintenance.html 2>/dev/null | awk '{print $1}' || echo "")
 
 # Refuse to proceed if someone edited files directly on the droplet — prevents
 # silent overwrite of unsaved local changes by `git reset --hard`.
@@ -65,6 +70,7 @@ LOCK_AFTER=$(sha256sum package-lock.json | awk '{print $1}')
 SCHEMA_AFTER=$(sha256sum prisma/schema.prisma | awk '{print $1}')
 PUSH_SCRIPT_AFTER=$(sha256sum prisma/push-schema.ts | awk '{print $1}')
 SYSTEMD_AFTER=$(sha256sum deploy/systemd/rent-tool.service | awk '{print $1}')
+MAINT_AFTER=$(sha256sum deploy/nginx/maintenance.html | awk '{print $1}')
 
 # 2. Conditional npm ci. Only when dependencies actually changed.
 if [ "$LOCK_BEFORE" != "$LOCK_AFTER" ]; then
@@ -121,6 +127,15 @@ if [ "$SYSTEMD_BEFORE" != "$SYSTEMD_AFTER" ]; then
   log "systemd unit changed — installing + reloading daemon"
   sudo install -m 644 deploy/systemd/rent-tool.service /etc/systemd/system/rent-tool.service
   sudo systemctl daemon-reload
+fi
+
+# 5b. If the maintenance page changed, push it to where nginx serves it
+#     from and reload. Kept here (not the artifact swap) because the
+#     target lives under /etc/nginx/, outside the repo tree.
+if [ "$MAINT_BEFORE" != "$MAINT_AFTER" ]; then
+  log "maintenance.html changed — installing + reloading nginx"
+  sudo install -m 644 deploy/nginx/maintenance.html /etc/nginx/html/maintenance.html
+  sudo nginx -t && sudo systemctl reload nginx
 fi
 
 # 6. Restart.
