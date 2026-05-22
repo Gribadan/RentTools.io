@@ -434,15 +434,41 @@ export function useCalendarData(
       let label = ev.name;
       let resId = ev.reservationId;
       const matchingResForExt = resId ? property.reservations.find(r => r.id === resId) : undefined;
-      // A "claim" (reservation that overlaps the iCal event the user
-      // just named) gets merged into the event's evMap entry — which
-      // KEEPS the event's eventUid. A real extension (separate
-      // reservation abutting the event for the same guest) lives in
-      // its OWN evMap entry with no eventUid. We only want the
-      // hatched / striped extension styling on the latter — naming
-      // an existing iCal stay shouldn't make the bar look manually
-      // added.
-      const isExtension = !!matchingResForExt?.linkedEventUid && !ev.eventUid;
+      // Hatched "manual extension" styling — a reservation the host
+      // created via "Add 1 night before/after" that ABUTS an iCal
+      // booking for the same guest (vs a "claim", which OVERLAPS an
+      // iCal event and just names it).
+      //
+      // The old test was `!!res.linkedEventUid && !ev.eventUid`. That
+      // was load-order-dependent: while the iCal feed was still
+      // fetching, the reservation hadn't merged with its event yet,
+      // so `!ev.eventUid` was true and EVERY linked reservation
+      // flickered striped → solid as events arrived. Worse, when a
+      // platform rotated an event's UID (Booking.com regenerates the
+      // UID of "CLOSED - Not available" blocks), the reservation's
+      // linkedEventUid became a dangling reference and the bar stayed
+      // striped forever — the Victoriya Tarakanova symptom.
+      //
+      // Stable test: positively confirm an extension. It IS one only
+      // when the linkedEventUid event is actually present in the
+      // synced feed AND the reservation's dates ABUT (don't overlap)
+      // that event. If the linked event is missing — still loading,
+      // or deleted by a UID rotation — default to false (solid bar).
+      // Solid is the safe default: a fetched booking rendered solid
+      // is correct; the only cost is a genuine extension missing its
+      // hatch for the brief window before the feed finishes loading.
+      let isExtension = false;
+      const extLinkedUid = matchingResForExt?.linkedEventUid;
+      if (extLinkedUid) {
+        const linkedEv = syncedEvents.find((e) => e.uid === extLinkedUid);
+        if (linkedEv) {
+          const rStart = toDateStr(new Date(matchingResForExt!.checkIn));
+          const rEnd = toDateStr(new Date(matchingResForExt!.checkOut));
+          const overlapsLinked =
+            linkedEv.startDate < rEnd && linkedEv.endDate > rStart;
+          isExtension = !overlapsLinked;
+        }
+      }
 
       // Generic-iCal-summary detection. Different platforms send
       // different "this is a block, not a guest name" strings:
@@ -633,7 +659,11 @@ export function useCalendarData(
     }
 
     return deduped;
-  }, [computed.dateToEvent, property.reservations]);
+    // syncedEvents is in the deps because the isExtension check reads
+    // it directly (to confirm a reservation's linked event exists);
+    // computed.dateToEvent already derives from it, but listing it
+    // explicitly keeps the memo correct if that ever changes.
+  }, [computed.dateToEvent, property.reservations, syncedEvents]);
 
   // RT-25.3 — when the toggle is off, suppress manual cleaning chips
   // too so the calendar reads as "bookings only". Data is preserved
