@@ -4,12 +4,12 @@ Issues and PRs are welcome. The hosted instance at [renttools.io](https://rentto
 
 ## Filing an issue
 
-Before opening a new issue, search [existing issues](https://github.com/Gribadan/rent-tool/issues?q=is%3Aissue) — your problem may already be tracked.
+Before opening a new issue, search [existing issues](https://github.com/Gribadan/RentTools.io/issues?q=is%3Aissue) — your problem may already be tracked.
 
 If you don't find a match:
 
-- **Bugs**: open a [bug report](https://github.com/Gribadan/rent-tool/issues/new?template=bug.md). Include reproduction steps, expected vs. actual behavior, and your environment (self-hosted or hosted, browser, OS).
-- **Features**: open a [feature request](https://github.com/Gribadan/rent-tool/issues/new?template=feature.md). Describe the *use case* you're stuck on, not just the solution you have in mind. Many feature requests get rolled into the open-source roadmap in [.routines/TASKS.md](../.routines/TASKS.md).
+- **Bugs**: open a [bug report](https://github.com/Gribadan/RentTools.io/issues/new?template=bug.md). Include reproduction steps, expected vs. actual behavior, and your environment (self-hosted or hosted, browser, OS).
+- **Features**: open a [feature request](https://github.com/Gribadan/RentTools.io/issues/new?template=feature.md). Describe the *use case* you're stuck on, not just the solution you have in mind. Feature requests and current priorities are tracked in [GitHub Issues](https://github.com/Gribadan/RentTools.io/issues) — that's the roadmap. If you want to pick something up, comment on the issue first so we don't double-build it.
 
 The issue templates live in [`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLATE).
 
@@ -18,8 +18,8 @@ The issue templates live in [`.github/ISSUE_TEMPLATE/`](../.github/ISSUE_TEMPLAT
 The 5-minute quickstart is in [README.md](../README.md#self-host-5-minute-quickstart). The TL;DR:
 
 ```bash
-git clone https://github.com/Gribadan/rent-tool.git
-cd rent-tool
+git clone https://github.com/Gribadan/RentTools.io.git
+cd RentTools.io
 npm install
 mkdir -p data
 echo "DATABASE_URL=file:./data/prod.db" >> .env.local
@@ -31,6 +31,27 @@ npm run dev
 ```
 
 For deeper deployment guidance see [docs/DROPLET-SETUP.md](DROPLET-SETUP.md) — production droplet runbook (systemd, nginx, cron, backups).
+
+## Security & privacy — what must never reach git
+
+This is a **public repository** and the hosted instance has **real users with real guest data**. Everything you commit — the diff, the commit message, file names, screenshots — is permanently visible and indexable. Force-pushing does not truly erase it.
+
+**Never commit:**
+
+- **Secrets** — `JWT_SECRET`, `CRON_SECRET`, API keys, OAuth client secrets, DB connection strings, SSH/signing keys. Real values live only in `.env.local` (dev) or `.env.production` (server), both gitignored. `.env.example` is the only env file in git, and it holds placeholders only.
+- **Customer / guest data** — real names, emails, phone numbers, passport images or numbers, real reservation dates tied to a real person, real property names from the hosted instance. Use the sample-property generator (`/api/properties/sample`) or synthetic data in tests and screenshots.
+- **PII in commit messages or code comments** — no real usernames, no emails, no quoted customer feedback. If you need to reference a specific report, use an opaque internal id ("feedback id=42") or a generic description ("a multi-platform host"), never anything that identifies a person.
+- **Private infrastructure detail** — server IPs, droplet hostnames, internal task backlogs.
+
+**Three automated layers back this up** (you don't have to think about them, but know they exist):
+
+1. `.gitignore` — keeps whole private files/folders untracked.
+2. `.githooks/pre-commit` — auto-registered by `npm install`; blocks a commit that stages a forbidden file **or** whose diff contains a secret-shaped string (provider key prefixes, PEM private-key headers).
+3. CI (`.github/workflows/ci.yml`) — re-runs both scans on every PR, so a commit made with `--no-verify` or without the hook still gets caught before merge.
+
+**If you ever commit a real secret:** don't just delete it in a follow-up commit — **rotate the credential**. Assume it is compromised the instant it lands in a commit, even if you remove it seconds later. Then tell the maintainer so the key can be revoked server-side.
+
+When in doubt, ask in an issue before committing — it is far cheaper than a leak.
 
 ## Code style
 
@@ -62,8 +83,7 @@ For deeper deployment guidance see [docs/DROPLET-SETUP.md](DROPLET-SETUP.md) —
 
 - Branch from `master`: `git checkout -b feat/<short-description>` (or `fix/`, `chore/`, `docs/`).
 - **Conventional Commits**: `<type>(<scope>): <subject>` — e.g. `feat(reports): add CSV export with date range`. Types in use: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
-- One logical change per commit. Don't bundle unrelated work.
-- Append `Co-Authored-By: Claude <noreply@anthropic.com>` when an AI assistant wrote the change. The scheduled `.routines/` runs follow this same format and reference the task id (e.g. `feat(api): RT-7.4 — public iCal feed token`).
+- One logical change per commit. Don't bundle unrelated work. The commit message should explain *why* the change is needed — the diff already shows what.
 - Never force-push `master`. Never bypass hooks (`--no-verify`) — if a hook fails, fix the underlying issue.
 
 ## Testing
@@ -108,4 +128,4 @@ Be nice. The maintainer is one person, the hosted instance is free, and most con
 - **Keep guest data private.** Don't post real passport photos, real reservations, or real guest names in issues, screenshots, or test fixtures. Use synthetic data — the sample-property generator (`/api/properties/sample`) is there for a reason.
 - **No spam, scraping, or commercial promotion.** Issues and PRs are for improving the project.
 
-If something feels off, [open an issue](https://github.com/Gribadan/rent-tool/issues/new) and tag it `meta`. The maintainer will read it.
+If something feels off, [open an issue](https://github.com/Gribadan/RentTools.io/issues/new) and tag it `meta`. The maintainer will read it.

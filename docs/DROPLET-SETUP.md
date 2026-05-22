@@ -90,8 +90,8 @@ automate steps 3–5.)
 ```bash
 ssh app@<DROPLET_IP>
 cd /home/app
-git clone https://github.com/<your-account>/rent-tool.git
-cd rent-tool
+git clone https://github.com/<your-account>/RentTools.io.git
+cd RentTools.io
 cp .env.example .env.production
 # edit .env.production — fill in JWT_SECRET, CRON_SECRET, GOOGLE_GEMINI_API_KEY,
 # DATABASE_URL=file:./data/prod.db

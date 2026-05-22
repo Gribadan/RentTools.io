@@ -83,4 +83,47 @@ if (( ${#violations[@]} > 0 )); then
   exit 1
 fi
 
+# --- Content scan ----------------------------------------------------------
+# The path check above catches a whole file that shouldn't exist (.env, a
+# key, a DB dump). It does NOT catch a secret pasted INTO an
+# innocent-looking file — an API key in a .ts test fixture, a private key
+# in a config snippet. This second pass greps the *added lines* of the
+# staged diff for secret-shaped strings.
+#
+# Only high-confidence patterns: provider-prefixed keys and PEM headers
+# that never legitimately appear in source. The generic
+# "SECRET = '<long string>'" shape is deliberately NOT matched — the repo
+# has legit placeholders (fallback-secret-change-me, ci-only-...,
+# replace-with-...) and matching it would train contributors to
+# --no-verify past the hook, which defeats the point.
+SECRET_PATTERNS=(
+  '-----BEGIN [A-Z ]*PRIVATE KEY-----'   # any PEM private key
+  'AKIA[0-9A-Z]{16}'                     # AWS access key id
+  'AIza[0-9A-Za-z_-]{35}'                # Google API key
+  'sk_live_[0-9a-zA-Z]{20,}'             # Stripe live secret key
+  'ghp_[0-9A-Za-z]{36}'                  # GitHub personal access token
+  'xox[baprs]-[0-9A-Za-z-]{10,}'         # Slack token
+)
+# Added lines only (`+` prefix), minus the `+++ b/file` diff headers.
+added=$(git diff --cached --diff-filter=ACMR -U0 | grep -E '^\+' | grep -vE '^\+\+\+' || true)
+secret_hits=()
+for pat in "${SECRET_PATTERNS[@]}"; do
+  # `-e` is required — the PEM pattern starts with `-`, which grep would
+  # otherwise treat as an option flag.
+  if echo "$added" | grep -qE -e "$pat"; then
+    secret_hits+=("$pat")
+  fi
+done
+if (( ${#secret_hits[@]} > 0 )); then
+  echo
+  echo "ERROR: Refusing to commit. Staged changes contain secret-shaped strings:"
+  for h in "${secret_hits[@]}"; do printf '  matches /%s/\n' "$h"; done
+  echo
+  echo "If a real credential leaked: remove it, then ROTATE the key — assume"
+  echo "it is already burned the moment it touches a commit. If it is a false"
+  echo "positive (a sample value in docs), commit with --no-verify after"
+  echo "confirming the string is not a live credential."
+  exit 1
+fi
+
 exit 0

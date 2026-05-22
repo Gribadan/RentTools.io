@@ -49,6 +49,33 @@ jobs:
           fi
           echo "Forbidden-paths scan: clean."
 
+      - name: Secret-content scan
+        # Third layer (after .gitignore + .githooks/pre-commit). The
+        # path scan above catches a whole forbidden file; this catches a
+        # secret pasted INTO an otherwise innocent tracked file. Same
+        # high-confidence provider-key / PEM patterns the pre-commit
+        # hook greps for — mirrored here so a contributor who bypassed
+        # the hook (--no-verify, or never ran `npm install` to register
+        # the hooksPath) still gets caught before merge.
+        run: |
+          set -euo pipefail
+          SECRET_RE='-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|sk_live_[0-9a-zA-Z]{20,}|ghp_[0-9A-Za-z]{36}|xox[baprs]-[0-9A-Za-z-]{10,}'
+          # git grep over tracked files only. `-e` is required — the regex
+          # starts with `-` (the PEM header) and git would otherwise parse
+          # it as a flag. Exclude package-lock.json (integrity hashes can
+          # coincidentally match key-shaped regexes) and other lockfiles.
+          HITS=$(git grep -nE -e "$SECRET_RE" -- ':!package-lock.json' ':!*.lock' || true)
+          if [ -n "$HITS" ]; then
+            echo "::error::Found secret-shaped strings in tracked files:"
+            echo "$HITS" | sed 's/^/  /'
+            echo ""
+            echo "If a real credential leaked: remove it AND rotate the key"
+            echo "(assume it is burned). If it is a documented sample value,"
+            echo "rephrase so it no longer matches a live-credential pattern."
+            exit 1
+          fi
+          echo "Secret-content scan: clean."
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v6
         with:
