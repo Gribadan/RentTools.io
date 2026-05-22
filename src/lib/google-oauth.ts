@@ -225,10 +225,11 @@ export async function findOrCreateUserForGoogle(profile: GoogleProfile) {
   return prisma.user.create({
     data: {
       username,
-      // Random unguessable placeholder — Google sign-in users can later
-      // set a password via the existing change-password flow if they
-      // want a non-Google sign-in path too.
+      // Random unguessable placeholder — hasPassword:false marks that
+      // it isn't a real password, so the profile offers "Set a
+      // password" (no current-password prompt) for a non-Google login.
       password: await randomPasswordPlaceholder(),
+      hasPassword: false,
       role: "user",
       email,
       googleId: profile.id,

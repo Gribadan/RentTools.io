@@ -11,8 +11,8 @@ export async function POST(request: NextRequest) {
 
     const { currentPassword, newPassword } = await request.json();
 
-    if (typeof currentPassword !== "string" || typeof newPassword !== "string") {
-      return NextResponse.json({ error: "Current and new password required" }, { status: 400 });
+    if (typeof newPassword !== "string") {
+      return NextResponse.json({ error: "New password required" }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { id: session.userId } });
@@ -23,11 +23,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: strength.reason }, { status: 400 });
     }
 
-    const ok = await verifyPassword(currentPassword, user.password);
-    if (!ok) return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });
+    // An account that already has a real password must prove it — this
+    // is what stops a hijacked session from silently changing it. A
+    // Google-sign-in account (hasPassword:false) has only an unusable
+    // random placeholder, so it sets the first password without one.
+    if (user.hasPassword) {
+      if (typeof currentPassword !== "string") {
+        return NextResponse.json({ error: "Current password required" }, { status: 400 });
+      }
+      const ok = await verifyPassword(currentPassword, user.password);
+      if (!ok) return NextResponse.json({ error: "Current password is incorrect" }, { status: 401 });
+    }
 
     const hashed = await hashPassword(newPassword);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed, hasPassword: true },
+    });
     await logAudit(session.userId, "update", "user", user.id, { passwordChanged: true });
 
     return NextResponse.json({ ok: true });

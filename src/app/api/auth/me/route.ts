@@ -14,6 +14,7 @@ export async function GET() {
         username: true,
         role: true,
         createdAt: true,
+        hasPassword: true,
       },
     });
     if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });

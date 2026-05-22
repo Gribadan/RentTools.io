@@ -11,6 +11,11 @@ model User {
   id                 Int                  @id @default(autoincrement())
   username           String               @unique
   password           String
+  // False for accounts created via Google sign-in (the stored password
+  // is an unusable random placeholder). Drives the profile's "Set a
+  // password" vs "Change password" UI; flips true once a real password
+  // is set. See src/lib/google-oauth.ts and the change-password route.
+  hasPassword        Boolean              @default(true)
   role               String               @default("user") // "superadmin" | "user" | "cleaner"
   email              String?              // optional; populated by Google sign-in (RT-16.5) or future profile edits
   googleId           String?              @unique // Google subject (sub) ID — set when user signs in with Google

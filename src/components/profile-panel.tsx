@@ -8,28 +8,45 @@ import { AuditPanel } from "@/components/audit-panel";
 interface CopyShape {
   dateLocale: string;
   subtitle: string;
+  setPassword: string;
+  setPasswordHint: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
   en: {
     dateLocale: "en",
     subtitle: "Personal info, password, and activity.",
+    setPassword: "Set a password",
+    setPasswordHint:
+      "You signed in with Google. Set a password to also sign in with your email and password.",
   },
   ru: {
     dateLocale: "ru-RU",
     subtitle: "Личные данные, пароль и активность.",
+    setPassword: "Задать пароль",
+    setPasswordHint:
+      "Вы вошли через Google. Задайте пароль, чтобы также входить по эл. почте и паролю.",
   },
   de: {
     dateLocale: "de-DE",
     subtitle: "Persönliche Daten, Passwort und Aktivität.",
+    setPassword: "Passwort festlegen",
+    setPasswordHint:
+      "Sie haben sich mit Google angemeldet. Legen Sie ein Passwort fest, um sich auch per E-Mail und Passwort anzumelden.",
   },
   fr: {
     dateLocale: "fr-FR",
     subtitle: "Informations personnelles, mot de passe et activité.",
+    setPassword: "Définir un mot de passe",
+    setPasswordHint:
+      "Vous vous êtes connecté avec Google. Définissez un mot de passe pour vous connecter aussi par e-mail et mot de passe.",
   },
   es: {
     dateLocale: "es-ES",
     subtitle: "Datos personales, contraseña y actividad.",
+    setPassword: "Establecer una contraseña",
+    setPasswordHint:
+      "Inició sesión con Google. Establezca una contraseña para iniciar sesión también con su correo y contraseña.",
   },
 };
 
@@ -38,6 +55,7 @@ interface ProfileUser {
   username: string;
   role: string;
   createdAt: string;
+  hasPassword: boolean;
 }
 
 // Renders as a routed dashboard view (no modal overlay) — was a drawer
@@ -117,7 +135,17 @@ export function ProfilePanel() {
         </dl>
 
         <form onSubmit={submit} className="mt-6 space-y-3 border-t border-[var(--line)] pt-4">
-          <h3 className="text-sm font-semibold text-[var(--ink)]">{tr("profile.changePassword")}</h3>
+          <h3 className="text-sm font-semibold text-[var(--ink)]">
+            {user && !user.hasPassword ? c.setPassword : tr("profile.changePassword")}
+          </h3>
+          {user && !user.hasPassword && (
+            <p className="text-xs text-[var(--ink-3)]">{c.setPasswordHint}</p>
+          )}
+          {/* Current-password field — shown for accounts that already
+              have a real password (and while the profile loads). A
+              Google-sign-in account has none, so it's hidden and the
+              API sets the first password without it. */}
+          {(!user || user.hasPassword) && (
           <div className="space-y-1.5">
             <label className="text-xs text-[var(--ink-3)]" htmlFor="curpw">{tr("profile.currentPassword")}</label>
             <input
@@ -129,6 +157,7 @@ export function ProfilePanel() {
               required
             />
           </div>
+          )}
           <div className="space-y-1.5">
             <label className="text-xs text-[var(--ink-3)]" htmlFor="newpw">{tr("profile.newPassword")}</label>
             <input

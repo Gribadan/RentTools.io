@@ -58,7 +58,12 @@ export async function POST(request: NextRequest) {
     }
 
     const hashed = await hashPassword(newPassword);
-    await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+    // hasPassword:true — a reset gives even a Google-only account a
+    // real password it can sign in with.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashed, hasPassword: true },
+    });
     await consumeEmailCode(result.id);
     await logAudit(user.id, "update", "user", user.id, { passwordReset: true });
 
