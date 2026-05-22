@@ -332,8 +332,49 @@ function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] 
     end.setHours(0, 0, 0, 0);
     stays.push({ start, end, name: friendlyIcalName(ev.summary, ev.platform), platform: ev.platform });
   }
-  stays.sort((a, b) => a.start.getTime() - b.start.getTime());
-  return stays;
+
+  // Cross-platform echo collapse. A host who runs the normal multi-
+  // platform setup syncs their master calendar (usually Airbnb) INTO
+  // Booking / Trip.com / Agoda, so every confirmed booking is
+  // reflected back out in EVERY platform's exported iCal. RentTools
+  // imports all those feeds and ends up with N copies of the same
+  // booking — and detectDoubleBookings() then flags (N-1) false
+  // "double booking" conflicts for every single reservation.
+  //
+  // Two stays with the EXACT same (start, end) date range are
+  // collapsed to one. Exact-match is the safe signature: a genuine
+  // independent double-booking with byte-identical check-in AND
+  // check-out dates is rare, and even when it happens the calendar
+  // grid still renders both bars (separate code path) so the host
+  // isn't blind to it. A partial overlap (Booking 1-10 + Trip 5-7)
+  // is NOT collapsed — that can't be a clean echo and still warrants
+  // a conflict warning.
+  //
+  // When collapsing, keep the entry with the most informative name:
+  // a real guest name beats a generic platform block string
+  // ("RoomStatus Fully booked", "CLOSED - Not available", "Reserved").
+  const collapsed: UnifiedStay[] = [];
+  const byRange = new Map<string, UnifiedStay>();
+  for (const s of stays) {
+    const key = `${toLocalDateStr(s.start)}|${toLocalDateStr(s.end)}`;
+    const existing = byRange.get(key);
+    if (!existing) {
+      byRange.set(key, s);
+      collapsed.push(s);
+      continue;
+    }
+    // Same date range already seen — this is an echo. Upgrade the
+    // kept copy's name/platform if the echo carries a real guest
+    // name and the kept copy only had a generic block string.
+    if (isGenericIcalName(existing.name) && !isGenericIcalName(s.name)) {
+      existing.name = s.name;
+      existing.platform = s.platform;
+      if (s.reservationId) existing.reservationId = s.reservationId;
+    }
+  }
+
+  collapsed.sort((a, b) => a.start.getTime() - b.start.getTime());
+  return collapsed;
 }
 
 /** Per-property double-booking detection. Returns the list of overlapping
