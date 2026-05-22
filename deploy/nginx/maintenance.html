@@ -59,8 +59,22 @@
     color: var(--muted);
     margin: 0 0 8px;
   }
+  .status-link {
+    display: inline-block;
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 16px;
+    transition: border-color 0.15s ease;
+  }
+  .status-link:hover {
+    border-color: var(--accent);
+  }
   .meta {
-    margin-top: 28px;
+    margin-top: 24px;
     font-size: 12px;
     color: var(--muted);
     opacity: 0.75;
@@ -78,6 +92,7 @@
   <h1>We&rsquo;ll be right back</h1>
   <p>Rent Tool is being updated. This usually takes under a minute.</p>
   <p>Your data is safe. Refresh in a moment.</p>
+  <a class="status-link" href="https://status.renttools.io">Check live status &rarr;</a>
   <div class="meta">
     This page reloads automatically
   </div>

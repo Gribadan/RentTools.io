@@ -10,16 +10,19 @@ import type { Locale } from "@/lib/i18n/translations";
 // legacy AdminPanel surfaced; SettingsPanel still renders its copy
 // until the removal sweep ships, matching ticks 4 + 5.
 //
-// External status.renttools.io URL was dropped in RT-25.1 (commit
-// fedf923) because the subdomain never got DNS — when an external
-// status page does land, link it here.
+// status.renttools.io is now a BetterStack-hosted status page (uptime +
+// incident history). It's deliberately off-box so it stays reachable
+// when the droplet itself is down — these /api/* health endpoints
+// below are the on-box spot-checks, the external page is the public
+// one. Linked as the third card.
 
 interface CopyShape {
   title: string;
   subtitle: string;
   appHealth: string;
   syncHealth: string;
-  externalNote: string;
+  externalTitle: string;
+  externalDesc: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -28,35 +31,40 @@ const COPY: Record<Locale, CopyShape> = {
     subtitle: "Internal health endpoints for this instance. Use these to spot-check when sync is misbehaving or a 5xx slipped through.",
     appHealth: "App health",
     syncHealth: "Calendar sync health",
-    externalNote: "An external status surface (status.renttools.io) is not yet wired. When it lands it will be linked here.",
+    externalTitle: "Public status page",
+    externalDesc: "Uptime and incident history, hosted off-box so it stays reachable during a deploy.",
   },
   ru: {
     title: "Статус системы",
     subtitle: "Внутренние эндпоинты здоровья инстанса. Используйте для проверки в случае ошибок синхронизации или 5xx.",
     appHealth: "Здоровье приложения",
     syncHealth: "Здоровье календарной синхронизации",
-    externalNote: "Внешняя страница статуса (status.renttools.io) пока не настроена. Когда появится — будет ссылаться отсюда.",
+    externalTitle: "Публичная страница статуса",
+    externalDesc: "Аптайм и история инцидентов. Размещена вне сервера, поэтому доступна даже во время деплоя.",
   },
   de: {
     title: "Systemstatus",
     subtitle: "Interne Health-Endpoints dieser Instanz. Nutzen Sie sie für Stichproben, wenn Sync sich seltsam verhält oder ein 5xx durchgerutscht ist.",
     appHealth: "App-Health",
     syncHealth: "Kalender-Sync-Health",
-    externalNote: "Eine externe Statusseite (status.renttools.io) ist noch nicht angebunden. Sobald sie verfügbar ist, wird hier verlinkt.",
+    externalTitle: "Öffentliche Statusseite",
+    externalDesc: "Uptime und Vorfallverlauf. Extern gehostet, daher auch während eines Deploys erreichbar.",
   },
   fr: {
     title: "Statut du système",
     subtitle: "Endpoints de santé internes de cette instance. Utilisez-les pour des vérifications ponctuelles quand le sync déraille ou qu'un 5xx est passé à travers.",
     appHealth: "Santé de l'app",
     syncHealth: "Santé du sync des calendriers",
-    externalNote: "Une page de statut externe (status.renttools.io) n'est pas encore branchée. Quand elle arrivera, elle sera liée ici.",
+    externalTitle: "Page de statut publique",
+    externalDesc: "Disponibilité et historique des incidents. Hébergée hors serveur, donc accessible pendant un déploiement.",
   },
   es: {
     title: "Estado del sistema",
     subtitle: "Endpoints internos de salud de esta instancia. Úselos para hacer comprobaciones puntuales cuando el sync se comporte mal o se cuele un 5xx.",
     appHealth: "Salud de la app",
     syncHealth: "Salud del sync de calendarios",
-    externalNote: "Aún no hay una página de estado externa (status.renttools.io) conectada. Cuando se active, se enlazará desde aquí.",
+    externalTitle: "Página de estado pública",
+    externalDesc: "Disponibilidad e historial de incidencias. Alojada fuera del servidor, accesible durante un despliegue.",
   },
 };
 
@@ -109,11 +117,25 @@ export default function AdminStatusPage() {
           </div>
           <p className="mt-1 font-mono text-xs text-[var(--ink-4)]">/api/calendar/health</p>
         </a>
-      </div>
 
-      <p className="text-xs text-[var(--ink-4)]">
-        {t.externalNote}
-      </p>
+        <a
+          href="https://status.renttools.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group block rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4 transition-all hover:border-[var(--line-2)] hover:bg-[var(--bg-3)]"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-[var(--ink)]">
+              {t.externalTitle}
+            </h3>
+            <svg className="h-4 w-4 text-[var(--ink-4)] transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            </svg>
+          </div>
+          <p className="mt-1 font-mono text-xs text-[var(--ink-4)]">status.renttools.io</p>
+          <p className="mt-1.5 text-xs text-[var(--ink-4)]">{t.externalDesc}</p>
+        </a>
+      </div>
     </div>
   );
 }
