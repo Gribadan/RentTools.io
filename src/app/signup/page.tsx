@@ -27,9 +27,15 @@ function SignupPageInner() {
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
   const { t } = useI18n();
-  const [username, setUsername] = useState("");
+  // Two steps: "form" collects email + password and triggers the
+  // verification email; "verify" collects the 6-digit code that
+  // actually creates the account.
+  const [step, setStep] = useState<"form" | "verify">("form");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   // null = still loading config, true = signup is enabled, false = disabled
   const [signupEnabled, setSignupEnabled] = useState<boolean | null>(null);
@@ -52,26 +58,74 @@ function SignupPageInner() {
     };
   }, []);
 
+  // Step 1 — send the verification email.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-
+    setNotice("");
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ email, password }),
       });
-
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setError(data.error || t("signup.failed"));
         return;
       }
+      setCode("");
+      setStep("verify");
+    } catch {
+      setError(t("login.connectionError"));
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Step 2 — confirm the code; the account is created here.
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || t("signup.failed"));
+        return;
+      }
       router.push(next);
       router.refresh();
+    } catch {
+      setError(t("login.connectionError"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Re-trigger the signup email with the same credentials.
+  const handleResend = async () => {
+    setLoading(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || t("signup.failed"));
+        return;
+      }
+      setNotice(t("signup.resent"));
     } catch {
       setError(t("login.connectionError"));
     } finally {
@@ -88,9 +142,13 @@ function SignupPageInner() {
         <div className="w-full max-w-[360px]">
           <div className="mb-7 text-center">
             <h1 className="display text-[28px] font-semibold leading-[1.1] tracking-[-0.025em] text-[var(--ink)] sm:text-[32px]">
-              {t("signup.title")}
+              {step === "verify" ? t("signup.checkEmailTitle") : t("signup.title")}
             </h1>
-            <p className="mt-2 text-[14px] text-[var(--ink-3)]">{t("signup.subtitle")}</p>
+            <p className="mt-2 text-[14px] text-[var(--ink-3)]">
+              {step === "verify"
+                ? t("signup.checkEmailSubtitle", { email })
+                : t("signup.subtitle")}
+            </p>
           </div>
 
           {signupEnabled === false ? (
@@ -111,6 +169,63 @@ function SignupPageInner() {
                 )}
               </p>
             </div>
+          ) : step === "verify" ? (
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 sm:p-7">
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div className="space-y-1.5">
+                  <AuthLabel htmlFor="code">{t("signup.code")}</AuthLabel>
+                  <AuthInput
+                    id="code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder={t("signup.codePlaceholder")}
+                    className="text-center text-[18px] tracking-[0.4em]"
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                {error && <AuthError message={error} />}
+                {notice && (
+                  <div
+                    role="status"
+                    className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-[13px] text-emerald-600 dark:text-emerald-400"
+                  >
+                    {notice}
+                  </div>
+                )}
+
+                <AuthSubmit loading={loading} disabled={code.length !== 6}>
+                  {loading ? t("signup.verifying") : t("signup.verify")}
+                </AuthSubmit>
+              </form>
+
+              <div className="mt-4 flex items-center justify-between text-[13px]">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={loading}
+                  className="text-[var(--ink-3)] underline-offset-2 hover:text-[var(--ink)] hover:underline disabled:opacity-50"
+                >
+                  {t("signup.resendCode")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("form");
+                    setError("");
+                    setNotice("");
+                  }}
+                  disabled={loading}
+                  className="text-[var(--ink-3)] underline-offset-2 hover:text-[var(--ink)] hover:underline disabled:opacity-50"
+                >
+                  {t("signup.useDifferentEmail")}
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-6 sm:p-7">
               <div className="mb-4 space-y-3">
@@ -122,15 +237,16 @@ function SignupPageInner() {
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <AuthLabel htmlFor="username">{t("login.username")}</AuthLabel>
+                  <AuthLabel htmlFor="email">{t("login.email")}</AuthLabel>
                   <AuthInput
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder={t("login.usernamePlaceholder")}
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t("login.emailPlaceholder")}
                     autoFocus
                     required
-                    minLength={3}
                   />
                 </div>
 
@@ -139,6 +255,7 @@ function SignupPageInner() {
                   <AuthInput
                     id="password"
                     type="password"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={t("login.passwordPlaceholder")}

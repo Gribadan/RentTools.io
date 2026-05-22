@@ -140,22 +140,37 @@ function LoginPageInner() {
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <AuthLabel htmlFor="username">{t("login.username")}</AuthLabel>
+                <AuthLabel htmlFor="username">{t("login.email")}</AuthLabel>
                 <AuthInput
                   id="username"
+                  // type="text" (not "email") so existing username-only
+                  // accounts created before the email-identity switch
+                  // can still sign in; inputMode hints the email keyboard.
+                  type="text"
+                  inputMode="email"
+                  autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={t("login.usernamePlaceholder")}
+                  placeholder={t("login.emailPlaceholder")}
                   autoFocus
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <AuthLabel htmlFor="password">{t("login.password")}</AuthLabel>
+                <div className="flex items-center justify-between">
+                  <AuthLabel htmlFor="password">{t("login.password")}</AuthLabel>
+                  <Link
+                    href="/reset-password"
+                    className="text-[12px] text-[var(--ink-3)] underline-offset-2 hover:text-[var(--ink)] hover:underline"
+                  >
+                    {t("login.forgotPassword")}
+                  </Link>
+                </div>
                 <AuthInput
                   id="password"
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t("login.passwordPlaceholder")}

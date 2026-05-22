@@ -35,6 +35,27 @@ model User {
   feedback           Feedback[]
 }
 
+// Short-lived 6-digit codes for email-verified signup and password
+// reset. For "signup" the row carries the pending account's hashed
+// password (passwordHash) so no half-built User row exists until the
+// address is confirmed; for "reset" it carries the target userId.
+// Codes are bcrypt-hashed (codeHash); rows are single-use (consumedAt)
+// and capped at a few wrong guesses (attempts) before being burned.
+model EmailCode {
+  id           Int       @id @default(autoincrement())
+  purpose      String    // "signup" | "reset"
+  email        String
+  codeHash     String
+  passwordHash String?
+  userId       Int?
+  attempts     Int       @default(0)
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([email, purpose])
+}
+
 // Site-wide visitor feedback. Submitted by anyone (signed-in or
 // anonymous) via the floating feedback button on public pages.
 // Super-admin reviews the queue at /dashboard/admin/content/feedback.

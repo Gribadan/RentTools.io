@@ -38,6 +38,10 @@ export const translations = {
   "login.or": { en: "or", ru: "или", de: "oder", fr: "ou", es: "o" },
   "login.googleError": { en: "Google sign-in failed. Try again or use your password.", ru: "Не удалось войти через Google. Попробуйте снова или используйте пароль.", de: "Google-Anmeldung fehlgeschlagen. Erneut versuchen oder Passwort verwenden.", fr: "Échec de la connexion Google. Réessayez ou utilisez votre mot de passe.", es: "Error al iniciar sesión con Google. Vuelva a intentarlo o use su contraseña." },
 
+  "login.email": { en: "Email", ru: "Эл. почта", de: "E-Mail", fr: "E-mail", es: "Correo electrónico" },
+  "login.emailPlaceholder": { en: "you@example.com", ru: "you@example.com", de: "you@example.com", fr: "you@example.com", es: "you@example.com" },
+  "login.forgotPassword": { en: "Forgot password?", ru: "Забыли пароль?", de: "Passwort vergessen?", fr: "Mot de passe oublié ?", es: "¿Olvidó su contraseña?" },
+
   // Signup
   "signup.title": { en: "Create account", ru: "Создать аккаунт", de: "Konto erstellen", fr: "Créer un compte", es: "Crear cuenta" },
   "signup.subtitle": { en: "Sign up to get started", ru: "Зарегистрируйтесь, чтобы начать", de: "Registrieren und loslegen", fr: "Inscrivez-vous pour commencer", es: "Regístrese para comenzar" },
@@ -47,6 +51,33 @@ export const translations = {
   "signup.haveAccount": { en: "Already have an account?", ru: "Уже есть аккаунт?", de: "Bereits ein Konto?", fr: "Déjà un compte ?", es: "¿Ya tiene cuenta?" },
   "signup.signInLink": { en: "Sign in", ru: "Войти", de: "Anmelden", fr: "Se connecter", es: "Iniciar sesión" },
   "signup.continueWithGoogle": { en: "Sign up with Google", ru: "Регистрация через Google", de: "Mit Google registrieren", fr: "S'inscrire avec Google", es: "Registrarse con Google" },
+  "signup.checkEmailTitle": { en: "Check your email", ru: "Проверьте почту", de: "Prüfen Sie Ihre E-Mail", fr: "Vérifiez vos e-mails", es: "Revise su correo" },
+  "signup.checkEmailSubtitle": { en: "Enter the 6-digit code we sent to {email}", ru: "Введите 6-значный код, отправленный на {email}", de: "Geben Sie den 6-stelligen Code ein, den wir an {email} gesendet haben", fr: "Saisissez le code à 6 chiffres envoyé à {email}", es: "Introduzca el código de 6 dígitos que enviamos a {email}" },
+  "signup.code": { en: "Verification code", ru: "Код подтверждения", de: "Bestätigungscode", fr: "Code de vérification", es: "Código de verificación" },
+  "signup.codePlaceholder": { en: "6-digit code", ru: "6-значный код", de: "6-stelliger Code", fr: "Code à 6 chiffres", es: "Código de 6 dígitos" },
+  "signup.verify": { en: "Verify & create account", ru: "Подтвердить и создать аккаунт", de: "Bestätigen & Konto erstellen", fr: "Vérifier et créer le compte", es: "Verificar y crear cuenta" },
+  "signup.verifying": { en: "Verifying...", ru: "Проверяем...", de: "Wird überprüft...", fr: "Vérification...", es: "Verificando..." },
+  "signup.resendCode": { en: "Resend code", ru: "Отправить код повторно", de: "Code erneut senden", fr: "Renvoyer le code", es: "Reenviar código" },
+  "signup.resent": { en: "A new code is on its way", ru: "Новый код отправлен", de: "Ein neuer Code ist unterwegs", fr: "Un nouveau code est en route", es: "Un nuevo código está en camino" },
+  "signup.useDifferentEmail": { en: "Use a different email", ru: "Использовать другую почту", de: "Andere E-Mail verwenden", fr: "Utiliser une autre adresse", es: "Usar otro correo" },
+
+  // Password reset
+  "reset.title": { en: "Reset password", ru: "Сброс пароля", de: "Passwort zurücksetzen", fr: "Réinitialiser le mot de passe", es: "Restablecer contraseña" },
+  "reset.subtitle": { en: "Enter your account email and we'll send a reset code.", ru: "Введите эл. почту аккаунта — мы отправим код для сброса.", de: "Geben Sie Ihre Konto-E-Mail ein, wir senden einen Reset-Code.", fr: "Saisissez l'e-mail de votre compte, nous enverrons un code de réinitialisation.", es: "Introduzca el correo de su cuenta y le enviaremos un código." },
+  "reset.send": { en: "Send reset code", ru: "Отправить код", de: "Reset-Code senden", fr: "Envoyer le code", es: "Enviar código" },
+  "reset.sending": { en: "Sending...", ru: "Отправляем...", de: "Wird gesendet...", fr: "Envoi...", es: "Enviando..." },
+  "reset.sentTitle": { en: "Check your email", ru: "Проверьте почту", de: "Prüfen Sie Ihre E-Mail", fr: "Vérifiez vos e-mails", es: "Revise su correo" },
+  "reset.sentSubtitle": { en: "If an account exists for that address, a 6-digit reset code is on its way.", ru: "Если аккаунт с такой почтой существует, 6-значный код уже в пути.", de: "Falls ein Konto mit dieser Adresse existiert, ist ein 6-stelliger Code unterwegs.", fr: "Si un compte existe pour cette adresse, un code à 6 chiffres est en route.", es: "Si existe una cuenta con esa dirección, un código de 6 dígitos está en camino." },
+  "reset.code": { en: "Reset code", ru: "Код для сброса", de: "Reset-Code", fr: "Code de réinitialisation", es: "Código de restablecimiento" },
+  "reset.codePlaceholder": { en: "6-digit code", ru: "6-значный код", de: "6-stelliger Code", fr: "Code à 6 chiffres", es: "Código de 6 dígitos" },
+  "reset.newPassword": { en: "New password", ru: "Новый пароль", de: "Neues Passwort", fr: "Nouveau mot de passe", es: "Nueva contraseña" },
+  "reset.newPasswordPlaceholder": { en: "Enter a new password", ru: "Введите новый пароль", de: "Neues Passwort eingeben", fr: "Saisissez un nouveau mot de passe", es: "Introduzca una nueva contraseña" },
+  "reset.submit": { en: "Update password", ru: "Обновить пароль", de: "Passwort aktualisieren", fr: "Mettre à jour le mot de passe", es: "Actualizar contraseña" },
+  "reset.submitting": { en: "Updating...", ru: "Обновляем...", de: "Wird aktualisiert...", fr: "Mise à jour...", es: "Actualizando..." },
+  "reset.doneTitle": { en: "Password updated", ru: "Пароль обновлён", de: "Passwort aktualisiert", fr: "Mot de passe mis à jour", es: "Contraseña actualizada" },
+  "reset.doneSubtitle": { en: "Sign in with your new password.", ru: "Войдите с новым паролем.", de: "Melden Sie sich mit Ihrem neuen Passwort an.", fr: "Connectez-vous avec votre nouveau mot de passe.", es: "Inicie sesión con su nueva contraseña." },
+  "reset.backToLogin": { en: "Back to sign in", ru: "Вернуться ко входу", de: "Zurück zur Anmeldung", fr: "Retour à la connexion", es: "Volver a iniciar sesión" },
+  "reset.failed": { en: "Couldn't reset password", ru: "Не удалось сбросить пароль", de: "Passwort konnte nicht zurückgesetzt werden", fr: "Échec de la réinitialisation", es: "No se pudo restablecer la contraseña" },
 
   // Welcome modal (first-time)
   "welcome.title": { en: "Welcome to RentTools", ru: "Добро пожаловать в RentTools", de: "Willkommen bei RentTools", fr: "Bienvenue sur RentTools", es: "Bienvenido a RentTools" },

@@ -41,7 +41,7 @@ const LOCALE_PREFIXES = SUPPORTED_LOCALES.filter((l) => l !== DEFAULT_LOCALE); /
 // Google. Keeping them off the prefix list means /ru/privacy redirects
 // to /privacy, which matches the user's intent (read the legal terms)
 // without lying about translation status.
-const LOCALIZABLE_PATHS = ["/", "/onboard", "/blog", "/login", "/signup"];
+const LOCALIZABLE_PATHS = ["/", "/onboard", "/blog", "/login", "/signup", "/reset-password"];
 
 function detectLocaleFromPath(pathname: string): { locale: string; rest: string } | null {
   for (const loc of LOCALE_PREFIXES) {
@@ -67,12 +67,16 @@ function isLocalizable(rest: string): boolean {
 const PUBLIC_PATHS = [
   "/login",
   "/signup",
+  "/reset-password", // public password-reset page (unauthenticated by definition)
   "/terms",
   "/privacy",
   "/onboard",
   "/blog", // public blog index, post pages, tag pages, rss.xml
   "/api/auth/login",
   "/api/auth/signup",
+  "/api/auth/verify-email", // step 2 of email-verified signup — pre-login
+  "/api/auth/forgot-password", // password-reset request — pre-login
+  "/api/auth/reset-password", // password-reset confirm — pre-login
   "/api/auth/google", // covers /api/auth/google + /callback + /one-tap (startsWith match)
   "/api/onboard", // covers /api/onboard + /api/onboard/test-platform (startsWith)
   "/api/calendar/feed",

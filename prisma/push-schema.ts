@@ -1035,6 +1035,41 @@ CREATE INDEX IF NOT EXISTS "GuestFormSubmission_templateId_idx" ON "GuestFormSub
     }
   }
 
+  // EmailCode — short-lived 6-digit codes for email-verified signup and
+  // password reset. For signup the row also carries the pending
+  // account's hashed password so no half-built User exists before the
+  // address is confirmed; for reset it carries the target userId.
+  const emailCodeSchema = `
+CREATE TABLE IF NOT EXISTS "EmailCode" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "purpose" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "codeHash" TEXT NOT NULL,
+    "passwordHash" TEXT,
+    "userId" INTEGER,
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "expiresAt" DATETIME NOT NULL,
+    "consumedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "EmailCode_email_purpose_idx" ON "EmailCode"("email", "purpose");
+`;
+
+  const emailCodeStatements = emailCodeSchema
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  for (const stmt of emailCodeStatements) {
+    try {
+      await prisma.$executeRawUnsafe(stmt);
+      console.log("OK:", stmt.substring(0, 60) + "...");
+    } catch {
+      // Table/index already exists
+    }
+  }
+
   console.log(`\nSchema pushed to ${config.label} successfully!`);
 }
 
