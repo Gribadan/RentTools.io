@@ -44,6 +44,12 @@ export function SupportFooter() {
         >
           Source
         </a>
+        <a
+          href="mailto:support@renttools.io?subject=Advertising%20enquiry"
+          className="hover:text-[var(--ink-2)]"
+        >
+          Advertise
+        </a>
         {email && (
           <a href={`mailto:${email}`} className="hover:text-[var(--ink-2)]">
             Need help? {email}

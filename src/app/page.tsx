@@ -110,7 +110,7 @@ interface CopyBlock {
   trust: { open: { title: string; body: string; link: string }; gdpr: { title: string; body: string; link: string } };
   faq: { eyebrow: string; title: string; items: SectionFaq[] };
   finalCta: { titleA: string; titleB: string; body: string; primary: string; secondary: string };
-  footer: { copyright: string; github: string; blog: string; terms: string; privacy: string; signIn: string; cookieNoteA: string; cookieNoteLink: string; cookieNoteB: string };
+  footer: { copyright: string; github: string; blog: string; terms: string; privacy: string; signIn: string; advertise: string; cookieNoteA: string; cookieNoteLink: string; cookieNoteB: string };
 }
 
 // All marketing copy split EN/RU. The EN block also seeds the FAQPage +
@@ -237,6 +237,7 @@ const COPY: Record<Locale, CopyBlock> = {
       terms: "Terms",
       privacy: "Privacy",
       signIn: "Sign in",
+      advertise: "Advertise",
       cookieNoteA: "Essential cookies only — no tracking, no analytics. See ",
       cookieNoteLink: "Privacy",
       cookieNoteB: ".",
@@ -364,6 +365,7 @@ const COPY: Record<Locale, CopyBlock> = {
       terms: "Условия",
       privacy: "Конфиденциальность",
       signIn: "Войти",
+      advertise: "Реклама",
       cookieNoteA: "Только служебные cookie — без трекинга и аналитики. Подробнее в ",
       cookieNoteLink: "Политике конфиденциальности",
       cookieNoteB: ".",
@@ -491,6 +493,7 @@ const COPY: Record<Locale, CopyBlock> = {
       terms: "AGB",
       privacy: "Datenschutz",
       signIn: "Anmelden",
+      advertise: "Werben",
       cookieNoteA: "Nur technisch notwendige Cookies — kein Tracking, keine Analytics. Mehr im ",
       cookieNoteLink: "Datenschutz",
       cookieNoteB: ".",
@@ -618,6 +621,7 @@ const COPY: Record<Locale, CopyBlock> = {
       terms: "Conditions",
       privacy: "Confidentialité",
       signIn: "Se connecter",
+      advertise: "Annonceurs",
       cookieNoteA: "Cookies strictement nécessaires uniquement — pas de tracking, pas d’analytics. Voir la ",
       cookieNoteLink: "politique de confidentialité",
       cookieNoteB: ".",
@@ -745,6 +749,7 @@ const COPY: Record<Locale, CopyBlock> = {
       terms: "Términos",
       privacy: "Privacidad",
       signIn: "Iniciar sesión",
+      advertise: "Publicidad",
       cookieNoteA: "Solo cookies imprescindibles — sin tracking ni analítica. Consulte la ",
       cookieNoteLink: "política de privacidad",
       cookieNoteB: ".",
@@ -1018,6 +1023,12 @@ export default async function HomePage() {
               <Link href={localePath("/blog", locale)} className="hover:text-[var(--ink)] transition-colors">{t.footer.blog}</Link>
               <Link href="/terms" className="hover:text-[var(--ink)] transition-colors">{t.footer.terms}</Link>
               <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">{t.footer.privacy}</Link>
+              <a
+                href="mailto:support@renttools.io?subject=Advertising%20enquiry"
+                className="hover:text-[var(--ink)] transition-colors"
+              >
+                {t.footer.advertise}
+              </a>
               {supportEmail && (
                 <a href={`mailto:${supportEmail}`} className="hover:text-[var(--ink)] transition-colors">
                   {supportEmail}
