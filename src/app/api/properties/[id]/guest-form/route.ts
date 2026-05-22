@@ -11,6 +11,7 @@ type FieldType =
   | "short-text"
   | "long-text"
   | "number"
+  | "email"
   | "select"
   | "multi-select"
   | "date"
@@ -22,6 +23,7 @@ const FIELD_TYPES: ReadonlySet<string> = new Set<FieldType>([
   "short-text",
   "long-text",
   "number",
+  "email",
   "select",
   "multi-select",
   "date",
@@ -35,6 +37,8 @@ interface FormField {
   type: FieldType;
   label: string;
   required: boolean;
+  /** Optional helper text shown under the question on the guest form. */
+  helpText?: string;
   options?: string[];
 }
 
@@ -50,6 +54,9 @@ function sanitizeFields(input: unknown): FormField[] {
     const label = typeof r.label === "string" ? r.label.slice(0, 200) : "";
     const required = r.required === true;
     const field: FormField = { id, type, label, required };
+    if (typeof r.helpText === "string" && r.helpText.trim()) {
+      field.helpText = r.helpText.slice(0, 300);
+    }
     if (type === "select" || type === "multi-select") {
       const opts = Array.isArray(r.options)
         ? r.options.filter((o): o is string => typeof o === "string").slice(0, 50)

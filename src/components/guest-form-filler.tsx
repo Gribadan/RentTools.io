@@ -7,6 +7,7 @@ interface FormField {
   type: string;
   label: string;
   required: boolean;
+  helpText?: string;
   options?: string[];
 }
 
@@ -80,10 +81,15 @@ function FieldInput({
   onChange: (v: unknown) => void;
 }) {
   const labelEl = (
-    <span className="block text-sm font-medium text-[#e8e8ec]">
-      {field.label || "Question"}
-      {field.required && <span className="ml-1 text-[#ff385c]">*</span>}
-    </span>
+    <>
+      <span className="block text-sm font-medium text-[#e8e8ec]">
+        {field.label || "Question"}
+        {field.required && <span className="ml-1 text-[#ff385c]">*</span>}
+      </span>
+      {field.helpText && (
+        <span className="mt-0.5 block text-xs text-[#a0a0a8]">{field.helpText}</span>
+      )}
+    </>
   );
 
   const inputClass =
@@ -148,6 +154,19 @@ function FieldInput({
           {labelEl}
           <input
             type="tel"
+            value={(value as string) ?? ""}
+            onChange={(e) => onChange(e.target.value)}
+            required={field.required}
+            className={inputClass}
+          />
+        </label>
+      );
+    case "email":
+      return (
+        <label className="block">
+          {labelEl}
+          <input
+            type="email"
             value={(value as string) ?? ""}
             onChange={(e) => onChange(e.target.value)}
             required={field.required}

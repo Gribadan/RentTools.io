@@ -12,6 +12,7 @@ import { PropertyCalendar } from "@/components/property-calendar";
 import { PropertyCleaningView } from "@/components/property-cleaning-view";
 import { GlobalCleaningView } from "@/components/global-cleaning-view";
 import { SyncSettings } from "@/components/sync-settings";
+import { GuestFormPage } from "@/components/guest-form-page";
 import { TasksPanel } from "@/components/tasks-panel";
 import { ReportsPanel } from "@/components/reports-panel";
 import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
@@ -350,6 +351,14 @@ function AppContent({
               ownerUserId={selectedProperty.userId}
               onUpdateProperty={handleUpdateProperty}
               onDeleteProperty={handleDeleteProperty}
+            />
+          );
+        case "guest-form":
+          return (
+            <GuestFormPage
+              key={`guest-form-${selectedProperty.id}`}
+              propertyId={selectedProperty.id}
+              propertyName={selectedProperty.name}
             />
           );
         case "guests":

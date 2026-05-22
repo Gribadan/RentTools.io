@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { EmptyState } from "@/components/empty-state";
 import { OnboardingTooltip } from "@/components/onboarding-tooltip";
 import { MessageTemplatesPanel } from "@/components/message-templates-panel";
 import { PropertyManagersPanel } from "@/components/property-managers-panel";
-import { GuestFormBuilder } from "@/components/guest-form-builder";
 import { PropertySwitcher } from "@/components/property-switcher";
 import { PlatformInstructions } from "@/components/platform-instructions";
 import { useI18n } from "@/lib/i18n/context";
@@ -1087,7 +1087,29 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           PropertyCleaningView sidebar. The cleaning tab is the sole
           assignment UI now. */}
       <MessageTemplatesPanel propertyId={propertyId} />
-      <GuestFormBuilder propertyId={propertyId} />
+
+      {/* Pre-arrival guest form — the builder is its own full-page
+          surface now; this card just links across to it. */}
+      <Link
+        href={`/dashboard?property=${propertyId}&view=guest-form`}
+        className="group flex items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--bg-2)] p-4 transition-colors hover:border-[var(--line-2)] hover:bg-[var(--bg-3)]"
+      >
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--m-accent)]/10 text-[var(--m-accent)]">
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-[var(--ink)]">Pre-arrival guest form</h3>
+          <p className="mt-0.5 text-xs text-[var(--ink-3)]">
+            Build the questions guests answer before arrival — passport details,
+            arrival time, anything you need.
+          </p>
+        </div>
+        <svg className="h-4 w-4 shrink-0 text-[var(--ink-4)] transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+      </Link>
 
       {/* Feed access token (RT-25.4) — relocated to the bottom of the
           page. The card explains what the feed URL is for and lets the
