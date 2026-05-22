@@ -621,7 +621,8 @@ export function ReservationView({
   const stayDays = () => stayNights() + 1;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
+    <div className="mx-auto max-w-[1760px] space-y-6 px-3 sm:px-5">
       {/* Reservation Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
@@ -701,6 +702,14 @@ export function ReservationView({
           )}
         </div>
       </div>
+
+      {/* Below the header, a two-column row. The reservation tools
+          (pre-arrival form + group chat) sit in a sidebar; the passport
+          upload and guest list — the primary task — take the wide main
+          column. flex-col-reverse keeps the main column first on mobile
+          while flex-row-reverse puts it on the left at desktop width. */}
+      <div className="flex flex-col-reverse gap-6 lg:flex-row-reverse">
+        <aside className="w-full space-y-4 lg:w-[380px] lg:shrink-0">
 
       {/* RT-25.2 — Pre-arrival form share link. Hidden when the property
           has no GuestFormTemplate configured (set up under Sync Settings).
@@ -908,6 +917,10 @@ export function ReservationView({
           </div>
         )}
       </div>
+        </aside>
+
+        {/* Main column — passport documents + guest list */}
+        <div className="min-w-0 space-y-6 lg:flex-1">
 
       {/* Drop Zone */}
       <div
@@ -1202,6 +1215,9 @@ export function ReservationView({
           </div>
         </div>
       )}
+        </div>
+      </div>
+    </div>
     </div>
   );
 }
