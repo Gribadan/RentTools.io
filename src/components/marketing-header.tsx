@@ -12,6 +12,13 @@ interface MarketingHeaderProps {
   /** Sticky variant for long-content pages (blog post + index). Off by
    *  default so the home page and onboarding wizard match. */
   sticky?: boolean;
+  /** Switch language in place (no page reload) instead of hard-
+   *  navigating to the locale-prefixed URL. Set on pages whose copy is
+   *  entirely client-rendered via t() — the auth screens — so a
+   *  language switch keeps in-progress form state (e.g. a half-typed
+   *  verification code). Leave off for content pages that need the
+   *  server body to re-render in the new locale. */
+  softLocaleSwitch?: boolean;
 }
 
 const NAV_LABELS = {
@@ -34,7 +41,7 @@ const NAV_LABELS = {
  * GitHub + Get started both hide on <sm to keep the small-screen header
  * to a single readable row.
  */
-export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
+export function MarketingHeader({ sticky = false, softLocaleSwitch = false }: MarketingHeaderProps) {
   const { locale } = useI18n();
   const session = useSession();
   const t = NAV_LABELS[locale];
@@ -165,7 +172,7 @@ export function MarketingHeader({ sticky = false }: MarketingHeaderProps) {
               separation via their own borders. */}
           <span className="mx-1 hidden h-4 w-px bg-[var(--line)] sm:block" />
           <ThemeToggle />
-          <LocaleSwitcher />
+          <LocaleSwitcher reloadOnChange={!softLocaleSwitch} />
         </nav>
       </div>
     </header>

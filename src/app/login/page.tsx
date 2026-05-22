@@ -81,7 +81,7 @@ function LoginPageInner() {
           surface reads as the same site (RT-25.7). Coral pill + white
           house silhouette + SMIL smoke puffs, identical to top-bar
           and home so the brand mark stays consistent across pages. */}
-      <MarketingHeader />
+      <MarketingHeader softLocaleSwitch />
 
       {/* ── Main ── */}
       <main className="flex flex-1 items-center justify-center px-6 py-10 sm:py-14">

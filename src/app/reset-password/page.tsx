@@ -85,7 +85,7 @@ function ResetPasswordInner() {
 
   return (
     <div className="editorial min-h-screen flex flex-col">
-      <MarketingHeader />
+      <MarketingHeader softLocaleSwitch />
 
       <main className="flex flex-1 items-center justify-center px-6 py-10 sm:py-14">
         <div className="w-full max-w-[360px]">

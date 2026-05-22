@@ -94,7 +94,7 @@ interface LocaleSwitcherProps {
 export function LocaleSwitcher({
   variant = "dropdown",
   className = "",
-  reloadOnChange: _reloadOnChange = true,
+  reloadOnChange = true,
 }: LocaleSwitcherProps) {
   const { locale, setLocale } = useI18n();
   const pathname = usePathname();
@@ -132,6 +132,13 @@ export function LocaleSwitcher({
     setOpen(false);
     if (next === locale) return;
     setLocale(next);
+    // reloadOnChange=false: the caller's page is rendered entirely
+    // client-side via t() (the auth screens), so the setLocale above
+    // already re-renders every string in the new language. Skipping
+    // the navigation keeps in-progress React state — a half-entered
+    // verification code, the "enter your code" step — instead of
+    // remounting the page back to its first step.
+    if (!reloadOnChange) return;
     const target = swapLocaleInPath(pathname ?? "/", next);
     if (typeof window !== "undefined") {
       window.location.assign(target);

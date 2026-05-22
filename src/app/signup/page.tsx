@@ -135,7 +135,7 @@ function SignupPageInner() {
 
   return (
     <div className="editorial min-h-screen flex flex-col">
-      <MarketingHeader />
+      <MarketingHeader softLocaleSwitch />
 
       {/* ── Main ── */}
       <main className="flex flex-1 items-center justify-center px-6 py-10 sm:py-14">
