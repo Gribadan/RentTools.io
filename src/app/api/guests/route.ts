@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { canManageProperty } from "@/lib/ownership";
+import { maskGuestDocs } from "@/lib/guest-privacy";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,10 @@ export async function GET(request: NextRequest) {
       where: { reservationId: numId },
       orderBy: { createdAt: "asc" },
     });
-    return NextResponse.json(guests);
+    // Redact passport / ID fields when a superadmin is impersonating —
+    // the host sees their own guests in full.
+    const redact = !!session.impersonatorId;
+    return NextResponse.json(guests.map((g) => maskGuestDocs(g, redact)));
   } catch (err) {
     console.error("Route error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

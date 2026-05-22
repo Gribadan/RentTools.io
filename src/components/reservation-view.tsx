@@ -947,6 +947,19 @@ export function ReservationView({
         </div>
       </div>
 
+      {/* Privacy assurance — backed by the impersonation masking in
+          src/lib/guest-privacy.ts: an impersonating superadmin gets
+          passport / ID fields redacted from every API response. */}
+      <div className="flex items-start gap-2 rounded-lg border border-border/40 bg-card/20 px-3 py-2">
+        <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+        </svg>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Passport documents are private to your account. RentTools support and
+          administrators cannot view the passport details you upload here.
+        </p>
+      </div>
+
       {/* Staged Files */}
       {files.length > 0 && (
         <div className="flex items-center justify-between rounded-xl border border-border/40 bg-card/30 px-4 py-3">

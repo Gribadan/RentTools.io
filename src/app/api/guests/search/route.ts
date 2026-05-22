@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { listAccessiblePropertyIds } from "@/lib/ownership";
+import { maskGuestDocs } from "@/lib/guest-privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -49,17 +50,20 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
+    // Redact passport / nationality in results when a superadmin is
+    // impersonating — search still matches server-side, but the
+    // impersonating session never sees the document values.
+    const redact = !!session.impersonatorId;
     const results = guests.map((g) => ({
       guestId: g.id,
       fullName: g.fullName,
-      country: g.country,
-      passportNumber: g.passportNumber,
       reservationId: g.reservationId,
       reservationName: g.reservation.name,
       checkIn: g.reservation.checkIn.toISOString(),
       checkOut: g.reservation.checkOut.toISOString(),
       propertyId: g.reservation.propertyId,
       propertyName: g.reservation.property.name,
+      ...maskGuestDocs({ country: g.country, passportNumber: g.passportNumber }, redact),
     }));
 
     return NextResponse.json({ results });

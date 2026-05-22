@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { maskGuestDocs } from "@/lib/guest-privacy";
 
 // GDPR data export. Returns every row tied to the calling user as a
 // single JSON document so they can take their data with them. Mirrors
@@ -54,10 +55,23 @@ export async function GET() {
         }),
       ]);
 
+    // Redact guest passport / ID fields if a superadmin is impersonating
+    // — an impersonating session must not be able to export them either.
+    const redact = !!session.impersonatorId;
+    const exportProperties = redact
+      ? properties.map((p) => ({
+          ...p,
+          reservations: p.reservations.map((r) => ({
+            ...r,
+            guests: r.guests.map((g) => maskGuestDocs(g, true)),
+          })),
+        }))
+      : properties;
+
     const payload = {
       exportedAt: new Date().toISOString(),
       user,
-      properties,
+      properties: exportProperties,
       auditLogs,
       extractionLogs,
       managerGrantsGiven: managerGrants,
