@@ -64,6 +64,7 @@ export async function claimOnboardingDraft(userId: number): Promise<void> {
       data: {
         name: propertyName,
         userId,
+        minNights: 1,
         feedSlug: draft.feedSlug ?? undefined,
       },
     });

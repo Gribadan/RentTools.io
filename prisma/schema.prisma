@@ -103,7 +103,7 @@ model Property {
   userId         Int
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
-  minNights      Int              @default(3)
+  minNights      Int              @default(1)
   checkInTime    String           @default("14:00")
   checkOutTime   String           @default("12:00")
   bookingWindow  Int              @default(365) // days forward from today to accept bookings; beyond this, events are ignored

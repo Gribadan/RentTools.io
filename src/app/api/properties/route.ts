@@ -63,7 +63,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
     const property = await prisma.property.create({
-      data: { name: name.trim(), userId: session.userId },
+      // minNights defaults to 1 — most hosts accept single-night stays;
+      // those who want a floor raise it in Sync settings.
+      data: { name: name.trim(), userId: session.userId, minNights: 1 },
     });
     await logAudit(session.userId, "create", "property", property.id, { name: property.name });
     return NextResponse.json(property);
