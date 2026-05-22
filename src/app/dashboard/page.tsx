@@ -403,6 +403,7 @@ function AppContent({
         onSelectReservation={handleSelectReservation}
         onAddReservation={handleAddReservation}
         onAddProperty={handleAddProperty}
+        onUpdateProperty={handleUpdateProperty}
         onRefresh={fetchProperties}
       />
     );

@@ -470,6 +470,11 @@ export function Dashboard({
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [savingName, setSavingName] = useState(false);
+  // Inline rename on a property card in the portfolio (all-properties)
+  // view — editingCardId holds the card currently being renamed.
+  const [editingCardId, setEditingCardId] = useState<number | null>(null);
+  const [cardNameDraft, setCardNameDraft] = useState("");
+  const [savingCardId, setSavingCardId] = useState<number | null>(null);
   // RT-25.6 tick 2 — distinct platform slugs across the user's CalendarLinks.
   // Populated regardless of selectedProperty so the form pills always reflect
   // the user's real platform set (Airbnb + Booking + any custom platforms).
@@ -916,6 +921,22 @@ export function Dashboard({
     }
   };
 
+  const handleSaveCardName = async (id: number, original: string) => {
+    if (!onUpdateProperty) return;
+    const trimmed = cardNameDraft.trim();
+    if (!trimmed || trimmed === original) {
+      setEditingCardId(null);
+      return;
+    }
+    setSavingCardId(id);
+    try {
+      await onUpdateProperty(id, { name: trimmed });
+      setEditingCardId(null);
+    } finally {
+      setSavingCardId(null);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
@@ -1224,8 +1245,69 @@ export function Dashboard({
                 }}
                 className="group rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-5 text-left transition-all hover:border-[var(--line-2)] hover:bg-[var(--bg-3)] cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-[var(--ink)] group-hover:text-[var(--ink)] transition-colors truncate">{p.name}</h3>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                  {editingCardId === p.id ? (
+                    <div
+                      className="flex min-w-0 flex-1 items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        value={cardNameDraft}
+                        onChange={(e) => setCardNameDraft(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                          if (e.key === "Enter") handleSaveCardName(p.id, p.name);
+                          if (e.key === "Escape") setEditingCardId(null);
+                        }}
+                        autoFocus
+                        disabled={savingCardId === p.id}
+                        className="min-w-0 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 py-0.5 text-sm font-semibold text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-60"
+                      />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleSaveCardName(p.id, p.name); }}
+                        disabled={savingCardId === p.id}
+                        aria-label={t("common.save")}
+                        title={t("common.save")}
+                        className="shrink-0 rounded-md p-1 text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setEditingCardId(null); }}
+                        disabled={savingCardId === p.id}
+                        aria-label={t("common.cancel")}
+                        title={t("common.cancel")}
+                        className="shrink-0 rounded-md p-1 text-[var(--ink-4)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] disabled:opacity-50"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex min-w-0 items-center gap-1">
+                      <h3 className="text-sm font-semibold text-[var(--ink)] transition-colors truncate">{p.name}</h3>
+                      {onUpdateProperty && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCardNameDraft(p.name);
+                            setEditingCardId(p.id);
+                          }}
+                          aria-label={t("common.edit")}
+                          title={t("common.edit")}
+                          className="shrink-0 rounded p-0.5 text-[var(--ink-4)] transition-colors hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <Link
                     href={`/dashboard?property=${p.id}&view=calendar`}
                     onClick={(e) => e.stopPropagation()}
