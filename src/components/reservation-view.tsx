@@ -301,28 +301,60 @@ export function ReservationView({
   // themselves. The endpoint is idempotent on second call: returns the
   // same shareUrl that was minted the first time.
   const copyGuestFormLink = async () => {
-    setGuestFormGenerating(true);
     setGuestFormCopyState("idle");
-    try {
-      const res = await fetch(`/api/reservations/${reservation.id}/guest-form/share`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        setGuestFormCopyState("error");
-        return;
-      }
-      const data = await res.json();
-      const fullUrl = `${window.location.origin}${data.shareUrl}`;
+
+    // Fast path — the share URL is already known (the link was minted
+    // earlier). Copy it straight away: writeText is called inside the
+    // tap, so mobile Safari keeps clipboard permission.
+    if (guestFormSubmission?.shareUrl) {
       try {
-        await navigator.clipboard.writeText(fullUrl);
+        await navigator.clipboard.writeText(
+          `${window.location.origin}${guestFormSubmission.shareUrl}`,
+        );
         setGuestFormCopyState("copied");
         setTimeout(() => setGuestFormCopyState("idle"), 2500);
       } catch {
         setGuestFormCopyState("error");
       }
-      refreshGuestFormSubmission();
+      return;
+    }
+
+    // First time — the URL has to be minted by the API. A plain
+    // `await fetch(...)` then `clipboard.writeText` fails on mobile
+    // Safari: the tap's activation is spent by the time writeText
+    // runs. Instead hand clipboard.write() a Promise — ClipboardItem
+    // accepts one, so the write is registered inside the tap and
+    // fulfilled when the URL arrives. Browsers without ClipboardItem
+    // fall back to the await-then-writeText path.
+    setGuestFormGenerating(true);
+    const urlPromise = fetch(`/api/reservations/${reservation.id}/guest-form/share`, {
+      method: "POST",
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("share request failed");
+        return res.json();
+      })
+      .then((data) => `${window.location.origin}${data.shareUrl}`);
+
+    try {
+      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/plain": urlPromise.then(
+              (url) => new Blob([url], { type: "text/plain" }),
+            ),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(await urlPromise);
+      }
+      setGuestFormCopyState("copied");
+      setTimeout(() => setGuestFormCopyState("idle"), 2500);
+    } catch {
+      setGuestFormCopyState("error");
     } finally {
       setGuestFormGenerating(false);
+      refreshGuestFormSubmission();
     }
   };
 
