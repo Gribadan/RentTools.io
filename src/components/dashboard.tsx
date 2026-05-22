@@ -938,7 +938,8 @@ export function Dashboard({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
+    <div className="mx-auto max-w-[1760px] space-y-6 px-3 sm:px-5">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -1212,7 +1213,7 @@ export function Dashboard({
           IN the property right now (with nights remaining), who is
           coming NEXT (with arrival date), and any sync-error flag. */}
       {!selectedProperty && properties.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {properties.map(p => {
             const occ = propertyOccupancy.get(p.id);
             const current = occ?.current ?? null;
@@ -1610,6 +1611,7 @@ export function Dashboard({
           />
         </div>
       )}
+    </div>
     </div>
   );
 }
