@@ -6,7 +6,6 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GuestCards } from "@/components/guest-cards";
-import { DateSlider } from "@/components/date-slider";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 import type { Guest, Reservation } from "@/lib/types";
@@ -201,15 +200,6 @@ export function ReservationView({
   } | null>(null);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(reservation.name);
-  const [editCheckIn, setEditCheckIn] = useState(
-    new Date(reservation.checkIn).toISOString().split("T")[0]
-  );
-  const [editCheckOut, setEditCheckOut] = useState(
-    new Date(reservation.checkOut).toISOString().split("T")[0]
-  );
-  const [editPlatform, setEditPlatform] = useState(
-    reservation.platform || "airbnb"
-  );
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<MessageTemplate | null>(null);
@@ -556,13 +546,10 @@ export function ReservationView({
     setEditingGroupUrls(false);
   };
 
+  // Name-only edit. Dates and platform are managed from the calendar
+  // view — editing them here would be a second, conflicting surface.
   const handleSaveEdit = () => {
-    onUpdateReservation(reservation.id, {
-      name: editName,
-      checkIn: editCheckIn,
-      checkOut: editCheckOut,
-      platform: editPlatform,
-    });
+    onUpdateReservation(reservation.id, { name: editName });
     setEditing(false);
   };
 
@@ -643,33 +630,12 @@ export function ReservationView({
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveEdit();
+                  if (e.key === "Escape") setEditing(false);
+                }}
+                autoFocus
                 className="w-full rounded-lg border border-border/50 bg-background/50 px-3 py-2 text-lg font-bold outline-none focus:border-primary/50"
-              />
-              <div className="flex items-center gap-3">
-                <div className="flex rounded-lg bg-background/50 p-0.5">
-                  {(["airbnb", "booking"] as const).map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setEditPlatform(p)}
-                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                        editPlatform === p
-                          ? p === "airbnb"
-                            ? "bg-[var(--m-accent)]/15 text-[var(--m-accent)] shadow-sm"
-                            : "bg-[#003580]/20 text-sky-500 shadow-sm"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {p === "airbnb" ? "Airbnb" : "Booking"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <DateSlider
-                checkIn={editCheckIn}
-                checkOut={editCheckOut}
-                onChangeCheckIn={setEditCheckIn}
-                onChangeCheckOut={setEditCheckOut}
               />
               <div className="flex gap-2">
                 <Button size="sm" className="rounded-lg text-xs" onClick={handleSaveEdit}>
