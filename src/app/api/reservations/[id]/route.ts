@@ -41,6 +41,14 @@ export async function PATCH(
     if (body.checkOut !== undefined) data.checkOut = new Date(body.checkOut);
     if (body.platform !== undefined) data.platform = body.platform;
 
+    // Host-editable group-chat name override. Empty string / whitespace
+    // clears it (back to the auto-generated name); otherwise store the
+    // trimmed text.
+    if (body.groupName !== undefined) {
+      const v = typeof body.groupName === "string" ? body.groupName.trim() : "";
+      data.groupName = v === "" ? null : v;
+    }
+
     // Per-reservation messenger group URLs. Empty string clears the
     // value (null in DB); a real URL must start with the platform's
     // canonical public prefix so we don't accidentally save a chat

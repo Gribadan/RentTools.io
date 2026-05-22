@@ -115,6 +115,7 @@ interface ReservationViewProps {
       platform?: string;
       tgGroupUrl?: string | null;
       waGroupUrl?: string | null;
+      groupName?: string | null;
     }
   ) => void | Promise<{ ok: true } | { ok: false; error: string }>;
   onUpdateParent: (childId: number, parentId: number | null) => void;
@@ -162,6 +163,11 @@ export function ReservationView({
   // through the same PATCH /api/reservations/:id endpoint as the rest
   // of the editable fields.
   const [groupNameCopyState, setGroupNameCopyState] = useState<"idle" | "copied">("idle");
+  // null = the host hasn't touched the group-name field this session
+  // (field tracks the saved override or the live auto-name). A string
+  // = an in-progress edit.
+  const [groupNameOverride, setGroupNameOverride] = useState<string | null>(null);
+  const [savingGroupName, setSavingGroupName] = useState(false);
   const [editingGroupUrls, setEditingGroupUrls] = useState(false);
   const [editTgGroupUrl, setEditTgGroupUrl] = useState("");
   const [editWaGroupUrl, setEditWaGroupUrl] = useState("");
@@ -173,6 +179,9 @@ export function ReservationView({
   // + clipboard copy — RentTools doesn't send anything to the guest;
   // the host pastes the URL into WhatsApp / SMS / email themselves.
   const [hasGuestForm, setHasGuestForm] = useState(false);
+  // True once the guest-form fetch has resolved — gates the
+  // "not configured yet" hint so it doesn't flash during loading.
+  const [guestFormChecked, setGuestFormChecked] = useState(false);
   const [guestFormGenerating, setGuestFormGenerating] = useState(false);
   const [guestFormCopyState, setGuestFormCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [guestFormSubmission, setGuestFormSubmission] = useState<{
@@ -223,9 +232,12 @@ export function ReservationView({
     fetch(`/api/properties/${reservation.propertyId}/guest-form`)
       .then((r) => (r.ok ? r.json() : { template: null }))
       .then((d) => {
-        if (!cancelled) setHasGuestForm(!!d.template);
+        if (!cancelled) {
+          setHasGuestForm(!!d.template);
+          setGuestFormChecked(true);
+        }
       })
-      .catch(() => {});
+      .catch(() => { if (!cancelled) setGuestFormChecked(true); });
     return () => {
       cancelled = true;
     };
@@ -480,17 +492,37 @@ export function ReservationView({
     onGuestsUpdated();
   };
 
+  // Effective group name shown + copied: the host's saved override
+  // (reservation.groupName) if set, otherwise the auto-generated one.
+  // `groupNameOverride` holds the in-progress edit — null until the
+  // host starts typing, so the field tracks the live auto-name (which
+  // updates as guests finish loading) until they take control of it.
+  const autoGroupName = formatGroupName(reservation, guests, propertyName);
+  const groupNameValue = groupNameOverride ?? reservation.groupName ?? autoGroupName;
+
   const handleCopyGroupName = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(formatGroupName(reservation, guests, propertyName));
+      await navigator.clipboard.writeText(groupNameValue);
       setGroupNameCopyState("copied");
       setTimeout(() => setGroupNameCopyState("idle"), 2000);
     } catch {
       // Clipboard write can fail in non-secure contexts. Silent — the
-      // visible group-name preview right below the button is the
+      // visible group-name field right below the button is the
       // fallback the host can manually select.
     }
-  }, [reservation, guests, propertyName]);
+  }, [groupNameValue]);
+
+  const handleSaveGroupName = async () => {
+    if (groupNameOverride === null) return;
+    setSavingGroupName(true);
+    await Promise.resolve(
+      // Empty string clears the override (PATCH maps "" → null), so the
+      // bar falls back to the auto-generated name.
+      onUpdateReservation(reservation.id, { groupName: groupNameOverride.trim() }),
+    );
+    setSavingGroupName(false);
+    setGroupNameOverride(null);
+  };
 
   const handleSaveGroupUrls = async () => {
     setSavingGroupUrls(true);
@@ -724,6 +756,22 @@ export function ReservationView({
         </div>
       )}
 
+      {/* Discovery hint — the property has no pre-arrival form template
+          yet, so the section above is hidden. Many hosts never set one
+          up simply because they don't know it exists. A one-line, low-
+          key note surfaces the feature without nagging: a host who
+          doesn't want it just reads past it. */}
+      {guestFormChecked && !hasGuestForm && (
+        <div className="rounded-xl border border-dashed border-border/50 px-4 py-2.5">
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Tip — pre-arrival form.</span>{" "}
+            You can set up a guest form (passport details, arrival time, questions)
+            under <span className="font-medium">Sync settings → Pre-arrival form</span>.
+            Once configured, a shareable link appears here for every reservation.
+          </p>
+        </div>
+      )}
+
       {/* RT-25.13 tick 2 — Send group invite. Renders only when the host
           has saved at least one messenger invite URL in their profile.
           Disabled (with explanatory tooltip) when no guest has a phone. */}
@@ -850,12 +898,39 @@ export function ReservationView({
           </Button>
         </div>
 
-        {/* Preview of the formatted name so the host sees exactly what
-            went onto the clipboard — saves a paste-into-scratch round
-            trip when they're double-checking the format. */}
-        <code className="block w-full overflow-x-auto rounded-md bg-muted/40 px-2 py-1 text-[11px] text-muted-foreground">
-          {formatGroupName(reservation, guests, propertyName)}
-        </code>
+        {/* Editable group name. Pre-filled with the auto-generated
+            "[Platform] [dates] | [guest] | [property]" string; the host
+            can overwrite it with anything (the "Copy group name" button
+            copies whatever is in the field). Empty + Save resets to the
+            auto name. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            value={groupNameValue}
+            onChange={(e) => setGroupNameOverride(e.target.value)}
+            className="min-w-0 flex-1 rounded-md border border-border/50 bg-background/50 px-2 py-1 text-[11px] text-muted-foreground outline-none transition-colors focus:border-primary/50 focus:text-foreground"
+          />
+          {groupNameOverride !== null && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveGroupName}
+              disabled={savingGroupName}
+              className="rounded-lg text-xs"
+            >
+              {savingGroupName ? "Saving…" : "Save name"}
+            </Button>
+          )}
+          {groupNameOverride === null && reservation.groupName && (
+            <button
+              type="button"
+              onClick={() => { setGroupNameOverride(""); }}
+              className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Reset to auto
+            </button>
+          )}
+        </div>
 
         {!editingGroupUrls ? (
           <div className="flex flex-wrap items-center gap-2 pt-1">

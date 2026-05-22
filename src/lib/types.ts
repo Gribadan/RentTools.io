@@ -38,6 +38,10 @@ export interface Reservation {
    *  used in the "Send group invite" guest-facing flow. */
   tgGroupUrl?: string | null;
   waGroupUrl?: string | null;
+  /** Host-editable override for the messenger group-chat name. When
+   *  null/absent, the reservation view auto-generates one from the
+   *  platform, dates, guest, and property. */
+  groupName?: string | null;
   propertyId: number;
   createdAt: string;
   guests?: Guest[];

@@ -231,6 +231,10 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // booking, so they can re-open the right group in one click later.
     `ALTER TABLE "Reservation" ADD COLUMN "tgGroupUrl" TEXT`,
     `ALTER TABLE "Reservation" ADD COLUMN "waGroupUrl" TEXT`,
+    // Host-editable override for the messenger group-chat name. NULL =
+    // fall back to the auto-generated "[Platform] [dates] | [guest] |
+    // [property]" string.
+    `ALTER TABLE "Reservation" ADD COLUMN "groupName" TEXT`,
   ];
 
   // Feedback table — site-wide visitor feedback queue. New table, so we

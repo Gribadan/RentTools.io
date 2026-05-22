@@ -264,6 +264,11 @@ model Reservation {
   // both the UI and the PATCH endpoint.
   tgGroupUrl      String?  // must start with https://t.me/ when set
   waGroupUrl      String?  // must start with https://chat.whatsapp.com/ when set
+  // Host-editable override for the group-chat name. When null the
+  // reservation view shows an auto-generated name ("Airbnb 12-19 May
+  // 2026 | Amilla | House 7"); when set, the host's custom text is
+  // used by the "Copy group name" button instead.
+  groupName       String?
   propertyId      Int
   property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests          Guest[]
