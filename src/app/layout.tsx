@@ -185,11 +185,12 @@ export default async function RootLayout({
         <Providers initialLocale={lang} initialSession={clientSession}>
           <ImpersonationBanner />
           {children}
+          {/* Floating feedback pill — site-wide on public pages. The
+              component itself opts out on /dashboard, /admin, /g/, /invite/
+              via usePathname so signed-in app surfaces stay uncluttered.
+              Inside Providers so useI18n() resolves the visitor's locale. */}
+          <FeedbackButton />
         </Providers>
-        {/* Floating feedback pill — site-wide on public pages. The
-            component itself opts out on /dashboard, /admin, /g/, /invite/
-            via usePathname so signed-in app surfaces stay uncluttered. */}
-        <FeedbackButton />
       </body>
     </html>
   );

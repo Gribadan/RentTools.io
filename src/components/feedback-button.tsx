@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 
 const BODY_MAX = 2000;
 const EMAIL_MAX = 200;
@@ -14,6 +16,118 @@ const EMAIL_MAX = 200;
 // Dashboard intentionally INCLUDED — signed-in hosts are the people whose
 // feedback we most want to capture (they hit real product friction).
 const HIDE_ON_PREFIXES = ["/g/", "/invite/", "/dashboard/admin", "/admin/"];
+
+interface CopyShape {
+  trigger: string;
+  triggerAria: string;
+  heading: string;
+  subtitle: string;
+  close: string;
+  successTitle: string;
+  successBody: string;
+  messageLabel: string;
+  messagePlaceholder: string;
+  emailLabel: string;
+  emailPlaceholder: string;
+  networkError: string;
+  couldntSend: (status: number) => string;
+  cancel: string;
+  send: string;
+  sending: string;
+}
+
+const COPY: Record<Locale, CopyShape> = {
+  en: {
+    trigger: "Feedback",
+    triggerAria: "Send feedback",
+    heading: "Send feedback",
+    subtitle: "What's on your mind? Bug, missing feature, or kind word.",
+    close: "Close",
+    successTitle: "Thanks — got it.",
+    successBody: "The maintainer reads every message.",
+    messageLabel: "Message",
+    messagePlaceholder: "What's working, what's not, what's missing…",
+    emailLabel: "Email (optional)",
+    emailPlaceholder: "If you want a reply",
+    networkError: "Network error",
+    couldntSend: (s) => `Couldn't send (${s}). Try again in a moment.`,
+    cancel: "Cancel",
+    send: "Send",
+    sending: "Sending…",
+  },
+  ru: {
+    trigger: "Отзыв",
+    triggerAria: "Отправить отзыв",
+    heading: "Отправить отзыв",
+    subtitle: "Что вы думаете? Ошибка, нужная функция или доброе слово.",
+    close: "Закрыть",
+    successTitle: "Спасибо — получено.",
+    successBody: "Разработчик читает каждое сообщение.",
+    messageLabel: "Сообщение",
+    messagePlaceholder: "Что работает, что нет, чего не хватает…",
+    emailLabel: "Эл. почта (необязательно)",
+    emailPlaceholder: "Если хотите получить ответ",
+    networkError: "Ошибка сети",
+    couldntSend: (s) => `Не удалось отправить (${s}). Попробуйте ещё раз через минуту.`,
+    cancel: "Отмена",
+    send: "Отправить",
+    sending: "Отправка…",
+  },
+  de: {
+    trigger: "Feedback",
+    triggerAria: "Feedback senden",
+    heading: "Feedback senden",
+    subtitle: "Was beschäftigt Sie? Ein Fehler, eine fehlende Funktion oder ein nettes Wort.",
+    close: "Schließen",
+    successTitle: "Danke — angekommen.",
+    successBody: "Der Betreiber liest jede Nachricht.",
+    messageLabel: "Nachricht",
+    messagePlaceholder: "Was funktioniert, was nicht, was fehlt…",
+    emailLabel: "E-Mail (optional)",
+    emailPlaceholder: "Falls Sie eine Antwort möchten",
+    networkError: "Netzwerkfehler",
+    couldntSend: (s) => `Senden fehlgeschlagen (${s}). Bitte gleich erneut versuchen.`,
+    cancel: "Abbrechen",
+    send: "Senden",
+    sending: "Wird gesendet…",
+  },
+  fr: {
+    trigger: "Avis",
+    triggerAria: "Envoyer un avis",
+    heading: "Envoyer un avis",
+    subtitle: "Qu'avez-vous en tête ? Un bug, une fonction manquante ou un mot gentil.",
+    close: "Fermer",
+    successTitle: "Merci — bien reçu.",
+    successBody: "Le responsable lit chaque message.",
+    messageLabel: "Message",
+    messagePlaceholder: "Ce qui marche, ce qui ne marche pas, ce qui manque…",
+    emailLabel: "E-mail (facultatif)",
+    emailPlaceholder: "Si vous souhaitez une réponse",
+    networkError: "Erreur réseau",
+    couldntSend: (s) => `Échec de l'envoi (${s}). Réessayez dans un instant.`,
+    cancel: "Annuler",
+    send: "Envoyer",
+    sending: "Envoi…",
+  },
+  es: {
+    trigger: "Comentarios",
+    triggerAria: "Enviar comentarios",
+    heading: "Enviar comentarios",
+    subtitle: "¿Qué tiene en mente? Un error, una función que falta o unas palabras amables.",
+    close: "Cerrar",
+    successTitle: "Gracias — recibido.",
+    successBody: "El responsable lee cada mensaje.",
+    messageLabel: "Mensaje",
+    messagePlaceholder: "Qué funciona, qué no, qué falta…",
+    emailLabel: "Correo electrónico (opcional)",
+    emailPlaceholder: "Si desea una respuesta",
+    networkError: "Error de red",
+    couldntSend: (s) => `No se pudo enviar (${s}). Inténtelo de nuevo en un momento.`,
+    cancel: "Cancelar",
+    send: "Enviar",
+    sending: "Enviando…",
+  },
+};
 
 type SubmitState =
   | { kind: "idle" }
@@ -37,6 +151,8 @@ type SubmitState =
  */
 export function FeedbackButton() {
   const pathname = usePathname();
+  const { locale } = useI18n();
+  const c = COPY[locale];
   const [open, setOpen] = useState(false);
   const [body, setBody] = useState("");
   const [email, setEmail] = useState("");
@@ -105,12 +221,12 @@ export function FeedbackButton() {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       setState({
         kind: "error",
-        message: data.error ?? `Couldn't send (${res.status}). Try again in a moment.`,
+        message: data.error ?? c.couldntSend(res.status),
       });
     } catch (err) {
       setState({
         kind: "error",
-        message: err instanceof Error ? err.message : "Network error",
+        message: err instanceof Error ? err.message : c.networkError,
       });
     }
   };
@@ -123,7 +239,7 @@ export function FeedbackButton() {
         ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Send feedback"
+        aria-label={c.triggerAria}
         // Position uses CSS env() for the iOS Safari home-indicator
         // safe-area inset; without it, the pill sits behind the
         // dynamic bottom toolbar on iPhone and is half-tappable.
@@ -145,7 +261,7 @@ export function FeedbackButton() {
         >
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
-        Feedback
+        {c.trigger}
       </button>
 
       {open && (
@@ -169,17 +285,17 @@ export function FeedbackButton() {
                   id="feedback-heading"
                   className="text-base font-semibold text-[var(--ink)]"
                 >
-                  Send feedback
+                  {c.heading}
                 </h2>
                 <p className="mt-0.5 text-[12px] text-[var(--ink-3)]">
-                  What&rsquo;s on your mind? Bug, missing feature, or kind word.
+                  {c.subtitle}
                 </p>
               </div>
               <button
                 ref={closeRef}
                 type="button"
                 onClick={() => setOpen(false)}
-                aria-label="Close"
+                aria-label={c.close}
                 className="-m-1.5 inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
               >
                 <svg
@@ -216,9 +332,9 @@ export function FeedbackButton() {
                     <path d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-[var(--ink)]">Thanks — got it.</p>
+                <p className="text-sm font-medium text-[var(--ink)]">{c.successTitle}</p>
                 <p className="mt-1 text-[12px] text-[var(--ink-3)]">
-                  The maintainer reads every message.
+                  {c.successBody}
                 </p>
               </div>
             ) : (
@@ -234,7 +350,7 @@ export function FeedbackButton() {
                     htmlFor="feedback-body"
                     className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[var(--ink-4)]"
                   >
-                    Message
+                    {c.messageLabel}
                   </label>
                   <textarea
                     ref={textareaRef}
@@ -245,7 +361,7 @@ export function FeedbackButton() {
                     required
                     minLength={5}
                     maxLength={BODY_MAX}
-                    placeholder="What's working, what's not, what's missing…"
+                    placeholder={c.messagePlaceholder}
                     className="w-full resize-y rounded-lg border border-[var(--line)] bg-[var(--bg-2)]/50 p-3 text-sm leading-relaxed text-[var(--ink)] outline-none transition-colors focus-visible:border-[var(--m-accent)] focus-visible:bg-[var(--bg)]"
                   />
                   <p className="mt-1 text-right text-[10px] text-[var(--ink-4)]">{counter}</p>
@@ -256,7 +372,7 @@ export function FeedbackButton() {
                     htmlFor="feedback-email"
                     className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-[var(--ink-4)]"
                   >
-                    Email (optional)
+                    {c.emailLabel}
                   </label>
                   <input
                     id="feedback-email"
@@ -264,7 +380,7 @@ export function FeedbackButton() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value.slice(0, EMAIL_MAX))}
                     maxLength={EMAIL_MAX}
-                    placeholder="If you want a reply"
+                    placeholder={c.emailPlaceholder}
                     autoComplete="email"
                     className="h-9 w-full rounded-lg border border-[var(--line)] bg-[var(--bg-2)]/50 px-3 text-sm text-[var(--ink)] outline-none transition-colors focus-visible:border-[var(--m-accent)] focus-visible:bg-[var(--bg)]"
                   />
@@ -301,14 +417,14 @@ export function FeedbackButton() {
                     onClick={() => setOpen(false)}
                     className="rounded-md px-3 py-1.5 text-sm text-[var(--ink-3)] transition-colors hover:bg-[var(--bg-2)] hover:text-[var(--ink)]"
                   >
-                    Cancel
+                    {c.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={state.kind === "sending" || body.trim().length < 5}
                     className="inline-flex items-center gap-1.5 rounded-md bg-[var(--m-accent)] px-4 py-1.5 text-sm font-medium text-white transition-all hover:bg-[var(--m-accent-2)] disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {state.kind === "sending" ? "Sending…" : "Send"}
+                    {state.kind === "sending" ? c.sending : c.send}
                   </button>
                 </div>
               </form>
