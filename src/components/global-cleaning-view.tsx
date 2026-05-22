@@ -202,6 +202,21 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
   return (
     <div className="-mx-3 sm:-mx-6 lg:-mx-8">
       <div className="mx-auto max-w-[1760px] px-3 sm:px-5 flex flex-col lg:flex-row gap-6">
+        {/* Mobile-only property switcher at the top of the page — on
+            mobile the sidebar (with its own switcher) sits below the
+            schedule, so without this the user has to scroll past the
+            whole table to change scope. lg:hidden keeps it out of the
+            desktop layout where the sidebar switcher is already visible. */}
+        {properties.length > 1 && (
+          <div className="lg:hidden">
+            <PropertySwitcher
+              properties={properties}
+              selectedPropertyId={null}
+              view="cleaning"
+              showAllOption
+            />
+          </div>
+        )}
         <div className="min-w-0 lg:flex-1 space-y-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight text-[var(--ink)]">
