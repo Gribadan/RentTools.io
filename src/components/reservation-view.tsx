@@ -25,7 +25,7 @@ const HINT_COPY: Record<Locale, HintCopy> = {
     title: "Tip — pre-arrival form.",
     before:
       "You can set up a guest form (passport details, arrival time, questions) under",
-    link: "Sync settings → Pre-arrival form",
+    link: "the Pre-arrival form page",
     after:
       ". Once configured, a shareable link appears here for every reservation.",
   },
@@ -33,7 +33,7 @@ const HINT_COPY: Record<Locale, HintCopy> = {
     title: "Совет — форма перед заездом.",
     before:
       "Вы можете настроить анкету для гостя (паспортные данные, время заезда, вопросы) в разделе",
-    link: "Настройки синхронизации → Форма перед заездом",
+    link: "странице «Форма перед заездом»",
     after:
       ". После настройки здесь для каждого бронирования появится ссылка, которой можно поделиться.",
   },
@@ -41,7 +41,7 @@ const HINT_COPY: Record<Locale, HintCopy> = {
     title: "Tipp — Anreiseformular.",
     before:
       "Sie können ein Gästeformular (Ausweisdaten, Ankunftszeit, Fragen) einrichten unter",
-    link: "Sync-Einstellungen → Anreiseformular",
+    link: "der Seite „Anreiseformular“",
     after:
       ". Nach der Einrichtung erscheint hier für jede Reservierung ein teilbarer Link.",
   },
@@ -49,7 +49,7 @@ const HINT_COPY: Record<Locale, HintCopy> = {
     title: "Astuce — formulaire de pré-arrivée.",
     before:
       "Vous pouvez configurer un formulaire pour le voyageur (données du passeport, heure d’arrivée, questions) dans",
-    link: "Paramètres de synchronisation → Formulaire de pré-arrivée",
+    link: "la page Formulaire de pré-arrivée",
     after:
       ". Une fois configuré, un lien partageable apparaît ici pour chaque réservation.",
   },
@@ -57,7 +57,7 @@ const HINT_COPY: Record<Locale, HintCopy> = {
     title: "Consejo — formulario previo a la llegada.",
     before:
       "Puede configurar un formulario para el huésped (datos del pasaporte, hora de llegada, preguntas) en",
-    link: "Ajustes de sincronización → Formulario previo a la llegada",
+    link: "la página Formulario previo a la llegada",
     after:
       ". Una vez configurado, aquí aparecerá un enlace para compartir en cada reserva.",
   },
@@ -757,7 +757,7 @@ export function ReservationView({
             <span className="font-medium text-foreground">{hint.title}</span>{" "}
             {hint.before}{" "}
             <Link
-              href={`/dashboard?property=${reservation.propertyId}&view=sync`}
+              href={`/dashboard?property=${reservation.propertyId}&view=guest-form`}
               className="font-medium text-[var(--m-accent)] underline underline-offset-2 hover:text-[var(--m-accent-2)]"
             >
               {hint.link}

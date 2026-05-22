@@ -48,6 +48,23 @@ const TYPE_LABEL = Object.fromEntries(
 
 const WITH_OPTIONS: ReadonlySet<FieldType> = new Set(["select", "multi-select"]);
 
+// The questions hosts ask most often — offered as one-tap presets so a
+// new form can be assembled in seconds with the right field type.
+const SUGGESTED: { label: string; type: FieldType; options?: string[] }[] = [
+  { label: "What time do you expect to arrive?", type: "time" },
+  { label: "Estimated departure time", type: "time" },
+  { label: "How many guests are staying?", type: "number" },
+  { label: "Lead guest full name (as on passport / ID)", type: "short-text" },
+  { label: "Passport / ID number", type: "short-text" },
+  { label: "Nationality", type: "short-text" },
+  { label: "Date of birth", type: "date" },
+  { label: "Contact phone number", type: "phone" },
+  { label: "Contact email", type: "email" },
+  { label: "How will you travel here?", type: "select", options: ["Car", "Train", "Plane", "Other"] },
+  { label: "Do you need a parking space?", type: "yes-no" },
+  { label: "Any special requests or questions?", type: "long-text" },
+];
+
 function freshId(): string {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -104,6 +121,12 @@ export function GuestFormPage({
   const addField = (type: FieldType) => {
     setFields((arr) => [...arr, newField(type)]);
     setAddOpen(false);
+  };
+
+  const addSuggested = (s: (typeof SUGGESTED)[number]) => {
+    const f: FormField = { id: freshId(), type: s.type, label: s.label, required: false };
+    if (s.options) f.options = [...s.options];
+    setFields((arr) => [...arr, f]);
   };
 
   const removeField = (id: string) =>
@@ -212,11 +235,46 @@ export function GuestFormPage({
                 />
               </div>
 
+              {/* Suggested questions — one-tap presets with the right
+                  field type. An already-added one (matched by label)
+                  shows a check and is disabled. */}
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-4)]">
+                  Suggested questions
+                </h3>
+                <p className="mt-0.5 text-xs text-[var(--ink-4)]">
+                  Tap to add a common question — already typed for you.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {SUGGESTED.map((s) => {
+                    const added = fields.some(
+                      (f) => f.label.trim().toLowerCase() === s.label.toLowerCase(),
+                    );
+                    return (
+                      <button
+                        key={s.label}
+                        type="button"
+                        disabled={added}
+                        onClick={() => addSuggested(s)}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                          added
+                            ? "cursor-default border-[var(--line)] text-[var(--ink-4)]"
+                            : "border-[var(--line-2)] text-[var(--ink-2)] hover:border-[var(--m-accent)] hover:text-[var(--ink)]"
+                        }`}
+                      >
+                        {added ? "✓ " : "+ "}
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {fields.length === 0 && (
-                <div className="rounded-xl border border-dashed border-[var(--line-2)] px-4 py-10 text-center">
+                <div className="rounded-xl border border-dashed border-[var(--line-2)] px-4 py-8 text-center">
                   <p className="text-sm text-[var(--ink-3)]">No questions yet.</p>
                   <p className="mt-0.5 text-xs text-[var(--ink-4)]">
-                    Add your first field below.
+                    Tap a suggestion above, or add a custom field below.
                   </p>
                 </div>
               )}
