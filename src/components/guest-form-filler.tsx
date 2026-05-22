@@ -232,10 +232,15 @@ function FieldInput({
             {options.map((o) => (
               <label
                 key={o}
-                className="flex items-center gap-2 rounded-md border border-[#1e2329] bg-[#161b22] px-3 py-2 text-sm text-[#e8e8ec] cursor-pointer"
+                className="flex min-w-0 items-center gap-2 rounded-md border border-[#1e2329] bg-[#161b22] px-3 py-2 text-sm text-[#e8e8ec] cursor-pointer"
               >
-                <input type="checkbox" checked={arr.includes(o)} onChange={() => toggle(o)} />
-                {o}
+                <input
+                  type="checkbox"
+                  checked={arr.includes(o)}
+                  onChange={() => toggle(o)}
+                  className="shrink-0"
+                />
+                <span className="min-w-0 break-words">{o}</span>
               </label>
             ))}
           </div>

@@ -534,3 +534,12 @@ select option:hover {
     font-size: 16px !important;
   }
 }
+
+/* Safety net: no form control may exceed its container. Keeps native
+   date / time pickers (which iOS Safari renders wider than expected)
+   and any long-value field from pushing the page past the viewport. */
+input,
+select,
+textarea {
+  max-width: 100%;
+}
