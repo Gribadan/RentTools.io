@@ -37,6 +37,9 @@ interface CopyShape {
   deleteProperty: string;
   dateLocale: string;
   hubNote: string;
+  secCalendars: string;
+  secStayRules: string;
+  secAccess: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -69,6 +72,9 @@ const COPY: Record<Locale, CopyShape> = {
       `Delete property "${name}"? This removes all reservations and related data. This cannot be undone.`,
     deleteProperty: "Delete property",
     dateLocale: "en-GB",
+    secCalendars: "Calendars",
+    secStayRules: "Stay rules",
+    secAccess: "Access & sharing",
     hubNote:
       "Keep RentTools as your only hub. Connect each platform here — and turn off any calendar links you set up directly between platforms (e.g. Airbnb → Booking). When every platform syncs only through RentTools, each booking is counted once. If platforms also sync to each other, the same booking echoes around and can show up as a phantom double-booking.",
   },
@@ -101,6 +107,9 @@ const COPY: Record<Locale, CopyShape> = {
       `Удалить объект «${name}»? Это удалит все бронирования и связанные данные. Действие необратимо.`,
     deleteProperty: "Удалить объект",
     dateLocale: "ru-RU",
+    secCalendars: "Календари",
+    secStayRules: "Правила проживания",
+    secAccess: "Доступ и совместная работа",
     hubNote:
       "Пусть RentTools будет единственным узлом. Подключайте каждую платформу здесь — и отключите прямые связи календарей между платформами (например, Airbnb → Booking). Когда все платформы синхронизируются только через RentTools, каждая бронь учитывается один раз. Если платформы синхронизируются ещё и друг с другом, одна бронь «отражается» по кругу и может выглядеть как двойное бронирование.",
   },
@@ -133,6 +142,9 @@ const COPY: Record<Locale, CopyShape> = {
       `Unterkunft „${name}" löschen? Damit werden alle Buchungen und zugehörigen Daten gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.`,
     deleteProperty: "Unterkunft löschen",
     dateLocale: "de-DE",
+    secCalendars: "Kalender",
+    secStayRules: "Aufenthaltsregeln",
+    secAccess: "Zugriff & Freigabe",
     hubNote:
       "Behalten Sie RentTools als einzigen Knotenpunkt. Verbinden Sie jede Plattform hier — und schalten Sie direkte Kalender-Verknüpfungen zwischen den Plattformen ab (z. B. Airbnb → Booking). Wenn alle Plattformen nur über RentTools synchronisieren, wird jede Buchung einmal gezählt. Synchronisieren sich die Plattformen zusätzlich untereinander, läuft dieselbe Buchung im Kreis und kann als Doppelbuchung erscheinen.",
   },
@@ -165,6 +177,9 @@ const COPY: Record<Locale, CopyShape> = {
       `Supprimer le logement « ${name} » ? Cela effacera toutes les réservations et données associées. Action irréversible.`,
     deleteProperty: "Supprimer le logement",
     dateLocale: "fr-FR",
+    secCalendars: "Calendriers",
+    secStayRules: "Règles de séjour",
+    secAccess: "Accès et partage",
     hubNote:
       "Gardez RentTools comme unique point central. Connectez chaque plateforme ici — et désactivez les liens de calendrier créés directement entre plateformes (par ex. Airbnb → Booking). Quand toutes les plateformes ne se synchronisent qu’à travers RentTools, chaque réservation est comptée une seule fois. Si les plateformes se synchronisent aussi entre elles, la même réservation tourne en boucle et peut apparaître comme une double réservation.",
   },
@@ -197,6 +212,9 @@ const COPY: Record<Locale, CopyShape> = {
       `¿Eliminar el alojamiento «${name}»? Se borrarán todas las reservas y datos relacionados. La acción no se puede deshacer.`,
     deleteProperty: "Eliminar alojamiento",
     dateLocale: "es-ES",
+    secCalendars: "Calendarios",
+    secStayRules: "Reglas de estancia",
+    secAccess: "Acceso y uso compartido",
     hubNote:
       "Mantenga RentTools como su único punto central. Conecte cada plataforma aquí — y desactive los enlaces de calendario que haya creado directamente entre plataformas (p. ej. Airbnb → Booking). Cuando todas las plataformas se sincronizan solo a través de RentTools, cada reserva se cuenta una vez. Si las plataformas también se sincronizan entre sí, la misma reserva da vueltas en bucle y puede aparecer como una reserva doble.",
   },
@@ -572,7 +590,8 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   }));
 
   return (
-    <div className="cls-isolate mx-auto max-w-5xl space-y-6">
+    <div className="-mx-3 sm:-mx-6 lg:-mx-8">
+    <div className="cls-isolate mx-auto max-w-[1760px] space-y-8 px-3 sm:px-5">
       {/* Property switcher — top-of-page pill row so the user can
           jump between properties without using the top-bar dropdown.
           Hidden when only one property exists (PropertySwitcher
@@ -661,23 +680,29 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           most at risk of also cross-linking platforms directly, which
           causes the same booking to echo around and surface as a
           phantom double-booking. Friendly tip tone, not a warning. */}
-      {!loading && links.length > 0 && (
-        <div className="flex items-start gap-2 rounded-lg border border-[var(--m-accent)]/20 bg-[var(--m-accent)]/[0.04] px-3 py-2.5">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-          <p className="text-[13px] leading-relaxed text-[var(--ink-3)]">
-            {c.hubNote}
-          </p>
-        </div>
-      )}
+      {/* Hub-and-spoke tip — static guidance, always rendered so it
+          can't flash in after the calendar links finish loading
+          (the layout shift that caused). */}
+      <div className="flex items-start gap-2 rounded-lg border border-[var(--m-accent)]/20 bg-[var(--m-accent)]/[0.04] px-3 py-2.5">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <p className="text-[13px] leading-relaxed text-[var(--ink-3)]">
+          {c.hubNote}
+        </p>
+      </div>
 
+      {/* ── Calendars ── platform connections + the sync log. */}
+      <section className="space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-4)]">
+        {c.secCalendars}
+      </h2>
       {/* Platform Cards — now dynamic. Renders every preset (airbnb,
           booking, vrbo) plus any saved custom platforms plus any draft
           custom rows the user is composing. The outbound "import this
           back into the platform" feed URL is always visible alongside
           each row so the host can copy it BEFORE connecting too. */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {platforms.map(({ key: platform, label, color, url, setUrl, placeholder, isPreset, isCustom, isDraft, hasInstructions, rowId }) => {
           const link = getLink(platform);
           const isConnected = !!link;
@@ -875,6 +900,14 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         </svg>
         {c.addAnother}
       </button>
+      </section>
+
+      {/* ── Stay rules ── booking constraints, in a card grid. */}
+      <section className="space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-4)]">
+        {c.secStayRules}
+      </h2>
+      <div className="grid items-start gap-4 md:grid-cols-2">
 
       {/* Buffer Settings — gated on `!loading` so it doesn't pop in
           after the first paint. Pre-load links is empty, so without
@@ -1045,6 +1078,16 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         </div>
       </div>
 
+      </div>
+      </section>
+
+      {/* ── Access & sharing ── managers, templates, guest form, feed. */}
+      <section className="space-y-3">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-4)]">
+        {c.secAccess}
+      </h2>
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+
       {/* Property Managers */}
       <PropertyManagersPanel propertyId={propertyId} ownerUserId={ownerUserId} />
 
@@ -1158,6 +1201,9 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         </div>
       )}
 
+      </div>
+      </section>
+
       {/* Danger zone — delete this property. Only the owner can hit
           DELETE /api/properties/:id; the dashboard's handler also
           handles the "navigate away" piece (clears selection, calls
@@ -1180,6 +1226,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           {c.deleteProperty}
         </button>
       </section>
+    </div>
     </div>
   );
 }
