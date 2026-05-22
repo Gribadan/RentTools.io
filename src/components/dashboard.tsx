@@ -428,6 +428,10 @@ interface DashboardProps {
     propertyId: number;
   }) => void;
   onAddProperty?: (name: string) => Promise<void> | void;
+  /** Rename a property in place. Lets the host rename from the
+   *  dashboard header without opening Sync settings. Optional so
+   *  callers that never show a selected property can skip it. */
+  onUpdateProperty?: (id: number, data: { name?: string }) => Promise<void> | void;
   /** Re-fetch properties on the parent. The new in-dashboard
    *  onboarding wizard calls /api/properties and /api/calendar/links
    *  directly, so the parent has no idea anything changed until this
@@ -443,6 +447,7 @@ export function Dashboard({
   onSelectReservation,
   onAddReservation,
   onAddProperty,
+  onUpdateProperty,
   onRefresh,
 }: DashboardProps) {
   const { t, locale } = useI18n();
@@ -460,6 +465,11 @@ export function Dashboard({
   const [allOverrides, setAllOverrides] = useState<Record<number, DateOverride[]>>({});
   const [loadingCalendarData, setLoadingCalendarData] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Inline property rename from the dashboard header (pencil next to
+  // the title). Mirrors the rename in Sync settings — same PATCH.
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+  const [savingName, setSavingName] = useState(false);
   // RT-25.6 tick 2 — distinct platform slugs across the user's CalendarLinks.
   // Populated regardless of selectedProperty so the form pills always reflect
   // the user's real platform set (Airbnb + Booking + any custom platforms).
@@ -890,17 +900,86 @@ export function Dashboard({
   const isZeroProperties =
     !loadingProperties && !selectedProperty && properties.length === 0;
 
+  const handleSaveName = async () => {
+    if (!selectedProperty || !onUpdateProperty) return;
+    const trimmed = nameValue.trim();
+    if (!trimmed || trimmed === selectedProperty.name) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      await onUpdateProperty(selectedProperty.id, { name: trimmed });
+      setEditingName(false);
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--ink)]">
-            {title}
-            {loadingCalendarData && (
-              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-[var(--line-2)] border-t-[#58a6ff]" />
-            )}
-          </h1>
+          {selectedProperty && editingName ? (
+            <div className="flex items-center gap-1.5">
+              <input
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveName();
+                  if (e.key === "Escape") setEditingName(false);
+                }}
+                autoFocus
+                disabled={savingName}
+                className="min-w-0 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2 py-0.5 text-2xl font-bold text-[var(--ink)] outline-none focus:border-[var(--ink)] disabled:opacity-60"
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={savingName}
+                aria-label={t("common.save")}
+                title={t("common.save")}
+                className="rounded-md p-1.5 text-emerald-500 hover:bg-emerald-500/10 disabled:opacity-50"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setEditingName(false)}
+                disabled={savingName}
+                aria-label={t("common.cancel")}
+                title={t("common.cancel")}
+                className="rounded-md p-1.5 text-[var(--ink-4)] hover:bg-[var(--line-2)] hover:text-[var(--ink)] disabled:opacity-50"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <h1 className="flex items-center gap-2 text-2xl font-bold text-[var(--ink)]">
+              {title}
+              {loadingCalendarData && (
+                <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-[1.5px] border-[var(--line-2)] border-t-[#58a6ff]" />
+              )}
+              {selectedProperty && onUpdateProperty && (
+                <button
+                  onClick={() => {
+                    setNameValue(selectedProperty.name);
+                    setEditingName(true);
+                  }}
+                  aria-label={t("common.edit")}
+                  title={t("common.edit")}
+                  className="rounded-md p-1 text-[var(--ink-4)] transition-colors hover:bg-[var(--line-2)] hover:text-[var(--ink)]"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 7.125L16.875 4.5" />
+                  </svg>
+                </button>
+              )}
+            </h1>
+          )}
           {!isZeroProperties && (
             <p className="mt-1 text-sm text-[var(--ink-4)]">{subtitle}</p>
           )}

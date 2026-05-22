@@ -377,6 +377,7 @@ function AppContent({
               onSelectProperty={handleSelectProperty}
               onSelectReservation={handleSelectReservation}
               onAddReservation={handleAddReservation}
+              onUpdateProperty={handleUpdateProperty}
             />
           );
         default:
