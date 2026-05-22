@@ -522,3 +522,15 @@ select option:hover {
 .prose-blog th, .prose-blog td { border-bottom: 1px solid var(--line); padding: 0.55em 0.85em; text-align: left; vertical-align: top; }
 .prose-blog tr:last-child td { border-bottom: 0; }
 .prose-blog th { background: var(--bg-2); font-weight: 600; color: var(--ink); }
+
+/* iOS Safari zooms the page in when a focused form control has a
+   font-size below 16px. The app's inputs are intentionally compact
+   (text-xs / text-sm) on desktop; on phone widths we bump every form
+   control to 16px so focusing a field never triggers that zoom. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
