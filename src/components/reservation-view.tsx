@@ -1,12 +1,68 @@
 "use client";
 
 import { useCallback, useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GuestCards } from "@/components/guest-cards";
 import { DateSlider } from "@/components/date-slider";
+import { useI18n } from "@/lib/i18n/context";
+import type { Locale } from "@/lib/i18n/translations";
 import type { Guest, Reservation } from "@/lib/types";
+
+// Pre-arrival discovery hint — localized in all 5 supported locales.
+// The rest of this component is still English-only; see GitHub issue
+// for the full reservation-view localization pass.
+interface HintCopy {
+  title: string;
+  before: string;
+  link: string;
+  after: string;
+}
+
+const HINT_COPY: Record<Locale, HintCopy> = {
+  en: {
+    title: "Tip — pre-arrival form.",
+    before:
+      "You can set up a guest form (passport details, arrival time, questions) under",
+    link: "Sync settings → Pre-arrival form",
+    after:
+      ". Once configured, a shareable link appears here for every reservation.",
+  },
+  ru: {
+    title: "Совет — форма перед заездом.",
+    before:
+      "Вы можете настроить анкету для гостя (паспортные данные, время заезда, вопросы) в разделе",
+    link: "Настройки синхронизации → Форма перед заездом",
+    after:
+      ". После настройки здесь для каждого бронирования появится ссылка, которой можно поделиться.",
+  },
+  de: {
+    title: "Tipp — Anreiseformular.",
+    before:
+      "Sie können ein Gästeformular (Ausweisdaten, Ankunftszeit, Fragen) einrichten unter",
+    link: "Sync-Einstellungen → Anreiseformular",
+    after:
+      ". Nach der Einrichtung erscheint hier für jede Reservierung ein teilbarer Link.",
+  },
+  fr: {
+    title: "Astuce — formulaire de pré-arrivée.",
+    before:
+      "Vous pouvez configurer un formulaire pour le voyageur (données du passeport, heure d’arrivée, questions) dans",
+    link: "Paramètres de synchronisation → Formulaire de pré-arrivée",
+    after:
+      ". Une fois configuré, un lien partageable apparaît ici pour chaque réservation.",
+  },
+  es: {
+    title: "Consejo — formulario previo a la llegada.",
+    before:
+      "Puede configurar un formulario para el huésped (datos del pasaporte, hora de llegada, preguntas) en",
+    link: "Ajustes de sincronización → Formulario previo a la llegada",
+    after:
+      ". Una vez configurado, aquí aparecerá un enlace para compartir en cada reserva.",
+  },
+};
 
 interface LogEntry {
   time: string;
@@ -21,7 +77,6 @@ interface MessageTemplate {
   language: string;
   subject: string;
   body: string;
-  sendOffsetDays: number;
 }
 
 /** Short platform label matching how hosts name messenger groups by
@@ -133,6 +188,8 @@ export function ReservationView({
   onUpdateParent,
   onUpdateGuest,
 }: ReservationViewProps) {
+  const { locale } = useI18n();
+  const hint = HINT_COPY[locale];
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -764,10 +821,15 @@ export function ReservationView({
       {guestFormChecked && !hasGuestForm && (
         <div className="rounded-xl border border-dashed border-border/50 px-4 py-2.5">
           <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Tip — pre-arrival form.</span>{" "}
-            You can set up a guest form (passport details, arrival time, questions)
-            under <span className="font-medium">Sync settings → Pre-arrival form</span>.
-            Once configured, a shareable link appears here for every reservation.
+            <span className="font-medium text-foreground">{hint.title}</span>{" "}
+            {hint.before}{" "}
+            <Link
+              href={`/dashboard?property=${reservation.propertyId}&view=sync`}
+              className="font-medium text-[var(--m-accent)] underline underline-offset-2 hover:text-[var(--m-accent-2)]"
+            >
+              {hint.link}
+            </Link>
+            {hint.after}
           </p>
         </div>
       )}
