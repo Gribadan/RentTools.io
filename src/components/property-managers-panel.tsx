@@ -20,8 +20,22 @@ interface Manager {
   id: number;
   managerId: number;
   username: string;
+  email: string | null;
   role: string;
   createdAt: string;
+}
+
+interface Owner {
+  id: number;
+  username: string;
+  email: string | null;
+  role: string;
+}
+
+/** Prefer the email as the human-readable identity; fall back to the
+ *  username for older accounts created before email-based signup. */
+function identityLabel(u: { email: string | null; username: string }): string {
+  return u.email || u.username;
 }
 
 interface Invite {
@@ -39,7 +53,6 @@ interface SessionInfo {
 interface PropertyManagersPanelProps {
   propertyId: number;
   ownerUserId: number;
-  ownerUsername?: string;
 }
 
 function daysUntil(dateStr: string): number {
@@ -47,9 +60,10 @@ function daysUntil(dateStr: string): number {
   return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
 }
 
-export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }: PropertyManagersPanelProps) {
+export function PropertyManagersPanel({ propertyId, ownerUserId }: PropertyManagersPanelProps) {
   const { t, locale } = useI18n();
   const c = COPY[locale];
+  const [owner, setOwner] = useState<Owner | null>(null);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,13 +84,15 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
 
       if (mRes.status === 404 || iRes.status === 404) {
         setForbidden(true);
+        setOwner(null);
         setManagers([]);
         setInvites([]);
         return;
       }
       if (!mRes.ok) throw new Error(`HTTP ${mRes.status}`);
       const mData = await mRes.json();
-      setManagers(mData || []);
+      setOwner(mData.owner ?? null);
+      setManagers(mData.managers || []);
 
       if (iRes.ok) {
         const iData = await iRes.json();
@@ -199,13 +215,13 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
       {/* Owner row + manager list */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between rounded-md border border-[var(--line)] bg-[var(--bg)] px-3 py-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <div className="h-7 w-7 shrink-0 rounded-full bg-[var(--m-accent)]/20 flex items-center justify-center text-[11px] font-bold text-[var(--m-accent)] uppercase">
-              {(ownerUsername?.[0] || "O")}
+              {(owner ? identityLabel(owner)[0] : "O")}
             </div>
-            <div>
-              <div className="text-sm text-[var(--ink)]">
-                {ownerUsername || `user ${ownerUserId}`}
+            <div className="min-w-0">
+              <div className="text-sm text-[var(--ink)] truncate">
+                {owner ? identityLabel(owner) : `user ${ownerUserId}`}
                 {isOwner && <span className="ml-1.5 text-[10px] text-[var(--ink-4)]">({t("managers.you")})</span>}
               </div>
               <div className="text-[11px] uppercase tracking-wide text-[var(--ink-4)]">{t("managers.owner")}</div>
@@ -225,10 +241,10 @@ export function PropertyManagersPanel({ propertyId, ownerUserId, ownerUsername }
             >
               <div className="flex items-center gap-2 min-w-0">
                 <div className="h-7 w-7 shrink-0 rounded-full bg-[var(--line-2)] flex items-center justify-center text-[11px] font-bold text-[var(--ink-2)] uppercase">
-                  {m.username[0]}
+                  {identityLabel(m)[0]}
                 </div>
                 <div className="min-w-0">
-                  <div className="text-sm text-[var(--ink)] truncate">{m.username}</div>
+                  <div className="text-sm text-[var(--ink)] truncate">{identityLabel(m)}</div>
                   <div className="text-[11px] text-[var(--ink-4)]">
                     {new Date(m.createdAt).toLocaleDateString(c.dateLocale)}
                   </div>

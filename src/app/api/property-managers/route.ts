@@ -25,23 +25,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    // Owner + managers in one payload so the panel can show a real
+    // identity (email, falling back to username) for every row instead
+    // of a bare "user 23".
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: { user: { select: { id: true, username: true, email: true, role: true } } },
+    });
+
     const managers = await prisma.propertyManager.findMany({
       where: { propertyId },
       include: {
-        manager: { select: { id: true, username: true, role: true, createdAt: true } },
+        manager: { select: { id: true, username: true, email: true, role: true, createdAt: true } },
       },
       orderBy: { createdAt: "asc" },
     });
 
-    return NextResponse.json(
-      managers.map(m => ({
+    return NextResponse.json({
+      owner: property?.user
+        ? {
+            id: property.user.id,
+            username: property.user.username,
+            email: property.user.email,
+            role: property.user.role,
+          }
+        : null,
+      managers: managers.map(m => ({
         id: m.id,
         managerId: m.managerId,
         username: m.manager.username,
+        email: m.manager.email,
         role: m.manager.role,
         createdAt: m.createdAt,
-      }))
-    );
+      })),
+    });
   } catch (err) {
     console.error("Route error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
