@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
+import { sanitizeI18n } from "@/lib/guest-form-i18n";
 
 // Field shape stored in GuestFormTemplate.fields (JSON). Kept in sync
 // with the schema comment in prisma/schema.prisma. Validated at write
@@ -92,12 +93,19 @@ export async function GET(
     if (!template) return NextResponse.json({ template: null });
 
     const fields = sanitizeFields(JSON.parse(template.fields));
+    let i18n = {};
+    try {
+      i18n = sanitizeI18n(JSON.parse(template.i18n || "{}"));
+    } catch {
+      // Malformed JSON in the column — fall back to English-only.
+    }
     return NextResponse.json({
       template: {
         id: template.id,
         propertyId: template.propertyId,
         name: template.name,
         fields,
+        i18n,
       },
     });
   } catch (err) {
@@ -126,6 +134,8 @@ export async function PUT(
     const name = typeof body?.name === "string" ? body.name.slice(0, 200) : "";
     const fields = sanitizeFields(body?.fields);
     const fieldsJson = JSON.stringify(fields);
+    const i18n = sanitizeI18n(body?.i18n);
+    const i18nJson = JSON.stringify(i18n);
 
     const existing = await prisma.guestFormTemplate.findFirst({
       where: { propertyId: numId },
@@ -135,10 +145,10 @@ export async function PUT(
     const saved = existing
       ? await prisma.guestFormTemplate.update({
           where: { id: existing.id },
-          data: { name, fields: fieldsJson, updatedAt: new Date() },
+          data: { name, fields: fieldsJson, i18n: i18nJson, updatedAt: new Date() },
         })
       : await prisma.guestFormTemplate.create({
-          data: { propertyId: numId, name, fields: fieldsJson },
+          data: { propertyId: numId, name, fields: fieldsJson, i18n: i18nJson },
         });
 
     await logAudit(session.userId, existing ? "update" : "create", "guestFormTemplate", saved.id, {
@@ -152,6 +162,7 @@ export async function PUT(
         propertyId: saved.propertyId,
         name: saved.name,
         fields,
+        i18n,
       },
     });
   } catch (err) {

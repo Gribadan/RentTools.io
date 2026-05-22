@@ -231,6 +231,10 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // fall back to the auto-generated "[Platform] [dates] | [guest] |
     // [property]" string.
     `ALTER TABLE "Reservation" ADD COLUMN "groupName" TEXT`,
+    // Multi-language pre-arrival form — host-authored translations of
+    // the form title + field text, keyed by locale. Empty {} keeps
+    // existing single-language forms working unchanged.
+    `ALTER TABLE "GuestFormTemplate" ADD COLUMN "i18n" TEXT NOT NULL DEFAULT '{}'`,
   ];
 
   // Feedback table — site-wide visitor feedback queue. New table, so we
@@ -992,6 +996,7 @@ CREATE TABLE IF NOT EXISTS "GuestFormTemplate" (
     "propertyId" INTEGER NOT NULL,
     "name" TEXT NOT NULL DEFAULT '',
     "fields" TEXT NOT NULL DEFAULT '[]',
+    "i18n" TEXT NOT NULL DEFAULT '{}',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME,
     CONSTRAINT "GuestFormTemplate_propertyId_fkey" FOREIGN KEY ("propertyId") REFERENCES "Property" ("id") ON DELETE CASCADE ON UPDATE CASCADE

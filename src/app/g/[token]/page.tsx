@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { GuestFormFiller } from "@/components/guest-form-filler";
+import { GuestFormView } from "@/components/guest-form-filler";
+import { sanitizeI18n, type GuestFormI18n } from "@/lib/guest-form-i18n";
 
 // RT-25.2 — public pre-arrival guest form. Reachable via the share
 // link the host generated for a specific reservation. Token possession
@@ -11,6 +12,7 @@ interface FormField {
   type: string;
   label: string;
   required: boolean;
+  helpText?: string;
   options?: string[];
 }
 
@@ -39,35 +41,30 @@ export default async function GuestFormPage({
   if (!submission) notFound();
 
   const fields: FormField[] = JSON.parse(submission.template.fields);
-  const alreadySubmitted = !!submission.submittedAt;
+  let i18n: GuestFormI18n = {};
+  try {
+    i18n = sanitizeI18n(JSON.parse(submission.template.i18n || "{}"));
+  } catch {
+    // Malformed JSON — fall back to English-only.
+  }
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#e8e8ec] py-10 px-4">
       <main className="mx-auto max-w-xl">
-        <header className="mb-6">
-          <p className="text-xs uppercase tracking-wider text-[#a0a0a8]">
-            {submission.reservation.property.name}
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold">
-            {submission.template.name || "Pre-arrival form"}
-          </h1>
-          <p className="mt-2 text-sm text-[#a0a0a8]">
-            Hi {submission.reservation.name}, please answer a few questions before your stay.
-          </p>
-        </header>
-
-        {alreadySubmitted ? (
-          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-5">
-            <p className="text-sm font-medium text-emerald-300">
-              Thanks — your answers are recorded.
-            </p>
-            <p className="mt-1 text-xs text-[#a0a0a8]">
-              Submitted {submission.submittedAt!.toISOString().slice(0, 10)}
-            </p>
-          </div>
-        ) : (
-          <GuestFormFiller token={token} fields={fields} />
-        )}
+        <GuestFormView
+          token={token}
+          templateName={submission.template.name}
+          fields={fields}
+          i18n={i18n}
+          propertyName={submission.reservation.property.name}
+          guestName={submission.reservation.name}
+          alreadySubmitted={!!submission.submittedAt}
+          submittedAt={
+            submission.submittedAt
+              ? submission.submittedAt.toISOString().slice(0, 10)
+              : null
+          }
+        />
       </main>
     </div>
   );
