@@ -87,6 +87,7 @@ interface CopyShape {
   addAnotherPlatform: string;
   notListing: string;
   manualReservationLink: string;
+  hubTip: string;
 }
 
 const COPY: Record<Locale, CopyShape> = {
@@ -114,6 +115,8 @@ const COPY: Record<Locale, CopyShape> = {
     addAnotherPlatform: "Add another platform",
     notListing: "Not listing anywhere?",
     manualReservationLink: "Add a manual reservation instead →",
+    hubTip:
+      "Tip: connect every platform to RentTools, and switch off any calendar links you set up directly between platforms. When RentTools is the single hub, each booking is counted once — cross-linking platforms makes the same booking echo around and look like a double-booking.",
   },
   ru: {
     step1Title: "Назовите свой первый объект",
@@ -139,6 +142,8 @@ const COPY: Record<Locale, CopyShape> = {
     addAnotherPlatform: "Добавить другую платформу",
     notListing: "Не размещаете нигде?",
     manualReservationLink: "Добавить бронь вручную →",
+    hubTip:
+      "Совет: подключайте каждую платформу к RentTools и отключите прямые связи календарей между платформами. Когда RentTools — единый узел, каждая бронь учитывается один раз. Если же платформы синхронизируются ещё и друг с другом, одна бронь начинает «отражаться» по кругу и выглядит как двойное бронирование.",
   },
   de: {
     step1Title: "Geben Sie Ihrer ersten Unterkunft einen Namen",
@@ -164,6 +169,8 @@ const COPY: Record<Locale, CopyShape> = {
     addAnotherPlatform: "Weitere Plattform hinzufügen",
     notListing: "Sie inserieren nirgends?",
     manualReservationLink: "Stattdessen eine Buchung manuell hinzufügen →",
+    hubTip:
+      "Tipp: Verbinden Sie jede Plattform mit RentTools und schalten Sie direkte Kalender-Verknüpfungen zwischen den Plattformen ab. Wenn RentTools der einzige Knotenpunkt ist, wird jede Buchung genau einmal gezählt — synchronisieren sich die Plattformen zusätzlich untereinander, läuft dieselbe Buchung im Kreis und sieht wie eine Doppelbuchung aus.",
   },
   fr: {
     step1Title: "Nommez votre premier logement",
@@ -189,6 +196,8 @@ const COPY: Record<Locale, CopyShape> = {
     addAnotherPlatform: "Ajouter une autre plateforme",
     notListing: "Vous ne publiez nulle part ?",
     manualReservationLink: "Ajouter plutôt une réservation manuelle →",
+    hubTip:
+      "Astuce : connectez chaque plateforme à RentTools, et désactivez les liens de calendrier que vous auriez créés directement entre plateformes. Quand RentTools est le point central unique, chaque réservation est comptée une seule fois — si les plateformes se synchronisent aussi entre elles, la même réservation tourne en boucle et ressemble à une double réservation.",
   },
   es: {
     step1Title: "Póngale nombre a su primer alojamiento",
@@ -214,6 +223,8 @@ const COPY: Record<Locale, CopyShape> = {
     addAnotherPlatform: "Añadir otra plataforma",
     notListing: "¿No publica en ninguna plataforma?",
     manualReservationLink: "Añadir una reserva manual →",
+    hubTip:
+      "Consejo: conecte cada plataforma a RentTools y desactive los enlaces de calendario que haya creado directamente entre plataformas. Cuando RentTools es el único punto central, cada reserva se cuenta una sola vez — si las plataformas también se sincronizan entre sí, la misma reserva da vueltas en bucle y parece una reserva doble.",
   },
 };
 
@@ -488,6 +499,22 @@ export function DashboardOnboarding({ onComplete }: DashboardOnboardingProps) {
           <p className="mt-2 max-w-xl text-sm text-[var(--ink-3)]">
             {t.step2Body}
           </p>
+
+          {/* Friendly hub-and-spoke guidance. The #1 misconfiguration
+              for multi-platform hosts is cross-linking platforms
+              directly (Airbnb → Booking, etc.) on top of connecting
+              them to RentTools — which makes every booking echo around
+              and surface as a phantom double-booking. Surfacing the
+              tip right at the connect step is the cheapest place to
+              prevent it. */}
+          <div className="mt-3 flex max-w-xl items-start gap-2 rounded-lg border border-[var(--m-accent)]/20 bg-[var(--m-accent)]/[0.04] px-3 py-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <p className="text-[13px] leading-relaxed text-[var(--ink-3)]">
+              {t.hubTip}
+            </p>
+          </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {[

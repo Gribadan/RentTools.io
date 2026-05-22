@@ -314,6 +314,9 @@ function SetupWizard({
           <p className="pt-1 border-t border-[var(--line)] mt-1.5">
             <strong className="text-[var(--ink-3)]">Sync speed:</strong> Our server checks for new bookings every <strong className="text-[var(--ink-3)]">10 minutes</strong> and updates the feed instantly. Airbnb typically pulls imported calendars every 3-6 hours; Booking.com every ~24 hours. The buffer days (cleaning time) are something you <strong className="text-[var(--ink-3)]">cannot do with native platform sync</strong> — that&apos;s the main value of this tool.
           </p>
+          <p className="pt-1 border-t border-[var(--line)] mt-1.5">
+            <strong className="text-[var(--ink-3)]">Keep RentTools as the single hub.</strong> Connect every platform here — and switch OFF any calendar links you set up directly <em>between</em> platforms (Airbnb → Booking, Booking → Trip.com, and so on). When platforms only ever sync through RentTools, each booking is counted once and your calendar stays clean. If platforms also sync to each other, the same booking bounces between their feeds and can show up here as a phantom double-booking.
+          </p>
         </div>
       </div>
 
