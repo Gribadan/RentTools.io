@@ -23,9 +23,6 @@ export async function POST(request: NextRequest) {
     const confirmUsername =
       typeof body.confirmUsername === "string" ? body.confirmUsername : "";
 
-    if (!password) {
-      return NextResponse.json({ error: "Password required" }, { status: 400 });
-    }
     if (confirmUsername !== session.username) {
       return NextResponse.json(
         { error: "Username confirmation does not match" },
@@ -35,15 +32,23 @@ export async function POST(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session.userId },
-      select: { id: true, password: true, role: true },
+      select: { id: true, password: true, role: true, hasPassword: true },
     });
     if (!user) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
-    const ok = await verifyPassword(password, user.password);
-    if (!ok) {
-      return NextResponse.json({ error: "Incorrect password" }, { status: 403 });
+    // A Google-sign-in account has no real password — the username
+    // confirmation above is the proof of intent. An account that does
+    // have a password must verify it too.
+    if (user.hasPassword) {
+      if (!password) {
+        return NextResponse.json({ error: "Password required" }, { status: 400 });
+      }
+      const ok = await verifyPassword(password, user.password);
+      if (!ok) {
+        return NextResponse.json({ error: "Incorrect password" }, { status: 403 });
+      }
     }
 
     // Refuse to delete the last superadmin so the instance can't be

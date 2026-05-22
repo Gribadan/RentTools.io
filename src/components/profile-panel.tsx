@@ -255,19 +255,24 @@ export function ProfilePanel() {
                   autoComplete="off"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs text-[var(--ink-3)]" htmlFor="del-pw">
-                  Current password
-                </label>
-                <input
-                  id="del-pw"
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-rose-500"
-                  autoComplete="current-password"
-                />
-              </div>
+              {/* Password proof — skipped for Google-sign-in accounts,
+                  which have none; the username confirmation above is
+                  the intent check there. */}
+              {user.hasPassword && (
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[var(--ink-3)]" htmlFor="del-pw">
+                    Current password
+                  </label>
+                  <input
+                    id="del-pw"
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="h-9 w-full rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-3 text-sm text-[var(--ink)] outline-none focus:border-rose-500"
+                    autoComplete="current-password"
+                  />
+                </div>
+              )}
             </div>
 
             {deleteError && (
@@ -290,7 +295,7 @@ export function ProfilePanel() {
                 disabled={
                   deleteBusy ||
                   deleteConfirm !== user.username ||
-                  deletePassword.length === 0
+                  (user.hasPassword && deletePassword.length === 0)
                 }
                 onClick={async () => {
                   setDeleteBusy(true);
