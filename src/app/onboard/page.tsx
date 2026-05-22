@@ -818,12 +818,20 @@ function PlatformRow({
 
   return (
     <div className="rounded-lg border border-[var(--line)] bg-[var(--bg)] transition-colors hover:border-[var(--line-2)]">
-      {/* Header row: enabled toggle + name + color + remove (if custom) */}
-      <div className="flex items-center gap-3 px-4 py-3">
+      {/* Header row: enabled toggle + name + color + remove (if custom).
+          The whole row is the toggle target — clicking anywhere on it
+          enables/disables the platform. The genuinely interactive
+          children (checkbox, custom-name input, colour swatch, remove)
+          stop propagation so they keep their own behaviour. */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none rounded-t-lg transition-colors hover:bg-[var(--bg-2)]"
+        onClick={onToggle}
+      >
         <input
           type="checkbox"
           checked={row.enabled}
           onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
           aria-label={t.enableAria(display)}
           className="h-4 w-4 cursor-pointer accent-[var(--m-accent)]"
         />
@@ -836,6 +844,7 @@ function PlatformRow({
           <input
             value={row.customName ?? ""}
             onChange={(e) => onCustomNameChange(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
             placeholder={t.customNamePlaceholder}
             className="flex-1 bg-transparent text-[14px] font-medium text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
           />
@@ -843,12 +852,14 @@ function PlatformRow({
           <span className="flex-1 text-[14px] font-medium text-[var(--ink)]">{display}</span>
         )}
         {row.enabled && (
-          <ColorSwatchButton color={row.color} onChange={onColorChange} />
+          <span onClick={(e) => e.stopPropagation()}>
+            <ColorSwatchButton color={row.color} onChange={onColorChange} />
+          </span>
         )}
         {isCustom && (
           <button
             type="button"
-            onClick={onRemove}
+            onClick={(e) => { e.stopPropagation(); onRemove(); }}
             className="text-[var(--ink-4)] hover:text-[var(--ink-2)] transition-colors"
             aria-label={t.removePlatformAria}
           >
