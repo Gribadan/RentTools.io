@@ -57,7 +57,7 @@ const COPY: Record<Locale, CopyShape> = {
     monthsShort: "mo",
     feedTokenTitle: "Feed access token",
     feedTokenDesc:
-      "The feed URL lets external services that do not support iCal upload (e.g. price-management tools, channel managers, or your own scripts) read this property's combined Airbnb + Booking calendar in iCal format. Most hosts will not need this — leave the token blank to keep the feed public, or rotate the token to make the URL private.",
+      "The feed URL lets external services that do not support iCal upload (e.g. price-management tools, channel managers, or your own scripts) read this property's combined calendar — every platform you've connected — in iCal format. Most hosts will not need this — leave the token blank to keep the feed public, or rotate the token to make the URL private.",
     feedTokenActiveNote:
       "Your feed URLs currently include a private token. Rotating invalidates the old URL — re-paste the new one wherever it's consumed.",
     feedTokenPublicNote:
@@ -92,7 +92,7 @@ const COPY: Record<Locale, CopyShape> = {
     monthsShort: "мес.",
     feedTokenTitle: "Токен доступа к фиду",
     feedTokenDesc:
-      "URL фида позволяет внешним сервисам, не поддерживающим загрузку iCal (например, инструментам ценообразования, channel manager-ам или вашим собственным скриптам), читать общий календарь Airbnb + Booking этого объекта в формате iCal. Большинству хостов это не нужно — оставьте поле пустым, чтобы фид оставался публичным, или сгенерируйте токен, чтобы URL был приватным.",
+      "URL фида позволяет внешним сервисам, не поддерживающим загрузку iCal (например, инструментам ценообразования, channel manager-ам или вашим собственным скриптам), читать общий календарь этого объекта (все подключённые платформы) в формате iCal. Большинству хостов это не нужно — оставьте поле пустым, чтобы фид оставался публичным, или сгенерируйте токен, чтобы URL был приватным.",
     feedTokenActiveNote:
       "Сейчас URL содержит приватный токен. Ротация делает старый URL недействительным — переустановите новый в местах, где он используется.",
     feedTokenPublicNote:
@@ -127,7 +127,7 @@ const COPY: Record<Locale, CopyShape> = {
     monthsShort: "Mon.",
     feedTokenTitle: "Zugriffstoken für Feed",
     feedTokenDesc:
-      "Die Feed-URL erlaubt externen Diensten, die keinen iCal-Upload unterstützen (z. B. Preisoptimierungs-Tools, Channel Manager oder eigene Skripte), den kombinierten Airbnb- + Booking-Kalender dieser Unterkunft im iCal-Format zu lesen. Die meisten Hosts brauchen das nicht — lassen Sie das Token leer, damit der Feed öffentlich bleibt, oder generieren Sie ein Token, um die URL privat zu machen.",
+      "Die Feed-URL erlaubt externen Diensten, die keinen iCal-Upload unterstützen (z. B. Preisoptimierungs-Tools, Channel Manager oder eigene Skripte), den kombinierten Kalender dieser Unterkunft — alle verbundenen Plattformen — im iCal-Format zu lesen. Die meisten Hosts brauchen das nicht — lassen Sie das Token leer, damit der Feed öffentlich bleibt, oder generieren Sie ein Token, um die URL privat zu machen.",
     feedTokenActiveNote:
       "Ihre Feed-URLs enthalten aktuell ein privates Token. Beim Rotieren wird die alte URL ungültig — fügen Sie die neue URL überall dort wieder ein, wo sie verwendet wird.",
     feedTokenPublicNote:
@@ -162,7 +162,7 @@ const COPY: Record<Locale, CopyShape> = {
     monthsShort: "mois",
     feedTokenTitle: "Token d’accès au feed",
     feedTokenDesc:
-      "L’URL du feed permet à des services externes qui ne prennent pas en charge l’import iCal (outils de tarification, channel managers ou vos propres scripts) de lire le calendrier combiné Airbnb + Booking de ce logement au format iCal. La plupart des hôtes n’en ont pas besoin — laissez le token vide pour garder le feed public, ou générez un token pour rendre l’URL privée.",
+      "L’URL du feed permet à des services externes qui ne prennent pas en charge l’import iCal (outils de tarification, channel managers ou vos propres scripts) de lire le calendrier combiné de ce logement — toutes les plateformes connectées — au format iCal. La plupart des hôtes n’en ont pas besoin — laissez le token vide pour garder le feed public, ou générez un token pour rendre l’URL privée.",
     feedTokenActiveNote:
       "Vos URL de feed contiennent actuellement un token privé. La rotation invalide l’ancienne URL — recollez la nouvelle URL partout où elle est utilisée.",
     feedTokenPublicNote:
@@ -197,7 +197,7 @@ const COPY: Record<Locale, CopyShape> = {
     monthsShort: "meses",
     feedTokenTitle: "Token de acceso al feed",
     feedTokenDesc:
-      "La URL del feed permite que servicios externos que no admiten subida de iCal (por ejemplo, herramientas de pricing, channel managers o sus propios scripts) lean el calendario combinado de Airbnb + Booking de este alojamiento en formato iCal. La mayoría de los anfitriones no lo necesitan — deje el token vacío para mantener el feed público, o gire el token para que la URL sea privada.",
+      "La URL del feed permite que servicios externos que no admiten subida de iCal (por ejemplo, herramientas de pricing, channel managers o sus propios scripts) lean el calendario combinado de este alojamiento — todas las plataformas conectadas — en formato iCal. La mayoría de los anfitriones no lo necesitan — deje el token vacío para mantener el feed público, o gire el token para que la URL sea privada.",
     feedTokenActiveNote:
       "Sus URL de feed incluyen actualmente un token privado. Al rotarlo se invalida la URL anterior — vuelva a pegar la nueva donde la utilice.",
     feedTokenPublicNote:
@@ -702,7 +702,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
           custom rows the user is composing. The outbound "import this
           back into the platform" feed URL is always visible alongside
           each row so the host can copy it BEFORE connecting too. */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {platforms.map(({ key: platform, label, color, url, setUrl, placeholder, isPreset, isCustom, isDraft, hasInstructions, rowId }) => {
           const link = getLink(platform);
           const isConnected = !!link;
@@ -778,7 +778,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder={placeholder || t("sync.pastePlaceholder", { platform: label })}
-                    className="h-8 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
+                    className="h-8 min-w-0 flex-1 rounded-md border border-[var(--line-2)] bg-[var(--bg)] px-2.5 text-xs text-[var(--ink)] placeholder-[var(--ink-4)] outline-none focus:border-[var(--ink)]"
                     disabled={isConnected && !isEditing}
                   />
                   {isConnected && !isEditing ? (
@@ -864,7 +864,7 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                   </p>
                 ) : (
                   <div className="flex items-center gap-1.5">
-                    <code className="flex-1 truncate rounded-md bg-[var(--bg)] border border-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)]">
+                    <code className="min-w-0 flex-1 truncate rounded-md bg-[var(--bg)] border border-[var(--line-2)] px-2.5 py-1.5 text-xs text-[var(--ink-2)]">
                       {feedUrl(platform)}
                     </code>
                     <button
@@ -907,7 +907,10 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
       <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-4)]">
         {c.secStayRules}
       </h2>
-      <div className="grid items-start gap-4 md:grid-cols-2">
+      {/* Masonry columns — these cards have very different heights, so
+          a grid left ragged gaps. Columns pack them tightly; one
+          column on mobile. */}
+      <div className="gap-4 md:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">
 
       {/* Buffer Settings — gated on `!loading` so it doesn't pop in
           after the first paint. Pre-load links is empty, so without
@@ -1086,7 +1089,8 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
       <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-4)]">
         {c.secAccess}
       </h2>
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      {/* Masonry columns — see Stay rules above. One column on mobile. */}
+      <div className="gap-4 lg:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">
 
       {/* Property Managers */}
       <PropertyManagersPanel propertyId={propertyId} ownerUserId={ownerUserId} />
