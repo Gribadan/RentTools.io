@@ -144,7 +144,7 @@ function formatGroupName(
     "Guest"
   ).trim();
   const prop = (propertyName ?? "Property").trim();
-  return `${platform} ${dates} | ${guestName} | ${prop}`;
+  return `${platform} ${dates} - ${guestName} - ${prop}`;
 }
 
 function renderTemplate(input: string, vars: Record<string, string>): string {
@@ -824,7 +824,7 @@ export function ReservationView({
         </div>
 
         {/* Editable group name. Pre-filled with the auto-generated
-            "[Platform] [dates] | [guest] | [property]" string; the host
+            "[Platform] [dates] - [guest] - [property]" string; the host
             can overwrite it with anything (the "Copy group name" button
             copies whatever is in the field). Empty + Save resets to the
             auto name. */}
