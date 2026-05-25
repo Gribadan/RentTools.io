@@ -235,6 +235,10 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // the form title + field text, keyed by locale. Empty {} keeps
     // existing single-language forms working unchanged.
     `ALTER TABLE "GuestFormTemplate" ADD COLUMN "i18n" TEXT NOT NULL DEFAULT '{}'`,
+    // Reservation-level contact phone. Optional; powers the personal-
+    // chat WhatsApp / Telegram deeplinks on reservations that have no
+    // passport guests yet (or only one).
+    `ALTER TABLE "Reservation" ADD COLUMN "phone" TEXT`,
   ];
 
   // Feedback table — site-wide visitor feedback queue. New table, so we

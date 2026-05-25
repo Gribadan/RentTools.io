@@ -290,6 +290,11 @@ model Reservation {
   // 2026 | Amilla | House 7"); when set, the host's custom text is
   // used by the "Copy group name" button instead.
   groupName       String?
+  // Per-reservation contact phone. Optional; lets the host save a phone
+  // number for a booking that has no passport guests (or for a 1-of-1
+  // booking) and use it to deeplink straight into a personal WhatsApp /
+  // Telegram chat. Stored in the same loose E.164 shape Guest.phone uses.
+  phone           String?
   propertyId      Int
   property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests          Guest[]

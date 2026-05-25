@@ -170,6 +170,7 @@ interface ReservationViewProps {
       tgGroupUrl?: string | null;
       waGroupUrl?: string | null;
       groupName?: string | null;
+      phone?: string | null;
     }
   ) => void | Promise<{ ok: true } | { ok: false; error: string }>;
   onUpdateParent: (childId: number, parentId: number | null) => void;
@@ -187,7 +188,7 @@ export function ReservationView({
   onUpdateParent,
   onUpdateGuest,
 }: ReservationViewProps) {
-  const { locale } = useI18n();
+  const { locale, t: tr } = useI18n();
   const hint = HINT_COPY[locale];
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -220,6 +221,23 @@ export function ReservationView({
   const [editWaGroupUrl, setEditWaGroupUrl] = useState("");
   const [savingGroupUrls, setSavingGroupUrls] = useState(false);
   const [groupUrlsError, setGroupUrlsError] = useState<string | null>(null);
+  // Reservation-level contact phone. Same draft/saved/state pattern
+  // the guest cards use for guest.phone — auto-saves on blur, server
+  // normalises to loose E.164 ("+...digits..."), and surfaces a small
+  // saved / error chip. Powers the personal-chat WhatsApp / Telegram
+  // quick-buttons so a booking with no passport guests still gets a
+  // one-click messenger jump.
+  const [reservationPhoneDraft, setReservationPhoneDraft] = useState<string>(reservation.phone ?? "");
+  const [reservationPhoneSaved, setReservationPhoneSaved] = useState<string>(reservation.phone ?? "");
+  const [reservationPhoneState, setReservationPhoneState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  useEffect(() => {
+    if (reservationPhoneDraft === reservationPhoneSaved) {
+      setReservationPhoneDraft(reservation.phone ?? "");
+      setReservationPhoneSaved(reservation.phone ?? "");
+    } else {
+      setReservationPhoneSaved(reservation.phone ?? "");
+    }
+  }, [reservation.phone]); // eslint-disable-line react-hooks/exhaustive-deps
   // RT-25.2 — pre-arrival guest form share link. hasGuestForm gates
   // the "Copy form link" button so it only shows when the property
   // actually has a template configured. The action is link-generation
@@ -578,6 +596,55 @@ export function ReservationView({
     setEditingGroupUrls(false);
   };
 
+  const handleReservationPhoneBlur = async () => {
+    if (reservationPhoneDraft === reservationPhoneSaved) return;
+    setReservationPhoneState("saving");
+    const result = await Promise.resolve(
+      onUpdateReservation(reservation.id, { phone: reservationPhoneDraft }),
+    );
+    if (result && typeof result === "object" && "ok" in result && !result.ok) {
+      setReservationPhoneState("error");
+      return;
+    }
+    // Server normalises ("+", digits only) — the next render via
+    // reservation.phone reconciles our draft to the canonical form.
+    setReservationPhoneSaved(reservationPhoneDraft);
+    setReservationPhoneState("saved");
+    setTimeout(
+      () => setReservationPhoneState((s) => (s === "saved" ? "idle" : s)),
+      1600,
+    );
+  };
+
+  // wa.me wants plain digits without `+`; t.me/+phone needs the leading
+  // `+` so the deeplink resolves. Mirror the same gating the guest card
+  // applies so the buttons stay disabled until the input parses cleanly.
+  const reservationPhoneForLinks = (reservationPhoneDraft || reservation.phone || "").trim();
+  const reservationPhoneEnabled =
+    reservationPhoneForLinks.length > 0 &&
+    /^\+?\d{7,15}$/.test(reservationPhoneForLinks);
+  const reservationWaDigits = reservationPhoneForLinks.replace(/^\+/, "");
+  const reservationTmePath = reservationPhoneForLinks.startsWith("+")
+    ? reservationPhoneForLinks
+    : `+${reservationPhoneForLinks}`;
+  const reservationLeadFirstName = (
+    guests.find((g) => g.firstName?.trim())?.firstName?.trim() ||
+    guests[0]?.firstName?.trim() ||
+    reservation.name.split(" ")[0] ||
+    ""
+  ).trim();
+  const reservationCheckInDate = (() => {
+    const d = new Date(reservation.checkIn);
+    return isNaN(d.getTime())
+      ? reservation.checkIn
+      : d.toISOString().split("T")[0];
+  })();
+  const reservationMessengerPrefill = tr("guest.messengerPrefill", {
+    name: reservationLeadFirstName,
+    property: propertyName || "",
+    checkIn: reservationCheckInDate,
+  });
+
   // Name-only edit. Dates and platform are managed from the calendar
   // view — editing them here would be a second, conflicting surface.
   const handleSaveEdit = () => {
@@ -799,17 +866,18 @@ export function ReservationView({
         </div>
       )}
 
-      {/* Reservation group chat — host-only convenience. Copy a
-          standardised group-name string (so chats across all bookings
-          look consistent in your messenger list) and save the group's
-          URL once you've created it, so clicking back into the right
-          chat from a reservation is one click. */}
+      {/* Reservation-level messenger. Two paths: (a) save a phone here
+          and use the WhatsApp / Telegram quick-buttons to open a personal
+          chat — works even without passport guests, even with one guest;
+          (b) paste a group-chat URL after you've created one, plus copy
+          a standard group-name string so chats look consistent in your
+          messenger list. */}
       <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-sm font-medium">Group chat</p>
+            <p className="text-sm font-medium">Messenger</p>
             <p className="text-xs text-muted-foreground">
-              Copy a standard group name for messenger, then save the group&rsquo;s link to jump back in one click.
+              Save the guest&rsquo;s phone for a personal chat, or paste a group&rsquo;s link to jump back in one click.
             </p>
           </div>
           <Button
@@ -821,6 +889,94 @@ export function ReservationView({
           >
             {groupNameCopyState === "copied" ? "Copied!" : "Copy group name"}
           </Button>
+        </div>
+
+        {/* Personal chat — phone input + WA / TG quick-message buttons.
+            Auto-saves on blur via the same PATCH path as the group URL
+            fields below; the server normalises to loose E.164. */}
+        <div className="space-y-1 border-t border-border/30 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              {tr("guest.phone")}
+            </span>
+            <span
+              className={`text-[10px] transition-opacity ${reservationPhoneState === "idle" ? "opacity-0" : "opacity-100"} ${
+                reservationPhoneState === "saved"
+                  ? "text-emerald-500"
+                  : reservationPhoneState === "error"
+                    ? "text-destructive"
+                    : "text-muted-foreground/60"
+              }`}
+            >
+              {reservationPhoneState === "saving"
+                ? "Saving…"
+                : reservationPhoneState === "saved"
+                  ? "Saved"
+                  : reservationPhoneState === "error"
+                    ? tr("guest.phoneInvalid")
+                    : ""}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <input
+              type="tel"
+              inputMode="tel"
+              value={reservationPhoneDraft}
+              onChange={(e) => {
+                setReservationPhoneDraft(e.target.value);
+                if (reservationPhoneState === "saved" || reservationPhoneState === "error") {
+                  setReservationPhoneState("idle");
+                }
+              }}
+              onBlur={handleReservationPhoneBlur}
+              placeholder={tr("guest.phonePlaceholder")}
+              className="min-w-0 flex-1 rounded-md border border-border/40 bg-background/50 px-2 py-1 text-sm text-[var(--ink)] placeholder-muted-foreground/30 outline-none focus:border-primary/60"
+            />
+            <a
+              href={
+                reservationPhoneEnabled
+                  ? `https://wa.me/${reservationWaDigits}?text=${encodeURIComponent(reservationMessengerPrefill)}`
+                  : undefined
+              }
+              target={reservationPhoneEnabled ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              aria-disabled={!reservationPhoneEnabled}
+              tabIndex={reservationPhoneEnabled ? 0 : -1}
+              onClick={(e) => {
+                if (!reservationPhoneEnabled) e.preventDefault();
+              }}
+              title={tr("guest.messageOnWhatsApp")}
+              className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all ${
+                reservationPhoneEnabled
+                  ? "bg-[#25D366]/15 text-[#25D366] hover:bg-[#25D366]/25"
+                  : "bg-white/5 text-muted-foreground/30 cursor-not-allowed"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                <path d="M20.52 3.48A11.78 11.78 0 0012.05 0C5.5 0 .2 5.3.2 11.85c0 2.09.55 4.13 1.6 5.93L0 24l6.39-1.67a11.85 11.85 0 005.66 1.44h.01c6.55 0 11.85-5.3 11.85-11.85 0-3.16-1.23-6.13-3.39-8.44zM12.06 21.7h-.01a9.84 9.84 0 01-5.02-1.37l-.36-.21-3.79.99 1.01-3.69-.23-.38a9.83 9.83 0 01-1.5-5.19c0-5.44 4.42-9.86 9.87-9.86 2.63 0 5.11 1.03 6.97 2.89a9.79 9.79 0 012.89 6.97c-.01 5.45-4.43 9.85-9.83 9.85zm5.4-7.38c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.66.15-.2.3-.76.96-.93 1.16-.17.2-.34.22-.64.07-.3-.15-1.25-.46-2.38-1.46a8.92 8.92 0 01-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.34.45-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.66-1.6-.91-2.18-.24-.58-.49-.5-.66-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.06 2.87 1.21 3.07.15.2 2.09 3.19 5.07 4.47.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.75-.71 2-1.4.25-.69.25-1.27.17-1.4-.07-.13-.27-.2-.57-.35z" />
+              </svg>
+            </a>
+            <a
+              href={reservationPhoneEnabled ? `https://t.me/${reservationTmePath}` : undefined}
+              target={reservationPhoneEnabled ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              aria-disabled={!reservationPhoneEnabled}
+              tabIndex={reservationPhoneEnabled ? 0 : -1}
+              onClick={(e) => {
+                if (!reservationPhoneEnabled) e.preventDefault();
+              }}
+              title={tr("guest.messageOnTelegram")}
+              className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all ${
+                reservationPhoneEnabled
+                  ? "bg-[#229ED9]/15 text-[#229ED9] hover:bg-[#229ED9]/25"
+                  : "bg-white/5 text-muted-foreground/30 cursor-not-allowed"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+                <path d="M11.94.5C5.62.5.5 5.62.5 11.94s5.12 11.44 11.44 11.44 11.44-5.12 11.44-11.44S18.26.5 11.94.5zm5.31 7.86l-1.78 8.4c-.13.6-.49.74-.99.46l-2.74-2.02-1.32 1.27c-.15.15-.27.27-.55.27l.2-2.79 5.07-4.58c.22-.2-.05-.31-.34-.11l-6.27 3.95-2.7-.84c-.59-.18-.6-.59.12-.87l10.55-4.07c.49-.18.92.12.75.93z" />
+              </svg>
+            </a>
+          </div>
         </div>
 
         {/* Editable group name. Pre-filled with the auto-generated

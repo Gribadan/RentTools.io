@@ -169,6 +169,7 @@ function AppContent({
       tgGroupUrl?: string | null;
       waGroupUrl?: string | null;
       groupName?: string | null;
+      phone?: string | null;
     }
   ) => {
     const res = await fetch(`/api/reservations/${id}`, {

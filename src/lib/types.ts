@@ -40,6 +40,10 @@ export interface Reservation {
    *  null/absent, the reservation view auto-generates one from the
    *  platform, dates, guest, and property. */
   groupName?: string | null;
+  /** Reservation-level contact phone (loose E.164). Drives the
+   *  personal-chat WhatsApp / Telegram quick-buttons even on bookings
+   *  with no passport guests. */
+  phone?: string | null;
   propertyId: number;
   createdAt: string;
   guests?: Guest[];

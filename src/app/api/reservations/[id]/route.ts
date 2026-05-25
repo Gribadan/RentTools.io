@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
+import { normalizePhone } from "@/lib/sanitize";
 
 async function loadManageableReservation(
   reservationId: number,
@@ -78,6 +79,19 @@ export async function PATCH(
         );
       } else {
         data.waGroupUrl = v;
+      }
+    }
+
+    // Reservation contact phone — same loose-E.164 normalisation the
+    // Guest.phone PATCH uses so the host can use the same input shape
+    // and the WA/TG deeplinks resolve cleanly. Empty clears.
+    if (body.phone !== undefined) {
+      const v = typeof body.phone === "string" ? body.phone : "";
+      try {
+        const normalised = normalizePhone(v);
+        data.phone = normalised === "" ? null : normalised;
+      } catch {
+        return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
       }
     }
 
