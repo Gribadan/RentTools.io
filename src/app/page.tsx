@@ -110,7 +110,7 @@ interface CopyBlock {
   trust: { open: { title: string; body: string; link: string }; gdpr: { title: string; body: string; link: string } };
   faq: { eyebrow: string; title: string; items: SectionFaq[] };
   finalCta: { titleA: string; titleB: string; body: string; primary: string; secondary: string };
-  footer: { copyright: string; github: string; blog: string; terms: string; privacy: string; signIn: string; advertise: string; cookieNoteA: string; cookieNoteLink: string; cookieNoteB: string };
+  footer: { copyright: string; github: string; blog: string; changelog: string; terms: string; privacy: string; signIn: string; advertise: string; cookieNoteA: string; cookieNoteLink: string; cookieNoteB: string };
 }
 
 // All marketing copy split EN/RU. The EN block also seeds the FAQPage +
@@ -234,6 +234,7 @@ const COPY: Record<Locale, CopyBlock> = {
       copyright: "© 2026 RentTools · MIT License",
       github: "GitHub",
       blog: "Blog",
+      changelog: "Changelog",
       terms: "Terms",
       privacy: "Privacy",
       signIn: "Sign in",
@@ -362,6 +363,7 @@ const COPY: Record<Locale, CopyBlock> = {
       copyright: "© 2026 RentTools · MIT License",
       github: "GitHub",
       blog: "Блог",
+      changelog: "История изменений",
       terms: "Условия",
       privacy: "Конфиденциальность",
       signIn: "Войти",
@@ -490,6 +492,7 @@ const COPY: Record<Locale, CopyBlock> = {
       copyright: "© 2026 RentTools · MIT-Lizenz",
       github: "GitHub",
       blog: "Blog",
+      changelog: "Änderungsverlauf",
       terms: "AGB",
       privacy: "Datenschutz",
       signIn: "Anmelden",
@@ -618,6 +621,7 @@ const COPY: Record<Locale, CopyBlock> = {
       copyright: "© 2026 RentTools · Licence MIT",
       github: "GitHub",
       blog: "Blog",
+      changelog: "Journal des modifications",
       terms: "Conditions",
       privacy: "Confidentialité",
       signIn: "Se connecter",
@@ -746,6 +750,7 @@ const COPY: Record<Locale, CopyBlock> = {
       copyright: "© 2026 RentTools · Licencia MIT",
       github: "GitHub",
       blog: "Blog",
+      changelog: "Registro de cambios",
       terms: "Términos",
       privacy: "Privacidad",
       signIn: "Iniciar sesión",
@@ -1021,6 +1026,7 @@ export default async function HomePage() {
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
               <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--ink)] transition-colors">{t.footer.github}</a>
               <Link href={localePath("/blog", locale)} className="hover:text-[var(--ink)] transition-colors">{t.footer.blog}</Link>
+              <Link href={localePath("/changelog", locale)} className="hover:text-[var(--ink)] transition-colors">{t.footer.changelog}</Link>
               <Link href="/terms" className="hover:text-[var(--ink)] transition-colors">{t.footer.terms}</Link>
               <Link href="/privacy" className="hover:text-[var(--ink)] transition-colors">{t.footer.privacy}</Link>
               <a

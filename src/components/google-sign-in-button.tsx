@@ -33,6 +33,12 @@ export function GoogleSignInButton({ next, label }: Props) {
   return (
     <a
       href={href}
+      // Tell crawlers not to follow this anchor — robots.txt already
+      // blocks /api/auth/google, so without nofollow Google still
+      // queues each per-page variant ("?next=/blog/...") as "discovered
+      // but blocked" and burns crawl budget on a redirect endpoint that
+      // can never be indexed.
+      rel="nofollow"
       className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[var(--line-2)] bg-[var(--bg)] text-[14px] font-medium text-[var(--ink)] transition-colors hover:bg-[var(--bg-3)]"
     >
       <GoogleGlyph />

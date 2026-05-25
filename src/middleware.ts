@@ -72,6 +72,7 @@ const PUBLIC_PATHS = [
   "/privacy",
   "/onboard",
   "/blog", // public blog index, post pages, tag pages, rss.xml
+  "/changelog", // public product changelog — content in src/lib/changelog-entries.ts
   "/api/auth/login",
   "/api/auth/signup",
   "/api/auth/verify-email", // step 2 of email-verified signup — pre-login
