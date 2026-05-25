@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { GuestFormPrivacyPanel } from "@/components/guest-form-filler";
 import {
   GUEST_FORM_LOCALES,
   GUEST_UI_COPY,
@@ -797,6 +798,13 @@ function FormPreview({
           {title || copy.titleFallback}
         </h2>
         <p className="mt-1 text-xs text-[#a0a0a8]">{copy.intro}</p>
+
+        {/* Same privacy panel the guest sees on /g/<token>, rendered
+            here so the host can verify what's surfaced to their guests
+            before they share the link. */}
+        <div className="mt-5">
+          <GuestFormPrivacyPanel copy={copy.privacy} />
+        </div>
 
         <div className="mt-5 space-y-4">
           {fields.length === 0 && (
