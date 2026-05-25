@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   GUEST_FORM_LOCALES,
@@ -105,11 +105,18 @@ export function GuestFormPage({
   const [i18n, setI18n] = useState<GuestFormI18n>({});
   const [activeLang, setActiveLang] = useState<GuestFormLocale>("en");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  // Auto-save status chip. The previous "Save form" button was easy to
+  // miss — hosts hit the preview's Submit (which does nothing) and lost
+  // their work. Edits now persist on their own ~600ms after the last
+  // keystroke / toggle, with this chip as the visible receipt.
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [dragId, setDragId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  // Last value the server confirmed. We compare current state against
+  // this to decide whether there's anything to save, so a no-op edit
+  // (toggle then untoggle) doesn't trigger a network round-trip.
+  const lastSavedRef = useRef<{ name: string; fields: FormField[]; i18n: GuestFormI18n } | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,15 +127,24 @@ export function GuestFormPage({
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (cancelled) return;
-        if (data.template) {
-          setName(data.template.name ?? "");
-          setFields(Array.isArray(data.template.fields) ? data.template.fields : []);
-          setI18n(
-            data.template.i18n && typeof data.template.i18n === "object"
-              ? data.template.i18n
-              : {},
-          );
-        }
+        const loadedName = data.template?.name ?? "";
+        const loadedFields = Array.isArray(data.template?.fields)
+          ? (data.template.fields as FormField[])
+          : [];
+        const loadedI18n =
+          data.template?.i18n && typeof data.template.i18n === "object"
+            ? (data.template.i18n as GuestFormI18n)
+            : {};
+        setName(loadedName);
+        setFields(loadedFields);
+        setI18n(loadedI18n);
+        // Snapshot what the server already holds so the auto-save
+        // effect doesn't fire on the initial load.
+        lastSavedRef.current = {
+          name: loadedName,
+          fields: loadedFields,
+          i18n: loadedI18n,
+        };
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -137,6 +153,52 @@ export function GuestFormPage({
       cancelled = true;
     };
   }, [propertyId]);
+
+  // Auto-save: ~600ms after the last edit, push the current name +
+  // fields + i18n. Skipped while the initial load is in flight, and
+  // skipped when nothing has actually changed against lastSavedRef.
+  useEffect(() => {
+    if (loading || !lastSavedRef.current) return;
+    const last = lastSavedRef.current;
+    const unchanged =
+      last.name === name &&
+      JSON.stringify(last.fields) === JSON.stringify(fields) &&
+      JSON.stringify(last.i18n) === JSON.stringify(i18n);
+    if (unchanged) return;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setSaveState("saving");
+      try {
+        const res = await fetch(`/api/properties/${propertyId}/guest-form`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, fields, i18n }),
+        });
+        if (!res.ok) {
+          setSaveState("error");
+          return;
+        }
+        // Snapshot the values we just sent (not whatever fresh edits
+        // the host has already made in the meantime) — the next render
+        // pass will compare and trigger another save if needed.
+        lastSavedRef.current = { name, fields, i18n };
+        setSaveState("saved");
+        setTimeout(
+          () => setSaveState((s) => (s === "saved" ? "idle" : s)),
+          1600,
+        );
+      } catch {
+        setSaveState("error");
+      }
+    }, 600);
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [name, fields, i18n, loading, propertyId]);
 
   const patchField = (id: string, patch: Partial<FormField>) =>
     setFields((arr) => arr.map((f) => (f.id === id ? { ...f, ...patch } : f)));
@@ -214,28 +276,6 @@ export function GuestFormPage({
       return { ...m, [lang]: { ...loc, fields: flds } };
     });
 
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/properties/${propertyId}/guest-form`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, fields, i18n }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error ?? "Couldn't save the form");
-        return;
-      }
-      setSavedAt(Date.now());
-    } catch {
-      setError("Couldn't save the form");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const translatedLocales = availableLocales(i18n);
   const translating = activeLang !== "en";
 
@@ -261,19 +301,42 @@ export function GuestFormPage({
               {propertyName} · build the form once, then share a link per reservation
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {savedAt && !error && (
-              <span className="text-xs text-emerald-500">Saved</span>
-            )}
-            {error && <span className="text-xs text-rose-500">{error}</span>}
-            <button
-              type="button"
-              onClick={save}
-              disabled={saving || loading}
-              className="rounded-lg bg-[var(--m-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--m-accent-2)] disabled:opacity-50"
-            >
-              {saving ? "Saving…" : "Save form"}
-            </button>
+          {/* Auto-save status chip. No manual button — every edit
+              persists ~600ms after the host stops typing. The label
+              also functions as a passive reassurance: hosts who used
+              to look for a "Save" button find a "Saved" indicator
+              instead and know the work is safe. */}
+          <div
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+              saveState === "saving"
+                ? "bg-[var(--bg-2)] text-[var(--ink-3)]"
+                : saveState === "saved"
+                  ? "bg-emerald-500/10 text-emerald-500"
+                  : saveState === "error"
+                    ? "bg-rose-500/10 text-rose-500"
+                    : "bg-[var(--bg-2)] text-[var(--ink-4)]"
+            }`}
+            aria-live="polite"
+          >
+            <span
+              aria-hidden
+              className={`h-1.5 w-1.5 rounded-full ${
+                saveState === "saving"
+                  ? "animate-pulse bg-[var(--ink-3)]"
+                  : saveState === "saved"
+                    ? "bg-emerald-500"
+                    : saveState === "error"
+                      ? "bg-rose-500"
+                      : "bg-emerald-500/60"
+              }`}
+            />
+            {saveState === "saving"
+              ? "Saving…"
+              : saveState === "saved"
+                ? "Saved"
+                : saveState === "error"
+                  ? "Save failed — retrying on next edit"
+                  : "Changes save automatically"}
           </div>
         </div>
 
@@ -813,8 +876,11 @@ function FormPreview({
           })}
         </div>
 
-        <div className="mt-6 rounded-md bg-[#ff385c] px-4 py-2.5 text-center text-sm font-medium text-white">
-          {copy.submit}
+        {/* Preview Submit — visibly disabled so hosts don't click it
+            expecting to save their work (the form auto-saves on edit;
+            this button only exists in the rendered preview). */}
+        <div className="mt-6 select-none rounded-md bg-[#ff385c]/40 px-4 py-2.5 text-center text-sm font-medium text-white/70">
+          {copy.submit} <span className="text-[10px] uppercase tracking-wide text-white/60">· preview only</span>
         </div>
       </div>
     </div>
