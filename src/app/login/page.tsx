@@ -190,6 +190,10 @@ function LoginPageInner() {
             {t("login.noAccount")}{" "}
             <Link
               href={next !== "/dashboard" ? `/signup?next=${encodeURIComponent(next)}` : "/signup"}
+              // nofollow only when the link carries ?next= — those are
+              // the infinite-variant URLs we don't want crawlers queuing.
+              // Plain /signup is indexable; let Google follow it freely.
+              rel={next !== "/dashboard" ? "nofollow" : undefined}
               className="text-[var(--ink)] underline-offset-2 hover:underline"
             >
               {t("login.signUpLink")}
