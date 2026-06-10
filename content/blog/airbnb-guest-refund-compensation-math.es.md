@@ -18,7 +18,7 @@ La caldera murió una noche de enero, a mitad de una estancia de tres noches, co
 
 Este artículo es la fórmula que ahora uso en lugar de adivinar. Un factor de gravedad, cuatro escenarios con cifras reales y la parte que nadie le cuenta: qué hacen Airbnb, Booking.com y Vrbo con su pago si su primera oferta es tacaña.
 
-## En breve
+## TL;DR
 
 - Una sola fórmula: **reembolso = precio por noche × noches afectadas × factor de gravedad**. El pánico se convierte en aritmética.
 - El **factor de gravedad** va del 0 % (una bombilla fundida) al 100 % (inhabitable). La calefacción en invierno y el aire en una ola de calor son habitabilidad, no comodidad: cuéntelos alto.
@@ -100,7 +100,7 @@ Lo aprendí por el camino caro. El aire de un huésped se averió en una estanci
 
 Esa brecha —360 $ impuestos frente a 200 $ voluntarios, más una reseña que costó más que ambos— es el impuesto de la escalada. Es la prima que paga por tratar el valor perdido de un huésped como una negociación en vez de como un problema de aritmética. El impuesto no está en el reembolso. Está en la demora y en la oferta corta.
 
-## Preguntas frecuentes
+## FAQ
 
 **¿Cuánto debo reembolsar a un huésped de Airbnb por un problema durante su estancia?**
 

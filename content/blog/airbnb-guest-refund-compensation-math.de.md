@@ -18,7 +18,7 @@ Die Therme starb in einer Januarnacht, mitten in einem dreitägigen Aufenthalt, 
 
 Dieser Beitrag ist die Formel, die ich heute statt des Ratens benutze. Ein Schweregrad-Faktor, vier durchgerechnete Szenarien mit echten Zahlen und der Teil, den Ihnen niemand sagt — was Airbnb, Booking.com und Vrbo mit Ihrer Auszahlung machen, wenn Ihr erstes Angebot zu niedrig ist.
 
-## Kurz gefasst
+## TL;DR
 
 - Eine Formel: **Rückerstattung = Nachtpreis × betroffene Nächte × Schweregrad**. Aus Panik wird Rechnen.
 - Der **Schweregrad** reicht von 0 % (durchgebrannte Glühbirne) bis 100 % (unbewohnbar). Heizung im Winter und Klimaanlage in der Hitze sind Bewohnbarkeit, kein Komfort — setzen Sie sie hoch an.
@@ -100,7 +100,7 @@ Ich habe das auf die teure Weise gelernt. Die Klimaanlage eines Gastes fiel bei 
 
 Diese Lücke — 360 $ erzwungen gegen 200 $ freiwillig, plus eine Bewertung, die mehr kostete als beide — ist die Eskalationssteuer. Es ist der Aufschlag, den Sie zahlen, weil Sie den verlorenen Wert eines Gastes als Verhandlung statt als Rechenaufgabe behandeln. Die Steuer ist nicht auf der Rückerstattung. Sie ist auf der Verzögerung und dem Lowball.
 
-## Häufige Fragen
+## FAQ
 
 **Wie viel sollte ich einem Airbnb-Gast für ein Problem während seines Aufenthalts erstatten?**
 

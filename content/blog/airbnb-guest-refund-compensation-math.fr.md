@@ -18,7 +18,7 @@ La chaudière a rendu l'âme une nuit de janvier, au milieu d'un séjour de troi
 
 Cet article, c'est la formule que j'utilise désormais à la place des suppositions. Un facteur de gravité, quatre scénarios chiffrés avec de vrais montants, et la partie que personne ne vous dit — ce qu'Airbnb, Booking.com et Vrbo font à votre versement si votre première offre est trop basse.
 
-## En bref
+## TL;DR
 
 - Une seule formule : **remboursement = prix par nuit × nuits touchées × facteur de gravité**. La panique devient de l'arithmétique.
 - Le **facteur de gravité** va de 0 % (une ampoule grillée) à 100 % (inhabitable). Le chauffage en hiver et la climatisation en canicule relèvent de l'habitabilité, pas du confort — comptez-les haut.
@@ -100,7 +100,7 @@ Je l'ai appris à mes dépens. La climatisation d'un voyageur est tombée en pan
 
 Cet écart — 360 $ imposés contre 200 $ volontaires, plus un avis qui a coûté plus que les deux — c'est la taxe d'escalade. C'est la prime que vous payez pour avoir traité la valeur perdue d'un voyageur comme une négociation plutôt que comme un problème d'arithmétique. La taxe n'est pas sur le remboursement. Elle est sur le délai et sur l'offre trop basse.
 
-## Foire aux questions
+## FAQ
 
 **Combien rembourser un voyageur Airbnb pour un problème pendant son séjour ?**
 
