@@ -122,7 +122,21 @@ export function CalendarDatePopover({
   let countCleaningOverride = 0;
   let countAutoBlocked = 0;
   for (const d of sortedDates) {
-    if (bars.some((b) => d >= b.startDate && d <= b.endDate)) countBooked++;
+    // Half-open: a bar's endDate is the reservation's check-OUT day,
+    // which is a same-day-turnover slot, not an occupied night. The
+    // API at /api/reservations (POST L58/L97 and PATCH L114/L143) uses
+    // the standard half-open overlap `checkIn:{lt:newCheckOut},
+    // checkOut:{gt:newCheckIn}` and explicitly permits a new check-in
+    // on a prior reservation's check-out date. Counting that slot as
+    // "booked" here disabled Create / Block / Make-available / extend-
+    // after on a perfectly legal back-to-back turnover and surfaced a
+    // misleading "1 booked — bulk actions disabled" message. We leave
+    // buildDateBars (L36) and singleStatus.hasBar (L156) inclusive so
+    // the single-date checkout-cell popover still surfaces the leaving
+    // reservation (for trim / cancel-cleaning-on-booked / manual chip
+    // controls), and we leave calendar-grid.tsx's hasBarOnDay inclusive
+    // so the bar still paints across the checkout cell.
+    if (bars.some((b) => d >= b.startDate && d < b.endDate)) countBooked++;
     if (openOverrides.has(d)) countOpenOverride++;
     if (closedOverrides.has(d)) countClosedOverride++;
     if (cleaningOverrides.has(d)) countCleaningOverride++;
