@@ -735,9 +735,9 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                 </div>
                 <div className="flex items-center gap-1.5">
                   {isConnected && (
-                    <span className="flex shrink-0 items-center gap-1 text-xs text-emerald-500">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      {t("sync.connected")}
+                    <span className={`flex shrink-0 items-center gap-1 text-xs ${link?.lastError ? "text-rose-400" : "text-emerald-500"}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${link?.lastError ? "bg-rose-400" : "bg-emerald-500"}`} />
+                      {link?.lastError ? t("sync.feedError") : t("sync.connected")}
                     </span>
                   )}
                   {isDraft && (
@@ -837,6 +837,24 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                   <p className="text-xs text-[var(--ink-4)]">
                     {t("sync.lastSynced")} {new Date(link.lastFetchedAt).toLocaleString(c.dateLocale)}
                   </p>
+                )}
+
+                {/* Feed error warning */}
+                {link?.lastError && (
+                  <div className="flex items-start gap-2 rounded-md bg-rose-500/10 px-3 py-2 text-xs text-rose-400">
+                    <svg className="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div className="space-y-1">
+                      <p className="font-medium">{t("sync.feedError")}</p>
+                      <p className="text-rose-400/80">{link.lastError}</p>
+                      {link.failureCount > 1 && (
+                        <p className="text-rose-400/60">
+                          {t("sync.consecutiveFailures", { count: link.failureCount })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {/* Step-by-step instructions for the two presets we have

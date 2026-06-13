@@ -73,6 +73,7 @@ export interface CalendarLink {
   bufferAfter: number;
   lastFetchedAt: string | null;
   lastError: string | null;
+  failureCount: number;
   createdAt: string;
 }
 
