@@ -300,6 +300,58 @@ export async function syncAllCalendars(opts?: {
       }
     }
 
+    // ── Orphan cleanup ──────────────────────────────────────────────
+    // If a previous (pre-fix) sync already pruned a CalendarEvent but
+    // left the linked Reservation behind, the per-event cleanup above
+    // can never reach it — the event row is gone so it's never in
+    // removedEvents. Catch these orphans by finding Reservations with
+    // a linkedEventUid that doesn't match any existing CalendarEvent
+    // for this property.
+    try {
+      const claimedReservations = await prisma.reservation.findMany({
+        where: {
+          propertyId,
+          linkedEventUid: { not: null },
+        },
+        select: { id: true, linkedEventUid: true },
+      });
+
+      if (claimedReservations.length > 0) {
+        const linkedUids = [
+          ...new Set(claimedReservations.map((r) => r.linkedEventUid!)),
+        ];
+        const existingEvents = await prisma.calendarEvent.findMany({
+          where: {
+            propertyId,
+            uid: { in: linkedUids },
+          },
+          select: { uid: true },
+        });
+        const existingUidSet = new Set(existingEvents.map((e) => e.uid));
+        const orphanIds = claimedReservations
+          .filter((r) => !existingUidSet.has(r.linkedEventUid!))
+          .map((r) => r.id);
+
+        if (orphanIds.length > 0) {
+          await prisma.reservation.deleteMany({
+            where: { id: { in: orphanIds } },
+          });
+          await log(
+            `${propertyName}: ${orphanIds.length} orphaned claimed reservation(s) cleaned up (linked event no longer exists)`,
+            "warn",
+            propertyId
+          );
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await log(
+        `${propertyName}: Orphan cleanup failed — ${msg}`,
+        "error",
+        propertyId
+      );
+    }
+
     summary.propertiesSynced++;
   }
 
