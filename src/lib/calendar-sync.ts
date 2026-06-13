@@ -172,10 +172,14 @@ export async function syncAllCalendars(opts?: {
         // Detect new events
         const newEvents = futureEvents.filter((e) => !existingUIDs.has(e.uid));
 
-        // Detect removed events (no longer in feed)
-        const removedUIDs = existing
-          .filter((e) => !fetchedUIDs.has(e.uid) && e.endDate >= today)
-          .map((e) => e.uid);
+        // Detect removed events (no longer in feed). Keep the full
+        // event rows (not just uids) so the prune step below can read
+        // each event's date range when cleaning up any reservation
+        // that claimed it.
+        const removedEvents = existing.filter(
+          (e) => !fetchedUIDs.has(e.uid) && e.endDate >= today
+        );
+        const removedUIDs = removedEvents.map((e) => e.uid);
 
         // Insert new events
         for (const event of newEvents) {
@@ -211,19 +215,50 @@ export async function syncAllCalendars(opts?: {
         // ability to show year-over-year history. Past stays get
         // preserved forever; cancellations of upcoming stays still
         // get pruned on schedule.
-        if (removedUIDs.length > 0) {
+        let removedReservations = 0;
+        if (removedEvents.length > 0) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const todayIso = today.toISOString().substring(0, 10);
-          for (const uid of removedUIDs) {
-            await prisma.calendarEvent.deleteMany({
+          for (const ev of removedEvents) {
+            const deleted = await prisma.calendarEvent.deleteMany({
               where: {
                 propertyId,
                 platform: link.platform,
-                uid,
+                uid: ev.uid,
                 endDate: { gte: todayIso },
               },
             });
+
+            // The event vanishing from the feed means the platform
+            // cancelled the stay. If the host had "claimed" it (named
+            // the bar) a Reservation row was created with
+            // linkedEventUid = this event's uid and the SAME date
+            // range. Pruning only the CalendarEvent left that row
+            // orphaned — it kept rendering the cancelled booking on the
+            // calendar with no way to clear it. Delete it alongside the
+            // event (cascades to its guests / passport docs).
+            //
+            // Only CLAIMS are removed: reservations whose dates OVERLAP
+            // the cancelled event. EXTENSIONS (direct-pay nights the
+            // host added that merely ABUT the event, linked for bar
+            // pairing) are real host-entered bookings — the overlap
+            // test below is false for them, so they survive. Guarded on
+            // deleted.count so past claims (whose event we deliberately
+            // keep for history) are never touched.
+            if (deleted.count > 0) {
+              const evStart = new Date(ev.startDate);
+              const evEnd = new Date(ev.endDate);
+              const removed = await prisma.reservation.deleteMany({
+                where: {
+                  propertyId,
+                  linkedEventUid: ev.uid,
+                  checkIn: { lt: evEnd },
+                  checkOut: { gt: evStart },
+                },
+              });
+              removedReservations += removed.count;
+            }
           }
         }
 
@@ -245,7 +280,11 @@ export async function syncAllCalendars(opts?: {
         }
         if (removedUIDs.length > 0) {
           await log(
-            `${propertyName} / ${link.platform}: ${removedUIDs.length} cancelled booking(s) removed`,
+            `${propertyName} / ${link.platform}: ${removedUIDs.length} cancelled booking(s) removed${
+              removedReservations > 0
+                ? ` (including ${removedReservations} claimed reservation(s))`
+                : ""
+            }`,
             "warn",
             propertyId
           );

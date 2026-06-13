@@ -764,7 +764,7 @@ export function ReservationView({
                 </button>
                 <button
                   onClick={() => {
-                    if (window.confirm(`Delete reservation "${reservation.name}"? This removes the reservation and any guests / passport docs attached to it. iCal sync events are not affected.`)) {
+                    if (window.confirm(`Delete reservation "${reservation.name}"? This removes the reservation and any guests / passport docs attached to it. If it was claimed from a synced booking, that synced event is removed too.`)) {
                       onDeleteReservation(reservation.id);
                     }
                   }}

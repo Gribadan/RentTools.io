@@ -79,6 +79,15 @@ export interface ChangelogEntry {
 // Newest first. The renderer never sorts — order here is order shown.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-06-13",
+    changes: [
+      {
+        kind: "fixed",
+        text: "When you cancel a booking on a connected platform, it now clears from your calendar on the next sync — even one you'd already named — instead of lingering as a ghost reservation.",
+      },
+    ],
+  },
+  {
     date: "2026-05-25",
     headline: "Privacy panel, reservation-level messenger, form auto-save",
     changes: [

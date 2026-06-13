@@ -12,7 +12,13 @@ async function loadManageableReservation(
 ) {
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
-    select: { id: true, propertyId: true },
+    select: {
+      id: true,
+      propertyId: true,
+      linkedEventUid: true,
+      checkIn: true,
+      checkOut: true,
+    },
   });
   if (!reservation) return null;
   if (!(await canManageProperty(reservation.propertyId, userId, role))) return null;
@@ -220,6 +226,31 @@ export async function DELETE(
     if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await prisma.reservation.delete({ where: { id: numId } });
+
+    // If this reservation "claimed" a synced iCal event, delete that
+    // CalendarEvent too. Without this the cancelled booking keeps
+    // rendering as an (now unclaimed) bar after the host removes the
+    // reservation — the same orphan the sync prune cleans up, but for
+    // the manual-delete path. Only a CLAIM is removed: the reservation
+    // must link the event AND its dates must OVERLAP it. EXTENSIONS
+    // (direct-pay nights that merely ABUT a still-active event, linked
+    // for bar pairing) don't overlap their linked event, so the real
+    // booking is left intact.
+    if (owned.linkedEventUid) {
+      const linked = await prisma.calendarEvent.findFirst({
+        where: { propertyId: owned.propertyId, uid: owned.linkedEventUid },
+        select: { id: true, startDate: true, endDate: true },
+      });
+      if (linked) {
+        const overlaps =
+          owned.checkIn < new Date(linked.endDate) &&
+          owned.checkOut > new Date(linked.startDate);
+        if (overlaps) {
+          await prisma.calendarEvent.delete({ where: { id: linked.id } });
+        }
+      }
+    }
+
     await logAudit(session.userId, "delete", "reservation", numId);
     return NextResponse.json({ success: true });
   } catch (err) {
