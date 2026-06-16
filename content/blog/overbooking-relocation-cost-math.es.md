@@ -95,7 +95,7 @@ Una sola reubicación evitada amortiza la prevención durante años. Ni siquiera
 
 Si publica en más de una plataforma y no ha resuelto la parte del calendario, esa es la hora más rentable que puede dedicar esta semana — empiece por [/onboard](/onboard).
 
-## Preguntas frecuentes
+## FAQ
 
 **¿Qué significa «reubicar» a un huésped en el alquiler de corta estancia?**
 Significa trasladar a un huésped que no puede alojar a otro alojamiento de igual o mejor nivel, sin coste extra para él. Usted cubre la diferencia de precio y el transporte razonable. Es distinto de cancelar, donde el huésped recibe el reembolso y busca su propio sustituto a su cargo.
