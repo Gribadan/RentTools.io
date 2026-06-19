@@ -266,15 +266,15 @@ const COPY: Record<Locale, CopyBlock> = {
       steps: [
         {
           title: "Скопируйте iCal-ссылки с каждой платформы",
-          body: "У Airbnb это в Calendar → Sync calendars → Export. У Booking.com — Calendar → Sync calendars. У Vrbo тоже есть. Вставьте ссылки в форму.",
+          body: "В Airbnb — Calendar → Sync calendars → Export. В Booking.com — Calendar → Sync calendars. В Vrbo всё там же. Вставляете ссылки в форму.",
         },
         {
-          title: "Получите единый фид для каждой платформы",
-          body: "По одному iCal-URL на платформу: туда уже зашиты чужие брони, ваши ручные записи и буферные дни на уборку. Двойным бронированиям просто негде взяться.",
+          title: "Забираете единый фид — по одному на платформу",
+          body: "Один iCal-URL на платформу — внутри уже чужие брони, ваши ручные блокировки и буферные дни на уборку. Двойному бронированию просто негде случиться.",
         },
         {
-          title: "Вставьте нашу ссылку обратно — в каждую",
-          body: "Airbnb и Booking.com подтянут наш фид через несколько часов. С этого момента их календари знают друг о друге и о ваших ручных блокировках.",
+          title: "Вставляете нашу ссылку обратно — в каждую платформу",
+          body: "Airbnb и Booking.com подтянут наш фид за несколько часов. С этого момента они знают про брони друг друга — и про ваши ручные блокировки.",
         },
       ],
       tryWizard: "Попробовать без регистрации",
@@ -286,7 +286,7 @@ const COPY: Record<Locale, CopyBlock> = {
       items: [
         {
           title: "Связь между платформами",
-          body: "Раз в 10 минут забираем iCal каждой платформы и публикуем его для остальных. Airbnb видит брони Booking и наоборот — та же защита, что даёт платный channel manager, только бесплатно и с открытым кодом.",
+          body: "Каждые 10 минут забираем iCal со всех платформ и раздаём остальным. Airbnb видит брони Booking и наоборот — та же защита, что у платного channel manager, только бесплатно и с открытым кодом.",
         },
         {
           title: "Автоматизация уборок",
@@ -294,11 +294,11 @@ const COPY: Record<Locale, CopyBlock> = {
         },
         {
           title: "Несколько объектов — одна панель",
-          body: "Управляйте сколько угодно объектами из одной точки. Переключение горячей клавишей. У соведущих и уборщиков — свои роли с нужным доступом.",
+          body: "Сколько угодно объектов — из одной панели. Переключение между ними по горячей клавише. У соведущих и уборщиков свои роли — каждый видит только своё.",
         },
         {
           title: "Шаблоны сообщений",
-          body: "Шаблоны под каждый объект с подстановкой (имя гостя, заезд, wifi). В один клик — и сразу в Airbnb или WhatsApp.",
+          body: "Свои шаблоны для каждого объекта с автоподстановкой (имя гостя, дата заезда, пароль от wifi). Одно нажатие — и текст уже в Airbnb или WhatsApp.",
         },
         {
           title: "Публичный iCal-фид",
@@ -306,7 +306,7 @@ const COPY: Record<Locale, CopyBlock> = {
         },
         {
           title: "Поиск гостей по Cmd-K",
-          body: "Любой прошлый гость по всем объектам — за одну горячую клавишу. С экспортом документов, когда нужно сдать отчётность или подать в МВД.",
+          body: "Любой прошлый гость по всем объектам — одним сочетанием клавиш. С экспортом документов, когда нужно сдать отчётность или отправить данные в МВД.",
         },
       ],
     },
@@ -317,7 +317,7 @@ const COPY: Record<Locale, CopyBlock> = {
     trust: {
       open: {
         title: "Открытый код",
-        body: "Лицензия MIT на GitHub. Читайте код, открывайте issue, поднимайте у себя на любом $4 дроплете.",
+        body: "Лицензия MIT на GitHub. Читайте код, заводите issue, разворачивайте у себя — хоть на $4 дроплете.",
         link: "Посмотреть на GitHub",
       },
       gdpr: {
@@ -332,30 +332,30 @@ const COPY: Record<Locale, CopyBlock> = {
       items: [
         {
           q: "Это действительно защищает от двойных бронирований?",
-          a: "Снижает риск драматически — не до нуля, но близко. iCal каждой платформы мы забираем раз в 10 минут и публикуем для остальных, так что Airbnb узнаёт о броне на Booking (и наоборот) примерно за те же 10 минут. Сами платформы обновляют импортированные фиды у себя раз в 2–12 часов. API в реальном времени было бы быстрее, но Airbnb и Booking.com не продают свои channel-manager API частным хостам — только сертифицированным PMS, и те берут $100–300 в месяц за то же самое. Для 99% небольших хостов обмена через iCal хватает с запасом.",
+          a: "Снижает риск резко — не до нуля, но почти. iCal каждой платформы мы забираем каждые 10 минут и отдаём остальным, так что про бронь на Booking Airbnb узнаёт минут через 10 (и наоборот). Сами платформы перечитывают чужие фиды у себя раз в 2–12 часов. API в реальном времени было бы быстрее, но Airbnb и Booking.com не продают свои channel-manager API частникам — только сертифицированным PMS, а те берут за то же самое $100–300 в месяц. 99% небольших хостов спокойно живут на iCal-обмене.",
         },
         {
           q: "И это правда бесплатно?",
-          a: "Да. Наша размещённая версия бесплатна для личного использования, с лимитом запросов на аккаунт — чтобы наши счета за хостинг не разрослись. Исходники под MIT: клонируйте, запустите на $4 дроплете — и никому ничего не должны.",
+          a: "Да. Нашей версией пользуйтесь бесплатно — с разумным лимитом запросов на аккаунт, чтобы наши счета за хостинг не улетели в космос. Исходники под MIT: клонируете, поднимаете на $4 дроплете — и никому ничего не должны.",
         },
         {
-          q: "Что он на самом деле делает?",
-          a: "Забирает любой iCal-совместимый календарь — Airbnb, Booking.com, Vrbo и всё остальное, что отдаёт URL экспорта, — чтобы вы перестали скакать по вкладкам. Добавляет буферные дни на уборку, которых нет у платформ. Каждое утро собирает список уборок. Плюс шаблоны сообщений с привязкой к объекту и поиск гостей по Cmd-K — сразу по всем объектам.",
+          q: "А что он, собственно, делает?",
+          a: "Забирает любой iCal-календарь — Airbnb, Booking.com, Vrbo и всё, что отдаёт ссылку на экспорт, — чтобы вы перестали скакать по вкладкам. Добавляет буферные дни на уборку, которых сами платформы не умеют. Каждое утро присылает список уборок. Плюс шаблоны сообщений на каждый объект и поиск гостей по Cmd-K — сразу по всем объектам.",
         },
         {
-          q: "Обязательно поднимать у себя?",
-          a: "Нет. Зарегистрируйтесь и пользуйтесь нашей версией. Если когда-нибудь перерастёте бесплатный лимит или захотите полный контроль над данными — экспортируете и поднимаете у себя. Ваш выбор.",
+          q: "А нужно разворачивать у себя на сервере?",
+          a: "Нет. Регистрируетесь — и пользуетесь нашей версией. Если когда-нибудь упрётесь в бесплатный лимит или захотите полный контроль над данными — выгружаете всё и ставите на свой сервер. Дело ваше.",
         },
         {
           q: "Где живут данные гостей?",
-          a: "В одном SQLite-файле на нашем сервере. Никаких сторонних обработчиков — кроме Google Gemini, и то только на одну операцию: распознавание паспорта. Удалите аккаунт — данных не останется.",
+          a: "В одном SQLite-файле на нашем сервере. Никаких сторонних сервисов — кроме Google Gemini, и тот вызываем ровно один раз: распознать паспорт. Удалите аккаунт — и данных нет.",
         },
       ],
     },
     finalCta: {
       titleA: "Сделано хостом.",
       titleB: "Для хостов.",
-      body: "Без платных тарифов. Без допродаж. Без трекинга. Хостинг оплачиваем сами, чтобы вы занимались гостями, а не вкладками браузера.",
+      body: "Без платных тарифов. Без допродаж. Без слежки. Хостинг платим сами — чтобы вы занимались гостями, а не вкладками браузера.",
       primary: "Начать — бесплатно навсегда",
       secondary: "Посмотреть исходники",
     },
@@ -391,18 +391,18 @@ const COPY: Record<Locale, CopyBlock> = {
     },
     how: {
       eyebrow: "So läuft's",
-      title: "Drei Schritte. Bei den meisten Hosts in sieben Minuten erledigt.",
+      title: "Drei Schritte. Die meisten Hosts sind in sieben Minuten durch.",
       steps: [
         {
           title: "iCal-Links Ihrer Plattformen einfügen",
           body: "Bei Airbnb unter Calendar → Sync calendars → Export. Bei Booking.com unter Calendar → Sync calendars. Bei Vrbo genauso. Im Wizard einfügen — fertig.",
         },
         {
-          title: "Sie bekommen einen vereinten Feed zurück",
-          body: "Eine iCal-URL pro Plattform — inklusive Buchungen der anderen, Ihrer manuellen Sperren und Puffertage für die Reinigung. Doppelbuchungen haben keine Lücke mehr.",
+          title: "Sie bekommen einen einheitlichen Feed zurück",
+          body: "Eine iCal-URL pro Plattform — inklusive Buchungen der anderen, Ihrer manuellen Sperren und Puffertage für die Reinigung. Keine Doppelbuchungen mehr.",
         },
         {
-          title: "Unsere URL in jede Plattform zurück einfügen",
+          title: "Unsere URL zurück in jede Plattform einfügen",
           body: "Airbnb und Booking.com holen unseren Feed alle paar Stunden ab. Ab da kennen ihre Kalender einander — und Ihre manuellen Sperren.",
         },
       ],
@@ -423,7 +423,7 @@ const COPY: Record<Locale, CopyBlock> = {
         },
         {
           title: "Mehrere Unterkünfte, ein Dashboard",
-          body: "Beliebig viele Objekte aus einer Übersicht steuern. Per Tastendruck wechseln. Property Manager und Reinigungskräfte bekommen passende Rollen.",
+          body: "Beliebig viele Unterkünfte aus einer Übersicht steuern. Per Tastendruck wechseln. Co-Hosts und Reinigungskräfte bekommen eigene Rollen mit passendem Zugriff.",
         },
         {
           title: "Nachrichtenvorlagen",
@@ -465,11 +465,11 @@ const COPY: Record<Locale, CopyBlock> = {
         },
         {
           q: "Ist es wirklich kostenlos?",
-          a: "Ja. Die gehostete Instanz ist für den Eigenbedarf kostenlos, mit Rate-Limits pro Konto, damit unsere Rechnungen im Rahmen bleiben. Der Code steht unter MIT — klonen, auf einem 4-$-Droplet laufen lassen, fertig. Sie schulden uns nichts.",
+          a: "Ja. Die gehostete Version ist für den Eigenbedarf kostenlos, mit Rate-Limits pro Konto, damit unsere Hosting-Rechnung im Rahmen bleibt. Der Code steht unter MIT — klonen, auf einem 4-$-Droplet laufen lassen, fertig. Sie schulden uns nichts.",
         },
         {
           q: "Was macht es eigentlich?",
-          a: "Holt jeden iCal-kompatiblen Kalender ab — Airbnb, Booking.com, Vrbo oder alles andere mit Export-URL — damit Sie nicht mehr zwischen Tabs wechseln. Fügt Puffertage für die Reinigung hinzu, die die Plattformen selbst nicht können. Erstellt täglich einen Reinigungsplan. Pro-Unterkunft-Vorlagen für Nachrichten und Cmd-K-Gästesuche über alle Unterkünfte hinweg.",
+          a: "Holt jeden iCal-kompatiblen Kalender ab — Airbnb, Booking.com, Vrbo oder alles andere mit Export-URL — damit Sie nicht mehr zwischen Tabs wechseln. Fügt Puffertage für die Reinigung hinzu, die die Plattformen selbst nicht können. Erstellt täglich einen Reinigungsplan. Dazu Nachrichtenvorlagen pro Unterkunft und Cmd-K-Gästesuche über alle Unterkünfte hinweg.",
         },
         {
           q: "Muss ich selbst hosten?",
@@ -504,7 +504,7 @@ const COPY: Record<Locale, CopyBlock> = {
   },
   fr: {
     hero: {
-      eyebrow: "Open source · Gratuit pour toujours",
+      eyebrow: "Open source · Gratuit à vie",
       titleLead: "Arrêtez de jongler entre",
       titleAccent: "vos calendriers",
       // "Cross-sync calendars between Airbnb, Booking.com, Vrbo and
@@ -514,8 +514,8 @@ const COPY: Record<Locale, CopyBlock> = {
       platforms: "Airbnb, Booking.com, Vrbo",
       subtitleB: "et tout ce qui parle iCal. Chaque plateforme voit les réservations des autres —",
       subtitleC: "les doubles réservations deviennent l’exception",
-      subtitleD: ". Gratuit pour toujours, open source.",
-      cta: "Commencer — gratuit pour toujours",
+      subtitleD: ". Gratuit à vie, open source.",
+      cta: "Commencer — gratuit à vie",
       ctaNote: "Sans carte bancaire. Aucune offre payante. Essayez l’assistant avant de créer un compte.",
     },
     how: {
@@ -540,19 +540,19 @@ const COPY: Record<Locale, CopyBlock> = {
     features: {
       eyebrow: "Pensé pour ce qui fait mal",
       titleA: "Tout ce qu’il faut à un hôte.",
-      titleB: "Rien dont vous ne vous servirez jamais.",
+      titleB: "Rien d’inutile.",
       items: [
         {
           title: "Synchronisation multi-plateforme",
-          body: "Toutes les 10 minutes, on récupère le flux iCal de chaque plateforme et on le republie pour les autres. Airbnb voit les réservations de Booking et inversement — la même protection qu’un Channel Manager payant, en gratuit et open source.",
+          body: "Toutes les 10 minutes, on récupère le flux iCal de chaque plateforme et on le republie pour les autres. Airbnb voit les réservations de Booking et inversement — la même protection qu’un Channel Manager payant, mais gratuite et open source.",
         },
         {
           title: "Automatisation du ménage",
-          body: "Jours tampons que les plateformes ne savent pas gérer nativement. Liste de ménage du jour. Rôle « femme de ménage » dédié, avec accès limité au tableau de bord.",
+          body: "Jours tampons que les plateformes ne savent pas gérer nativement. Liste de ménage du jour. Rôle « personnel de ménage » dédié, avec accès limité au tableau de bord.",
         },
         {
           title: "Tableau de bord multi-logements",
-          body: "Pilotez autant de logements que vous voulez depuis un seul endroit. Bascule au clavier. Co-hôtes et personnel de ménage ont leurs propres rôles avec les bons droits.",
+          body: "Pilotez autant de logements que vous voulez depuis un seul endroit. Changement de logement au clavier. Co-hôtes et personnel de ménage ont leurs propres rôles avec les bons droits.",
         },
         {
           title: "Modèles de messages",
@@ -590,7 +590,7 @@ const COPY: Record<Locale, CopyBlock> = {
       items: [
         {
           q: "Est-ce que ça empêche vraiment les doubles réservations ?",
-          a: "Le risque baisse drastiquement — pas à zéro, mais on s’en approche. On récupère le flux iCal de chaque plateforme toutes les 10 minutes et on le republie pour les autres : Airbnb apprend une réservation Booking.com (et inversement) sous 10 min de notre côté. Les plateformes rafraîchissent les flux importés toutes les 2 à 12 h chez elles. Une synchro API en temps réel serait plus rapide, mais Airbnb et Booking.com ne vendent pas leurs API Channel Manager aux hôtes individuels — uniquement aux PMS certifiés qui facturent 100 à 300 $/mois pour relayer les mêmes flux que nous synchronisons gratuitement. Pour 99 % des petits hôtes, le handshake iCal suffit largement.",
+          a: "Le risque baisse drastiquement — pas à zéro, mais on s’en approche. On récupère le flux iCal de chaque plateforme toutes les 10 minutes et on le republie pour les autres : Airbnb découvre une réservation Booking.com (et inversement) sous 10 min de notre côté. Les plateformes rafraîchissent les flux importés toutes les 2 à 12 h chez elles. Une synchro API en temps réel serait plus rapide, mais Airbnb et Booking.com ne vendent pas leurs API Channel Manager aux hôtes individuels — uniquement aux PMS certifiés qui facturent 100 à 300 $/mois pour relayer les mêmes flux que nous synchronisons gratuitement. Pour 99 % des petits hôtes, le handshake iCal suffit largement.",
         },
         {
           q: "C’est vraiment gratuit ?",
@@ -614,7 +614,7 @@ const COPY: Record<Locale, CopyBlock> = {
       titleA: "Construit par un hôte.",
       titleB: "Pour des hôtes.",
       body: "Pas d’offre payante. Pas d’upsell. Pas de tracking. Le mainteneur paie l’hébergement pour que vous vous occupiez des voyageurs, pas des onglets.",
-      primary: "Commencer — gratuit pour toujours",
+      primary: "Commencer — gratuit à vie",
       secondary: "Lire le code source",
     },
     footer: {
@@ -641,7 +641,7 @@ const COPY: Record<Locale, CopyBlock> = {
       // clean enumeration; usted register throughout.
       subtitleA: "Sincronizamos calendarios entre",
       platforms: "Airbnb, Booking.com, Vrbo",
-      subtitleB: "y cualquier fuente con iCal. Cada plataforma ve las reservas de las demás —",
+      subtitleB: "y cualquier fuente compatible con iCal. Cada plataforma ve las reservas de las demás —",
       subtitleC: "las reservas dobles casi desaparecen",
       subtitleD: ". Gratis para siempre, código abierto.",
       cta: "Empezar — gratis para siempre",
@@ -649,11 +649,11 @@ const COPY: Record<Locale, CopyBlock> = {
     },
     how: {
       eyebrow: "Cómo funciona",
-      title: "Tres pasos. La mayoría de anfitriones termina en siete minutos.",
+      title: "Tres pasos. La mayoría de los anfitriones termina en siete minutos.",
       steps: [
         {
           title: "Pegue las URL iCal de cada plataforma",
-          body: "En Airbnb está en Calendar → Sync calendars → Export. En Booking.com, en Calendar → Sync calendars. Vrbo igual. Suéltelas en el asistente.",
+          body: "En Airbnb está en Calendar → Sync calendars → Export. En Booking.com, en Calendar → Sync calendars. Vrbo igual. Péguelas en el asistente.",
         },
         {
           title: "Le devolvemos un feed unificado",
@@ -704,12 +704,12 @@ const COPY: Record<Locale, CopyBlock> = {
     trust: {
       open: {
         title: "Código abierto",
-        body: "Licencia MIT en GitHub. Lea el código, abra una issue o autoaloje en cualquier droplet de 4 $.",
+        body: "Licencia MIT en GitHub. Lea el código, abra un issue o autoalójelo en cualquier droplet de 4 $.",
         link: "Ver en GitHub",
       },
       gdpr: {
         title: "Conforme con el RGPD",
-        body: "Una sola cookie de sesión imprescindible. Sin analítica, sin publicidad, sin rastreadores de terceros. Borra la cuenta y los datos se van con ella.",
+        body: "Una sola cookie de sesión imprescindible. Sin analítica, sin publicidad, sin rastreadores de terceros. Borre la cuenta y los datos se van con ella.",
         link: "Política de privacidad",
       },
     },
@@ -719,11 +719,11 @@ const COPY: Record<Locale, CopyBlock> = {
       items: [
         {
           q: "¿De verdad evita las reservas dobles?",
-          a: "Reduce el riesgo drásticamente — no a cero, pero casi. Descargamos el feed iCal de cada plataforma cada 10 minutos y lo republicamos para las demás, así que Airbnb se entera de una reserva en Booking.com (y viceversa) en unos 10 min en nuestro lado. Las plataformas refrescan los feeds importados cada 2-12 h en su lado. Una sincronización por API en tiempo real sería más rápida, pero Airbnb y Booking.com no venden sus API de Channel Manager a anfitriones particulares — solo a PMS certificados que cobran 100-300 $/mes por reenviar los mismos feeds que aquí sincronizamos gratis. Para el 99 % de los anfitriones pequeños, el handshake por iCal sobra.",
+          a: "Reduce el riesgo drásticamente — no a cero, pero casi. Descargamos el feed iCal de cada plataforma cada 10 minutos y lo republicamos para las demás, así que Airbnb se entera de una reserva en Booking.com (y viceversa) en unos 10 min por nuestra parte. Las plataformas refrescan los feeds importados cada 2-12 h por la suya. Una sincronización por API en tiempo real sería más rápida, pero Airbnb y Booking.com no venden sus API de Channel Manager a anfitriones particulares — solo a PMS certificados que cobran 100-300 $/mes por reenviar los mismos feeds que aquí sincronizamos gratis. Para el 99 % de los anfitriones pequeños, el handshake por iCal sobra.",
         },
         {
           q: "¿De verdad es gratis?",
-          a: "Sí. La versión alojada es gratuita para uso personal, con un límite de tasa por cuenta para que las facturas no se disparen. El código está bajo MIT — clónelo, póngalo a correr en un droplet de 4 $ y no debe nada a nadie.",
+          a: "Sí. La versión alojada es gratuita para uso personal, con un límite de uso por cuenta para que las facturas no se disparen. El código está bajo MIT — clónelo, levántelo en un droplet de 4 $ y no debe nada a nadie.",
         },
         {
           q: "¿Qué hace exactamente?",
@@ -731,7 +731,7 @@ const COPY: Record<Locale, CopyBlock> = {
         },
         {
           q: "¿Tengo que autoalojarlo?",
-          a: "No. Regístrese aquí y use la versión alojada. Si algún día se le queda corto el plan gratuito o quiere control total de los datos, exporte y autoaloje. Sus datos, su decisión.",
+          a: "No. Regístrese aquí y use la versión alojada. Si algún día se le queda corto el plan gratuito o quiere control total de los datos, expórtelo y autoalójelo. Sus datos, su decisión.",
         },
         {
           q: "¿Dónde viven los datos de los huéspedes?",
