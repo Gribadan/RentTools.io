@@ -509,14 +509,28 @@ export default function OnboardPage() {
           color: r.color,
           ...(r.testStatus === "valid" || r.testStatus === "invalid" ? { lastTestStatus: r.testStatus } : {}),
         }));
-      const res = await fetch("/api/onboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ propertyName: next.propertyName.trim(), links }),
-      });
+      // Auto-save: a single failed fetch is non-fatal — iOS Safari throws
+      // "Load failed" when the user backgrounds the tab or the network
+      // blips mid-request. Catch it locally so it doesn't bubble up as
+      // an unhandled rejection; the next debounce cycle will retry the
+      // moment the user edits anything else.
+      let res: Response | undefined;
+      try {
+        res = await fetch("/api/onboard", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ propertyName: next.propertyName.trim(), links }),
+        });
+      } catch {
+        return;
+      }
       if (res.ok) {
-        const data = await res.json();
-        if (data?.draft?.feedSlug) setFeedSlug(data.draft.feedSlug);
+        try {
+          const data = await res.json();
+          if (data?.draft?.feedSlug) setFeedSlug(data.draft.feedSlug);
+        } catch {
+          // Body unreadable (rare) — the next save cycle will refresh it.
+        }
       }
     } finally {
       setSaving(false);
