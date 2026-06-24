@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v6
@@ -106,7 +106,7 @@ jobs:
 
     steps:
       - name: Checkout (for scripts/install-build.sh)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Just the install script; no need for a deep clone.
           sparse-checkout: |
