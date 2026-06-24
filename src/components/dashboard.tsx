@@ -322,7 +322,17 @@ function buildUnifiedStays(p: Property, events: CalendarEvent[]): UnifiedStay[] 
   }
   for (const ev of events) {
     if (ev.uid && linkedUids.has(ev.uid)) continue;
+    // Host-blocks are NEVER real guest reservations — they're dates
+    // the host blocked manually in the platform's own calendar. Each
+    // platform marks them differently: Airbnb uses "Not available" /
+    // "Blocked"; Booking.com / Vrbo / Trip.com use "CLOSED" or
+    // "CLOSED - Not available". Without this filter, overlapping
+    // host-blocks from the SAME platform (e.g. Booking fragmenting one
+    // blocked range into two overlapping events with different UIDs)
+    // surface as a phantom "Booking.com & Booking.com" double-booking
+    // on the dashboard.
     if (ev.platform === "airbnb" && (ev.summary?.includes("Not available") || ev.summary?.includes("Blocked"))) continue;
+    if (/^\s*CLOSED\b/i.test(ev.summary || "")) continue;
     // Same-dates + generic-summary heuristic: drop the iCal twin.
     const dateKey = `${ev.startDate}|${ev.endDate}`;
     if (reservationDateKeys.has(dateKey) && isGenericIcalName(ev.summary || "")) continue;
