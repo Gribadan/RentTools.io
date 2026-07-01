@@ -124,11 +124,58 @@ function formatStayRange(checkInIso: string, checkOutIso: string): string {
   return `${ciDay}-${coDay} ${ciMon} ${ciYear}`;
 }
 
+/** True for iCal summaries that are generic host-blocks or "reserved"
+ *  placeholders rather than a real guest name. Used to decide whether
+ *  reservation.name is a trustworthy lead-guest identifier — a synced
+ *  Airbnb reservation can arrive with "Reserved" or "Blocked" if the
+ *  host hasn't claimed it via the bar-claim popover, and using that
+ *  string as the group-chat name would be worse than falling back to
+ *  passport data. Mirrors dashboard.tsx isGenericIcalName. */
+function looksLikeGenericPlaceholder(s: string): boolean {
+  const t = s.toLowerCase().trim();
+  if (!t) return true;
+  return (
+    t === "reserved" ||
+    t === "closed" ||
+    t.includes("not available") ||
+    t.includes("blocked") ||
+    t.includes("closed - not available")
+  );
+}
+
+/** Resolve the lead-guest first-name for a reservation, used by the
+ *  group-chat name and the WhatsApp / Telegram messenger prefill.
+ *
+ *  Prefers `reservation.name` (the platform-sourced guest name — for
+ *  synced Airbnb / Booking bookings, this is who the reservation was
+ *  actually made under). Falls back to passport-extracted guests ONLY
+ *  when reservation.name is missing or a generic-placeholder marker.
+ *
+ *  Previously the priority was inverted: the FIRST guest with a
+ *  non-empty firstName won, and reservation.name was a last resort.
+ *  That produced a wrong name whenever multiple passport guests were
+ *  uploaded — the "first" one wasn't necessarily the lead. */
+function resolveLeadGuestFirstName(
+  reservation: Reservation,
+  guests: Guest[],
+): string {
+  const resFirstToken = (reservation.name || "").split(" ")[0]?.trim() || "";
+  if (resFirstToken && !looksLikeGenericPlaceholder(resFirstToken)) {
+    return resFirstToken;
+  }
+  const guestWithFirst = guests.find((g) => g.firstName?.trim());
+  const guestName =
+    guestWithFirst?.firstName?.trim() ||
+    guests[0]?.fullName?.trim() ||
+    resFirstToken ||
+    "";
+  return guestName;
+}
+
 /** Format the standard group-chat name string the "Copy group name"
- *  button writes to the clipboard. Picks the lead guest's first name
- *  (registered guests beat the reservation's free-text name field),
- *  falls back to the reservation name's first token, and lastly to
- *  "Guest" so we never copy an empty placeholder. */
+ *  button writes to the clipboard. Uses reservation.name as the
+ *  authoritative lead-guest source, falling back to passport-extracted
+ *  guests only for generic-placeholder reservation names. */
 function formatGroupName(
   reservation: Reservation,
   guests: Guest[],
@@ -136,13 +183,7 @@ function formatGroupName(
 ): string {
   const platform = platformShortLabel(reservation.platform);
   const dates = formatStayRange(reservation.checkIn, reservation.checkOut);
-  const leadGuest = guests.find((g) => g.firstName?.trim()) ?? guests[0];
-  const guestName = (
-    leadGuest?.firstName?.trim() ||
-    leadGuest?.fullName?.trim() ||
-    reservation.name.split(" ")[0] ||
-    "Guest"
-  ).trim();
+  const guestName = resolveLeadGuestFirstName(reservation, guests) || "Guest";
   const prop = (propertyName ?? "Property").trim();
   return `${platform} ${dates} - ${guestName} - ${prop}`;
 }
@@ -627,12 +668,7 @@ export function ReservationView({
   const reservationTmePath = reservationPhoneForLinks.startsWith("+")
     ? reservationPhoneForLinks
     : `+${reservationPhoneForLinks}`;
-  const reservationLeadFirstName = (
-    guests.find((g) => g.firstName?.trim())?.firstName?.trim() ||
-    guests[0]?.firstName?.trim() ||
-    reservation.name.split(" ")[0] ||
-    ""
-  ).trim();
+  const reservationLeadFirstName = resolveLeadGuestFirstName(reservation, guests);
   const reservationCheckInDate = (() => {
     const d = new Date(reservation.checkIn);
     return isNaN(d.getTime())
