@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Property } from "@/lib/types";
 import type { ExtendableBooking } from "@/components/date-actions-popover";
 import { CalendarGrid } from "@/components/calendar/calendar-grid";
@@ -245,6 +245,43 @@ export function PropertyCalendar({
     scrollToToday("instant" as ScrollBehavior);
     didInitialScrollRef.current = true;
   }, [months.length, scrollToToday]);
+
+  // Preserve scroll position across re-renders. On mobile Safari,
+  // various things can drop the main scroll container back to 0 after
+  // the initial scroll ran — closing a full-screen popover portal,
+  // address-bar collapse triggering viewport reflow, keyboard show/
+  // hide, or a content-height change from a data refetch. When that
+  // happens the user finds themselves back at PAST_MONTHS months in
+  // the past (January if today is July), which is the reported bug.
+  //
+  // Track the last-known non-zero scrollTop while the user scrolls,
+  // and after every commit restore it if the container unexpectedly
+  // sits at 0 while we know it shouldn't. Only kicks in after the
+  // initial scroll succeeded, so first-load still lands on today.
+  const lastKnownScrollRef = useRef(0);
+  useEffect(() => {
+    const stickyEl = stickyHeaderRef.current;
+    if (!stickyEl) return;
+    const main = stickyEl.closest("main");
+    if (!main) return;
+    const onScroll = () => {
+      if (main.scrollTop > 0) lastKnownScrollRef.current = main.scrollTop;
+    };
+    main.addEventListener("scroll", onScroll, { passive: true });
+    return () => main.removeEventListener("scroll", onScroll);
+  }, [months.length]);
+
+  useLayoutEffect(() => {
+    if (!didInitialScrollRef.current) return;
+    if (lastKnownScrollRef.current <= 0) return;
+    const stickyEl = stickyHeaderRef.current;
+    if (!stickyEl) return;
+    const main = stickyEl.closest("main") as HTMLElement | null;
+    if (!main) return;
+    if (main.scrollTop === 0) {
+      main.scrollTop = lastKnownScrollRef.current;
+    }
+  });
 
   const data = useCalendarData(property, syncedEvents, links, overrides);
 
