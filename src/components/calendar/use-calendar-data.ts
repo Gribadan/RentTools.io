@@ -126,26 +126,55 @@ export function useCalendarData(
         // attached to it, the dates DO represent a real stay and have
         // to participate in the cleaning-gap math — otherwise the
         // gap detection sees a phantom hole between the previous and
-        // next stays and surfaces "Cleaning?" on the next checkin
-        // (Квартира 68 May 14 case: Iain May 3-9 → Ольга May 9-14
-        // (block + named reservation) → Booking May 14-28; without
-        // this push, allBookings was [Iain, Booking] with a 4-day
-        // phantom gap and May 14 wrongly read as potential).
+        // next stays and surfaces "Cleaning?" on the next checkin.
         const matchedAirbnbBlock = ev.platform === "airbnb" && (
           (ev.name || "").includes("Not available") || (ev.name || "").includes("Blocked")
         );
+        // UNION of event dates and reservation dates for both the bar
+        // and the blocked-day accumulators. A host who claims a bar and
+        // then edits its dates (typical when a platform's iCal truncates
+        // the true booking range — Booking.com is known to drop the
+        // first day or two of a booking when there's an adjacent
+        // imported CLOSED block) becomes the authoritative source for
+        // the extended range. Any day the host says is booked gets
+        // added to allBooked / airbnb / booking sets so the buffer, gap
+        // detection, and calendar shading all reflect the host's
+        // corrected range. Narrower reservations still surface the
+        // platform's blocked days (event dates dominate) so nothing
+        // silently un-blocks.
+        const unionStart = ev.startDate < start ? ev.startDate : start;
+        const unionEnd = ev.endDate > end ? ev.endDate : end;
         evMap.set(matchingEventStart, {
           ...ev,
           name: res.name,
           reservationId: res.id,
+          startDate: unionStart,
+          endDate: unionEnd,
         });
-        let d = ev.startDate;
-        while (d <= ev.endDate) {
+        let d = unionStart;
+        while (d <= unionEnd) {
           resMap.set(d, res);
           d = addDaysStr(d, 1);
         }
+        // Add host-supplied extension days to the platform's own blocked
+        // sets so the calendar treats them as booked, not free. Event
+        // days are already in these sets from the syncedEvents loop
+        // above; Set.add() is idempotent so double-adds are harmless.
+        const platformDates = ev.platform === "airbnb" ? airbnb : ev.platform === "booking" ? booking : airbnb;
+        const platformStayDates = ev.platform === "airbnb" ? airbnbStay : bookingStay;
+        let bd = unionStart;
+        while (bd <= unionEnd) {
+          platformDates.add(bd);
+          allBooked.add(bd);
+          bd = addDaysStr(bd, 1);
+        }
+        bd = unionStart;
+        while (bd < unionEnd) {
+          platformStayDates.add(bd);
+          bd = addDaysStr(bd, 1);
+        }
         if (matchedAirbnbBlock) {
-          allBookings.push({ start, end, platform, name: res.name });
+          allBookings.push({ start: unionStart, end: unionEnd, platform, name: res.name });
         }
       } else {
         const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
