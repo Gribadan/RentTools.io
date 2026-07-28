@@ -215,7 +215,22 @@ export async function syncAllCalendars(opts?: {
         // ability to show year-over-year history. Past stays get
         // preserved forever; cancellations of upcoming stays still
         // get pruned on schedule.
+        //
+        // A "removed" event may actually be a UID REISSUE, not a
+        // cancellation — Booking.com in particular mints a fresh UID on
+        // almost every booking edit (arrival-time change, room-code
+        // change, guest edit). Before treating a vanished event as a
+        // real cancellation, check whether newEvents contains a same-
+        // platform event whose date range OVERLAPS the vanished one.
+        // If yes, migrate any linked Reservation to point at the new
+        // UID (preserving the host's name, guests, and passport docs)
+        // instead of nuking them. If no match, still preserve the
+        // Reservation by UNLINKING it (linkedEventUid = null) so guest
+        // data survives the platform's cancellation and the host can
+        // review and delete manually if desired.
         let removedReservations = 0;
+        let migratedReservations = 0;
+        let unlinkedReservations = 0;
         if (removedEvents.length > 0) {
           const today = new Date();
           today.setHours(0, 0, 0, 0);
@@ -230,37 +245,48 @@ export async function syncAllCalendars(opts?: {
               },
             });
 
-            // The event vanishing from the feed means the platform
-            // cancelled the stay. If the host had "claimed" it (named
-            // the bar) a Reservation row was created with
-            // linkedEventUid = this event's uid and the SAME date
-            // range. Pruning only the CalendarEvent left that row
-            // orphaned — it kept rendering the cancelled booking on the
-            // calendar with no way to clear it. Delete it alongside the
-            // event (cascades to its guests / passport docs).
-            //
-            // Only CLAIMS are removed: reservations whose dates OVERLAP
-            // the cancelled event. EXTENSIONS (direct-pay nights the
-            // host added that merely ABUT the event, linked for bar
-            // pairing) are real host-entered bookings — the overlap
-            // test below is false for them, so they survive. Guarded on
-            // deleted.count so past claims (whose event we deliberately
-            // keep for history) are never touched.
             if (deleted.count > 0) {
-              const evStart = new Date(ev.startDate);
-              const evEnd = new Date(ev.endDate);
-              const removed = await prisma.reservation.deleteMany({
-                where: {
-                  propertyId,
-                  linkedEventUid: ev.uid,
-                  checkIn: { lt: evEnd },
-                  checkOut: { gt: evStart },
-                },
-              });
-              removedReservations += removed.count;
+              // UID reissue detection: does a newly-appearing event on
+              // the same platform overlap the vanished one's dates?
+              // Overlap uses the standard half-open predicate; if
+              // multiple candidates match, prefer the one with the
+              // largest date-range intersection (usually there's just
+              // one). Summary similarity is a secondary hint but not
+              // required — Booking normalises "CLOSED - Not available"
+              // across host-blocks and reservations alike.
+              const candidateReissue = newEvents.find(
+                (n) =>
+                  n.startDate < ev.endDate && n.endDate > ev.startDate,
+              );
+
+              if (candidateReissue) {
+                const migrated = await prisma.reservation.updateMany({
+                  where: { propertyId, linkedEventUid: ev.uid },
+                  data: { linkedEventUid: candidateReissue.uid },
+                });
+                migratedReservations += migrated.count;
+              } else {
+                // No reissue candidate — treat as a real cancellation.
+                // NEVER auto-delete a linked Reservation (it may carry
+                // guest passports and other host-entered data). Unlink
+                // it instead so the host can review, rename, or delete
+                // manually. The Reservation is now a "manual" one that
+                // still renders on the calendar with the platform tag.
+                const unlinked = await prisma.reservation.updateMany({
+                  where: {
+                    propertyId,
+                    linkedEventUid: ev.uid,
+                    checkIn: { lt: new Date(ev.endDate) },
+                    checkOut: { gt: new Date(ev.startDate) },
+                  },
+                  data: { linkedEventUid: null },
+                });
+                unlinkedReservations += unlinked.count;
+              }
             }
           }
         }
+        removedReservations = migratedReservations + unlinkedReservations;
 
         // Update link status
         await prisma.calendarLink.update({
@@ -279,11 +305,16 @@ export async function syncAllCalendars(opts?: {
           );
         }
         if (removedUIDs.length > 0) {
+          const parts: string[] = [];
+          if (migratedReservations > 0) {
+            parts.push(`${migratedReservations} reservation(s) migrated to reissued UID (name + guests preserved)`);
+          }
+          if (unlinkedReservations > 0) {
+            parts.push(`${unlinkedReservations} reservation(s) unlinked (kept as manual; guest data preserved)`);
+          }
           await log(
-            `${propertyName} / ${link.platform}: ${removedUIDs.length} cancelled booking(s) removed${
-              removedReservations > 0
-                ? ` (including ${removedReservations} claimed reservation(s))`
-                : ""
+            `${propertyName} / ${link.platform}: ${removedUIDs.length} feed event(s) removed${
+              parts.length > 0 ? ` — ${parts.join(", ")}` : ""
             }`,
             "warn",
             propertyId
@@ -301,12 +332,19 @@ export async function syncAllCalendars(opts?: {
     }
 
     // ── Orphan cleanup ──────────────────────────────────────────────
-    // If a previous (pre-fix) sync already pruned a CalendarEvent but
-    // left the linked Reservation behind, the per-event cleanup above
-    // can never reach it — the event row is gone so it's never in
-    // removedEvents. Catch these orphans by finding Reservations with
-    // a linkedEventUid that doesn't match any existing CalendarEvent
-    // for this property.
+    // If a previous sync pruned a CalendarEvent but the linked
+    // Reservation still points at that UID, the per-event cleanup
+    // above can't reach it — the event row is gone so it never
+    // appears in removedEvents.
+    //
+    // Previously we DELETED those reservations here, which produced
+    // the exact data-loss the per-event branch above now guards
+    // against: a UID reissue between two syncs would leave the
+    // reservation orphaned for a beat, and the next sync's orphan
+    // pass would nuke it (guests, passports, uploaded documents and
+    // all). Never delete. UNLINK instead — the reservation stays on
+    // the calendar as a manual entry the host can review, keep, or
+    // delete themselves.
     try {
       const claimedReservations = await prisma.reservation.findMany({
         where: {
@@ -333,11 +371,12 @@ export async function syncAllCalendars(opts?: {
           .map((r) => r.id);
 
         if (orphanIds.length > 0) {
-          await prisma.reservation.deleteMany({
+          await prisma.reservation.updateMany({
             where: { id: { in: orphanIds } },
+            data: { linkedEventUid: null },
           });
           await log(
-            `${propertyName}: ${orphanIds.length} orphaned claimed reservation(s) cleaned up (linked event no longer exists)`,
+            `${propertyName}: ${orphanIds.length} orphaned reservation(s) unlinked (linked event no longer exists — data preserved as manual reservation)`,
             "warn",
             propertyId
           );
