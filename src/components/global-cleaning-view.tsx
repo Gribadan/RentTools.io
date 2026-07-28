@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLiveRefresh } from "@/lib/use-live-refresh";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { PropertySwitcher } from "@/components/property-switcher";
 import { useIncludePotential } from "@/lib/use-include-potential";
@@ -186,6 +187,9 @@ export function GlobalCleaningView({ properties }: GlobalCleaningViewProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate fetch-on-mount pattern; setState happens inside the async callback
     fetchData();
   }, [fetchData]);
+
+  // Multi-manager visibility — see use-live-refresh.ts for rationale.
+  useLiveRefresh(fetchData);
 
   if (properties.length === 0) {
     return (

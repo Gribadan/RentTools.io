@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useLiveRefresh } from "@/lib/use-live-refresh";
 import { CleaningSchedule, type CleanerAssignmentInfo } from "@/components/cleaning-schedule";
 import { CleanersPanel } from "@/components/cleaners-panel";
 import { PropertySwitcher } from "@/components/property-switcher";
@@ -126,6 +127,9 @@ export function PropertyCleaningView({ property, properties, onCleaningEnabledCh
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Multi-manager visibility — see use-live-refresh.ts for rationale.
+  useLiveRefresh(fetchData);
 
   const assignmentsByProperty = useMemo<Record<number, CleanerAssignmentInfo[]> | undefined>(
     () => (assignments.length > 0 ? { [property.id]: assignments } : undefined),

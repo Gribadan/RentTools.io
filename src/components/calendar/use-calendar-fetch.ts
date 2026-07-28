@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { CalendarLink, DateOverride } from "@/lib/types";
+import { useLiveRefresh } from "@/lib/use-live-refresh";
 import type { CalendarEvent } from "./types";
 
 type CalendarDataCache = {
@@ -89,6 +90,11 @@ export function useCalendarFetch(propertyId: number): UseCalendarFetchResult {
     const isFresh = cached && Date.now() - cached.ts < CALENDAR_CACHE_TTL_MS;
     if (!isFresh) refetchCalendarData();
   }, [refetchCalendarData, propertyId]);
+
+  // Multi-manager visibility: when Manager A adds a direct booking, we
+  // want Manager B's calendar to reflect it without a full page reload.
+  // Refetch on tab focus / visibility and poll every 60 s while visible.
+  useLiveRefresh(refetchCalendarData);
 
   const refetchOverrides = useCallback(async () => {
     const res = await fetch(`/api/date-overrides?propertyId=${propertyId}`);

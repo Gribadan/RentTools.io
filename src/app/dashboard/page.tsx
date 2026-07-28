@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthGuard } from "@/components/auth-guard";
+import { useLiveRefresh } from "@/lib/use-live-refresh";
 import { TopBar, type AppView } from "@/components/top-bar";
 import { ReservationView } from "@/components/reservation-view";
 import { ProfilePanel } from "@/components/profile-panel";
@@ -93,6 +94,14 @@ function AppContent({
   useEffect(() => {
     fetchProperties();
   }, []);
+
+  // Multi-manager visibility: a second manager viewing the dashboard
+  // should see a new direct booking (or a rename / cleaning toggle /
+  // reservation edit) added by another manager without needing to log
+  // out and back in. Refetch on tab focus + poll every 60 s while
+  // visible — cheap, and matches the calendar's own live-refresh so
+  // both surfaces stay in sync.
+  useLiveRefresh(() => fetchProperties());
 
   useEffect(() => {
     if (selectedReservationId) {
