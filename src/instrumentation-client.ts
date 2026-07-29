@@ -30,6 +30,16 @@ const EXTENSION_DENY_URLS: RegExp[] = [
   // names; same SDK shape.
   /\/contentscript\.js/,
   /\/extension\.js/,
+  // Google Identity Services (One Tap prompt). Throws minified errors
+  // ("Error: oa" and similar) from its internal XHR machinery,
+  // especially on iOS Safari where a signed-out user has no viable
+  // account to hint. denyUrls checks the top frame of the exception,
+  // so this catches events even when Sentry's XHR-integration wrapper
+  // captured them from our onScriptReady callback.
+  /^app:\/\/\/gsi\//,
+  // Sentry sometimes labels frames from third-party scripts with the
+  // origin URL directly — cover both shapes.
+  /^https?:\/\/accounts\.google\.com\/gsi\//,
 ];
 
 const EXTENSION_IGNORE_PATTERNS: Array<string | RegExp> = [
@@ -46,23 +56,49 @@ const EXTENSION_IGNORE_PATTERNS: Array<string | RegExp> = [
   /ResizeObserver loop completed with undelivered notifications/,
 ];
 
-// Drop events whose stack has zero frames in our own source. The
-// browser's global onerror handler captures any script's exception
-// page-wide, so things like Google Identity Services (gsi/client) or a
-// browser extension that slipped past denyUrls show up as our errors
-// with an empty / "undefined:31:70" stack. They're not actionable from
-// our code — when a real recursion comes from us, the stack will
-// include at least one frame pointing at /_next/static/.
-function hasAppFrame(event: Sentry.ErrorEvent): boolean {
+// Well-known third-party script paths whose errors are never
+// actionable from our side. Kept separate from denyUrls because we
+// also want to drop events where the error was THROWN in one of these
+// scripts even though the call chain traversed our bundle (typical
+// for GIS: we call gsi.prompt() → gsi does its own XHR → the XHR
+// callback throws inside gsi; Sentry's stack has both a gsi frame
+// (the thrower) and a /_next/ frame (our onScriptReady callback), so
+// the older hasAppFrame heuristic was too permissive).
+const THIRD_PARTY_ORIGIN_PATTERNS: RegExp[] = [
+  /^app:\/\/\/gsi\//,
+  /^https?:\/\/accounts\.google\.com\/gsi\//,
+  /^https?:\/\/apis\.google\.com\//,
+  /^https?:\/\/[^/]*\.googletagmanager\.com\//,
+];
+
+// Drop events whose stack has zero frames in our own source, OR whose
+// THROWING frame lives in a well-known third-party script (see above).
+// The browser's global onerror handler captures any script's exception
+// page-wide, so third-party bundles show up as our errors with either
+// an empty / "undefined:31:70" stack (drops via zero-frames branch) or
+// a stack rooted in the third-party origin (drops via top-frame
+// branch). Real recursions from our own code have a top frame in
+// /_next/static/ and still report normally.
+function shouldDrop(event: Sentry.ErrorEvent): boolean {
   const frames = event.exception?.values?.[0]?.stacktrace?.frames ?? [];
-  if (frames.length === 0) return false;
-  return frames.some((f) => {
+  if (frames.length === 0) return true;
+
+  // Sentry orders frames oldest → newest; the LAST element is the
+  // frame where the error was thrown. Drop if that origin is a known
+  // third-party script.
+  const topFrame = frames[frames.length - 1];
+  const topFn = topFrame?.filename ?? "";
+  if (THIRD_PARTY_ORIGIN_PATTERNS.some((p) => p.test(topFn))) return true;
+
+  // Fallback: no frame at all in our bundle → drop as untraceable
+  // third-party noise. This catches new scripts we haven't explicitly
+  // listed above.
+  const hasAppFrame = frames.some((f) => {
     const fn = f.filename ?? "";
     if (!fn || fn === "undefined" || fn === "<anonymous>") return false;
-    // Our build assets live under /_next/. Anything else (cdn-hosted
-    // third-party scripts, browser-internal frames) is not ours.
     return fn.includes("/_next/") || fn.endsWith("renttools.io");
   });
+  return !hasAppFrame;
 }
 
 if (dsn) {
@@ -75,13 +111,11 @@ if (dsn) {
     denyUrls: EXTENSION_DENY_URLS,
     ignoreErrors: EXTENSION_IGNORE_PATTERNS,
     beforeSend(event) {
-      // Stack overflows on iOS Safari + Google Identity Services arrive
-      // with empty/undefined stack frames — there's nothing actionable
-      // because the recursion isn't in our code. Drop them only when no
-      // frame points at our bundle. A real RangeError thrown from our
-      // own code would have at least one /_next/static/ frame and would
-      // still report normally.
-      if (!hasAppFrame(event)) return null;
+      // Third-party noise filter — see shouldDrop() for the two
+      // conditions we drop under (no app frame at all, OR error was
+      // thrown inside a known third-party script even if the call
+      // chain went through our code).
+      if (shouldDrop(event)) return null;
       return event;
     },
   });
