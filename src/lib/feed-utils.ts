@@ -11,6 +11,11 @@
  * requests rather than 400'ing.
  */
 export function parseFeedFilename(filename: string): string {
-  const match = filename.match(/^for-(\w+)\.ics$/i);
+  // `-` is part of the canonical slug shape (see SLUG_RE in lib/platforms),
+  // but `\w` excludes it, so a dashed slug such as `my-cottage` used to fall
+  // through to the "airbnb" default. That is worse than a 404: the caller
+  // then serves the Airbnb feed, which deliberately omits Airbnb stays, so
+  // the destination silently receives a calendar with bookings missing.
+  const match = filename.match(/^for-([\w-]+)\.ics$/i);
   return match?.[1] || "airbnb";
 }
