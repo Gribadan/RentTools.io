@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
+import { isValidPlatformSlug } from "@/lib/platforms";
 
 // GET /api/calendar/links?propertyId=1
 export async function GET(request: NextRequest) {
@@ -59,9 +60,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!["airbnb", "booking"].includes(platform)) {
+    // Any slug the platform registry considers canonical is allowed here.
+    // The onboarding wizard already persists arbitrary platforms, the feed
+    // route resolves `for-<slug>.ics` for arbitrary slugs, and PLATFORM_PRESETS
+    // ships twelve of them — this route was the only place still pinned to
+    // the original airbnb/booking pair, so hosts on Vrbo, Expedia, Agoda or a
+    // custom source could not save a link after signup.
+    if (typeof platform !== "string" || !isValidPlatformSlug(platform)) {
       return NextResponse.json(
-        { error: "platform must be 'airbnb' or 'booking'" },
+        { error: "platform must be a valid slug: lower-case a-z, 0-9 and dashes, 1-32 chars" },
         { status: 400 }
       );
     }

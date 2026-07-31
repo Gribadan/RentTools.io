@@ -27,6 +27,15 @@ describe("parseFeedFilename", () => {
     expect(parseFeedFilename("for-platform99.ics")).toBe("platform99");
   });
 
+  it("accepts dashed slugs", () => {
+    // isValidPlatformSlug() allows dashes, so a host can create the platform
+    // `my-cottage` and then be handed /for-my-cottage.ics as its feed URL.
+    // Falling back to "airbnb" here would serve that destination the Airbnb
+    // feed, which omits Airbnb stays — dates would silently look free.
+    expect(parseFeedFilename("for-my-cottage.ics")).toBe("my-cottage");
+    expect(parseFeedFilename("for-plum-guide.ics")).toBe("plum-guide");
+  });
+
   it("matches case-insensitively", () => {
     expect(parseFeedFilename("FOR-Vrbo.ICS")).toBe("Vrbo");
   });
