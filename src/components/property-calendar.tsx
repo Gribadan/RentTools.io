@@ -359,12 +359,14 @@ export function PropertyCalendar({
     clearSelection();
   };
 
-  const createReservationFromSelection = async (data: { name: string; platform: string }) => {
+  const createReservationFromSelection = async (data: { name: string; platform: string; checkOut: string }) => {
     const sortedDates = Array.from(selectedDates).sort();
     if (sortedDates.length === 0) return;
     const checkIn = sortedDates[0];
-    const lastDay = sortedDates[sortedDates.length - 1];
-    const checkOut = addDaysStr(lastDay, 1);
+    // The panel resolved check-out already (see planStay) — a same-day
+    // turnover ends ON the last selected day rather than the morning
+    // after it, so we must not re-derive it from the selection here.
+    const checkOut = data.checkOut;
     await fetch(`/api/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -763,6 +765,8 @@ export function PropertyCalendar({
             cleaningOverrides={data.cleaningOverrides}
             syncedEvents={syncedEvents}
             reservations={property.reservations}
+            cleaningEnabled={property.cleaningEnabled !== false}
+            bufferBefore={Math.max(0, ...links.map((l) => l.bufferBefore))}
             onClose={clearSelection}
             onToggleDate={toggleDate}
             onSetSingleOverride={setSingleOverride}

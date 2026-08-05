@@ -3,6 +3,7 @@
 import type { Property } from "@/lib/types";
 import { DateActionsPopover, type DateBarInfo, type ExtendableBooking } from "@/components/date-actions-popover";
 import { getExtendableBookings } from "./extendable-bookings";
+import { planStay } from "./stay-plan";
 import { addDaysStr } from "./utils";
 import type { CalendarBar, CalendarEvent } from "./types";
 
@@ -18,6 +19,12 @@ interface CalendarDatePopoverProps {
   cleaningOverrides: Set<string>;
   syncedEvents: CalendarEvent[];
   reservations: Property["reservations"];
+  /** Property master cleaning toggle — when off, buffer rules don't
+   *  apply, so a same-day turnover carries no obligation. */
+  cleaningEnabled: boolean;
+  /** Max `bufferBefore` across the property's calendar links. 0 means
+   *  the property runs same-day turnovers ("quick" BufferMode). */
+  bufferBefore: number;
   onClose: () => void;
   onToggleDate: (dateStr: string) => void;
   onSetSingleOverride: (dateStr: string, type: "open" | "closed" | "cleaning") => void;
@@ -25,7 +32,7 @@ interface CalendarDatePopoverProps {
   onSetBulkOverride: (type: "open" | "closed" | "cleaning") => void;
   onRemoveBulkOverride: () => void;
   onExtendBooking: (rangeStart: string, rangeEnd: string, b: ExtendableBooking) => void;
-  onCreateReservation: (data: { name: string; platform: string }) => void;
+  onCreateReservation: (data: { name: string; platform: string; checkOut: string }) => void;
   /** Trim a manual reservation's checkOut. Wired to PATCH
    *  /api/reservations/:id by the parent. */
   onTrimReservation?: (reservationId: number, newCheckOut: string) => void;
@@ -72,6 +79,8 @@ export function CalendarDatePopover({
   cleaningOverrides,
   syncedEvents,
   reservations,
+  cleaningEnabled,
+  bufferBefore,
   onClose,
   onToggleDate,
   onSetSingleOverride,
@@ -157,6 +166,10 @@ export function CalendarDatePopover({
     }
   }
 
+  // What reservation this selection actually means, judged against the
+  // property's own buffer rules rather than a hardcoded policy.
+  const stayPlan = planStay(sortedDates, bars, { cleaningEnabled, bufferBefore });
+
   return (
     <DateActionsPopover
       selectedDates={sortedDates}
@@ -185,6 +198,7 @@ export function CalendarDatePopover({
         cleaningOverride: countCleaningOverride,
         autoBlocked: countAutoBlocked,
       }}
+      stayPlan={stayPlan}
       onClose={onClose}
       onToggleDate={onToggleDate}
       onCloseDate={() =>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { StayPlan } from "@/components/calendar/stay-plan";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 
@@ -30,7 +31,19 @@ interface CopyShape {
   openAll: (count: number) => string;
   resetAll: (count: number) => string;
   createBulk: (count: number) => string;
-  createBulkDesc: string;
+  /** Spells out the resulting stay window next to the CTA. The
+   *  selection is night-based (one selected day = one occupied
+   *  night), so check-out is the day AFTER the last selected date.
+   *  Without this the host reads the header's day span as a
+   *  check-in → check-out range and the night count looks off by one. */
+  createBulkDesc: (checkIn: string, checkOut: string) => string;
+  /** Shown when the trailing selected day is the next guest's arrival
+   *  day and we're using it as this stay's check-out. */
+  turnoverNote: string;
+  /** Shown instead of the Create action when that same shape is
+   *  refused because the property reserves buffer days before every
+   *  check-in (its BufferMode is "full", not "quick"). */
+  bufferRequiredNote: string;
   noActions: string;
   selectedDates: string;
   daysCount: (count: number) => string;
@@ -100,7 +113,11 @@ const COPY: Record<Locale, CopyShape> = {
     openAll: (count) => `Make available (${count})`,
     resetAll: (count) => `Reset overrides (${count})`,
     createBulk: (count) => `Create reservation (${count} ${count === 1 ? "night" : "nights"})`,
-    createBulkDesc: "One reservation covering all selected days.",
+    createBulkDesc: (checkIn, checkOut) =>
+      `One reservation — check-in ${checkIn}, check-out ${checkOut}.`,
+    turnoverNote: "Same-day turnover — your guest leaves the morning the next one arrives.",
+    bufferRequiredNote:
+      "This property keeps a cleaning buffer before every arrival, so a stay can't end on the next guest's check-in day. Deselect that day, or set the buffer to 0 in calendar sync settings.",
     noActions: "No actions available.",
     selectedDates: "Selected dates",
     daysCount: (count) => (count === 1 ? "day" : "days"),
@@ -164,7 +181,11 @@ const COPY: Record<Locale, CopyShape> = {
     openAll: (count) => `Сделать доступными (${count})`,
     resetAll: (count) => `Сбросить переопределения (${count})`,
     createBulk: (count) => `Создать бронь на ${count} ${count === 1 ? "ночь" : "ночей"}`,
-    createBulkDesc: "Одна бронь на все выбранные дни.",
+    createBulkDesc: (checkIn, checkOut) =>
+      `Одна бронь — заезд ${checkIn}, выезд ${checkOut}.`,
+    turnoverNote: "Пересменка — ваш гость выезжает утром того дня, когда заезжает следующий.",
+    bufferRequiredNote:
+      "Объект держит буфер на уборку перед каждым заездом, поэтому бронь не может заканчиваться в день заезда следующего гостя. Снимите этот день или поставьте буфер 0 в настройках синхронизации.",
     noActions: "Нет доступных действий.",
     selectedDates: "Выбрано дат",
     daysCount: () => "дн.",
@@ -228,7 +249,11 @@ const COPY: Record<Locale, CopyShape> = {
     openAll: (count) => `Freigeben (${count})`,
     resetAll: (count) => `Übersteuerungen zurücksetzen (${count})`,
     createBulk: (count) => `Buchung anlegen (${count} ${count === 1 ? "Nacht" : "Nächte"})`,
-    createBulkDesc: "Eine Buchung über alle ausgewählten Tage.",
+    createBulkDesc: (checkIn, checkOut) =>
+      `Eine Buchung — Check-in ${checkIn}, Check-out ${checkOut}.`,
+    turnoverNote: "Wechsel am selben Tag — Ihr Gast reist am Morgen der nächsten Anreise ab.",
+    bufferRequiredNote:
+      "Diese Unterkunft hält vor jeder Anreise einen Reinigungspuffer frei, daher kann eine Buchung nicht am Check-in-Tag des nächsten Gastes enden. Wählen Sie diesen Tag ab oder setzen Sie den Puffer in den Sync-Einstellungen auf 0.",
     noActions: "Keine Aktionen verfügbar.",
     selectedDates: "Ausgewählte Daten",
     daysCount: (count) => (count === 1 ? "Tag" : "Tage"),
@@ -292,7 +317,11 @@ const COPY: Record<Locale, CopyShape> = {
     openAll: (count) => `Rendre disponibles (${count})`,
     resetAll: (count) => `Réinitialiser les overrides (${count})`,
     createBulk: (count) => `Créer une réservation (${count} ${count === 1 ? "nuit" : "nuits"})`,
-    createBulkDesc: "Une seule réservation couvrant tous les jours sélectionnés.",
+    createBulkDesc: (checkIn, checkOut) =>
+      `Une réservation — arrivée ${checkIn}, départ ${checkOut}.`,
+    turnoverNote: "Rotation le jour même — votre voyageur part le matin de l’arrivée suivante.",
+    bufferRequiredNote:
+      "Ce logement garde un délai de ménage avant chaque arrivée : une réservation ne peut donc pas se terminer le jour d’arrivée du voyageur suivant. Désélectionnez ce jour, ou mettez le délai à 0 dans les réglages de synchronisation.",
     noActions: "Aucune action disponible.",
     selectedDates: "Dates sélectionnées",
     daysCount: (count) => (count === 1 ? "jour" : "jours"),
@@ -356,7 +385,11 @@ const COPY: Record<Locale, CopyShape> = {
     openAll: (count) => `Habilitar (${count})`,
     resetAll: (count) => `Restablecer overrides (${count})`,
     createBulk: (count) => `Crear reserva (${count} ${count === 1 ? "noche" : "noches"})`,
-    createBulkDesc: "Una sola reserva que cubre todos los días seleccionados.",
+    createBulkDesc: (checkIn, checkOut) =>
+      `Una reserva — entrada ${checkIn}, salida ${checkOut}.`,
+    turnoverNote: "Rotación el mismo día — su huésped sale la mañana en que llega el siguiente.",
+    bufferRequiredNote:
+      "Este alojamiento reserva un margen de limpieza antes de cada entrada, así que una reserva no puede terminar el día de entrada del siguiente huésped. Deseleccione ese día, o ponga el margen a 0 en los ajustes de sincronización.",
     noActions: "No hay acciones disponibles.",
     selectedDates: "Fechas seleccionadas",
     daysCount: (count) => (count === 1 ? "día" : "días"),
@@ -475,6 +508,11 @@ interface DateActionsPanelProps {
   /** Aggregate flags across the entire selection — drives the bulk
    *  action list when 2+ dates are selected. */
   bulkCounts: BulkCounts;
+  /** The reservation this selection resolves to, already judged
+   *  against the property's own buffer rules. Null only when nothing
+   *  is selected. Drives the Create gate, the night count and the
+   *  dates that get POSTed. */
+  stayPlan: StayPlan | null;
   onClose: () => void;
   onToggleDate: (dateStr: string) => void;
   onCloseDate: () => void;
@@ -482,7 +520,7 @@ interface DateActionsPanelProps {
   onScheduleCleaning: () => void;
   onRemoveOverride: () => void;
   onExtendBooking: (booking: ExtendableBooking) => void;
-  onCreateReservation: (data: { name: string; platform: string }) => void;
+  onCreateReservation: (data: { name: string; platform: string; checkOut: string }) => void;
   /** Shrink an existing manual reservation by setting its checkOut to
    *  `newCheckOut` (YYYY-MM-DD). Surfaced when the host clicks one date
    *  inside the bar of a reservation they own. The wrapper resolves
@@ -516,6 +554,7 @@ export function DateActionsPopover({
   isContiguousRange,
   singleStatus,
   bulkCounts,
+  stayPlan,
   onClose,
   onToggleDate,
   onCloseDate,
@@ -604,6 +643,12 @@ export function DateActionsPopover({
       day: "2-digit",
       month: "short",
     });
+
+  // The stay this selection resolves to. Single source of truth for
+  // the CTA copy, the confirmation form and the POST — they used to
+  // derive check-out separately and could drift apart.
+  const stayCheckIn = stayPlan ? formatShort(stayPlan.checkIn) : "";
+  const stayCheckOut = stayPlan ? formatShort(stayPlan.checkOut) : "";
 
   // Single-date actions (per-state, same logic as before).
   const singleActions: ResolvedAction[] = (() => {
@@ -769,12 +814,17 @@ export function DateActionsPopover({
     const lScheduleAll = c.scheduleAll(selectedDates.length);
     const lOpenAll = c.openAll(selectedDates.length);
     const lResetAll = c.resetAll(selectedDates.length);
-    const lCreate = c.createBulk(selectedDates.length);
-    const lCreateDesc = c.createBulkDesc;
+    const lCreate = c.createBulk(stayPlan?.nights ?? selectedDates.length);
+    const lCreateDesc = c.createBulkDesc(stayCheckIn, stayCheckOut);
 
     const out: ResolvedAction[] = [];
 
-    if (allUnbooked && isContiguous) {
+    // Create is gated on the resolved stay, not on the raw booked
+    // count: a trailing same-day turnover leaves one selected day
+    // "booked" while still describing a perfectly legal reservation,
+    // and whether it IS legal is the property's buffer setting to
+    // decide (see planStay).
+    if (stayPlan?.blockedBy === null && isContiguous) {
       out.push({ kind: "createReservation", label: lCreate, description: lCreateDesc, tone: "primary", onClick: () => setCreating(true) });
     }
     if (allUnbooked) {
@@ -865,10 +915,10 @@ export function DateActionsPopover({
 
   const submitCreate = async () => {
     const finalName = resName.trim();
-    if (!finalName) return;
+    if (!finalName || !stayPlan) return;
     setSubmitting(true);
     try {
-      onCreateReservation({ name: finalName, platform: resPlatform });
+      onCreateReservation({ name: finalName, platform: resPlatform, checkOut: stayPlan.checkOut });
     } finally {
       setSubmitting(false);
     }
@@ -944,17 +994,37 @@ export function DateActionsPopover({
               <div className="mt-0.5 text-base font-semibold text-[var(--ink)]">
                 {selectedDates.length} {c.daysCount(selectedDates.length)}
                 {isContiguous && selectedDates.length > 1 && (
+                  /* Inclusive day span, en dash — NOT an arrow. The
+                     selection is a set of nights; an arrow reads as
+                     check-in → check-out and makes the night count
+                     look off by one (select 15–24 = 10 nights, but
+                     "15 → 24" reads as 9). The stay window itself is
+                     spelled out on the Create CTA and in the form. */
                   <span className="ml-2 text-sm font-normal text-[var(--ink-3)]">
-                    {formatShort(selectedDates[0])} → {formatShort(selectedDates[selectedDates.length - 1])}
+                    {formatShort(selectedDates[0])} – {formatShort(selectedDates[selectedDates.length - 1])}
                   </span>
                 )}
               </div>
-              <div className="mt-2 text-[11px] text-[var(--ink-3)]">
-                {bulkCounts.booked > 0
-                  ? c.bookedDisabled(bulkCounts.booked)
-                  : isContiguous
-                    ? c.contiguousRange
-                    : c.nonContiguous}
+              {/* A turnover selection has one "booked" day by count but
+                  is still creatable, so the generic bookedDisabled line
+                  would contradict the CTA sitting right below it. Let
+                  the resolved stay speak first. */}
+              <div
+                className={`mt-2 text-[11px] leading-snug ${
+                  stayPlan?.blockedBy === "buffer-required"
+                    ? "text-[var(--cleaning-fg)]"
+                    : "text-[var(--ink-3)]"
+                }`}
+              >
+                {stayPlan?.blockedBy === "buffer-required"
+                  ? c.bufferRequiredNote
+                  : stayPlan?.isTurnover
+                    ? c.turnoverNote
+                    : bulkCounts.booked > 0
+                      ? c.bookedDisabled(bulkCounts.booked)
+                      : isContiguous
+                        ? c.contiguousRange
+                        : c.nonContiguous}
               </div>
             </>
           )}
@@ -1101,22 +1171,22 @@ export function DateActionsPopover({
             <div className="rounded-md border border-[var(--line-2)] bg-[var(--bg-2)] p-3 text-xs text-[var(--ink-3)]">
               <div>
                 <span className="text-[var(--ink-4)]">{c.checkInLabel}</span>{" "}
-                <span className="font-medium text-[var(--ink)]">{formatShort(selectedDates[0])}</span>
+                <span className="font-medium text-[var(--ink)]">{stayCheckIn}</span>
               </div>
               <div className="mt-1">
                 <span className="text-[var(--ink-4)]">{c.checkOutLabel}</span>{" "}
                 <span className="font-medium text-[var(--ink)]">
-                  {(() => {
-                    const last = selectedDates[selectedDates.length - 1];
-                    const d = new Date(last + "T12:00:00");
-                    d.setDate(d.getDate() + 1);
-                    return d.toLocaleDateString(c.dateLocale, { day: "2-digit", month: "short" });
-                  })()}
+                  {stayCheckOut}
                 </span>{" "}
                 <span className="text-[var(--ink-4)]">
-                  {c.nightsParenthetical(selectedDates.length)}
+                  {c.nightsParenthetical(stayPlan?.nights ?? selectedDates.length)}
                 </span>
               </div>
+              {stayPlan?.isTurnover && (
+                <div className="mt-2 border-t border-[var(--line-2)] pt-2 text-[11px] leading-snug text-[var(--cleaning-fg)]">
+                  {c.turnoverNote}
+                </div>
+              )}
             </div>
           </div>
         ) : (
