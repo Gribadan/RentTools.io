@@ -8,6 +8,12 @@ User=app
 Group=app
 WorkingDirectory=/home/app/rent-tool
 EnvironmentFile=/home/app/rent-tool/.env.production
+# Written by scripts/install-build.sh on every deploy, holding the SHA the
+# running artifact was built from. /api/health reports it as `version`;
+# without it the endpoint always answered "dev" and there was no way to
+# tell which commit was actually serving. Leading `-` marks the file
+# optional so the unit still starts before the first deploy writes it.
+EnvironmentFile=-/home/app/rent-tool/.env.release
 Environment=NODE_ENV=production
 Environment=PORT=3000
 ExecStart=/usr/bin/npm run start

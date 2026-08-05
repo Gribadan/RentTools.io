@@ -66,6 +66,14 @@ git fetch --quiet origin master
 git reset --hard --quiet "$TARGET_SHA"
 log "now at $(git rev-parse --short HEAD)"
 
+# Hand the deployed SHA to the service itself. GIT_COMMIT_SHA reaches this
+# script but never reached the systemd unit, so the app booted without it
+# and /api/health always reported version "dev". The unit reads this via
+# `EnvironmentFile=-`, and .gitignore's `.env.*` keeps the file untracked
+# so the `git reset --hard` above never clobbers it.
+printf 'GIT_COMMIT_SHA=%s\n' "$(git rev-parse HEAD)" > .env.release
+log "recorded release $(git rev-parse --short HEAD) for the service env"
+
 LOCK_AFTER=$(sha256sum package-lock.json | awk '{print $1}')
 SCHEMA_AFTER=$(sha256sum prisma/schema.prisma | awk '{print $1}')
 PUSH_SCRIPT_AFTER=$(sha256sum prisma/push-schema.ts | awk '{print $1}')
