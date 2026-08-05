@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build + tests
+    runs-on: ubuntu-latest
+
+    env:
+      # Module-level Prisma init in src/lib/prisma.ts requires *some* DB env.
+      # No queries are executed during `next build` or `vitest run`, so a
+      # local SQLite path that never has to exist is sufficient and keeps
+      # CI hermetic — no secrets, no Turso, no Gemini.
+      DATABASE_URL: "file:./ci-build.db"
+      JWT_SECRET: "ci-only-not-a-real-secret-just-for-build-pass"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Forbidden-paths check
+        # Defence-in-depth alongside .gitignore + .githooks/pre-commit.
+        # Scans tracked files in this commit for patterns that should
+        # never appear in the public repo (AI-tool config, local notes,
+        # task backlogs, env files, keys, DB dumps).
+        run: |
+          set -euo pipefail
+          FORBIDDEN='^\.routines/|^\.local/|^\.claude/|^\.cursor/|^\.aider|^\.playwright-mcp/|^CLAUDE\.md$|^claude\.md$|^AGENTS\.md$|^agents\.md$|^MEMORY\.md$|^TASKS\.md$|^ROUTINE\.md$|^OPS-ROUTINE\.md$|^\.env$|^\.env\.local$|^\.env\.production$|\.db$|\.sqlite[0-9]*$|\.dump$|\.sql\.gz$|^id_(rsa|ed25519|ecdsa)|\.ppk$|\.pfx$|\.p12$|^authorized_keys$|\.sentryclirc$|^\.env\.sentry-build-plugin$'
+          # Allow .env.example explicitly (matches \.env\..+ otherwise).
+          BAD=$(git ls-files | grep -E "$FORBIDDEN" | grep -vE '^\.env\.example$' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::Found forbidden tracked files in the public repo:"
+            echo "$BAD" | sed 's/^/  /'
+            echo ""
+            echo "These should not be committed. Either:"
+            echo "  1) Untrack: git rm --cached <path>; commit"
+            echo "  2) Or add an explicit allow for it in .githooks/pre-commit + this workflow"
+            exit 1
+          fi
+          echo "Forbidden-paths scan: clean."
+
+      - name: Secret-content scan
+        # Third layer (after .gitignore + .githooks/pre-commit). The
+        # path scan above catches a whole forbidden file; this catches a
+        # secret pasted INTO an otherwise innocent tracked file. Same
+        # high-confidence provider-key / PEM patterns the pre-commit
+        # hook greps for — mirrored here so a contributor who bypassed
+        # the hook (--no-verify, or never ran `npm install` to register
+        # the hooksPath) still gets caught before merge.
+        run: |
+          set -euo pipefail
+          SECRET_RE='-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|sk_live_[0-9a-zA-Z]{20,}|ghp_[0-9A-Za-z]{36}|xox[baprs]-[0-9A-Za-z-]{10,}'
+          # git grep over tracked files only. `-e` is required — the regex
+          # starts with `-` (the PEM header) and git would otherwise parse
+          # it as a flag. Exclude package-lock.json (integrity hashes can
+          # coincidentally match key-shaped regexes) and other lockfiles.
+          HITS=$(git grep -nE -e "$SECRET_RE" -- ':!package-lock.json' ':!*.lock' || true)
+          if [ -n "$HITS" ]; then
+            echo "::error::Found secret-shaped strings in tracked files:"
+            echo "$HITS" | sed 's/^/  /'
+            echo ""
+            echo "If a real credential leaked: remove it AND rotate the key"
+            echo "(assume it is burned). If it is a documented sample value,"
+            echo "rephrase so it no longer matches a live-credential pattern."
+            exit 1
+          fi
+          echo "Secret-content scan: clean."
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit dependencies (high/critical only)
+        # RT-21.9: gate merges to master on the absence of known
+        # high/critical CVEs. Moderate findings are surfaced via
+        # Dependabot PRs (.github/dependabot.yml) without blocking CI.
+        run: npm audit --audit-level=high
+
+      - name: Type-check + production build
+        run: npx next build
+
+      - name: Unit tests
+        run: npx vitest run
