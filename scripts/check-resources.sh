@@ -42,6 +42,29 @@ LOAD1="$(awk '{print $1}' /proc/loadavg)"
 
 SUMMARY="ram=${RAM_USED_PCT}% disk=${DISK_USED_PCT}% load1=${LOAD1}"
 
+# ---- Self-heal: prune ephemeral caches before disk crosses 100% ----
+# When disk usage hits 90 % (10 points above the alert threshold), the
+# next npm ci / DB write / session write becomes an exception away from
+# a full outage. Auto-run the exact prune that fixed the 2026-08-06
+# outage:
+#   - vacuum systemd journal to 200 MB (was consuming ~830 MB)
+#   - clean the npm cache under the app user (rebuilt on next install)
+#   - delete any leftover build.tar.gz / pre-restore snapshots from /tmp
+# Everything here is idempotent + safe to re-run. Cron cadence caps
+# how often it can fire (hourly). If the alert threshold is set higher
+# than 90 % the self-heal still runs on its own condition.
+if [ "$DISK_USED_PCT" -ge 90 ]; then
+  echo "[$(ts)] ${HOST} SELF-HEAL disk ${DISK_USED_PCT}% >= 90% — running auto-prune"
+  sudo journalctl --vacuum-size=200M 2>&1 | tail -1 | sed "s#^#[$(ts)] #"
+  npm cache clean --force >/dev/null 2>&1 || true
+  find /tmp -maxdepth 1 -type f \( -name 'build.tar.gz' -o -name 'install-build.sh' -o -name 'prod-before-restore-*.db' \) -mtime +0 -delete 2>/dev/null || true
+  # Re-sample so the alert (and the log line below) reflects the state
+  # AFTER cleanup — a self-heal drop from 96 % → 78 % is the useful
+  # signal, not the pre-heal 96 %.
+  DISK_USED_PCT="$(df --output=pcent / | tail -1 | tr -dc '0-9')"
+  SUMMARY="ram=${RAM_USED_PCT}% disk=${DISK_USED_PCT}%(post-heal) load1=${LOAD1}"
+fi
+
 # ---- Decide if we need to alert ----
 ALERT_REASON=""
 if [ "$RAM_USED_PCT" -ge "$RAM_WARN_PCT" ]; then
