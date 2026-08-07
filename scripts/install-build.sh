@@ -10,6 +10,11 @@
 #
 # Arg: $1 = path to build.tar.gz (default /tmp/build.tar.gz)
 # Env: GIT_COMMIT_SHA = the SHA the artifact was built from (CI passes this)
+#      MIN_FREE_MB    = free space required before npm ci may run (default 1024)
+#
+# Exit codes: 1 artifact missing · 10 dirty droplet checkout · 11 bad artifact
+#             12 too little disk for npm ci · 13 npm ci left an incomplete tree
+#             20 restarted but health check never came up
 #
 # Steps:
 #  1. git fetch + reset --hard to GIT_COMMIT_SHA so source files (prisma/,
@@ -82,8 +87,29 @@ MAINT_AFTER=$(sha256sum deploy/nginx/maintenance.html | awk '{print $1}')
 
 # 2. Conditional npm ci. Only when dependencies actually changed.
 if [ "$LOCK_BEFORE" != "$LOCK_AFTER" ]; then
-  log "package-lock.json changed — running npm ci"
+  # npm ci REMOVES node_modules before repopulating it. Running out of
+  # space partway leaves a tree that has package directories but no
+  # .bin symlinks, so `next start` dies with "next: not found" (exit
+  # 127) and Restart=always turns that into an unbounded crash loop —
+  # a full outage, from a deploy that only meant to bump a dependency.
+  # That is exactly how this box went down on 2026-08-07.
+  #
+  # So check headroom while the current install is still intact and
+  # serving, and fail the DEPLOY rather than the site.
+  MIN_FREE_MB="${MIN_FREE_MB:-1024}"
+  FREE_MB=$(df -Pm "$REPO" | awk 'NR==2 {print $4}')
+  if [ "$FREE_MB" -lt "$MIN_FREE_MB" ]; then
+    log "ABORT — ${FREE_MB}MB free, need ${MIN_FREE_MB}MB for npm ci; leaving the running install untouched" >&2
+    exit 12
+  fi
+  log "package-lock.json changed — running npm ci (${FREE_MB}MB free)"
   npm ci --no-audit --no-fund
+  # The dangerous case is an install that exits 0 but is incomplete, so
+  # verify the entrypoint systemd actually execs before we restart onto it.
+  if [ ! -x node_modules/.bin/next ]; then
+    log "ABORT — npm ci finished but node_modules/.bin/next is missing; install incomplete" >&2
+    exit 13
+  fi
 else
   log "package-lock.json unchanged — skipping npm ci"
 fi
