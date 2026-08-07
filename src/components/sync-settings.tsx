@@ -365,22 +365,41 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
 
   const getLink = (platform: string) => links.find((l) => l.platform === platform);
 
-  const handleSave = async (platform: string, url: string) => {
-    if (!url.trim()) return;
+  // Returns whether the link was actually persisted. The caller uses this to
+  // decide if a draft row may be dropped — previously the POST result was
+  // ignored, so a rejected save still removed the row and the platform
+  // vanished from the page with no error anywhere.
+  const handleSave = async (platform: string, url: string): Promise<boolean> => {
+    if (!url.trim()) return false;
     const link = getLink(platform);
-    await fetch("/api/calendar/links", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        propertyId,
-        platform,
-        icalExportUrl: url.trim(),
-        bufferBefore: link?.bufferBefore ?? 0,
-        bufferAfter: link?.bufferAfter ?? 0,
-      }),
-    });
+    try {
+      const res = await fetch("/api/calendar/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId,
+          platform,
+          icalExportUrl: url.trim(),
+          bufferBefore: link?.bufferBefore ?? 0,
+          bufferAfter: link?.bufferAfter ?? 0,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        // Reuse the Test result box so the reason lands next to the input.
+        setTestResults((prev) => ({
+          ...prev,
+          [platform]: { success: false, error: body?.error || `Save failed (HTTP ${res.status})` },
+        }));
+        return false;
+      }
+    } catch (err) {
+      setTestResults((prev) => ({ ...prev, [platform]: { success: false, error: String(err) } }));
+      return false;
+    }
     setEditingPlatform(null);
     await fetchData();
+    return true;
   };
 
   const handleDelete = async (platform: string) => {
@@ -807,10 +826,12 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
                       </button>
                       <button
                         onClick={async () => {
-                          await handleSave(platform, url);
+                          const saved = await handleSave(platform, url);
                           // For drafts: drop the draft row once persisted —
-                          // it'll re-render via the customLinks branch.
-                          if (isDraft) removeCustomDraft(rowId);
+                          // it'll re-render via the customLinks branch. On a
+                          // rejected save keep the row so the host can read
+                          // the error and correct the input.
+                          if (saved && isDraft) removeCustomDraft(rowId);
                         }}
                         disabled={!url.trim() || (isDraft && !draftRow?.displayName.trim())}
                         className="rounded-md bg-[var(--m-accent)] px-2.5 py-1 text-xs font-medium text-white hover:bg-[var(--m-accent-2)] disabled:opacity-40"
