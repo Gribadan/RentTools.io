@@ -311,6 +311,22 @@ Steady-state target on the $6 droplet (1 GB RAM, 25 GB SSD):
 | Disk used | < 3 GB | n/a | 80% triggers alert |
 | Load 1m | < 0.3 | < 0.8 | n/a |
 
+> **The renttools.io instance is NOT on this plan.** It runs the $4 tier —
+> 458 MB RAM and an **8.7 GB** disk — so read the disk row above as a
+> ceiling of roughly 6.5 GB usable once the 2 GB swapfile is counted, not
+> 25 GB. `node_modules` alone is ~1.3 GB there, which puts steady state
+> near 80% and leaves far less slack than this table implies.
+>
+> That difference is not academic: on 2026-08-07 a `npm ci` during deploy
+> filled the disk, and because `npm ci` removes `node_modules` before
+> repopulating it, the half-written tree had no `.bin` symlinks. `next
+> start` then failed with exit 127 and `Restart=always` crash-looped it
+> into a multi-hour outage. `scripts/install-build.sh` now refuses to run
+> `npm ci` below `MIN_FREE_MB` (default 1024) and verifies
+> `node_modules/.bin/next` afterwards, so a full disk costs a deploy
+> instead of the site — but the underlying headroom is still thin. Check
+> `df -h /` before assuming this table applies.
+
 Install ops tooling (run once as root):
 
 ```bash
@@ -323,6 +339,12 @@ RAM ≥ 90% or disk ≥ 80% (overridable via `RAM_WARN_PCT` / `DISK_WARN_PCT`
 in `.env.production`). It tries Telegram first, then a generic webhook,
 then falls back to log-only — so the cron is safe even before you wire
 up an alert sink.
+
+> **Log-only means nobody finds out.** With no Telegram token and no
+> webhook configured, a disk-crossing-80% warning goes to the cron log and
+> stops there. That is how the 2026-08-07 outage went unnoticed until the
+> site was already down. Wire up one of the two sinks below — until you
+> do, treat the disk row above as something you have to check by hand.
 
 To enable Telegram alerts:
 
