@@ -58,6 +58,10 @@ SYSTEMD_BEFORE=$(sha256sum deploy/systemd/rent-tool.service 2>/dev/null | awk '{
 # repo, so `git reset` never touches it. Track the repo copy's hash so a
 # change to it gets pushed to nginx below instead of silently drifting.
 MAINT_BEFORE=$(sha256sum deploy/nginx/maintenance.html 2>/dev/null | awk '{print $1}' || echo "")
+# logrotate rule for /home/app/logs — the cron jobs append there forever and
+# Ubuntu ships no rule that covers it. Same install-on-change treatment as
+# the unit and the maintenance page, since its target is outside the repo.
+LOGROTATE_BEFORE=$(sha256sum deploy/logrotate/rent-tool 2>/dev/null | awk '{print $1}' || echo "")
 
 # Refuse to proceed if someone edited files directly on the droplet — prevents
 # silent overwrite of unsaved local changes by `git reset --hard`.
@@ -84,6 +88,7 @@ SCHEMA_AFTER=$(sha256sum prisma/schema.prisma | awk '{print $1}')
 PUSH_SCRIPT_AFTER=$(sha256sum prisma/push-schema.ts | awk '{print $1}')
 SYSTEMD_AFTER=$(sha256sum deploy/systemd/rent-tool.service | awk '{print $1}')
 MAINT_AFTER=$(sha256sum deploy/nginx/maintenance.html | awk '{print $1}')
+LOGROTATE_AFTER=$(sha256sum deploy/logrotate/rent-tool 2>/dev/null | awk '{print $1}' || echo "")
 
 # 2. Conditional npm ci. Only when dependencies actually changed.
 if [ "$LOCK_BEFORE" != "$LOCK_AFTER" ]; then
@@ -170,6 +175,19 @@ if [ "$MAINT_BEFORE" != "$MAINT_AFTER" ]; then
   log "maintenance.html changed — installing + reloading nginx"
   sudo install -m 644 deploy/nginx/maintenance.html /etc/nginx/html/maintenance.html
   sudo nginx -t && sudo systemctl reload nginx
+fi
+
+# 5c. Same for the logrotate rule — target lives under /etc/logrotate.d/.
+#     `logrotate -d` is a dry run, so a malformed rule fails here rather
+#     than silently disabling rotation for these logs.
+if [ "$LOGROTATE_BEFORE" != "$LOGROTATE_AFTER" ] && [ -f deploy/logrotate/rent-tool ]; then
+  log "logrotate rule changed — installing"
+  sudo install -m 644 -o root -g root deploy/logrotate/rent-tool /etc/logrotate.d/rent-tool
+  if sudo logrotate -d /etc/logrotate.d/rent-tool >/dev/null 2>&1; then
+    log "logrotate rule validated"
+  else
+    log "WARN — logrotate rejected /etc/logrotate.d/rent-tool; app cron logs will not rotate" >&2
+  fi
 fi
 
 # 6. Restart.
