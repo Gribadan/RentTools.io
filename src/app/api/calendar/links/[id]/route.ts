@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
+import { normalizeIcalUrl } from "@/lib/calendar-link-input";
 
 async function loadManageableLink(linkId: number, userId: number, role: string) {
   const link = await prisma.calendarLink.findUnique({
@@ -36,10 +37,25 @@ export async function PATCH(
 
     const body = await request.json();
 
+    // Same normalisation the POST route applies — otherwise a URL edited
+    // here could still land in the DB in a shape that can never be fetched.
+    let normalizedUrl: string | undefined;
+    if (body.icalExportUrl !== undefined) {
+      const urlResult = normalizeIcalUrl(body.icalExportUrl);
+      if (!urlResult.ok) {
+        return NextResponse.json({ error: urlResult.error }, { status: 400 });
+      }
+      normalizedUrl = urlResult.url;
+    }
+
     const updated = await prisma.calendarLink.update({
       where: { id: numId },
       data: {
-        ...(body.icalExportUrl !== undefined && { icalExportUrl: body.icalExportUrl }),
+        ...(normalizedUrl !== undefined && {
+          icalExportUrl: normalizedUrl,
+          lastError: null,
+          failureCount: 0,
+        }),
         ...(body.bufferBefore !== undefined && { bufferBefore: body.bufferBefore }),
         ...(body.bufferAfter !== undefined && { bufferAfter: body.bufferAfter }),
       },

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
+import { normalizeIcalUrl, normalizePlatformSlug } from "@/lib/calendar-link-input";
 
 // GET /api/calendar/links?propertyId=1
 export async function GET(request: NextRequest) {
@@ -52,19 +53,26 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { propertyId, platform, icalExportUrl, bufferBefore, bufferAfter } = body;
 
-    if (!propertyId || !platform || !icalExportUrl) {
-      return NextResponse.json(
-        { error: "propertyId, platform, and icalExportUrl are required" },
-        { status: 400 }
-      );
+    if (!propertyId) {
+      return NextResponse.json({ error: "propertyId is required" }, { status: 400 });
     }
 
-    if (!["airbnb", "booking"].includes(platform)) {
-      return NextResponse.json(
-        { error: "platform must be 'airbnb' or 'booking'" },
-        { status: 400 }
-      );
+    // RentTools syncs any iCal-capable platform, and /api/onboard has always
+    // accepted a free-form slug. This route still carried an
+    // ["airbnb","booking"] allowlist, so adding a Vrbo / Rentalia / HomeToGo
+    // feed from inside the app 400'd — reported as "the window simply
+    // disappears" because the client never surfaced the error.
+    const platformResult = normalizePlatformSlug(platform);
+    if (!platformResult.ok) {
+      return NextResponse.json({ error: platformResult.error }, { status: 400 });
     }
+    const platformSlug = platformResult.platform;
+
+    const urlResult = normalizeIcalUrl(icalExportUrl);
+    if (!urlResult.ok) {
+      return NextResponse.json({ error: urlResult.error }, { status: 400 });
+    }
+    const normalizedUrl = urlResult.url;
 
     if (!(await canManageProperty(Number(propertyId), session.userId, session.role))) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Check if link already exists for this property+platform
     const existing = await prisma.calendarLink.findFirst({
-      where: { propertyId: Number(propertyId), platform },
+      where: { propertyId: Number(propertyId), platform: platformSlug },
     });
 
     if (existing) {
@@ -80,14 +88,18 @@ export async function POST(request: NextRequest) {
       const updated = await prisma.calendarLink.update({
         where: { id: existing.id },
         data: {
-          icalExportUrl,
+          icalExportUrl: normalizedUrl,
           bufferBefore: bufferBefore ?? existing.bufferBefore,
           bufferAfter: bufferAfter ?? existing.bufferAfter,
           lastError: null,
+          // The host just supplied a new URL, so the old streak no longer
+          // describes this link. Leaving it would keep a repaired feed
+          // looking permanently broken in the sync health view.
+          failureCount: 0,
         },
       });
       await logAudit(session.userId, "update", "calendarLink", updated.id, {
-        platform,
+        platform: platformSlug,
         propertyId: Number(propertyId),
       });
       return NextResponse.json(updated);
@@ -96,14 +108,14 @@ export async function POST(request: NextRequest) {
     const link = await prisma.calendarLink.create({
       data: {
         propertyId: Number(propertyId),
-        platform,
-        icalExportUrl,
+        platform: platformSlug,
+        icalExportUrl: normalizedUrl,
         bufferBefore: bufferBefore ?? 1,
         bufferAfter: bufferAfter ?? 1,
       },
     });
     await logAudit(session.userId, "create", "calendarLink", link.id, {
-      platform,
+      platform: platformSlug,
       propertyId: Number(propertyId),
     });
 

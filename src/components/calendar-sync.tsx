@@ -442,11 +442,33 @@ export function CalendarSync({ propertyId }: CalendarSyncProps) {
 
   const handleSaveLink = async (platform: string) => {
     if (!urlInput.trim()) return;
-    await fetch("/api/calendar/links", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ propertyId, platform, icalExportUrl: urlInput.trim(), bufferBefore, bufferAfter }),
-    });
+    // The response used to be discarded, so a rejected save still closed the
+    // dialog and cleared the field: the host saw the window vanish with no
+    // link added and no reason given. Keep the dialog open and show why.
+    try {
+      const res = await fetch("/api/calendar/links", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId, platform, icalExportUrl: urlInput.trim(), bufferBefore, bufferAfter }),
+      });
+      if (!res.ok) {
+        const msg = await res
+          .json()
+          .then((d) => d?.error)
+          .catch(() => null);
+        setTestResults((prev) => ({
+          ...prev,
+          [platform]: { success: false, error: msg || `Could not save (HTTP ${res.status})` },
+        }));
+        return;
+      }
+    } catch {
+      setTestResults((prev) => ({
+        ...prev,
+        [platform]: { success: false, error: "Network error — the link was not saved." },
+      }));
+      return;
+    }
     setEditingLink(null);
     setUrlInput("");
     setBufferBefore(1);
