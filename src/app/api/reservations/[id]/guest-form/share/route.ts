@@ -165,19 +165,16 @@ export async function POST(
       );
     }
 
-    if (!reservation.property.feedToken) {
-      return NextResponse.json(
-        { error: "Protect the property's public calendar feeds before collecting identity data" },
-        { status: 409 },
-      );
-    }
-
-    if (!reservation.bookedGuestCount) {
-      return NextResponse.json(
-        { error: "Set the confirmed traveler count before generating the guest link" },
-        { status: 409 },
-      );
-    }
+    // property.feedToken (opt-in, `null = public`) gates the public iCal feed,
+    // not this form. It used to be required here, which dead-ended the guest
+    // form for every property that never opted in — including links already
+    // sent. Outgoing feeds are scrubbed of guest names unconditionally in
+    // lib/feed.ts, so the privacy goal is met without the coupling.
+    //
+    // bookedGuestCount is likewise optional: when it is unset the link is a
+    // plain custom-question form (the behaviour every existing reservation has
+    // today), and setting it is what opts the reservation into the structured
+    // traveler block. See ../../../g/[token]/submit/route.ts.
 
     if (!guestDataEncryptionReady()) {
       return NextResponse.json(
@@ -207,6 +204,12 @@ export async function POST(
     const tokenHash = hashShareToken(rawToken);
     const tokenCiphertext = encryptGuestData({ token: rawToken });
     const expiresAt = guestFormExpiry(reservation.checkOut);
+    // Re-issuing a link must never throw away what the guest already sent.
+    // This branch is reached for legacy rows (no ciphertext to decrypt), for
+    // expired links, and after a key rotation — in all of which the old code
+    // blanked securePayload/answers/submittedAt, silently destroying a
+    // completed submission. Only an explicit revoke clears the payload now.
+    const wasRevoked = !!existing?.revokedAt || existing?.status === "REVOKED";
     const submission = existing
       ? await prisma.guestFormSubmission.update({
           where: { id: existing.id },
@@ -214,15 +217,19 @@ export async function POST(
             shareToken: `hashed:${tokenHash}`,
             tokenHash,
             tokenCiphertext,
-            status: "INVITED",
             expiresAt,
             revokedAt: null,
-            securePayload: "",
-            answers: "[]",
-            submittedAt: null,
-            ownerApprovedAt: null,
             lastChangedAt: new Date(),
             updatedAt: new Date(),
+            ...(wasRevoked
+              ? {
+                  status: "INVITED",
+                  securePayload: "",
+                  answers: "[]",
+                  submittedAt: null,
+                  ownerApprovedAt: null,
+                }
+              : { status: existing.submittedAt ? existing.status : "INVITED" }),
           },
         })
       : await prisma.guestFormSubmission.create({

@@ -63,7 +63,7 @@ export default async function GuestFormPage({
           checkOut={submission.reservation.checkOut.toISOString().slice(0, 10)}
           maxTravelers={submission.reservation.bookedGuestCount ?? null}
           initialPrecheckin={initialPrecheckin}
-          linkState={!submission.reservation.property.feedToken ? "security-error" : storageError ? "storage-error" : linkState}
+          linkState={storageError ? "storage-error" : linkState}
           alreadySubmitted={linkState === "submitted"}
           submittedAt={
             submission.submittedAt

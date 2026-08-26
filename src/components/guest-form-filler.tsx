@@ -111,6 +111,13 @@ export function GuestFormView({
   const [dirty, setDirty] = useState(false);
   const [draftState, setDraftState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
+  // The structured traveler block is opt-in per reservation: the host turns it
+  // on by setting the confirmed traveler count, which is what populates
+  // maxTravelers. Without it this stays the plain custom-question form that
+  // every existing link already points at, and the server applies the matching
+  // rule in /api/g/[token]/submit.
+  const precheckinEnabled = maxTravelers !== null;
+
   const set = (id: string, v: unknown) => {
     setValues((m) => ({ ...m, [id]: v }));
     setDirty(true);
@@ -194,7 +201,18 @@ export function GuestFormView({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? copy.submitFailed);
+        // The server returns per-field reasons in `fields`. Showing only the
+        // generic sentence left the guest guessing which of ~14 inputs was
+        // wrong, and submit is rate-limited to 8 attempts per 15 minutes — so
+        // blind retries lock them out of their own check-in.
+        const details: string[] = Array.isArray(data.fields) ? data.fields.filter(
+          (entry: unknown): entry is string => typeof entry === "string",
+        ) : [];
+        setError(
+          details.length > 0
+            ? `${data.error ?? copy.submitFailed}: ${details.join("; ")}`
+            : data.error ?? copy.submitFailed,
+        );
         return;
       }
       setDone(true);
@@ -277,6 +295,7 @@ export function GuestFormView({
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-6">
+          {precheckinEnabled && (
           <section className="rounded-xl border border-[#1e2329] bg-[#11161d] p-4 sm:p-5">
             <h2 className="text-lg font-semibold">Stay details</h2>
             <p className="mt-1 text-xs text-[#a0a0a8]">
@@ -316,7 +335,9 @@ export function GuestFormView({
               />
             </div>
           </section>
+          )}
 
+          {precheckinEnabled && (
           <section className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -347,6 +368,7 @@ export function GuestFormView({
               />
             ))}
           </section>
+          )}
 
           {fields.length > 0 && (
             <section className="space-y-4 rounded-xl border border-[#1e2329] bg-[#11161d] p-4 sm:p-5">

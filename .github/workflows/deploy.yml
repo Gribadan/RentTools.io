@@ -63,6 +63,13 @@ jobs:
       GIT_COMMIT_SHA: ${{ github.sha }}
       NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.sha }}
 
+      # Legacy passport-OCR upload. NEXT_PUBLIC_ vars are inlined into the
+      # client bundle at build time, so this has to be set HERE — putting it in
+      # .env.production on the droplet only reaches the server route and would
+      # leave the upload UI hidden. Defaults to enabled; set the repo variable
+      # to "false" to retire the legacy OCR path.
+      NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED: ${{ vars.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6

@@ -45,6 +45,25 @@ if [ ! -f "$ARTIFACT" ]; then
   exit 1
 fi
 
+# 0. Required-secret preflight. These are read at RUNTIME, so a missing one
+#    does not fail the build — it ships a green deploy whose guest pre-check-in
+#    is quietly broken (no encryption key => owners cannot mint a link; no
+#    canonical origin => every guest submit is rejected as cross-origin).
+#    Fail here, before anything on the droplet is swapped, rather than after.
+MISSING=""
+for VAR in GUEST_DATA_ENCRYPTION_KEY PUBLIC_APP_URL; do
+  if ! grep -qE "^[[:space:]]*(export[[:space:]]+)?${VAR}=[^[:space:]]" .env.production 2>/dev/null; then
+    MISSING="$MISSING $VAR"
+  fi
+done
+if [ -n "$MISSING" ]; then
+  log "ABORT — .env.production is missing required setting(s):$MISSING" >&2
+  log "  GUEST_DATA_ENCRYPTION_KEY: openssl rand -hex 32   (guest identity data at rest)" >&2
+  log "  PUBLIC_APP_URL:            https://renttools.io   (comma-separate extra origins)" >&2
+  log "  Add them, then re-run the deploy. Nothing has been changed." >&2
+  exit 11
+fi
+
 # 1. Sync source code so prisma/, scripts/, sentry configs match the SHA we built.
 LOCK_BEFORE=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}' || echo "")
 SCHEMA_BEFORE=$(sha256sum prisma/schema.prisma 2>/dev/null | awk '{print $1}' || echo "")

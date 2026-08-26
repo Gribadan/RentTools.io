@@ -26,9 +26,9 @@ export async function PUT(
     }
     const submission = await findSubmissionByPublicToken(token);
     if (!submission) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (!submission.reservation.property.feedToken) {
-      return NextResponse.json({ error: "Secure calendar-feed setup is incomplete" }, { status: 503 });
-    }
+    // See the note in ../submit/route.ts: property.feedToken gates the public
+    // iCal feed, not this form, and requiring it here would break links that
+    // are already in guests' hands.
     const state = publicSubmissionState(submission);
     if (state !== "active") {
       return NextResponse.json({ error: "This link is no longer editable." }, { status: 409 });

@@ -41,9 +41,11 @@ export async function POST(
 
     const submission = await findSubmissionByPublicToken(token);
     if (!submission) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    if (!submission.reservation.property.feedToken) {
-      return NextResponse.json({ error: "Secure calendar-feed setup is incomplete" }, { status: 503 });
-    }
+    // NOTE: property.feedToken is an opt-in token that gates the public iCal
+    // feed (`null = public`). It is deliberately NOT required here: coupling
+    // the guest form to it would dead-end every link already sent out by a
+    // property that never opted in. Outgoing feeds are scrubbed of guest names
+    // unconditionally in lib/feed.ts, so the privacy goal holds either way.
     const state = publicSubmissionState(submission);
     if (state === "revoked" || state === "expired") {
       return NextResponse.json({ error: "This link is no longer active." }, { status: 410 });
@@ -88,6 +90,28 @@ export async function POST(
         label: f.label,
         value: isEmpty ? null : raw,
       });
+    }
+
+    // The structured traveler block is opt-in per reservation. The host opts in
+    // by setting the confirmed traveler count, which is also what the dashboard
+    // requires before it will offer the new pre-check-in link. Without it this
+    // stays the simple custom-question form it has always been, so a template
+    // that only asks "what time do you arrive?" keeps working for guests
+    // exactly as it did before this change.
+    const precheckinRequired = submission.reservation.bookedGuestCount != null;
+
+    if (!precheckinRequired) {
+      await prisma.guestFormSubmission.update({
+        where: { id: submission.id },
+        data: {
+          answers: JSON.stringify(answers),
+          status: "COMPLETE",
+          submittedAt: new Date(),
+          lastChangedAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+      return NextResponse.json({ success: true, status: "COMPLETE" });
     }
 
     const checkIn = submission.reservation.checkIn.toISOString().slice(0, 10);

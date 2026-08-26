@@ -247,7 +247,10 @@ export function ReservationView({
   // The legacy OCR path stores passport fields in the older Guest model and
   // remains disabled until its retention/deletion lifecycle is proven. The
   // unified encrypted pre-check-in form does not depend on this feature.
-  const legacyPassportOcrEnabled = process.env.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED === "true";
+  // Opt-OUT, mirroring /api/extract. Defaulting this closed would hide the
+  // passport-upload workflow from every host on deploy, and NEXT_PUBLIC_ vars
+  // are baked in at build time so it could not be restored from the droplet.
+  const legacyPassportOcrEnabled = process.env.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED !== "false";
   const hint = HINT_COPY[locale];
   const isDirectExtension = reservation.linkedEventRole === "extension";
   const sourcePlatformLabel = reservation.linkedEventPlatform
@@ -1263,7 +1266,7 @@ export function ReservationView({
               aria-label="Confirmed travelers"
             />
             <span className="ml-2">
-              {bookedGuestCountState === "saving" ? "Saving…" : bookedGuestCountState === "saved" ? "Saved" : bookedGuestCountState === "error" ? "Enter 1–50" : "Required before link generation"}
+              {bookedGuestCountState === "saving" ? "Saving…" : bookedGuestCountState === "saved" ? "Saved" : bookedGuestCountState === "error" ? "Enter 1–50" : "Set this to collect full traveler details"}
             </span>
           </label>
           <Button
@@ -1271,7 +1274,7 @@ export function ReservationView({
             size="sm"
             variant="outline"
             onClick={copyGuestFormLink}
-            disabled={guestFormGenerating || !reservation.bookedGuestCount}
+            disabled={guestFormGenerating}
             className="rounded-lg text-xs"
           >
             {guestFormGenerating
