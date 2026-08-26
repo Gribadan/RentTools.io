@@ -1,13 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({ prisma: {} }));
+const findUnique = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: { guestFormSubmission: { findUnique } },
+}));
 
 import {
+  findSubmissionByPublicToken,
   guestFormExpiry,
   mintGuestFormToken,
   publicSubmissionState,
   sameOriginRequest,
 } from "@/lib/guest-form-security";
+import { hashShareToken } from "@/lib/precheckin-crypto";
 
 const previousPublicAppUrl = process.env.PUBLIC_APP_URL;
 
@@ -73,5 +79,68 @@ describe("guest-form public-link security", () => {
         "x-forwarded-host": "attacker.test",
       },
     }))).toBe(false);
+  });
+
+  it("treats apex and www as the same site, and honours a comma-separated list", () => {
+    // nginx answers on both hostnames with no canonical redirect, and the
+    // dashboard mints share links from window.location.origin — so a link
+    // copied on www must not 403 forever.
+    process.env.PUBLIC_APP_URL = "https://renttools.io";
+    for (const origin of ["https://renttools.io", "https://www.renttools.io"]) {
+      expect(sameOriginRequest(new Request("http://renttools-app:3000/api/g/t/draft", {
+        headers: { origin },
+      }))).toBe(true);
+    }
+
+    process.env.PUBLIC_APP_URL = "https://renttools.io, https://renttools.example";
+    expect(sameOriginRequest(new Request("http://renttools-app:3000/api/g/t/draft", {
+      headers: { origin: "https://renttools.example" },
+    }))).toBe(true);
+    expect(sameOriginRequest(new Request("http://renttools-app:3000/api/g/t/draft", {
+      headers: { origin: "https://attacker.test" },
+    }))).toBe(false);
+  });
+
+  it("stays usable when PUBLIC_APP_URL is unset instead of rejecting every write", () => {
+    // Failing closed here would take the guest form offline on any deployment
+    // that has not set the variable yet, which is a regression against the
+    // behaviour before the check existed.
+    delete process.env.PUBLIC_APP_URL;
+    expect(sameOriginRequest(new Request("https://renttools.io/api/g/t/submit", {
+      headers: { origin: "https://renttools.io" },
+    }))).toBe(true);
+    expect(sameOriginRequest(new Request("https://renttools.io/api/g/t/submit", {
+      headers: { origin: "https://attacker.test" },
+    }))).toBe(false);
+  });
+});
+
+describe("public token lookup", () => {
+  afterEach(() => findUnique.mockReset());
+
+  it("never accepts the stored `hashed:` marker as a usable public token", async () => {
+    // Hardened rows park `hashed:<sha256>` in shareToken. That value is
+    // derivable from the token, so accepting it on the legacy branch would let
+    // anyone who could read the column replay it as the URL token — exactly
+    // the database-read threat the hashing is meant to defeat.
+    const realToken = mintGuestFormToken();
+    const marker = `hashed:${hashShareToken(realToken)}`;
+    findUnique.mockResolvedValue(null);
+
+    expect(await findSubmissionByPublicToken(marker)).toBeNull();
+    // Only the tokenHash lookup may run; the shareToken fallback must not.
+    expect(findUnique).toHaveBeenCalledTimes(1);
+    expect(findUnique.mock.calls[0][0].where).toHaveProperty("tokenHash");
+  });
+
+  it("still resolves genuine legacy plaintext tokens", async () => {
+    const legacyToken = "a".repeat(32);
+    findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 1 });
+
+    expect(await findSubmissionByPublicToken(legacyToken)).toEqual({ id: 1 });
+    expect(findUnique).toHaveBeenCalledTimes(2);
+    expect(findUnique.mock.calls[1][0].where).toEqual({ shareToken: legacyToken });
   });
 });

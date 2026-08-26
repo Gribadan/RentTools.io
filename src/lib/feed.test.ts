@@ -142,7 +142,9 @@ describe("generateFeed — Direct linked extensions", () => {
     expect(result.ical).not.toContain("+4310000000");
     expect(result.ical).not.toContain("PRIVATE INTERNAL NOTE");
     expect(result.ical).not.toContain("PRIVATE RESERVATION NOTE");
-    expect(result.ical).toMatch(/UID:rt-[0-9a-f]{32}/);
+    // The digest hides the source, but the `renttool-` prefix must survive:
+    // calendar-sync.ts keys its feedback-loop guard off it.
+    expect(result.ical).toMatch(/UID:renttool-[0-9a-f]{32}/);
 
     const repeated = await generateFeed(12, "booking");
     if ("error" in repeated) throw new Error(repeated.error);
@@ -279,5 +281,39 @@ describe("generateFeed — Direct linked extensions", () => {
     expect(events).toEqual([
       expect.objectContaining({ startDate: "2027-06-30", endDate: "2027-07-04" }),
     ]);
+  });
+});
+
+describe("generateFeed — self-origin loop guard", () => {
+  // calendar-sync.ts drops inbound events whose UID starts with "renttool-".
+  // That filter is the only thing stopping our own buffer blocks from being
+  // re-imported and re-exported in an ever-widening loop when a feed
+  // round-trips back to us. Opaque UIDs must keep the prefix.
+  it("prefixes every published VEVENT UID so calendar-sync can drop its own feed", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([
+      { ...source, uid: "airbnb-secret", summary: "PRIVATE NAME" },
+    ]);
+    mocks.reservationFindMany.mockResolvedValue([extension]);
+    mocks.dateOverrideFindMany.mockResolvedValue([
+      { date: "2099-09-09", type: "closed" },
+    ]);
+
+    for (const platform of ["airbnb", "booking"]) {
+      const result = await generateFeed(12, platform);
+      if ("error" in result) throw new Error(result.error);
+
+      const uids = parseICal(result.ical)
+        .map((event) => event.uid)
+        // The empty-feed placeholder is dated 1970 and dropped by the
+        // future-events filter instead, so it is not part of this contract.
+        .filter((uid) => uid !== "renttools-placeholder");
+      expect(uids.length).toBeGreaterThan(0);
+      for (const uid of uids) {
+        expect(uid.startsWith("renttool-")).toBe(true);
+      }
+      // ...and the digest still hides the source.
+      expect(result.ical).not.toContain("airbnb-secret");
+      expect(result.ical).not.toContain("PRIVATE NAME");
+    }
   });
 });

@@ -24,7 +24,14 @@ function opaqueEventUid(...parts: Array<string | number | null | undefined>): st
     .update(parts.map((part) => String(part ?? "")).join("\u001f"))
     .digest("hex")
     .slice(0, 32);
-  return `rt-${digest}`;
+  // The `renttool-` prefix is load-bearing, not cosmetic. calendar-sync.ts
+  // drops inbound events whose UID starts with it, and that filter is what
+  // stops our own buffer blocks from being re-imported and re-exported in an
+  // ever-widening loop whenever a feed round-trips back to us (self-import, a
+  // second RentTools property, or a pass-through hub such as a subscribed
+  // Google Calendar). The digest still hides the source UID, the reservation
+  // ID and the guest name, so keeping the prefix costs nothing in privacy.
+  return `renttool-${digest}`;
 }
 
 /**

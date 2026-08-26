@@ -27,6 +27,14 @@ export async function findSubmissionByPublicToken(token: string) {
   });
   if (hardened) return hardened;
 
+  // Hardened rows park the literal marker `hashed:<sha256>` in `shareToken`.
+  // That string is derivable from the token, so without this guard anyone who
+  // could read the column could replay it verbatim as the URL token and match
+  // on the legacy branch below — handing them the decrypted identity payload
+  // and the ability to overwrite the submission, which is precisely the
+  // database-read threat the hashing exists to defeat.
+  if (token.startsWith("hashed:")) return null;
+
   // Existing links issued before token hashing remain usable until their owner
   // rotates or revokes them. New links never enter this fallback path.
   return prisma.guestFormSubmission.findUnique({
@@ -64,6 +72,11 @@ export function decryptOwnerShareToken(tokenCiphertext: string | null): string |
   }
 }
 
+/** Treat apex and www as the same site, so a link opened on either host works. */
+function originKey(url: URL): string {
+  return `${url.protocol}//${url.hostname.replace(/^www\./i, "")}${url.port ? `:${url.port}` : ""}`;
+}
+
 export function sameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
   // Browser writes to a bearer-token URL must carry an Origin header. A
@@ -73,17 +86,42 @@ export function sameOriginRequest(request: Request): boolean {
   if (!origin || origin === "null") return false;
   try {
     const received = new URL(origin);
-    const configured = process.env.PUBLIC_APP_URL?.trim();
-    const expected = configured ? new URL(configured) : new URL(request.url);
 
-    // Production needs a stable canonical origin. Deriving trust from Host or
-    // X-Forwarded-Host lets a client-controlled header redefine "same site".
-    if (process.env.NODE_ENV === "production") {
-      if (!configured || expected.protocol !== "https:" || received.protocol !== "https:") {
-        return false;
+    // PUBLIC_APP_URL may list several canonical origins, comma-separated, for
+    // deployments that legitimately answer on more than one hostname.
+    const configured = (process.env.PUBLIC_APP_URL ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    // A stable canonical origin is what makes this check meaningful: deriving
+    // trust from Host or X-Forwarded-Host lets a client-controlled header
+    // redefine "same site". When PUBLIC_APP_URL is configured we require it.
+    //
+    // When it is NOT configured we fall back to the request's own origin
+    // rather than rejecting outright. That fallback is weaker — a spoofed Host
+    // header defeats it — but it still blocks an ordinary cross-site POST, and
+    // it matches the protection level this endpoint had before the check
+    // existed. Failing closed here instead would take the guest form offline
+    // on every deployment that has not yet set the variable.
+    if (configured.length === 0) {
+      if (process.env.NODE_ENV === "production") {
+        console.warn(
+          "PUBLIC_APP_URL is not set; falling back to per-request origin for guest-form same-origin checks. Set it to harden this.",
+        );
       }
+      return originKey(received) === originKey(new URL(request.url));
     }
-    return received.origin === expected.origin;
+
+    const allowed = configured.map((entry) => new URL(entry));
+    if (process.env.NODE_ENV === "production" && received.protocol !== "https:") {
+      return false;
+    }
+    return allowed.some(
+      (entry) =>
+        originKey(entry) === originKey(received) &&
+        (process.env.NODE_ENV !== "production" || entry.protocol === "https:"),
+    );
   } catch {
     return false;
   }
