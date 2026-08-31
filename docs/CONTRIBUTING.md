@@ -100,8 +100,9 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 6. `master` is protected and deployable. Combine overlapping PRs on a temporary
    integration branch and run CI there; never use `master` as a staging area.
 7. Deployment starts only after `CI` succeeds on `master`, then passes through
-   the GitHub `production` environment. Database changes require a backup and
-   additive migration/rollback review before approval.
+   the GitHub `Production` environment. The deploy scripts create and verify an
+   online SQLite backup before any deployment change; database changes also
+   require additive migration/rollback review before approval.
 
 Maintainers should close superseded PRs with a link to the integrating PR and
 credit the original author. Do not merge duplicate implementations merely to

@@ -39,11 +39,15 @@ Create an Actions environment named **`production`**:
 - optionally add a short wait timer for an observation window.
 
 The deploy workflow runs only after `CI` succeeds for the same `master` commit,
-then pauses at this environment gate.
+then pauses at this environment gate. After approval, both the normal artifact
+installer and the fallback deploy script run SQLite's online backup plus
+`PRAGMA integrity_check` before changing source, dependencies, artifacts, or
+schema. A failed backup aborts the deployment while the current service keeps
+running.
 
 Before approving a database-affecting deployment:
 
-1. confirm a fresh backup exists and restore testing is current;
+1. confirm restore testing is current and the backup destination has space;
 2. confirm `prisma/schema.prisma` and `prisma/push-schema.ts` are paired;
 3. verify migrations are additive and idempotent;
 4. identify whether rollback is code-only or requires a forward data repair;
@@ -112,7 +116,7 @@ and open one maintainer-owned integration PR. In its description:
 - [ ] `npm audit --audit-level=high` succeeds
 - [ ] `npx prisma generate`, `npm test`, and `npm run build` succeed
 - [ ] Browser-only behavior has manual evidence
-- [ ] Production configuration and backup are ready
+- [ ] Production configuration is ready; automated backup destination and restore drill are healthy
 - [ ] Rollback path is written in the PR
 - [ ] Deploy the approved commit and verify `/api/health`
 - [ ] Smoke-test login, dashboard, calendar feed, and changed user flows

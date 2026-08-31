@@ -14,6 +14,7 @@
 #
 # Exit codes: 1 artifact missing · 10 dirty droplet checkout · 11 bad artifact
 #             12 too little disk for npm ci · 13 npm ci left an incomplete tree
+#             14 verified pre-deploy database backup failed
 #             20 restarted but health check never came up
 #
 # Steps:
@@ -89,6 +90,18 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   git status --short >&2
   exit 10
 fi
+
+# Back up the live SQLite database before the checkout, dependency tree,
+# artifact, or schema can change. backup-db.sh uses SQLite's online backup
+# API and runs an integrity check, so a green deploy always has a verified,
+# transactionally-consistent restore point from immediately beforehand.
+log "creating verified pre-deploy database backup"
+if ! BACKUP_OUTPUT=$(bash scripts/backup-db.sh 2>&1); then
+  log "ABORT — verified pre-deploy database backup failed" >&2
+  printf '%s\n' "$BACKUP_OUTPUT" >&2
+  exit 14
+fi
+log "$BACKUP_OUTPUT"
 
 git fetch --quiet origin master
 git reset --hard --quiet "$TARGET_SHA"

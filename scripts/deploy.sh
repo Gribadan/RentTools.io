@@ -61,6 +61,16 @@ if [ -n "$MISSING" ]; then
   exit 11
 fi
 
+# 1c. Create a transactionally-consistent, integrity-checked restore point
+# before the fallback path changes source, dependencies, or schema.
+echo "$LOG_PREFIX deploy: creating verified pre-deploy database backup"
+if ! BACKUP_OUTPUT=$(bash scripts/backup-db.sh 2>&1); then
+  echo "$LOG_PREFIX deploy: ABORT — verified pre-deploy database backup failed" >&2
+  printf '%s\n' "$BACKUP_OUTPUT" >&2
+  exit 14
+fi
+echo "$LOG_PREFIX deploy: $BACKUP_OUTPUT"
+
 # 2. Fetch + fast-forward to origin/master.
 git fetch --prune origin master
 git reset --hard origin/master
