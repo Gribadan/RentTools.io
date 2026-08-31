@@ -13,19 +13,20 @@ name: Deploy to droplet
 # 458 MB box because V8 had to spill TypeScript-checking heap to swap.
 
 on:
-  push:
+  # A master push first runs CI. Deployment becomes eligible only after that
+  # exact commit passes; production never races against a failing test run.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [master]
-    # Skip the (slow + minute-burning) deploy when only the public docs,
-    # issue templates, or the safety-hook itself change. The CI workflow
-    # still runs on these so we keep typecheck + tests + the forbidden-paths
-    # scan as a gate.
-    paths-ignore:
-      - 'README.md'
-      - 'LICENSE'
-      - 'docs/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.githooks/**'
+  # Maintainer-only escape hatch for redeploying current master.
   workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -37,7 +38,11 @@ jobs:
     runs-on: ubuntu-latest
 
     # Inert until the user wires DROPLET_HOST. Until then every push is a no-op.
-    if: ${{ vars.DROPLET_HOST != '' }}
+    if: >-
+      ${{ vars.DROPLET_HOST != '' &&
+          (github.event_name == 'workflow_dispatch' ||
+           github.event.workflow_run.conclusion == 'success') }}
+    timeout-minutes: 20
 
     env:
       # The build doesn't query the DB but src/lib/prisma.ts initialises the
@@ -60,8 +65,8 @@ jobs:
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
       # Surfaced in /api/health and on Sentry events as the release identifier.
-      GIT_COMMIT_SHA: ${{ github.sha }}
-      NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.sha }}
+      GIT_COMMIT_SHA: ${{ env.DEPLOY_SHA }}
+      NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ env.DEPLOY_SHA }}
 
       # Legacy passport-OCR upload. NEXT_PUBLIC_ vars are inlined into the
       # client bundle at build time, so this has to be set HERE — putting it in
@@ -73,6 +78,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v6
@@ -101,7 +108,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: build-${{ github.sha }}
+          name: build-${{ env.DEPLOY_SHA }}
           path: build.tar.gz
           retention-days: 3
 
@@ -110,11 +117,14 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: ${{ vars.DROPLET_HOST != '' }}
+    timeout-minutes: 10
+    environment: production
 
     steps:
       - name: Checkout (for scripts/install-build.sh)
         uses: actions/checkout@v6
         with:
+          ref: ${{ env.DEPLOY_SHA }}
           # Just the install script; no need for a deep clone.
           sparse-checkout: |
             scripts/install-build.sh
@@ -123,7 +133,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v8
         with:
-          name: build-${{ github.sha }}
+          name: build-${{ env.DEPLOY_SHA }}
 
       - name: SSH key setup
         env:
@@ -179,4 +189,4 @@ jobs:
               -o ServerAliveInterval=30 \
               -o ServerAliveCountMax=20 \
               "${DROPLET_USER}@${DROPLET_HOST}" \
-              "bash -lc 'GIT_COMMIT_SHA=${{ github.sha }} bash /tmp/install-build.sh /tmp/build.tar.gz'"
+              "bash -lc 'GIT_COMMIT_SHA=${{ env.DEPLOY_SHA }} bash /tmp/install-build.sh /tmp/build.tar.gz'"

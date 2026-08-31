@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [master]
@@ -15,6 +18,7 @@ jobs:
   build-and-test:
     name: Build + tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     env:
       # Module-level Prisma init in src/lib/prisma.ts requires *some* DB env.
@@ -27,6 +31,39 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Pull request policy checks
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if ! printf '%s' "$PR_TITLE" | grep -Eq '^(feat|fix|chore|docs|refactor|test|ci|build|perf|revert)(\([a-z0-9._/-]+\))?!?: .+'; then
+            echo "::error::PR title must use Conventional Commits, e.g. 'fix(calendar): preserve custom channel occupancy'."
+            exit 1
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          has() { printf '%s\n' "$CHANGED" | grep -qx "$1"; }
+
+          if has prisma/schema.prisma && ! has prisma/push-schema.ts; then
+            echo "::error::prisma/schema.prisma changed without production DDL in prisma/push-schema.ts."
+            exit 1
+          fi
+          if has prisma/push-schema.ts && ! has prisma/schema.prisma; then
+            echo "::error::prisma/push-schema.ts changed without the Prisma model in prisma/schema.prisma."
+            exit 1
+          fi
+          if has package.json && ! has package-lock.json; then
+            echo "::error::package.json changed without package-lock.json."
+            exit 1
+          fi
+          echo "PR policy checks: clean."
 
       - name: Forbidden-paths check
         # Defence-in-depth alongside .gitignore + .githooks/pre-commit.

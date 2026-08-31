@@ -15,6 +15,9 @@ updates:
     commit-message:
       prefix: deps
       include: scope
+    labels:
+      - dependencies
+    rebase-strategy: auto
     groups:
       # Bundle minor/patch upgrades together so review effort scales with
       # interesting changes, not transitive churn. Major bumps come as
@@ -38,6 +41,14 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: react-dom
         update-types: ["version-update:semver-major"]
+      # Keep automated proposals aligned with the actual CI/runtime toolchain.
+      # Upgrade these majors deliberately in a compatibility PR.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dropzone
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
@@ -50,3 +61,7 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    labels:
+      - dependencies
+      - github-actions
+    rebase-strategy: auto
