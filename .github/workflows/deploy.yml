@@ -118,7 +118,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ vars.DROPLET_HOST != '' }}
     timeout-minutes: 10
-    environment: production
+    environment: Production
 
     steps:
       - name: Checkout (for scripts/install-build.sh)
