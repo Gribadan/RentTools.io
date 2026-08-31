@@ -68,16 +68,8 @@ const WITH_OPTIONS: ReadonlySet<FieldType> = new Set(["select", "multi-select"])
 // The questions hosts ask most often — offered as one-tap presets so a
 // new form can be assembled in seconds with the right field type.
 const SUGGESTED: { label: string; type: FieldType; options?: string[] }[] = [
-  { label: "What time do you expect to arrive?", type: "time" },
-  { label: "Estimated departure time", type: "time" },
-  { label: "How many guests are staying?", type: "number" },
-  { label: "Lead guest full name (as on passport / ID)", type: "short-text" },
-  { label: "Passport / ID number", type: "short-text" },
-  { label: "Nationality", type: "short-text" },
-  { label: "Date of birth", type: "date" },
   { label: "Contact phone number", type: "phone" },
   { label: "Contact email", type: "email" },
-  { label: "How will you travel here?", type: "select", options: ["Car", "Train", "Plane", "Other"] },
   { label: "Do you need a parking space?", type: "yes-no" },
   { label: "Any special requests or questions?", type: "long-text" },
 ];
@@ -434,7 +426,7 @@ export function GuestFormPage({
                         Suggested questions
                       </h3>
                       <p className="mt-0.5 text-xs text-[var(--ink-4)]">
-                        Tap to add a common question — already typed for you.
+                        Traveler identity, document, residence and arrival details are included automatically. Add only optional property questions here.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {SUGGESTED.map((s) => {

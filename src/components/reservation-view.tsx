@@ -225,6 +225,7 @@ interface ReservationViewProps {
       waGroupUrl?: string | null;
       groupName?: string | null;
       phone?: string | null;
+      bookedGuestCount?: number | null;
     }
   ) => void | Promise<{ ok: true } | { ok: false; error: string }>;
   onUpdateParent: (childId: number, parentId: number | null) => void;
@@ -243,6 +244,13 @@ export function ReservationView({
   onUpdateGuest,
 }: ReservationViewProps) {
   const { locale, t: tr } = useI18n();
+  // The legacy OCR path stores passport fields in the older Guest model and
+  // remains disabled until its retention/deletion lifecycle is proven. The
+  // unified encrypted pre-check-in form does not depend on this feature.
+  // Opt-OUT, mirroring /api/extract. Defaulting this closed would hide the
+  // passport-upload workflow from every host on deploy, and NEXT_PUBLIC_ vars
+  // are baked in at build time so it could not be restored from the droplet.
+  const legacyPassportOcrEnabled = process.env.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED !== "false";
   const hint = HINT_COPY[locale];
   const isDirectExtension = reservation.linkedEventRole === "extension";
   const sourcePlatformLabel = reservation.linkedEventPlatform
@@ -298,6 +306,10 @@ export function ReservationView({
   const [reservationPhoneDraft, setReservationPhoneDraft] = useState<string>(reservation.phone ?? "");
   const [reservationPhoneSaved, setReservationPhoneSaved] = useState<string>(reservation.phone ?? "");
   const [reservationPhoneState, setReservationPhoneState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [bookedGuestCountDraft, setBookedGuestCountDraft] = useState(
+    reservation.bookedGuestCount ? String(reservation.bookedGuestCount) : "",
+  );
+  const [bookedGuestCountState, setBookedGuestCountState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   useEffect(() => {
     if (reservationPhoneDraft === reservationPhoneSaved) {
       setReservationPhoneDraft(reservation.phone ?? "");
@@ -306,6 +318,11 @@ export function ReservationView({
       setReservationPhoneSaved(reservation.phone ?? "");
     }
   }, [reservation.phone]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setBookedGuestCountDraft(
+      reservation.bookedGuestCount ? String(reservation.bookedGuestCount) : "",
+    );
+  }, [reservation.bookedGuestCount]);
   // RT-25.2 — pre-arrival guest form share link. hasGuestForm gates
   // the "Copy form link" button so it only shows when the property
   // actually has a template configured. The action is link-generation
@@ -318,9 +335,36 @@ export function ReservationView({
   const [guestFormGenerating, setGuestFormGenerating] = useState(false);
   const [guestFormCopyState, setGuestFormCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [guestFormSubmission, setGuestFormSubmission] = useState<{
-    shareUrl: string;
+    shareUrl: string | null;
     sentAt: string;
     submittedAt: string | null;
+    status: "NOT_INVITED" | "INVITED" | "IN_PROGRESS" | "COMPLETE" | "OWNER_REVIEW_REQUIRED" | "OWNER_APPROVED" | "REVOKED";
+    expiresAt: string | null;
+    revokedAt: string | null;
+    ownerApprovedAt: string | null;
+    lastChangedAt: string | null;
+    travelerCount: number;
+    warnings: string[];
+    travelers: Array<{
+      clientId: string;
+      isLead: boolean;
+      firstName: string;
+      lastName: string;
+      dateOfBirth: string;
+      gender: string;
+      citizenshipCountry: string;
+      birthCountry: string;
+      birthPlace: string;
+      residenceCountry: string;
+      residencePlace: string;
+      residenceAddress: string;
+      documentType: string;
+      documentNumberMasked: string;
+      borderEntryDate?: string;
+      borderEntryPlace?: string;
+      borderEntryPoint?: string;
+      taxCategorySuggestion?: string;
+    }>;
     answers: { fieldId: string; type: string; label: string; value: unknown }[];
   } | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
@@ -486,6 +530,10 @@ export function ReservationView({
 
   const guestFormStatusLabel = (): string | null => {
     if (!guestFormSubmission) return null;
+    if (guestFormSubmission.status === "REVOKED") return "Link revoked";
+    if (guestFormSubmission.status === "OWNER_APPROVED") return "Guest data checked and approved";
+    if (guestFormSubmission.status === "OWNER_REVIEW_REQUIRED") return "Complete — owner review required";
+    if (guestFormSubmission.status === "IN_PROGRESS") return "Guest started — data incomplete";
     if (guestFormSubmission.submittedAt) {
       const days = Math.max(
         0,
@@ -511,6 +559,21 @@ export function ReservationView({
     return days === 0
       ? "Link generated today, awaiting reply"
       : `Link generated ${days} day${days === 1 ? "" : "s"} ago, awaiting reply`;
+  };
+
+  const updateGuestFormStatus = async (action: "approve" | "revoke") => {
+    setGuestFormCopyState("idle");
+    try {
+      const response = await fetch(`/api/reservations/${reservation.id}/guest-form/share`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!response.ok) throw new Error("status update failed");
+      await refreshGuestFormSubmission();
+    } catch {
+      setGuestFormCopyState("error");
+    }
   };
 
   const renderGuestFormAnswerValue = (a: { type: string; value: unknown }) => {
@@ -604,7 +667,8 @@ export function ReservationView({
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      addLog(`[${i + 1}/${files.length}] Processing: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`, "processing");
+      const safeFileLabel = `document-${i + 1}`;
+      addLog(`[${i + 1}/${files.length}] Processing secure document (${(file.size / 1024).toFixed(1)} KB)`, "processing");
 
       try {
         const formData = new FormData();
@@ -622,7 +686,7 @@ export function ReservationView({
           const errData = await response.json().catch(() => ({}));
           const reason = errData.error || `HTTP ${response.status}`;
           addLog(`[${i + 1}/${files.length}] Failed: ${reason}`, "error");
-          fileResults.push({ name: file.name, status: "failed", reason });
+          fileResults.push({ name: safeFileLabel, status: "failed", reason });
           continue;
         }
 
@@ -630,20 +694,15 @@ export function ReservationView({
         const count = json.data?.length || 0;
 
         if (count > 0) {
-          for (const person of json.data) {
-            addLog(
-              `[${i + 1}/${files.length}] Extracted: ${person.fullName} | ${person.country} | Passport: ${person.passportNumber}`,
-              "success"
-            );
-          }
-          fileResults.push({ name: file.name, status: "success" });
+          addLog(`[${i + 1}/${files.length}] Extracted ${count} traveler record(s)`, "success");
+          fileResults.push({ name: safeFileLabel, status: "success" });
         } else {
-          addLog(`[${i + 1}/${files.length}] No passport data found in ${file.name}`, "error");
-          fileResults.push({ name: file.name, status: "failed", reason: "No passport data found" });
+          addLog(`[${i + 1}/${files.length}] No passport data found`, "error");
+          fileResults.push({ name: safeFileLabel, status: "failed", reason: "No passport data found" });
         }
       } catch {
-        addLog(`[${i + 1}/${files.length}] Network error processing ${file.name}`, "error");
-        fileResults.push({ name: file.name, status: "failed", reason: "Network error" });
+        addLog(`[${i + 1}/${files.length}] Network error processing secure document`, "error");
+        fileResults.push({ name: safeFileLabel, status: "failed", reason: "Network error" });
       }
     }
 
@@ -720,6 +779,28 @@ export function ReservationView({
     setReservationPhoneState("saved");
     setTimeout(
       () => setReservationPhoneState((s) => (s === "saved" ? "idle" : s)),
+      1600,
+    );
+  };
+
+  const handleBookedGuestCountBlur = async () => {
+    const parsed = Number(bookedGuestCountDraft);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 50) {
+      setBookedGuestCountState("error");
+      return;
+    }
+    if (parsed === reservation.bookedGuestCount) return;
+    setBookedGuestCountState("saving");
+    const result = await Promise.resolve(
+      onUpdateReservation(reservation.id, { bookedGuestCount: parsed }),
+    );
+    if (result && typeof result === "object" && "ok" in result && !result.ok) {
+      setBookedGuestCountState("error");
+      return;
+    }
+    setBookedGuestCountState("saved");
+    setTimeout(
+      () => setBookedGuestCountState((state) => state === "saved" ? "idle" : state),
       1600,
     );
   };
@@ -1169,6 +1250,25 @@ export function ReservationView({
                 "Copy the link, then share it with your guest via WhatsApp, SMS, or email."}
             </p>
           </div>
+          <label className="w-full text-xs text-muted-foreground">
+            Confirmed travelers
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={bookedGuestCountDraft}
+              onChange={(event) => {
+                setBookedGuestCountDraft(event.target.value);
+                setBookedGuestCountState("idle");
+              }}
+              onBlur={handleBookedGuestCountBlur}
+              className="mt-1 h-9 w-28 rounded-md border border-border/60 bg-background px-2 text-sm text-foreground"
+              aria-label="Confirmed travelers"
+            />
+            <span className="ml-2">
+              {bookedGuestCountState === "saving" ? "Saving…" : bookedGuestCountState === "saved" ? "Saved" : bookedGuestCountState === "error" ? "Enter 1–50" : "Set this to collect full traveler details"}
+            </span>
+          </label>
           <Button
             type="button"
             size="sm"
@@ -1187,6 +1287,27 @@ export function ReservationView({
                     ? "Copy link again"
                     : "Copy form link"}
           </Button>
+          {guestFormSubmission?.status === "OWNER_REVIEW_REQUIRED" && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => updateGuestFormStatus("approve")}
+              className="rounded-lg text-xs"
+            >
+              Approve checked data
+            </Button>
+          )}
+          {guestFormSubmission && guestFormSubmission.status !== "REVOKED" && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => updateGuestFormStatus("revoke")}
+              className="rounded-lg text-xs text-rose-300"
+            >
+              Revoke link
+            </Button>
+          )}
         </div>
       )}
 
@@ -1455,6 +1576,7 @@ export function ReservationView({
         {/* Main column — passport documents + guest list */}
         <div className="min-w-0 space-y-6 lg:flex-1">
 
+      {legacyPassportOcrEnabled && <>
       {/* Drop Zone */}
       <div
         {...getRootProps()}
@@ -1582,6 +1704,7 @@ export function ReservationView({
           )}
         </div>
       )}
+      </>}
 
       {/* Guests action row */}
       {(guests.length > 0 || templates.length > 0) && (
@@ -1722,6 +1845,46 @@ export function ReservationView({
               </div>
             ))}
           </dl>
+        </div>
+      )}
+
+      {guestFormSubmission && guestFormSubmission.travelers.length > 0 && (
+        <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+          <h3 className="text-sm font-semibold">Guest registration review</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {guestFormSubmission.travelerCount} traveler{guestFormSubmission.travelerCount === 1 ? "" : "s"} · {guestFormStatusLabel()}
+          </p>
+          {guestFormSubmission.warnings.length > 0 && (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-300">
+              {guestFormSubmission.warnings.map((warning) => <li key={warning}>{warning}</li>)}
+            </ul>
+          )}
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {guestFormSubmission.travelers.map((traveler) => (
+              <details key={traveler.clientId} className="rounded-md border border-border/40 bg-background/40 p-3">
+                <summary className="cursor-pointer list-none">
+                <p className="text-sm font-medium">
+                  {traveler.firstName} {traveler.lastName}{traveler.isLead ? " · lead" : ""}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {traveler.documentType} {traveler.documentNumberMasked}
+                </p>
+                </summary>
+                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs">
+                  <dt className="text-muted-foreground">Born</dt><dd>{traveler.dateOfBirth}</dd>
+                  <dt className="text-muted-foreground">Birth place</dt><dd>{traveler.birthPlace}, {traveler.birthCountry}</dd>
+                  <dt className="text-muted-foreground">Citizenship</dt><dd>{traveler.citizenshipCountry}</dd>
+                  <dt className="text-muted-foreground">Residence</dt><dd>{traveler.residenceAddress}, {traveler.residencePlace}, {traveler.residenceCountry}</dd>
+                  <dt className="text-muted-foreground">Document</dt><dd>{traveler.documentType} {traveler.documentNumberMasked}</dd>
+                  <dt className="text-muted-foreground">Tax suggestion</dt><dd>{traveler.taxCategorySuggestion ?? "Review required"}</dd>
+                  {traveler.borderEntryDate && <><dt className="text-muted-foreground">Border entry</dt><dd>{traveler.borderEntryDate} · {traveler.borderEntryPlace} · {traveler.borderEntryPoint}</dd></>}
+                </dl>
+              </details>
+            ))}
+          </div>
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Document numbers remain masked in the browser. Approval confirms review only; it does not submit anything to eVisitor.{guestFormSubmission.lastChangedAt ? ` Last changed ${new Date(guestFormSubmission.lastChangedAt).toLocaleString()}.` : ""}
+          </p>
         </div>
       )}
 

@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       linkedEventUid,
       linkedEventPlatform,
       linkedEventRole,
+      bookedGuestCount,
     } = await request.json();
     if (
       typeof name !== "string" ||
@@ -57,7 +58,9 @@ export async function POST(request: NextRequest) {
         typeof linkedEventPlatform !== "string") ||
       (linkedEventRole !== undefined &&
         linkedEventRole !== null &&
-        typeof linkedEventRole !== "string")
+        typeof linkedEventRole !== "string") ||
+      (bookedGuestCount !== undefined &&
+        (!Number.isInteger(bookedGuestCount) || bookedGuestCount < 1 || bookedGuestCount > 50))
     ) {
       return NextResponse.json({ error: "Invalid reservation data" }, { status: 400 });
     }
@@ -262,6 +265,7 @@ export async function POST(request: NextRequest) {
         linkedEventUid: sourceIdentity?.uid || null,
         linkedEventPlatform: sourceIdentity?.platform || null,
         linkedEventRole: sourceRole,
+        ...(bookedGuestCount !== undefined ? { bookedGuestCount } : {}),
         propertyId,
       },
     });

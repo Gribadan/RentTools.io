@@ -90,8 +90,8 @@ export default function PrivacyPage() {
             </p>
             <p className="mt-3 font-medium text-[var(--ink)]">(c) Operational data</p>
             <p>
-              Server-side request logs containing path, HTTP status, response time, IP
-              address, and authenticated user ID. Application error reports captured by
+              Server-side request logs containing a redacted path, HTTP status, response time, IP
+              address, and authenticated user ID. Secure guest-form tokens are removed from logged paths. Application error reports captured by
               Sentry (see section 4). Calendar sync logs per property. Audit logs of
               create/update/delete actions on your own resources. Operational data is
               retained for up to 30 days to debug incidents and detect abuse.

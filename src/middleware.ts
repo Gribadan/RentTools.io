@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { log } from "@/lib/logger";
+import { redactSensitiveRequestPath } from "@/lib/request-path";
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET || "fallback-secret-change-me";
 const SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
@@ -105,7 +106,7 @@ function logRequest(
   log({
     msg: "http",
     method: request.method,
-    path: request.nextUrl.pathname,
+    path: redactSensitiveRequestPath(request.nextUrl.pathname),
     status: response.status,
     durationMs: Date.now() - startedAt,
     userId: userId ?? null,

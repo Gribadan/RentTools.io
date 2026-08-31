@@ -27,6 +27,50 @@ console.log(`Pushing schema to: ${config.label}`);
 const adapter = new PrismaLibSql({ url: config.url, authToken: config.authToken });
 const prisma = new PrismaClient({ adapter });
 
+async function runAdditiveMigration(sql: string): Promise<void> {
+  const addColumn = sql.match(/^ALTER TABLE "([A-Za-z0-9_]+)" ADD COLUMN "([A-Za-z0-9_]+)"/i);
+  if (addColumn) {
+    const [, table, column] = addColumn;
+    const tableRows = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+      table,
+    );
+    // Fresh databases create some optional tables later in this script. Their
+    // full CREATE TABLE definitions already include the new columns.
+    if (tableRows.length === 0) {
+      console.log(`DEFER: ${table}.${column} (table will be created below)`);
+      return;
+    }
+    const columns = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+      `PRAGMA table_info("${table}")`,
+    );
+    if (columns.some((entry) => entry.name === column)) {
+      console.log(`SKIP: ${table}.${column} already exists`);
+      return;
+    }
+  }
+
+  const createIndex = sql.match(
+    /^CREATE (?:UNIQUE )?INDEX IF NOT EXISTS "[A-Za-z0-9_]+" ON "([A-Za-z0-9_]+)"/i,
+  );
+  if (createIndex) {
+    const [, table] = createIndex;
+    const tableRows = await prisma.$queryRawUnsafe<Array<{ name: string }>>(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+      table,
+    );
+    if (tableRows.length === 0) {
+      console.log(`DEFER: index for ${table} (table will be created below)`);
+      return;
+    }
+  }
+
+  // CREATE INDEX statements use IF NOT EXISTS. Any remaining error is a real
+  // schema problem and must abort deployment.
+  await prisma.$executeRawUnsafe(sql);
+  console.log("OK:", sql.substring(0, 70) + "...");
+}
+
 const schema = `
 CREATE TABLE IF NOT EXISTS "User" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -148,12 +192,8 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     .filter((s) => s.length > 0);
 
   for (const stmt of calendarStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // Migrations: add new columns if missing
@@ -249,6 +289,21 @@ CREATE TABLE IF NOT EXISTS "SyncLog" (
     // chat WhatsApp / Telegram deeplinks on reservations that have no
     // passport guests yet (or only one).
     `ALTER TABLE "Reservation" ADD COLUMN "phone" TEXT`,
+    `ALTER TABLE "Reservation" ADD COLUMN "bookedGuestCount" INTEGER`,
+    // Unified pre-check-in hardening. Raw public tokens and identity payloads
+    // are encrypted with GUEST_DATA_ENCRYPTION_KEY; tokenHash is used for
+    // constant-shape lookups. Existing legacy submissions remain readable and
+    // can be revoked/rotated by the owner without a destructive migration.
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "tokenHash" TEXT`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "tokenCiphertext" TEXT`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'NOT_INVITED'`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "expiresAt" DATETIME`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "revokedAt" DATETIME`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "securePayload" TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "ownerApprovedAt" DATETIME`,
+    `ALTER TABLE "GuestFormSubmission" ADD COLUMN "lastChangedAt" DATETIME`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "GuestFormSubmission_tokenHash_key" ON "GuestFormSubmission"("tokenHash")`,
+    `CREATE INDEX IF NOT EXISTS "GuestFormSubmission_status_idx" ON "GuestFormSubmission"("status")`,
   ];
 
   // Feedback table — site-wide visitor feedback queue. New table, so we
@@ -279,20 +334,11 @@ CREATE INDEX IF NOT EXISTS "Feedback_userId_idx" ON "Feedback"("userId");
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
   for (const stmt of feedbackStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
   for (const sql of migrations) {
-    try {
-      await prisma.$executeRawUnsafe(sql);
-      console.log("OK:", sql.substring(0, 70) + "...");
-    } catch {
-      // Column already exists
-    }
+    await runAdditiveMigration(sql);
   }
 
   // Backfill the durable linked-event metadata introduced above. Older rows
@@ -397,12 +443,8 @@ CREATE INDEX IF NOT EXISTS "AuditLog_userId_createdAt_idx" ON "AuditLog"("userId
     .filter((s) => s.length > 0);
 
   for (const stmt of auditStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // CleanerAssignment table — owner ↔ cleaner ↔ property
@@ -427,12 +469,8 @@ CREATE INDEX IF NOT EXISTS "CleanerAssignment_propertyId_idx" ON "CleanerAssignm
     .filter((s) => s.length > 0);
 
   for (const stmt of cleanerStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // RT-25.10 tick 1 — Cleaner profile table (account-level metadata,
@@ -456,12 +494,8 @@ CREATE INDEX IF NOT EXISTS "Cleaner_ownerUserId_idx" ON "Cleaner"("ownerUserId")
     .filter((s) => s.length > 0);
 
   for (const stmt of cleanerProfileStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // RT-25.10 tick 1 — extend CleanerAssignment with cleanerProfileId
@@ -524,38 +558,27 @@ CREATE INDEX IF NOT EXISTS "Cleaner_ownerUserId_idx" ON "Cleaner"("ownerUserId")
     } else {
       // Table already nullable — just make sure the new columns + index exist.
       if (!hasProfileIdCol) {
-        try {
-          await prisma.$executeRawUnsafe(
-            `ALTER TABLE "CleanerAssignment" ADD COLUMN "cleanerProfileId" INTEGER`,
-          );
-          console.log("OK: added cleanerProfileId column");
-        } catch {
-          /* already added */
-        }
+        await prisma.$executeRawUnsafe(
+          `ALTER TABLE "CleanerAssignment" ADD COLUMN "cleanerProfileId" INTEGER`,
+        );
+        console.log("OK: added cleanerProfileId column");
       }
       if (!hasPriorityCol) {
-        try {
-          await prisma.$executeRawUnsafe(
-            `ALTER TABLE "CleanerAssignment" ADD COLUMN "priority" INTEGER NOT NULL DEFAULT 0`,
-          );
-          console.log("OK: added priority column");
-        } catch {
-          /* already added */
-        }
-      }
-      try {
         await prisma.$executeRawUnsafe(
-          `CREATE UNIQUE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_propertyId_key" ON "CleanerAssignment"("cleanerProfileId", "propertyId")`,
+          `ALTER TABLE "CleanerAssignment" ADD COLUMN "priority" INTEGER NOT NULL DEFAULT 0`,
         );
-        await prisma.$executeRawUnsafe(
-          `CREATE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_idx" ON "CleanerAssignment"("cleanerProfileId")`,
-        );
-      } catch {
-        /* already exists */
+        console.log("OK: added priority column");
       }
+      await prisma.$executeRawUnsafe(
+        `CREATE UNIQUE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_propertyId_key" ON "CleanerAssignment"("cleanerProfileId", "propertyId")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `CREATE INDEX IF NOT EXISTS "CleanerAssignment_cleanerProfileId_idx" ON "CleanerAssignment"("cleanerProfileId")`,
+      );
     }
   } catch (err) {
     console.error("CleanerAssignment migration failed:", err);
+    throw err;
   }
 
   // RT-25.10 tick 1 — backfill Cleaner profiles for existing User
@@ -627,6 +650,7 @@ CREATE INDEX IF NOT EXISTS "Cleaner_ownerUserId_idx" ON "Cleaner"("ownerUserId")
     }
   } catch (err) {
     console.error("Cleaner profile backfill failed:", err);
+    throw err;
   }
 
   // PropertyManager table — owner grants management rights to other users
@@ -653,12 +677,8 @@ CREATE INDEX IF NOT EXISTS "PropertyManager_managerId_idx" ON "PropertyManager"(
     .filter((s) => s.length > 0);
 
   for (const stmt of managerStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // PropertyManagerInvite — invite tokens for granting manager access via link
@@ -689,12 +709,8 @@ CREATE INDEX IF NOT EXISTS "PropertyManagerInvite_token_idx" ON "PropertyManager
     .filter((s) => s.length > 0);
 
   for (const stmt of inviteStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // MessageTemplate table — guest pre/post-arrival templates per property
@@ -721,12 +737,8 @@ CREATE INDEX IF NOT EXISTS "MessageTemplate_propertyId_idx" ON "MessageTemplate"
     .filter((s) => s.length > 0);
 
   for (const stmt of messageTemplateStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // CleaningRecord table — track cleaning status per property × date
@@ -755,12 +767,8 @@ CREATE INDEX IF NOT EXISTS "CleaningRecord_propertyId_date_idx" ON "CleaningReco
     .filter((s) => s.length > 0);
 
   for (const stmt of cleaningRecordStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // DateOverride table for manual open/close of calendar dates
@@ -784,12 +792,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "DateOverride_propertyId_date_key" ON "DateOve
     .filter((s) => s.length > 0);
 
   for (const stmt of dateOverrideStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // SiteSetting — global key/value config for admin panel
@@ -810,12 +814,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "SiteSetting_key_key" ON "SiteSetting"("key");
     .filter((s) => s.length > 0);
 
   for (const stmt of siteSettingStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // OnboardingDraft — anonymous /onboard wizard state, claimed at signup
@@ -824,6 +824,7 @@ CREATE TABLE IF NOT EXISTS "OnboardingDraft" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "sessionToken" TEXT NOT NULL,
     "propertyName" TEXT NOT NULL DEFAULT '',
+    "feedSlug" TEXT,
     "links" TEXT NOT NULL DEFAULT '[]',
     "claimedByUserId" INTEGER,
     "claimedAt" DATETIME,
@@ -832,6 +833,7 @@ CREATE TABLE IF NOT EXISTS "OnboardingDraft" (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "OnboardingDraft_sessionToken_key" ON "OnboardingDraft"("sessionToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "OnboardingDraft_feedSlug_key" ON "OnboardingDraft"("feedSlug");
 `;
 
   const onboardingDraftStatements = onboardingDraftSchema
@@ -840,12 +842,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "OnboardingDraft_sessionToken_key" ON "Onboard
     .filter((s) => s.length > 0);
 
   for (const stmt of onboardingDraftStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // ExtractionLog — one row per /api/extract POST for daily quota counting
@@ -867,12 +865,8 @@ CREATE INDEX IF NOT EXISTS "ExtractionLog_userId_createdAt_idx" ON "ExtractionLo
     .filter((s) => s.length > 0);
 
   for (const stmt of extractionLogStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // BlogPost / BlogTag / BlogComment — RT-20.1 blog data model
@@ -884,10 +878,14 @@ CREATE TABLE IF NOT EXISTS "BlogPost" (
     "title" TEXT NOT NULL,
     "excerpt" TEXT NOT NULL DEFAULT '',
     "body" TEXT NOT NULL DEFAULT '',
+    "tldr" TEXT NOT NULL DEFAULT '',
+    "faqJson" TEXT NOT NULL DEFAULT '[]',
     "status" TEXT NOT NULL DEFAULT 'draft',
     "authorId" INTEGER NOT NULL,
     "tagsJson" TEXT NOT NULL DEFAULT '[]',
     "ogImageUrl" TEXT,
+    "ogImageWidth" INTEGER,
+    "ogImageHeight" INTEGER,
     "translationGroupId" INTEGER,
     "publishedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -933,12 +931,8 @@ CREATE INDEX IF NOT EXISTS "BlogComment_status_createdAt_idx" ON "BlogComment"("
     .filter((s) => s.length > 0);
 
   for (const stmt of blogStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // SeoOverride — RT-18.3 per-page SEO overrides
@@ -965,12 +959,8 @@ CREATE INDEX IF NOT EXISTS "SeoOverride_path_idx" ON "SeoOverride"("path");
     .filter((s) => s.length > 0);
 
   for (const stmt of seoOverrideStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // Seed default SiteSetting keys (idempotent — only inserts if missing)
@@ -987,16 +977,12 @@ CREATE INDEX IF NOT EXISTS "SeoOverride_path_idx" ON "SeoOverride"("path");
     { key: "seo_default_og_image", value: "" },
   ];
   for (const { key, value } of siteSettingDefaults) {
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "SiteSetting" ("key", "value") VALUES (?, ?) ON CONFLICT("key") DO NOTHING`,
-        key,
-        value,
-      );
-      console.log("OK: seed SiteSetting", key);
-    } catch (err) {
-      console.error("Seed failed for", key, err);
-    }
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "SiteSetting" ("key", "value") VALUES (?, ?) ON CONFLICT("key") DO NOTHING`,
+      key,
+      value,
+    );
+    console.log("OK: seed SiteSetting", key);
   }
 
   // CalendarPlatform — RT-17.1 platform preset registry
@@ -1027,12 +1013,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "CalendarPlatform_slug_key" ON "CalendarPlatfo
     .filter((s) => s.length > 0);
 
   for (const stmt of platformStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // Seed the 12 baseline platform presets. Direct gets zero buffer
@@ -1062,9 +1044,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "CalendarPlatform_slug_key" ON "CalendarPlatfo
   ];
 
   for (const p of platformPresets) {
-    try {
-      await prisma.$executeRawUnsafe(
-        `INSERT INTO "CalendarPlatform"
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "CalendarPlatform"
           ("slug", "displayName", "color", "defaultBufferBefore", "defaultBufferAfter",
            "importInstructionsKey", "exportInstructionsKey", "isCustom", "enabled", "sortOrder")
          VALUES (?, ?, ?, ?, ?, ?, ?, 0, 1, ?)
@@ -1077,11 +1058,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS "CalendarPlatform_slug_key" ON "CalendarPlatfo
         `platform.${p.slug}.import`,
         `platform.${p.slug}.export`,
         p.sortOrder,
-      );
-      console.log("OK: seed CalendarPlatform", p.slug);
-    } catch (err) {
-      console.error("Seed failed for CalendarPlatform", p.slug, err);
-    }
+    );
+    console.log("OK: seed CalendarPlatform", p.slug);
   }
 
   // GuestFormTemplate / GuestFormSubmission — RT-25.2 pre-arrival guest forms
@@ -1104,6 +1082,14 @@ CREATE TABLE IF NOT EXISTS "GuestFormSubmission" (
     "reservationId" INTEGER NOT NULL,
     "templateId" INTEGER NOT NULL,
     "shareToken" TEXT NOT NULL,
+    "tokenHash" TEXT,
+    "tokenCiphertext" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'NOT_INVITED',
+    "expiresAt" DATETIME,
+    "revokedAt" DATETIME,
+    "securePayload" TEXT NOT NULL DEFAULT '',
+    "ownerApprovedAt" DATETIME,
+    "lastChangedAt" DATETIME,
     "answers" TEXT NOT NULL DEFAULT '[]',
     "submittedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1113,8 +1099,30 @@ CREATE TABLE IF NOT EXISTS "GuestFormSubmission" (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "GuestFormSubmission_shareToken_key" ON "GuestFormSubmission"("shareToken");
+CREATE UNIQUE INDEX IF NOT EXISTS "GuestFormSubmission_tokenHash_key" ON "GuestFormSubmission"("tokenHash");
 CREATE INDEX IF NOT EXISTS "GuestFormSubmission_reservationId_idx" ON "GuestFormSubmission"("reservationId");
 CREATE INDEX IF NOT EXISTS "GuestFormSubmission_templateId_idx" ON "GuestFormSubmission"("templateId");
+CREATE INDEX IF NOT EXISTS "GuestFormSubmission_status_idx" ON "GuestFormSubmission"("status");
+
+CREATE TABLE IF NOT EXISTS "EVisitorReceipt" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "reservationId" INTEGER NOT NULL,
+    "guestId" TEXT NOT NULL,
+    "eVisitorGuid" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "environment" TEXT NOT NULL DEFAULT 'test',
+    "status" TEXT NOT NULL,
+    "requestHash" TEXT NOT NULL,
+    "attemptedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "readbackConfirmedAt" DATETIME,
+    "attemptCount" INTEGER NOT NULL DEFAULT 1,
+    "failureCode" TEXT,
+    CONSTRAINT "EVisitorReceipt_reservationId_fkey" FOREIGN KEY ("reservationId") REFERENCES "Reservation" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "EVisitorReceipt_reservationId_guestId_action_requestHash_key" ON "EVisitorReceipt"("reservationId", "guestId", "action", "requestHash");
+CREATE INDEX IF NOT EXISTS "EVisitorReceipt_eVisitorGuid_idx" ON "EVisitorReceipt"("eVisitorGuid");
+CREATE INDEX IF NOT EXISTS "EVisitorReceipt_reservationId_guestId_idx" ON "EVisitorReceipt"("reservationId", "guestId");
 `;
 
   const guestFormStatements = guestFormSchema
@@ -1123,12 +1131,8 @@ CREATE INDEX IF NOT EXISTS "GuestFormSubmission_templateId_idx" ON "GuestFormSub
     .filter((s) => s.length > 0);
 
   for (const stmt of guestFormStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   // EmailCode — short-lived 6-digit codes for email-verified signup and
@@ -1158,12 +1162,8 @@ CREATE INDEX IF NOT EXISTS "EmailCode_email_purpose_idx" ON "EmailCode"("email",
     .filter((s) => s.length > 0);
 
   for (const stmt of emailCodeStatements) {
-    try {
-      await prisma.$executeRawUnsafe(stmt);
-      console.log("OK:", stmt.substring(0, 60) + "...");
-    } catch {
-      // Table/index already exists
-    }
+    await prisma.$executeRawUnsafe(stmt);
+    console.log("OK:", stmt.substring(0, 60) + "...");
   }
 
   console.log(`\nSchema pushed to ${config.label} successfully!`);

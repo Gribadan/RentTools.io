@@ -179,6 +179,7 @@ function AppContent({
       waGroupUrl?: string | null;
       groupName?: string | null;
       phone?: string | null;
+      bookedGuestCount?: number | null;
     }
   ) => {
     const res = await fetch(`/api/reservations/${id}`, {

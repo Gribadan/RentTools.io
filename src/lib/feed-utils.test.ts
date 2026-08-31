@@ -34,6 +34,8 @@ describe("parseFeedFilename", () => {
     // feed, which omits Airbnb stays — dates would silently look free.
     expect(parseFeedFilename("for-my-cottage.ics")).toBe("my-cottage");
     expect(parseFeedFilename("for-plum-guide.ics")).toBe("plum-guide");
+    expect(parseFeedFilename("for-ubytovani-v-chorvatsku.ics"))
+      .toBe("ubytovani-v-chorvatsku");
   });
 
   it("matches case-insensitively", () => {

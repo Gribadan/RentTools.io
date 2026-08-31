@@ -20,7 +20,8 @@
 #
 # Pre-reqs (set up once, see docs/DROPLET-SETUP.md):
 #   - /home/app/rent-tool is the git checkout
-#   - .env.production is in place with DATABASE_URL, JWT_SECRET, CRON_SECRET, GEMINI key
+#   - .env.production is in place with DATABASE_URL, JWT_SECRET, CRON_SECRET,
+#     GEMINI key, GUEST_DATA_ENCRYPTION_KEY and PUBLIC_APP_URL
 #   - Node 22 LTS on PATH
 #   - sudo NOPASSWD entry for `app` covering `systemctl restart rent-tool`
 
@@ -41,6 +42,23 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   echo "$LOG_PREFIX deploy: ABORT — working copy has uncommitted changes" >&2
   git status --short >&2
   exit 10
+fi
+
+# 1b. Required-secret preflight. Both are read at runtime, so a missing one
+#     builds and starts fine but leaves guest pre-check-in broken: no
+#     encryption key means owners cannot mint a link, and no canonical origin
+#     means every guest submit is rejected as cross-origin. Catch it here.
+MISSING=""
+for VAR in GUEST_DATA_ENCRYPTION_KEY PUBLIC_APP_URL; do
+  if ! grep -qE "^[[:space:]]*(export[[:space:]]+)?${VAR}=[^[:space:]]" .env.production 2>/dev/null; then
+    MISSING="$MISSING $VAR"
+  fi
+done
+if [ -n "$MISSING" ]; then
+  echo "$LOG_PREFIX deploy: ABORT — .env.production missing required setting(s):$MISSING" >&2
+  echo "  GUEST_DATA_ENCRYPTION_KEY: openssl rand -hex 32   (guest identity data at rest)" >&2
+  echo "  PUBLIC_APP_URL:            https://renttools.io   (comma-separate extra origins)" >&2
+  exit 11
 fi
 
 # 2. Fetch + fast-forward to origin/master.
