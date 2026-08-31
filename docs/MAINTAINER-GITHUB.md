@@ -16,13 +16,16 @@ Create a branch ruleset targeting the default branch (`master`):
 - require status check **Build + tests**;
 - require branches to be up to date before merging;
 - block force pushes and branch deletion;
-- prevent bypass except for an explicit emergency maintainer role;
-- apply the ruleset to administrators too.
+- keep administrator bypass available only while this is a one-maintainer
+  repository; record every bypass in the PR;
+- once a second trusted maintainer exists, enforce the ruleset for
+  administrators too and require that person's approval for owner-authored PRs.
 
 Use squash merge by default and enable automatic deletion of merged branches.
 Do not allow direct pushes to `master`. An emergency fix still goes through a
-small PR; use the bypass only when GitHub Actions itself is unavailable and
-record why in a follow-up issue.
+small PR. A solo-maintainer integration may use administrator bypass only after
+all required checks succeed, with the reason recorded in the PR. For ordinary
+external PRs, the owner supplies the required independent review.
 
 ## 2. Protect production
 
