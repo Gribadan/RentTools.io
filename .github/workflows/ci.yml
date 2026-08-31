@@ -43,7 +43,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if ! printf '%s' "$PR_TITLE" | grep -Eq '^(feat|fix|chore|docs|refactor|test|ci|build|perf|revert)(\([a-z0-9._/-]+\))?!?: .+'; then
+          if ! printf '%s' "$PR_TITLE" | grep -Eq '^(feat|fix|chore|docs|refactor|test|ci|build|perf|revert|deps)(\([a-z0-9._/-]+\))?!?: .+'; then
             echo "::error::PR title must use Conventional Commits, e.g. 'fix(calendar): preserve custom channel occupancy'."
             exit 1
           fi
