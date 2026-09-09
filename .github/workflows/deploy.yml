@@ -1,25 +1,12 @@
-name: Deploy to droplet
+name: Deploy RentTools
 
-# Two-stage pipeline:
-#   1. build  — runs the heavy `npm ci + next build` on a 4-vCPU / 16 GB GH-hosted
-#               runner. Produces a tarball with the built .next/ + the generated
-#               Prisma client. Total ~3 min including dependency cache hits.
-#   2. deploy — ships the tarball to the production droplet via scp, then triggers
-#               scripts/install-build.sh which atomically swaps the artifact in
-#               and restarts the systemd service. Total ~30s if package-lock
-#               unchanged, ~4 min if a fresh `npm ci` is needed on the droplet.
-#
-# Replaces the previous on-droplet build path which took ~18 min on the small
-# 458 MB box because V8 had to spill TypeScript-checking heap to swap.
-
+# Build an immutable image on GitHub; the restricted server gateway replaces
+# only the existing RentTools Compose service on the shared Docker host.
 on:
-  # A master push first runs CI. Deployment becomes eligible only after that
-  # exact commit passes; production never races against a failing test run.
   workflow_run:
     workflows: [CI]
     types: [completed]
     branches: [master]
-  # Maintainer-only redeploy of current master, with successful CI required.
   workflow_dispatch:
     inputs:
       mode:
@@ -39,7 +26,7 @@ env:
   DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: renttools-production
   cancel-in-progress: false
 
 jobs:
@@ -52,17 +39,8 @@ jobs:
       ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'preflight' &&
           github.repository == 'Gribadan/RentTools.io' && github.ref_protected &&
           vars.DROPLET_HOST != '' }}
-
     steps:
-      - name: Checkout reviewed diagnostic script
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-          sparse-checkout: .github/scripts/deploy-preflight.py
-          sparse-checkout-cone-mode: false
-
-      - name: Inspect deployment configuration without changing the server
+      - name: Inspect through the installed read-only gateway command
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           KNOWN_HOSTS: ${{ vars.DROPLET_KNOWN_HOSTS }}
@@ -71,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$DEPLOY_KEY" ] || [ -z "$KNOWN_HOSTS" ] || [ -z "$DROPLET_USER" ]; then
-            echo "::error::Existing deployment credentials or host configuration are incomplete."
+            echo "::error::Deployment credentials or host configuration are incomplete."
             exit 1
           fi
           SSH_DIR="$RUNNER_TEMP/renttools-preflight"
@@ -85,69 +63,37 @@ jobs:
               -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_DIR/known_hosts" \
               -o ConnectTimeout=15 -o ConnectionAttempts=1 \
               -o ServerAliveInterval=15 -o ServerAliveCountMax=2 \
-              "$DROPLET_USER@$DROPLET_HOST" 'python3 -' \
-              < .github/scripts/deploy-preflight.py 2> "$SSH_DIR/ssh-error.log"; then
+              "$DROPLET_USER@$DROPLET_HOST" renttools-preflight \
+              2> "$SSH_DIR/ssh-error.log"; then
             if grep -qi 'timed out' "$SSH_DIR/ssh-error.log"; then
               echo "::error::Configured SSH host timed out from the GitHub runner."
             elif grep -qi 'Permission denied' "$SSH_DIR/ssh-error.log"; then
               echo "::error::Configured SSH credential was rejected."
             elif grep -qi 'Host key verification failed\|REMOTE HOST IDENTIFICATION HAS CHANGED' "$SSH_DIR/ssh-error.log"; then
               echo "::error::Configured SSH host key did not verify."
-            elif grep -qi 'Connection closed\|Connection reset\|Connection refused' "$SSH_DIR/ssh-error.log"; then
-              echo "::error::Configured SSH host closed or refused the connection."
             else
-              echo "::error::Read-only deployment inspection failed; no deploy command was run."
+              echo "::error::Read-only inspection failed; no deploy command was run."
             fi
             exit 1
           fi
 
   build:
-    name: Build on runner
+    name: Build Docker image on runner
     runs-on: ubuntu-latest
-
-    # Inert until the user wires DROPLET_HOST. Until then every push is a no-op.
+    timeout-minutes: 25
     if: >-
-      ${{ vars.DROPLET_HOST != '' &&
+      ${{ github.repository == 'Gribadan/RentTools.io' && vars.DROPLET_HOST != '' &&
           ((github.event_name == 'workflow_dispatch' && inputs.mode != 'preflight' &&
             github.ref == 'refs/heads/master') ||
            (github.event.workflow_run.conclusion == 'success' &&
             github.event.workflow_run.event == 'push' &&
             github.event.workflow_run.head_branch == 'master' &&
             github.event.workflow_run.head_repository.full_name == github.repository)) }}
-    timeout-minutes: 20
-
     env:
-      # The build doesn't query the DB but src/lib/prisma.ts initialises the
-      # adapter at import time, which needs a URL it can parse. Use a throwaway
-      # local SQLite path that never has to exist.
-      DATABASE_URL: "file:./ci-build.db"
-      JWT_SECRET: "ci-only-build-passes"
-      CRON_SECRET: "ci-only-build-passes"
-
-      # Sentry SDK init at build time — DSN gets baked into the client bundle,
-      # auth token uploads source maps for readable stack traces. Both are
-      # GitHub Actions secrets; if either is missing the build still passes,
-      # just without source-map upload.
       NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-
-      # Google OAuth + One Tap — only the public client ID is baked into the
-      # client bundle at build time; the secret stays server-side via
-      # .env.production on the droplet.
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-
-      # Surfaced in /api/health and on Sentry events as the release identifier.
-      # Job-level env cannot reference the env context during workflow validation.
-      GIT_COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-      NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-
-      # Legacy passport-OCR upload. NEXT_PUBLIC_ vars are inlined into the
-      # client bundle at build time, so this has to be set HERE — putting it in
-      # .env.production on the droplet only reaches the server route and would
-      # leave the upload UI hidden. Defaults to enabled; set the repo variable
-      # to "false" to retire the legacy OCR path.
       NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED: ${{ vars.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED }}
-
     steps:
       - name: Verify current master and successful CI
         env:
@@ -156,7 +102,7 @@ jobs:
           set -euo pipefail
           CURRENT_MASTER=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq '.object.sha')
           if [ "$DEPLOY_SHA" != "$CURRENT_MASTER" ]; then
-            echo "::error::This deployment is stale. Run CI and deploy the current master commit."
+            echo "::error::This deployment is stale. Deploy the current master commit."
             exit 1
           fi
           PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$DEPLOY_SHA&status=success&per_page=100" \
@@ -166,50 +112,42 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout
+      - name: Checkout verified release
         uses: actions/checkout@v6
         with:
           ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
 
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Build (next build)
-        run: npm run build
-
-      - name: Bundle artifact
+      - name: Build immutable production image
         run: |
-          # Bundle .next/ + the generated Prisma client. Source files (src/,
-          # prisma/, scripts/) are NOT shipped in the tarball — install-build.sh
-          # does a `git reset --hard` on the droplet to keep them in sync with
-          # the SHA that produced this build.
-          tar -czf build.tar.gz .next src/generated/prisma
-          echo "Artifact size: $(ls -lh build.tar.gz | awk '{print $5}')"
+          set -euo pipefail
+          docker build --platform linux/amd64 -f deploy/docker/Dockerfile \
+            --tag "renttools-site:$DEPLOY_SHA" \
+            --build-arg "GIT_COMMIT_SHA=$DEPLOY_SHA" \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID \
+            --build-arg "NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED=${NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED:-true}" \
+            --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN .
+          docker image save "renttools-site:$DEPLOY_SHA" | gzip -1 > renttools-image.tar.gz
+          sha256sum renttools-image.tar.gz > renttools-image.tar.gz.sha256
 
-      - name: Upload artifact
+      - name: Upload image artifact
         uses: actions/upload-artifact@v7
         with:
-          name: build-${{ env.DEPLOY_SHA }}
-          path: build.tar.gz
+          name: docker-${{ env.DEPLOY_SHA }}
+          path: |
+            renttools-image.tar.gz
+            renttools-image.tar.gz.sha256
+          compression-level: 0
           retention-days: 3
 
   deploy:
-    name: Ship to droplet
+    name: Replace RentTools Docker service
     needs: build
     runs-on: ubuntu-latest
     if: ${{ vars.DROPLET_HOST != '' }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     environment: Production
-
     steps:
       - name: Refuse a stale deployment after approval
         env:
@@ -218,76 +156,43 @@ jobs:
           set -euo pipefail
           CURRENT_MASTER=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq '.object.sha')
           if [ "$DEPLOY_SHA" != "$CURRENT_MASTER" ]; then
-            echo "::error::Master changed while this deployment was waiting. Deploy the new commit instead."
+            echo "::error::Master changed while waiting for approval. Deploy the new commit instead."
             exit 1
           fi
 
-      - name: Checkout (for scripts/install-build.sh)
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          # Just the install script; no need for a deep clone.
-          sparse-checkout: |
-            scripts/install-build.sh
-          sparse-checkout-cone-mode: false
-
-      - name: Download artifact
+      - name: Download image artifact
         uses: actions/download-artifact@v8
         with:
-          name: build-${{ env.DEPLOY_SHA }}
+          name: docker-${{ env.DEPLOY_SHA }}
 
-      - name: SSH key setup
+      - name: Upload image and invoke the installed deployment gateway
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           KNOWN_HOSTS: ${{ vars.DROPLET_KNOWN_HOSTS }}
-        run: |
-          set -euo pipefail
-          if [ -z "${DEPLOY_KEY:-}" ]; then
-            echo "::error::Missing DEPLOY_KEY secret. See docs/DROPLET-SETUP.md §10."
-            exit 1
-          fi
-          if [ -z "${KNOWN_HOSTS:-}" ]; then
-            echo "::error::Missing DROPLET_KNOWN_HOSTS variable. Run \`ssh-keyscan <ip>\` and paste output."
-            exit 1
-          fi
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          # GitHub Actions strips trailing newlines from secrets; OpenSSH refuses
-          # to load a key without one. Force a trailing \n via printf '%s\n'.
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Ship build + install script to droplet
-        env:
           DROPLET_HOST: ${{ vars.DROPLET_HOST }}
           DROPLET_USER: ${{ vars.DROPLET_USER }}
         run: |
           set -euo pipefail
-          # Always run the install script we just checked out, not whatever
-          # version happens to be on the droplet — keeps the script and the
-          # artifact format in lockstep, even on the very first run when the
-          # droplet doesn't yet have install-build.sh in its checkout.
-          scp -i ~/.ssh/id_deploy \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile=~/.ssh/known_hosts \
-              build.tar.gz \
-              scripts/install-build.sh \
-              "${DROPLET_USER}@${DROPLET_HOST}:/tmp/"
-
-      - name: Install build + restart service
-        env:
-          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
-          DROPLET_USER: ${{ vars.DROPLET_USER }}
-        run: |
-          set -euo pipefail
-          # ServerAliveInterval keeps the connection open during the conditional
-          # `npm ci` step (up to 4 min of silence if dependencies changed).
-          ssh -i ~/.ssh/id_deploy \
-              -o StrictHostKeyChecking=yes \
-              -o UserKnownHostsFile=~/.ssh/known_hosts \
-              -o ServerAliveInterval=30 \
-              -o ServerAliveCountMax=20 \
-              "${DROPLET_USER}@${DROPLET_HOST}" \
-              "bash -lc 'GIT_COMMIT_SHA=${{ env.DEPLOY_SHA }} bash /tmp/install-build.sh /tmp/build.tar.gz'"
+          if [ -z "$DEPLOY_KEY" ] || [ -z "$KNOWN_HOSTS" ] || [ -z "$DROPLET_USER" ]; then
+            echo "::error::Deployment credentials or host configuration are incomplete."
+            exit 1
+          fi
+          sha256sum --check renttools-image.tar.gz.sha256
+          SSH_DIR="$RUNNER_TEMP/renttools-deploy"
+          mkdir -m 700 -p "$SSH_DIR"
+          trap 'rm -f "$SSH_DIR/id_deploy"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$SSH_DIR/id_deploy"
+          chmod 600 "$SSH_DIR/id_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$SSH_DIR/known_hosts"
+          SSH=(ssh -i "$SSH_DIR/id_deploy" -o BatchMode=yes -o IdentitiesOnly=yes
+               -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_DIR/known_hosts"
+               -o ConnectTimeout=15 -o ConnectionAttempts=1
+               -o ServerAliveInterval=20 -o ServerAliveCountMax=20
+               "$DROPLET_USER@$DROPLET_HOST")
+          RECEIVED=$("${SSH[@]}" "renttools-upload $DEPLOY_SHA" < renttools-image.tar.gz)
+          EXPECTED=$(sha256sum renttools-image.tar.gz | awk '{print $1}')
+          if [ "$RECEIVED" != "$EXPECTED" ]; then
+            echo "::error::Uploaded image checksum did not match."
+            exit 1
+          fi
+          "${SSH[@]}" "renttools-deploy $DEPLOY_SHA"

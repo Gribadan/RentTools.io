@@ -6,9 +6,14 @@ const mocks = vi.hoisted(() => ({
   syncLogCreate: vi.fn(),
   appSettingsFindUnique: vi.fn(),
   appSettingsUpsert: vi.fn(),
+  getSession: vi.fn(),
+  canReadProperty: vi.fn(),
+  listAccessiblePropertyIds: vi.fn(),
 }));
 
 vi.mock("@/lib/calendar-sync", () => ({ syncAllCalendars: mocks.syncAllCalendars }));
+vi.mock("@/lib/auth", () => ({ getSession: mocks.getSession }));
+vi.mock("@/lib/ownership", () => ({ canReadProperty: mocks.canReadProperty, listAccessiblePropertyIds: mocks.listAccessiblePropertyIds }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     syncLog: { create: mocks.syncLogCreate },
@@ -17,6 +22,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { GET } from "./route";
+import { POST as manualSync } from "../sync/route";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -28,7 +34,10 @@ beforeEach(() => {
   mocks.syncAllCalendars.mockResolvedValue({ propertiesSynced: 1, newEvents: 0, updatedEvents: 0, removedEvents: 0, errors: 0 });
 });
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
 
 describe("calendar cron authentication", () => {
   it.each(["Bearer undefined", "Bearer ", "Bearer null"])("rejects %s when no server secret is configured", async (authorization) => {
@@ -64,5 +73,48 @@ describe("calendar cron authentication", () => {
     }));
     expect(response.status).toBe(200);
     expect(mocks.syncAllCalendars).toHaveBeenCalledOnce();
+  });
+});
+
+describe("manual sync cannot postpone other hosts' scheduled sync", () => {
+  it.each([
+    { label: "one property", body: { propertyId: 7 }, expectedIds: [7] },
+    { label: "all accessible properties", body: {}, expectedIds: [7, 8] },
+  ])("keeps a due global cron due after refreshing $label", async ({ body, expectedIds }) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-09T18:15:00.000Z"));
+    vi.stubEnv("CRON_SECRET", "configured-secret");
+    mocks.getSession.mockResolvedValue({ userId: 42, role: "user" });
+    mocks.canReadProperty.mockResolvedValue(true);
+    mocks.listAccessiblePropertyIds.mockResolvedValue([7, 8]);
+    const state = new Map([
+      ["sync_auto_enabled", "true"],
+      ["sync_frequency_minutes", "10"],
+      ["sync_last_run", "2026-09-09T18:00:00.000Z"],
+      ["sync_last_result", JSON.stringify({ propertiesSynced: 25, errors: 0 })],
+    ]);
+    mocks.appSettingsFindUnique.mockImplementation(async ({ where: { key } }) =>
+      state.has(key) ? { key, value: state.get(key) } : null,
+    );
+    mocks.appSettingsUpsert.mockImplementation(async ({ where: { key }, update: { value } }) => {
+      state.set(key, value);
+      return { key, value };
+    });
+
+    const manualResponse = await manualSync(new NextRequest("https://renttools.test/api/calendar/sync", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+    }));
+    expect(manualResponse.status).toBe(200);
+    expect(mocks.syncAllCalendars).toHaveBeenNthCalledWith(1, { propertyIds: expectedIds });
+
+    const scheduledResponse = await GET(new NextRequest("https://renttools.test/api/calendar/cron", {
+      headers: { authorization: "Bearer configured-secret" },
+    }));
+    expect(scheduledResponse.status).toBe(200);
+    expect(await scheduledResponse.json()).toMatchObject({ ok: true, propertiesSynced: 1 });
+    expect(mocks.syncAllCalendars).toHaveBeenNthCalledWith(2);
+    // Only the global cron should advance the shared scheduling state.
+    expect(mocks.appSettingsUpsert).toHaveBeenCalledTimes(2);
+    expect(state.get("sync_last_run")).toBe("2026-09-09T18:15:00.000Z");
   });
 });

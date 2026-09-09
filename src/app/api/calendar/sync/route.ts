@@ -37,18 +37,9 @@ export async function POST(request: NextRequest) {
 
     const result = await syncAllCalendars({ propertyIds });
 
-    // Record run
-    const now = new Date().toISOString();
-    await prisma.appSettings.upsert({
-      where: { key: "sync_last_run" },
-      update: { value: now },
-      create: { key: "sync_last_run", value: now },
-    });
-    await prisma.appSettings.upsert({
-      where: { key: "sync_last_result" },
-      update: { value: JSON.stringify(result) },
-      create: { key: "sync_last_result", value: JSON.stringify(result) },
-    });
+    // Link timestamps and sync logs already record this user's refresh.
+    // Only the system-wide cron may advance its shared scheduling state;
+    // otherwise one host's repeated clicks postpone every other host's sync.
 
     return NextResponse.json(result);
   } catch (err) {
