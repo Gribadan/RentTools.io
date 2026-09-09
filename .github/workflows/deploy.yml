@@ -19,11 +19,21 @@ on:
     workflows: [CI]
     types: [completed]
     branches: [master]
-  # Maintainer-only escape hatch for redeploying current master.
-  workflow_dispatch: {}
+  # Maintainer-only redeploy of current master, with successful CI required.
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Deploy current master, or inspect the configured server without changing it"
+        type: choice
+        required: true
+        default: deploy
+        options:
+          - deploy
+          - preflight
 
 permissions:
   contents: read
+  actions: read
 
 env:
   DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -33,6 +43,64 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    name: Inspect configured server (read only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    environment: Production
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'preflight' &&
+          github.repository == 'Gribadan/RentTools.io' && github.ref_protected &&
+          vars.DROPLET_HOST != '' }}
+
+    steps:
+      - name: Checkout reviewed diagnostic script
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts/deploy-preflight.py
+          sparse-checkout-cone-mode: false
+
+      - name: Inspect deployment configuration without changing the server
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ vars.DROPLET_KNOWN_HOSTS }}
+          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
+          DROPLET_USER: ${{ vars.DROPLET_USER }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEPLOY_KEY" ] || [ -z "$KNOWN_HOSTS" ] || [ -z "$DROPLET_USER" ]; then
+            echo "::error::Existing deployment credentials or host configuration are incomplete."
+            exit 1
+          fi
+          SSH_DIR="$RUNNER_TEMP/renttools-preflight"
+          mkdir -m 700 -p "$SSH_DIR"
+          trap 'rm -f "$SSH_DIR/id_deploy"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$SSH_DIR/id_deploy"
+          chmod 600 "$SSH_DIR/id_deploy"
+          printf '%s\n' "$KNOWN_HOSTS" > "$SSH_DIR/known_hosts"
+          if ! ssh -i "$SSH_DIR/id_deploy" \
+              -o BatchMode=yes -o IdentitiesOnly=yes \
+              -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_DIR/known_hosts" \
+              -o ConnectTimeout=15 -o ConnectionAttempts=1 \
+              -o ServerAliveInterval=15 -o ServerAliveCountMax=2 \
+              "$DROPLET_USER@$DROPLET_HOST" 'python3 -' \
+              < .github/scripts/deploy-preflight.py 2> "$SSH_DIR/ssh-error.log"; then
+            if grep -qi 'timed out' "$SSH_DIR/ssh-error.log"; then
+              echo "::error::Configured SSH host timed out from the GitHub runner."
+            elif grep -qi 'Permission denied' "$SSH_DIR/ssh-error.log"; then
+              echo "::error::Configured SSH credential was rejected."
+            elif grep -qi 'Host key verification failed\|REMOTE HOST IDENTIFICATION HAS CHANGED' "$SSH_DIR/ssh-error.log"; then
+              echo "::error::Configured SSH host key did not verify."
+            elif grep -qi 'Connection closed\|Connection reset\|Connection refused' "$SSH_DIR/ssh-error.log"; then
+              echo "::error::Configured SSH host closed or refused the connection."
+            else
+              echo "::error::Read-only deployment inspection failed; no deploy command was run."
+            fi
+            exit 1
+          fi
+
   build:
     name: Build on runner
     runs-on: ubuntu-latest
@@ -40,8 +108,12 @@ jobs:
     # Inert until the user wires DROPLET_HOST. Until then every push is a no-op.
     if: >-
       ${{ vars.DROPLET_HOST != '' &&
-          (github.event_name == 'workflow_dispatch' ||
-           github.event.workflow_run.conclusion == 'success') }}
+          ((github.event_name == 'workflow_dispatch' && inputs.mode != 'preflight' &&
+            github.ref == 'refs/heads/master') ||
+           (github.event.workflow_run.conclusion == 'success' &&
+            github.event.workflow_run.event == 'push' &&
+            github.event.workflow_run.head_branch == 'master' &&
+            github.event.workflow_run.head_repository.full_name == github.repository)) }}
     timeout-minutes: 20
 
     env:
@@ -65,8 +137,9 @@ jobs:
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
 
       # Surfaced in /api/health and on Sentry events as the release identifier.
-      GIT_COMMIT_SHA: ${{ env.DEPLOY_SHA }}
-      NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ env.DEPLOY_SHA }}
+      # Job-level env cannot reference the env context during workflow validation.
+      GIT_COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      NEXT_PUBLIC_GIT_COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       # Legacy passport-OCR upload. NEXT_PUBLIC_ vars are inlined into the
       # client bundle at build time, so this has to be set HERE — putting it in
@@ -76,6 +149,23 @@ jobs:
       NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED: ${{ vars.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED }}
 
     steps:
+      - name: Verify current master and successful CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT_MASTER=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq '.object.sha')
+          if [ "$DEPLOY_SHA" != "$CURRENT_MASTER" ]; then
+            echo "::error::This deployment is stale. Run CI and deploy the current master commit."
+            exit 1
+          fi
+          PASSED=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$DEPLOY_SHA&status=success&per_page=100" \
+            --jq '.workflow_runs | any(.head_branch == "master" and (.event == "push" or .event == "workflow_dispatch"))')
+          if [ "$PASSED" != true ]; then
+            echo "::error::Current master must have a successful CI run before deployment."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -121,6 +211,17 @@ jobs:
     environment: Production
 
     steps:
+      - name: Refuse a stale deployment after approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT_MASTER=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" --jq '.object.sha')
+          if [ "$DEPLOY_SHA" != "$CURRENT_MASTER" ]; then
+            echo "::error::Master changed while this deployment was waiting. Deploy the new commit instead."
+            exit 1
+          fi
+
       - name: Checkout (for scripts/install-build.sh)
         uses: actions/checkout@v6
         with:

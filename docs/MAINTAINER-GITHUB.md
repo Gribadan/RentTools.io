@@ -29,7 +29,7 @@ external PRs, the owner supplies the required independent review.
 
 ## 2. Protect production
 
-Create an Actions environment named **`production`**:
+Create an Actions environment named **`Production`**, matching the workflow:
 
 - add the maintainer as required reviewer;
 - prevent self-review if another trusted maintainer is available;
@@ -39,7 +39,10 @@ Create an Actions environment named **`production`**:
 - optionally add a short wait timer for an observation window.
 
 The deploy workflow runs only after `CI` succeeds for the same `master` commit,
-then pauses at this environment gate. After approval, both the normal artifact
+then pauses at this environment gate. Manual redeploys also require successful
+CI for current `master`. The workflow checks the current branch head again
+after approval so a delayed run cannot roll production back to an older commit.
+After approval, both the normal artifact
 installer and the fallback deploy script run SQLite's online backup plus
 `PRAGMA integrity_check` before changing source, dependencies, artifacts, or
 schema. A failed backup aborts the deployment while the current service keeps
@@ -107,6 +110,28 @@ and open one maintainer-owned integration PR. In its description:
 - Never use `npm audit fix --force` on the production branch.
 - A transitive override is acceptable only when the patched version is API
   compatible and the clean-install/build/test path proves it.
+
+Security updates are grouped separately from routine version updates. When
+several packages have advisories, validate their fixes together: an individual
+fix can still fail CI because the base branch contains another vulnerability.
+Keep the high/critical audit gate enabled.
+
+## Notification triage
+
+An external fork or pull request is a proposal; it does not grant repository
+write access or change the hosted instance. A security reporter listed as a
+collaborator on a private advisory has access to that advisory, not automatically
+to the repository. Check **Settings → Collaborators** before changing access.
+
+For repeated Actions emails, inspect the failed step before changing notification
+preferences. A workflow failure with no jobs can mean invalid workflow syntax;
+CI validates every workflow with a pinned, checksum-verified `actionlint` release
+to catch those errors before merge. Audit failures need dependency updates, not
+blind retries or disabling the audit gate.
+
+GitHub's notification settings can limit Actions email to failed workflows and
+use web notifications for routine repository discussion. Keep security advisory
+and production failure alerts visible; avoid a blanket filter for GitHub mail.
 
 ## 7. Merge and release checklist
 

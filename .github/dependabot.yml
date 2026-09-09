@@ -19,6 +19,12 @@ updates:
       - dependencies
     rebase-strategy: auto
     groups:
+      # Security fixes belong in one reviewed update so each proposal can pass
+      # the audit gate without being blocked by another outstanding fix.
+      security-updates:
+        applies-to: security-updates
+        patterns:
+          - "*"
       # Bundle minor/patch upgrades together so review effort scales with
       # interesting changes, not transitive churn. Major bumps come as
       # individual PRs because they usually need real attention.

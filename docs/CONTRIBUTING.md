@@ -140,7 +140,7 @@ clear the queue.
 ## Releasing
 
 A successful `CI` run on `master` triggers deployment. The deploy job uses the
-protected GitHub `production` environment, so repository settings can require
+protected GitHub `Production` environment, so repository settings can require
 maintainer approval before the droplet changes. The 10-minute cron tick handles
 periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts`, make
 sure `deploy/cron/rent-tool.cron` still calls the right URL with the right
