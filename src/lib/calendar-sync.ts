@@ -1,6 +1,22 @@
 import { prisma } from "@/lib/prisma";
 import { parseICal, type ICalEvent } from "@/lib/ical";
 
+/** Surface transport diagnostics without exposing provider URLs or messages. */
+function transportErrorCodes(error: unknown): string[] {
+  const cause = error instanceof Error ? error.cause : undefined;
+  const codes = new Set<string>();
+  const add = (value: unknown) => {
+    if (!value || typeof value !== "object" || codes.size >= 4) return;
+    const code = (value as { code?: unknown }).code;
+    if (typeof code === "string" && /^[A-Z0-9_]{1,40}$/.test(code)) codes.add(code);
+  };
+  add(cause);
+  if (cause instanceof AggregateError) {
+    for (const nested of cause.errors.slice(0, 8)) add(nested);
+  }
+  return [...codes];
+}
+
 /**
  * Fetch and parse an iCal feed from a URL.
  */
@@ -25,7 +41,8 @@ async function fetchICal(url: string): Promise<{ events: ICalEvent[]; error?: st
     return { events };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { events: [], error: msg };
+    const codes = transportErrorCodes(err);
+    return { events: [], error: codes.length > 0 ? `${msg} (${codes.join(", ")})` : msg };
   } finally {
     // Keep the timeout active while reading the body as well as the headers.
     clearTimeout(timeout);

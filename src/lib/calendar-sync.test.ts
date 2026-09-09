@@ -157,6 +157,48 @@ describe("calendar sync — durable linked reservation metadata", () => {
 });
 
 describe("calendar sync — authoritative snapshots", () => {
+  it("adds a transport code without exposing the cause message or provider URL", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("fetch failed", {
+      cause: { code: "ECONNRESET", message: "https://private.example/ical?token=SECRET" },
+    })));
+    const result = await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(result.errors).toBe(1);
+    expect(mocks.calendarLinkUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lastError: "fetch failed (ECONNRESET)" }),
+    }));
+    expect(JSON.stringify(mocks.syncLogCreate.mock.calls)).not.toContain("SECRET");
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  it("keeps bounded distinct aggregate codes and rejects unsafe or oversized codes", async () => {
+    const cause = new AggregateError([
+      { code: "ENETUNREACH", message: "private provider address" },
+      { code: "ENETUNREACH" },
+      { code: "https://private.example/?token=SECRET" },
+      { code: "X".repeat(41) },
+      { code: "ETIMEDOUT" },
+      { code: "ECONNREFUSED" },
+      { code: "EAI_AGAIN" },
+      { code: "ECONNRESET" },
+    ], "private aggregate details");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("fetch failed", { cause })));
+    await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(mocks.calendarLinkUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lastError: "fetch failed (ENETUNREACH, ETIMEDOUT, ECONNREFUSED, EAI_AGAIN)" }),
+    }));
+    expect(JSON.stringify(mocks.syncLogCreate.mock.calls)).not.toContain("private");
+  });
+
+  it("preserves the original message when the cause has no safe transport code", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("fetch failed", {
+      cause: { code: "secret-lowercase-token", message: "private cause" },
+    })));
+    await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(mocks.calendarLinkUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lastError: "fetch failed" }),
+    }));
+  });
+
   it("reports a failed snapshot transaction as a failed link, without claiming success", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(ical([]))));
     mocks.transaction.mockRejectedValueOnce(new Error("database busy"));
