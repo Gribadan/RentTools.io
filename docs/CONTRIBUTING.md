@@ -1,6 +1,6 @@
 # Contributing
 
-Issues and PRs are welcome. The hosted instance at [renttools.io](https://renttools.io) auto-deploys on every push to `master`, so the bar is **"build is green and the feature works"**. Be deliberate about schema changes — there are real users.
+Issues and PRs are welcome. The hosted instance at [renttools.io](https://renttools.io) deploys only after CI succeeds on an approved `master` commit, so the bar is **"build is green, existing behavior still works, and the change has an understood rollback"**. Be deliberate about schema changes — there are real users.
 
 ## Filing an issue
 
@@ -86,6 +86,28 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 - One logical change per commit. Don't bundle unrelated work. The commit message should explain *why* the change is needed — the diff already shows what.
 - Never force-push `master`. Never bypass hooks (`--no-verify`) — if a hook fails, fix the underlying issue.
 
+## Pull-request lifecycle
+
+1. Open a focused PR against `master`; do not mix a feature, refactor, and dependency upgrade.
+2. Complete the PR template, including risk, verification, rollout, and rollback.
+3. CI must pass. Policy checks require a Conventional Commit PR title, paired
+   Prisma schema/DDL changes, and a lockfile with package manifest edits.
+4. The maintainer reviews the final diff and test evidence. Approval is not a
+   promise to merge: correct code may still conflict with product, privacy,
+   operational, or compatibility requirements.
+5. Use squash merge for a normal PR. Preserve separate commits only when each
+   commit is independently useful and tested.
+6. `master` is protected and deployable. Combine overlapping PRs on a temporary
+   integration branch and run CI there; never use `master` as a staging area.
+7. Deployment starts only after `CI` succeeds on `master`, then passes through
+   the GitHub `Production` environment. The deploy scripts create and verify an
+   online SQLite backup before any deployment change; database changes also
+   require additive migration/rollback review before approval.
+
+Maintainers should close superseded PRs with a link to the integrating PR and
+credit the original author. Do not merge duplicate implementations merely to
+clear the queue.
+
 ## Testing
 
 - We use [Vitest](https://vitest.dev). Run with `npm test` (single shot) or `npx vitest` (watch mode).
@@ -117,7 +139,12 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 
 ## Releasing
 
-There is no release ceremony — pushing to `master` deploys to production. The 10-minute cron tick on the droplet handles periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts` make sure `deploy/cron/rent-tool.cron` still calls the right URL with the right `CRON_SECRET`.
+A successful `CI` run on `master` triggers deployment. The deploy job uses the
+protected GitHub `Production` environment, so repository settings can require
+maintainer approval before the droplet changes. The 10-minute cron tick handles
+periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts`, make
+sure `deploy/cron/rent-tool.cron` still calls the right URL with the right
+`CRON_SECRET`.
 
 ## Code of conduct (lite)
 

@@ -131,3 +131,7 @@ MIT — see [LICENSE](LICENSE). Translation: do anything you want, just don't bl
 ## Contributing
 
 Issues and PRs welcome. See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for code style, branch naming, and how to add a new route.
+
+Please report vulnerabilities privately as described in [SECURITY.md](SECURITY.md),
+never through a public issue. Maintainer review and release controls are in
+[docs/MAINTAINER-GITHUB.md](docs/MAINTAINER-GITHUB.md).

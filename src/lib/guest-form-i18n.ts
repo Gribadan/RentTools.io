@@ -167,21 +167,21 @@ export const GUEST_UI_COPY: Record<GuestFormLocale, GuestUiCopy> = {
     privacy: {
       title: "Privacy & data handling",
       summary:
-        "Only your host sees your answers. Stored on RentTools.io — open-source software, HTTPS only, no tracking.",
+        "Used for legally required guest registration and stay management — not marketing. Identity data is encrypted at rest and in transit.",
       showDetails: "Details",
       hideDetails: "Hide",
       bullets: [
         {
           title: "Who sees this",
-          body: "Only the host of the property you booked. Answers go straight to their RentTools account. Nothing is shared, sold, or used for advertising.",
+          body: "The host and an explicitly authorised property manager. Cleaners and RentTools support impersonation cannot access the identity payload. Nothing is sold or used for advertising.",
         },
         {
           title: "Where it's stored",
-          body: "RentTools.io is an open-source tool — the source code is public so anyone can verify what happens to your data. The connection to this form is HTTPS-encrypted.",
+          body: "The identity payload is application-encrypted before database storage. The connection to this form is HTTPS-encrypted. Uploaded ID images are not part of this form.",
         },
         {
           title: "No tracking",
-          body: "No analytics, no advertising cookies, no third-party scripts are loaded on this page. Only the cookie required to keep your submission attached to your booking.",
+          body: "No analytics or advertising cookies are loaded on this page. If you choose a language or theme, RentTools may store only that technical preference; the secure URL token attaches the form to the reservation.",
         },
         {
           title: "Your rights (GDPR / UK GDPR)",
@@ -209,21 +209,21 @@ export const GUEST_UI_COPY: Record<GuestFormLocale, GuestUiCopy> = {
     privacy: {
       title: "Конфиденциальность и обработка данных",
       summary:
-        "Ваши ответы видит только хозяин объекта. Данные хранятся на RentTools.io — открытое ПО, только HTTPS, без отслеживания.",
+        "Данные используются для обязательной регистрации гостей и управления проживанием, а не для маркетинга. Идентификационные данные шифруются при хранении и передаче.",
       showDetails: "Подробнее",
       hideDetails: "Свернуть",
       bullets: [
         {
           title: "Кто видит эти данные",
-          body: "Только хозяин выбранного вами объекта. Ответы попадают сразу в его аккаунт RentTools. Мы не передаём, не продаём и не используем их в рекламных целях.",
+          body: "Хозяин и явно уполномоченный управляющий объектом. Уборщики и служба поддержки RentTools в режиме имитации не имеют доступа к идентификационным данным. Данные не продаются и не используются для рекламы.",
         },
         {
           title: "Где хранятся данные",
-          body: "RentTools.io — это открытое программное обеспечение, исходный код общедоступен, поэтому любой может проверить, что происходит с вашими данными. Соединение с этой формой защищено HTTPS-шифрованием.",
+          body: "Идентификационные данные шифруются приложением до сохранения в базе. Соединение с формой защищено HTTPS. Загрузка фотографий документов в этом формуляре отключена.",
         },
         {
           title: "Никакого отслеживания",
-          body: "На этой странице нет аналитики, рекламных cookies или сторонних скриптов. Используется только cookie, необходимый, чтобы связать ваш ответ с конкретной бронью.",
+          body: "На этой странице нет аналитики и рекламных cookies. Может сохраняться только выбранный язык или тема; форму связывает с бронированием защищённый токен в URL.",
         },
         {
           title: "Ваши права (GDPR)",
@@ -251,21 +251,21 @@ export const GUEST_UI_COPY: Record<GuestFormLocale, GuestUiCopy> = {
     privacy: {
       title: "Datenschutz & Datenverarbeitung",
       summary:
-        "Nur Ihr Gastgeber sieht Ihre Antworten. Gespeichert auf RentTools.io — Open-Source-Software, ausschließlich HTTPS, kein Tracking.",
+        "Verwendung nur für die gesetzlich erforderliche Gästeanmeldung und Aufenthaltsverwaltung — nicht für Marketing. Identitätsdaten werden verschlüsselt gespeichert und übertragen.",
       showDetails: "Details",
       hideDetails: "Ausblenden",
       bullets: [
         {
           title: "Wer sieht diese Angaben",
-          body: "Nur der Gastgeber der von Ihnen gebuchten Unterkunft. Ihre Antworten gehen direkt in dessen RentTools-Konto. Es findet keine Weitergabe, kein Verkauf und keine Verwendung für Werbung statt.",
+          body: "Der Gastgeber und ein ausdrücklich berechtigter Unterkunftsmanager. Reinigungskräfte und der RentTools-Support im Supportmodus erhalten keinen Zugriff auf die Identitätsdaten. Keine Verwendung für Werbung.",
         },
         {
           title: "Wo werden die Daten gespeichert",
-          body: "RentTools.io ist ein Open-Source-Werkzeug — der Quellcode ist öffentlich, jeder kann nachvollziehen, was mit Ihren Daten geschieht. Die Verbindung zu diesem Formular ist HTTPS-verschlüsselt.",
+          body: "Die Identitätsdaten werden vor der Speicherung in der Datenbank verschlüsselt. Auch die Verbindung zum Formular ist HTTPS-verschlüsselt. Ausweisbilder werden in diesem Formular nicht hochgeladen.",
         },
         {
           title: "Kein Tracking",
-          body: "Auf dieser Seite werden keine Analyse-Tools, keine Werbe-Cookies und keine Skripte Dritter geladen. Es wird nur das technisch notwendige Cookie gesetzt, um Ihre Antwort der Buchung zuzuordnen.",
+          body: "Auf dieser Seite werden keine Analyse-Tools oder Werbe-Cookies geladen. Nur eine gewählte Sprach- oder Darstellungspräferenz kann technisch gespeichert werden; die Zuordnung zur Reservierung erfolgt über den sicheren URL-Token.",
         },
         {
           title: "Ihre Rechte (DSGVO)",
@@ -293,21 +293,21 @@ export const GUEST_UI_COPY: Record<GuestFormLocale, GuestUiCopy> = {
     privacy: {
       title: "Confidentialité et traitement des données",
       summary:
-        "Seul votre hôte voit vos réponses. Stockées sur RentTools.io — logiciel open source, HTTPS uniquement, sans pistage.",
+        "Données utilisées pour l’enregistrement légal des voyageurs et la gestion du séjour, jamais à des fins marketing. Les données d’identité sont chiffrées au repos et en transit.",
       showDetails: "Détails",
       hideDetails: "Masquer",
       bullets: [
         {
           title: "Qui voit ces informations",
-          body: "Uniquement l'hôte du logement que vous avez réservé. Vos réponses sont transmises directement à son compte RentTools. Aucun partage, aucune vente, aucune utilisation à des fins publicitaires.",
+          body: "L’hôte et un gestionnaire du logement expressément autorisé. Le personnel de ménage et l’assistance RentTools en mode d’usurpation n’accèdent pas aux données d’identité. Aucune vente ni utilisation publicitaire.",
         },
         {
           title: "Où elles sont stockées",
-          body: "RentTools.io est un outil open source — le code source est public, ce qui permet à quiconque de vérifier ce qui est fait de vos données. La connexion à ce formulaire est chiffrée en HTTPS.",
+          body: "Les données d’identité sont chiffrées par l’application avant leur stockage en base. La connexion au formulaire est chiffrée en HTTPS. Le dépôt d’images de pièces d’identité est désactivé ici.",
         },
         {
           title: "Aucun pistage",
-          body: "Aucun outil d'analyse, aucun cookie publicitaire ni script tiers n'est chargé sur cette page. Seul le cookie strictement nécessaire pour relier votre réponse à votre réservation est utilisé.",
+          body: "Aucun outil d’analyse ni cookie publicitaire n’est chargé. Seule une préférence de langue ou d’affichage peut être mémorisée; le jeton sécurisé de l’URL relie le formulaire à la réservation.",
         },
         {
           title: "Vos droits (RGPD)",
@@ -335,21 +335,21 @@ export const GUEST_UI_COPY: Record<GuestFormLocale, GuestUiCopy> = {
     privacy: {
       title: "Privacidad y tratamiento de datos",
       summary:
-        "Solo su anfitrión ve sus respuestas. Almacenadas en RentTools.io — software de código abierto, solo HTTPS, sin rastreo.",
+        "Datos usados para el registro legal de huéspedes y la gestión de la estancia, no para marketing. Los datos de identidad se cifran en reposo y en tránsito.",
       showDetails: "Detalles",
       hideDetails: "Ocultar",
       bullets: [
         {
           title: "Quién ve estos datos",
-          body: "Solo el anfitrión del alojamiento que ha reservado. Sus respuestas llegan directamente a su cuenta de RentTools. No se comparten, no se venden y no se utilizan con fines publicitarios.",
+          body: "El anfitrión y un gestor del alojamiento autorizado expresamente. El personal de limpieza y el soporte de RentTools en modo de suplantación no acceden a los datos de identidad. No se venden ni se usan para publicidad.",
         },
         {
           title: "Dónde se almacenan",
-          body: "RentTools.io es una herramienta de código abierto — el código fuente es público, por lo que cualquiera puede verificar qué se hace con sus datos. La conexión con este formulario está cifrada por HTTPS.",
+          body: "Los datos de identidad se cifran en la aplicación antes de guardarlos en la base de datos. La conexión al formulario usa HTTPS. La carga de imágenes de documentos está desactivada aquí.",
         },
         {
           title: "Sin rastreo",
-          body: "En esta página no se carga ninguna herramienta de analítica, ninguna cookie publicitaria ni ningún script de terceros. Solo se usa la cookie estrictamente necesaria para vincular su respuesta con la reserva.",
+          body: "No se cargan herramientas de analítica ni cookies publicitarias. Solo puede guardarse una preferencia de idioma o apariencia; el token seguro de la URL vincula el formulario con la reserva.",
         },
         {
           title: "Sus derechos (RGPD)",

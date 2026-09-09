@@ -20,7 +20,8 @@
 #
 # Pre-reqs (set up once, see docs/DROPLET-SETUP.md):
 #   - /home/app/rent-tool is the git checkout
-#   - .env.production is in place with DATABASE_URL, JWT_SECRET, CRON_SECRET, GEMINI key
+#   - .env.production is in place with DATABASE_URL, JWT_SECRET, CRON_SECRET,
+#     GEMINI key, GUEST_DATA_ENCRYPTION_KEY and PUBLIC_APP_URL
 #   - Node 22 LTS on PATH
 #   - sudo NOPASSWD entry for `app` covering `systemctl restart rent-tool`
 
@@ -42,6 +43,33 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   git status --short >&2
   exit 10
 fi
+
+# 1b. Required-secret preflight. Both are read at runtime, so a missing one
+#     builds and starts fine but leaves guest pre-check-in broken: no
+#     encryption key means owners cannot mint a link, and no canonical origin
+#     means every guest submit is rejected as cross-origin. Catch it here.
+MISSING=""
+for VAR in GUEST_DATA_ENCRYPTION_KEY PUBLIC_APP_URL; do
+  if ! grep -qE "^[[:space:]]*(export[[:space:]]+)?${VAR}=[^[:space:]]" .env.production 2>/dev/null; then
+    MISSING="$MISSING $VAR"
+  fi
+done
+if [ -n "$MISSING" ]; then
+  echo "$LOG_PREFIX deploy: ABORT — .env.production missing required setting(s):$MISSING" >&2
+  echo "  GUEST_DATA_ENCRYPTION_KEY: openssl rand -hex 32   (guest identity data at rest)" >&2
+  echo "  PUBLIC_APP_URL:            https://renttools.io   (comma-separate extra origins)" >&2
+  exit 11
+fi
+
+# 1c. Create a transactionally-consistent, integrity-checked restore point
+# before the fallback path changes source, dependencies, or schema.
+echo "$LOG_PREFIX deploy: creating verified pre-deploy database backup"
+if ! BACKUP_OUTPUT=$(bash scripts/backup-db.sh 2>&1); then
+  echo "$LOG_PREFIX deploy: ABORT — verified pre-deploy database backup failed" >&2
+  printf '%s\n' "$BACKUP_OUTPUT" >&2
+  exit 14
+fi
+echo "$LOG_PREFIX deploy: $BACKUP_OUTPUT"
 
 # 2. Fetch + fast-forward to origin/master.
 git fetch --prune origin master

@@ -11,6 +11,11 @@
  * requests rather than 400'ing.
  */
 export function parseFeedFilename(filename: string): string {
-  const match = filename.match(/^for-(\w+)\.ics$/i);
+  // Channel labels created from human-readable names commonly contain
+  // hyphens (for example `ubytovani-v-chorvatsku`). Treat the complete slug
+  // as the target channel; otherwise the legacy fallback to `airbnb` makes
+  // genuine Airbnb stays look like same-channel events and silently omits
+  // them from that destination's feed.
+  const match = filename.match(/^for-([a-z0-9_-]+)\.ics$/i);
   return match?.[1] || "airbnb";
 }

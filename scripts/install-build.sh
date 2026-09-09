@@ -14,6 +14,7 @@
 #
 # Exit codes: 1 artifact missing · 10 dirty droplet checkout · 11 bad artifact
 #             12 too little disk for npm ci · 13 npm ci left an incomplete tree
+#             14 verified pre-deploy database backup failed
 #             20 restarted but health check never came up
 #
 # Steps:
@@ -45,6 +46,25 @@ if [ ! -f "$ARTIFACT" ]; then
   exit 1
 fi
 
+# 0. Required-secret preflight. These are read at RUNTIME, so a missing one
+#    does not fail the build — it ships a green deploy whose guest pre-check-in
+#    is quietly broken (no encryption key => owners cannot mint a link; no
+#    canonical origin => every guest submit is rejected as cross-origin).
+#    Fail here, before anything on the droplet is swapped, rather than after.
+MISSING=""
+for VAR in GUEST_DATA_ENCRYPTION_KEY PUBLIC_APP_URL; do
+  if ! grep -qE "^[[:space:]]*(export[[:space:]]+)?${VAR}=[^[:space:]]" .env.production 2>/dev/null; then
+    MISSING="$MISSING $VAR"
+  fi
+done
+if [ -n "$MISSING" ]; then
+  log "ABORT — .env.production is missing required setting(s):$MISSING" >&2
+  log "  GUEST_DATA_ENCRYPTION_KEY: openssl rand -hex 32   (guest identity data at rest)" >&2
+  log "  PUBLIC_APP_URL:            https://renttools.io   (comma-separate extra origins)" >&2
+  log "  Add them, then re-run the deploy. Nothing has been changed." >&2
+  exit 11
+fi
+
 # 1. Sync source code so prisma/, scripts/, sentry configs match the SHA we built.
 LOCK_BEFORE=$(sha256sum package-lock.json 2>/dev/null | awk '{print $1}' || echo "")
 SCHEMA_BEFORE=$(sha256sum prisma/schema.prisma 2>/dev/null | awk '{print $1}' || echo "")
@@ -70,6 +90,18 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   git status --short >&2
   exit 10
 fi
+
+# Back up the live SQLite database before the checkout, dependency tree,
+# artifact, or schema can change. backup-db.sh uses SQLite's online backup
+# API and runs an integrity check, so a green deploy always has a verified,
+# transactionally-consistent restore point from immediately beforehand.
+log "creating verified pre-deploy database backup"
+if ! BACKUP_OUTPUT=$(bash scripts/backup-db.sh 2>&1); then
+  log "ABORT — verified pre-deploy database backup failed" >&2
+  printf '%s\n' "$BACKUP_OUTPUT" >&2
+  exit 14
+fi
+log "$BACKUP_OUTPUT"
 
 git fetch --quiet origin master
 git reset --hard --quiet "$TARGET_SHA"

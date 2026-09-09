@@ -12,67 +12,88 @@ export interface ICalEvent {
 
 /**
  * Parse an iCal (.ics) string into a list of events.
- * Handles both DATE and DATE-TIME formats.
+ * Handles DATE and DATE-TIME values, preserving the provider's calendar date.
+ * Reject incomplete/unsupported snapshots: sync treats the returned list as
+ * authoritative, so silently skipping an unreadable event can reopen nights.
  */
 export function parseICal(icalText: string): ICalEvent[] {
   const events: ICalEvent[] = [];
-  const blocks = icalText.split("BEGIN:VEVENT");
-
-  for (let i = 1; i < blocks.length; i++) {
-    const block = blocks[i].split("END:VEVENT")[0];
-    if (!block) continue;
-
-    // Unfold lines (iCal spec: lines starting with space/tab are continuations)
-    const unfolded = block.replace(/\r?\n[ \t]/g, "");
-    const lines = unfolded.split(/\r?\n/);
-
-    let uid = "";
-    let summary = "";
-    let startDate = "";
-    let endDate = "";
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      if (trimmed.startsWith("UID:")) {
-        uid = trimmed.substring(4).trim();
-      } else if (trimmed.startsWith("SUMMARY:")) {
-        summary = trimmed.substring(8).trim();
-      } else if (trimmed.startsWith("DTSTART")) {
-        startDate = extractDate(trimmed);
-      } else if (trimmed.startsWith("DTEND")) {
-        endDate = extractDate(trimmed);
-      }
-    }
-
-    if (startDate) {
-      // If no end date, assume 1-day event
-      if (!endDate) endDate = startDate;
-      if (!uid) uid = `parsed-${startDate}-${i}`;
-
-      events.push({ uid, summary, startDate, endDate });
-    }
+  const lines = icalText.replace(/^\uFEFF/, "").replace(/\r?\n[ \t]/g, "")
+    .split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines[0]?.toUpperCase() !== "BEGIN:VCALENDAR" ||
+      lines[lines.length - 1]?.toUpperCase() !== "END:VCALENDAR") {
+    throw new Error("Incomplete or invalid iCal calendar; previous bookings were preserved");
   }
 
+  const components: string[] = [];
+  let fields = new Map<string, string>();
+  const seenUIDs = new Set<string>();
+  for (const line of lines) {
+    const colon = line.indexOf(":");
+    if (colon < 1) throw new Error("Invalid iCal content line");
+    const name = line.slice(0, colon).split(";")[0].toUpperCase();
+    const value = line.slice(colon + 1);
+    if (name === "BEGIN") {
+      const component = value.toUpperCase();
+      if (component === "VCALENDAR" && components.length > 0) {
+        throw new Error("Invalid nested iCal calendar");
+      }
+      if (component === "VEVENT") {
+        if (components.join("/") !== "VCALENDAR") throw new Error("Invalid nested iCal event");
+        fields = new Map();
+      }
+      components.push(component);
+      continue;
+    }
+    if (name === "END") {
+      if (components.pop() !== value.toUpperCase()) throw new Error("Incomplete iCal component");
+      if (value.toUpperCase() !== "VEVENT") continue;
+      if (fields.get("STATUS")?.toUpperCase() === "CANCELLED") continue;
+      if (["RRULE", "RDATE", "RECURRENCE-ID"].some((field) => fields.has(field))) {
+        throw new Error("Recurring iCal events are not supported; previous bookings were preserved");
+      }
+      const uid = fields.get("UID") || "";
+      if (!uid || seenUIDs.has(uid)) throw new Error("Missing or duplicate iCal event UID");
+      const startDate = extractDate(fields.get("DTSTART") || "");
+      let endDate: string;
+      if (fields.has("DTEND")) {
+        endDate = extractDate(fields.get("DTEND")!);
+      } else if (fields.has("DURATION")) {
+        const duration = fields.get("DURATION")!.match(/^P(?:(\d+)W)?(?:(\d+)D)?$/i);
+        const days = duration ? Number(duration[1] || 0) * 7 + Number(duration[2] || 0) : 0;
+        if (!days || days > 36600) throw new Error("Unsupported iCal event duration");
+        endDate = addDays(startDate, days);
+      } else {
+        // RFC 5545: an all-day DTSTART without DTEND occupies one day.
+        if (fields.get("DTSTART")!.includes("T")) {
+          throw new Error("Timed iCal events need an explicit end or duration");
+        }
+        endDate = addDays(startDate, 1);
+      }
+      if (endDate <= startDate) throw new Error("Invalid iCal event date range");
+      seenUIDs.add(uid);
+      events.push({ uid, summary: fields.get("SUMMARY") || "", startDate, endDate });
+      continue;
+    }
+    if (components.join("/") === "VCALENDAR/VEVENT") fields.set(name, value);
+  }
+  if (components.length > 0) throw new Error("Incomplete iCal component");
   return events;
 }
 
 /**
- * Extract a YYYY-MM-DD date from an iCal date line.
- * Handles: DTSTART;VALUE=DATE:20240115
- *          DTSTART:20240115T140000Z
- *          DTSTART;TZID=Europe/Berlin:20240115T140000
+ * Extract a YYYY-MM-DD date from a DATE or DATE-TIME property value.
+ * Validate the date rather than normalizing impossible values into new days.
  */
-function extractDate(line: string): string {
-  const colonIdx = line.indexOf(":");
-  if (colonIdx === -1) return "";
-
-  const value = line.substring(colonIdx + 1).trim();
-  // Take first 8 chars (YYYYMMDD) and format
-  const raw = value.replace(/[^0-9]/g, "").substring(0, 8);
-  if (raw.length < 8) return "";
-
-  return `${raw.substring(0, 4)}-${raw.substring(4, 6)}-${raw.substring(6, 8)}`;
+function extractDate(value: string): string {
+  const match = value.match(/^(\d{4})(\d{2})(\d{2})(?:T\d{6}Z?)?$/i);
+  if (!match) throw new Error("Invalid or missing iCal event date");
+  const date = `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = new Date(`${date}T12:00:00Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) {
+    throw new Error("Invalid iCal event date");
+  }
+  return date;
 }
 
 /**

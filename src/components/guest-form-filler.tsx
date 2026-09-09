@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   GUEST_UI_COPY,
   LOCALE_NATIVE_NAME,
@@ -12,6 +12,15 @@ import {
   type GuestPrivacyCopy,
   type GuestUiCopy,
 } from "@/lib/guest-form-i18n";
+import {
+  ARRIVAL_ORGANIZATIONS,
+  COUNTRY_CODES,
+  DOCUMENT_TYPES,
+  GENDERS,
+  SERVICE_TYPES,
+  requiresNonEuBorderFields,
+  type PrecheckinDraft,
+} from "@/lib/precheckin";
 
 interface FormField {
   id: string;
@@ -40,6 +49,11 @@ export function GuestFormView({
   i18n,
   propertyName,
   guestName,
+  checkIn,
+  checkOut,
+  maxTravelers,
+  initialPrecheckin,
+  linkState,
   alreadySubmitted,
   submittedAt,
 }: {
@@ -49,6 +63,11 @@ export function GuestFormView({
   i18n: GuestFormI18n;
   propertyName: string;
   guestName: string;
+  checkIn: string;
+  checkOut: string;
+  maxTravelers: number | null;
+  initialPrecheckin: PrecheckinDraft | null;
+  linkState: "active" | "revoked" | "expired" | "submitted" | "storage-error" | "security-error";
   alreadySubmitted: boolean;
   submittedAt: string | null;
 }) {
@@ -56,12 +75,119 @@ export function GuestFormView({
   const [lang, setLang] = useState<GuestFormLocale>("en");
   const copy = GUEST_UI_COPY[lang];
 
-  const [values, setValues] = useState<Record<string, unknown>>({});
+  const initialAnswers = Object.fromEntries(
+    (initialPrecheckin?.customAnswers ?? []).map((answer) => [answer.fieldId, answer.value]),
+  );
+  const [values, setValues] = useState<Record<string, unknown>>(initialAnswers);
+  const makeTraveler = (isLead: boolean, clientId = "lead-traveler") => ({
+    clientId,
+    isLead,
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    gender: "",
+    citizenshipCountry: "",
+    birthCountry: "",
+    birthPlace: "",
+    residenceCountry: "",
+    residencePlace: "",
+    residenceAddress: "",
+    documentType: "",
+    documentNumber: "",
+    borderEntryDate: "",
+    borderEntryPlace: "",
+    borderEntryPoint: "",
+  });
+  const [precheckin, setPrecheckin] = useState<PrecheckinDraft>(() => ({
+    expectedArrivalTime: initialPrecheckin?.expectedArrivalTime ?? "",
+    arrivalOrganization: initialPrecheckin?.arrivalOrganization ?? "INDIVIDUAL",
+    serviceType: initialPrecheckin?.serviceType ?? "ACCOMMODATION",
+    travelers: initialPrecheckin?.travelers?.length ? initialPrecheckin.travelers : [makeTraveler(true)],
+    customAnswers: initialPrecheckin?.customAnswers ?? [],
+  }));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [draftState, setDraftState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  const set = (id: string, v: unknown) => setValues((m) => ({ ...m, [id]: v }));
+  // The structured traveler block is opt-in per reservation: the host turns it
+  // on by setting the confirmed traveler count, which is what populates
+  // maxTravelers. Without it this stays the plain custom-question form that
+  // every existing link already points at, and the server applies the matching
+  // rule in /api/g/[token]/submit.
+  const precheckinEnabled = maxTravelers !== null;
+
+  const set = (id: string, v: unknown) => {
+    setValues((m) => ({ ...m, [id]: v }));
+    setDirty(true);
+  };
+
+  const publicDraft = useMemo(() => ({
+    ...precheckin,
+    customAnswers: Object.entries(values).map(([fieldId, value]) => ({ fieldId, value })),
+  }), [precheckin, values]);
+
+  useEffect(() => {
+    if (!dirty || linkState !== "active" || done || alreadySubmitted) return;
+    const timer = window.setTimeout(async () => {
+      setDraftState("saving");
+      try {
+        const response = await fetch(`/api/g/${token}/draft`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ precheckin: publicDraft }),
+        });
+        setDraftState(response.ok ? "saved" : "error");
+      } catch {
+        setDraftState("error");
+      }
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [alreadySubmitted, dirty, done, linkState, publicDraft, token]);
+
+  const updateTraveler = (index: number, key: string, value: unknown) => {
+    setPrecheckin((current) => ({
+      ...current,
+      travelers: current.travelers.map((traveler, travelerIndex) =>
+        travelerIndex === index ? { ...traveler, [key]: value } : traveler,
+      ),
+    }));
+    setDirty(true);
+  };
+
+  const addTraveler = () => {
+    if (maxTravelers !== null && precheckin.travelers.length >= maxTravelers) return;
+    setPrecheckin((current) => ({
+      ...current,
+      travelers: [
+        ...current.travelers,
+        makeTraveler(false, typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `traveler-${current.travelers.length + 1}`),
+      ],
+    }));
+    setDirty(true);
+  };
+
+  const removeTraveler = (index: number) => {
+    setPrecheckin((current) => {
+      if (current.travelers.length === 1) return current;
+      const next = current.travelers.filter((_, travelerIndex) => travelerIndex !== index);
+      if (!next.some((traveler) => traveler.isLead)) next[0] = { ...next[0], isLead: true };
+      return { ...current, travelers: next };
+    });
+    setDirty(true);
+  };
+
+  const markLead = (index: number) => {
+    setPrecheckin((current) => ({
+      ...current,
+      travelers: current.travelers.map((traveler, travelerIndex) => ({
+        ...traveler,
+        isLead: travelerIndex === index,
+      })),
+    }));
+    setDirty(true);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,11 +197,22 @@ export function GuestFormView({
       const res = await fetch(`/api/g/${token}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: values }),
+        body: JSON.stringify({ answers: values, precheckin: publicDraft }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? copy.submitFailed);
+        // The server returns per-field reasons in `fields`. Showing only the
+        // generic sentence left the guest guessing which of ~14 inputs was
+        // wrong, and submit is rate-limited to 8 attempts per 15 minutes — so
+        // blind retries lock them out of their own check-in.
+        const details: string[] = Array.isArray(data.fields) ? data.fields.filter(
+          (entry: unknown): entry is string => typeof entry === "string",
+        ) : [];
+        setError(
+          details.length > 0
+            ? `${data.error ?? copy.submitFailed}: ${details.join("; ")}`
+            : data.error ?? copy.submitFailed,
+        );
         return;
       }
       setDone(true);
@@ -125,7 +262,25 @@ export function GuestFormView({
           settled at that point. */}
       {!alreadySubmitted && <GuestFormPrivacyPanel copy={copy.privacy} />}
 
-      {alreadySubmitted ? (
+      {linkState === "security-error" ? (
+        <div className="rounded-lg border border-rose-500/40 bg-rose-500/5 p-5">
+          <p className="text-sm font-medium text-rose-200">
+            This form is temporarily unavailable while your host completes a security setting. No data was collected.
+          </p>
+        </div>
+      ) : linkState === "storage-error" ? (
+        <div className="rounded-lg border border-rose-500/40 bg-rose-500/5 p-5">
+          <p className="text-sm font-medium text-rose-200">
+            Your saved data cannot be opened securely right now. Nothing was overwritten. Please contact your host.
+          </p>
+        </div>
+      ) : linkState === "revoked" || linkState === "expired" ? (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-5">
+          <p className="text-sm font-medium text-amber-200">
+            This secure link is no longer active. Please contact your host for a new one.
+          </p>
+        </div>
+      ) : alreadySubmitted ? (
         <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/5 p-5">
           <p className="text-sm font-medium text-emerald-300">{copy.thanks}</p>
           {submittedAt && (
@@ -139,7 +294,85 @@ export function GuestFormView({
           <p className="text-sm font-medium text-emerald-300">{copy.thanks}</p>
         </div>
       ) : (
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} className="space-y-6">
+          {precheckinEnabled && (
+          <section className="rounded-xl border border-[#1e2329] bg-[#11161d] p-4 sm:p-5">
+            <h2 className="text-lg font-semibold">Stay details</h2>
+            <p className="mt-1 text-xs text-[#a0a0a8]">
+              Reservation: {checkIn} to {checkOut}. These dates come from your reservation and cannot be changed here.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="block text-sm font-medium">Expected arrival time *</span>
+                <input
+                  type="time"
+                  required
+                  value={precheckin.expectedArrivalTime}
+                  onChange={(event) => {
+                    setPrecheckin((current) => ({ ...current, expectedArrivalTime: event.target.value }));
+                    setDirty(true);
+                  }}
+                  className={STRUCTURED_INPUT_CLASS}
+                />
+              </label>
+              <ControlledSelect
+                label="Arrival organization"
+                value={precheckin.arrivalOrganization}
+                options={ARRIVAL_ORGANIZATIONS}
+                onChange={(value) => {
+                  setPrecheckin((current) => ({ ...current, arrivalOrganization: value }));
+                  setDirty(true);
+                }}
+              />
+              <ControlledSelect
+                label="Service type"
+                value={precheckin.serviceType}
+                options={SERVICE_TYPES}
+                onChange={(value) => {
+                  setPrecheckin((current) => ({ ...current, serviceType: value }));
+                  setDirty(true);
+                }}
+              />
+            </div>
+          </section>
+          )}
+
+          {precheckinEnabled && (
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Travelers</h2>
+                <p className="text-xs text-[#a0a0a8]">
+                  Enter every person staying, including children.
+                  {maxTravelers !== null ? ` This reservation is for ${maxTravelers}.` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addTraveler}
+                disabled={maxTravelers !== null && precheckin.travelers.length >= maxTravelers}
+                className="rounded-md border border-[#2c333d] bg-[#161b22] px-3 py-2 text-xs font-medium"
+              >
+                Add traveler
+              </button>
+            </div>
+            {precheckin.travelers.map((traveler, index) => (
+              <TravelerEditor
+                key={String(traveler.clientId ?? index)}
+                index={index}
+                traveler={traveler}
+                canRemove={precheckin.travelers.length > 1}
+                onChange={(key, value) => updateTraveler(index, key, value)}
+                onRemove={() => removeTraveler(index)}
+                onMarkLead={() => markLead(index)}
+              />
+            ))}
+          </section>
+          )}
+
+          {fields.length > 0 && (
+            <section className="space-y-4 rounded-xl border border-[#1e2329] bg-[#11161d] p-4 sm:p-5">
+              <h2 className="text-lg font-semibold">Additional questions</h2>
           {fields.map((f) => (
             <FieldInput
               key={f.id}
@@ -150,6 +383,8 @@ export function GuestFormView({
               copy={copy}
             />
           ))}
+            </section>
+          )}
 
           {error && (
             <p className="rounded-md border border-rose-500/40 bg-rose-500/5 px-3 py-2 text-xs text-rose-300">
@@ -164,9 +399,109 @@ export function GuestFormView({
           >
             {busy ? copy.submitting : copy.submit}
           </button>
+          <p aria-live="polite" className="text-center text-[11px] text-[#707782]">
+            {draftState === "saving" ? "Saving encrypted draft…" : draftState === "saved" ? "Encrypted draft saved" : draftState === "error" ? "Draft could not be saved" : ""}
+          </p>
         </form>
       )}
     </div>
+  );
+}
+
+const STRUCTURED_INPUT_CLASS =
+  "mt-1.5 w-full min-w-0 rounded-md border border-[#1e2329] bg-[#161b22] px-3 py-2 text-sm text-[#e8e8ec] focus:border-[#ff385c] focus:outline-none";
+
+function ControlledSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block min-w-0">
+      <span className="block text-sm font-medium">{label} *</span>
+      <select required value={value} onChange={(event) => onChange(event.target.value)} className={STRUCTURED_INPUT_CLASS}>
+        <option value="">Select…</option>
+        {options.map((option) => <option key={option} value={option}>{option.replaceAll("_", " ")}</option>)}
+      </select>
+    </label>
+  );
+}
+
+function TravelerEditor({
+  index,
+  traveler,
+  canRemove,
+  onChange,
+  onRemove,
+  onMarkLead,
+}: {
+  index: number;
+  traveler: Record<string, unknown>;
+  canRemove: boolean;
+  onChange: (key: string, value: unknown) => void;
+  onRemove: () => void;
+  onMarkLead: () => void;
+}) {
+  const text = (key: string) => typeof traveler[key] === "string" ? traveler[key] as string : "";
+  const isLead = traveler.isLead === true;
+  const field = (key: string, label: string, type = "text", autoComplete?: string) => (
+    <label className="block min-w-0">
+      <span className="block text-sm font-medium">{label} *</span>
+      <input
+        type={type}
+        required
+        autoComplete={autoComplete}
+        value={text(key)}
+        onChange={(event) => onChange(key, event.target.value)}
+        className={STRUCTURED_INPUT_CLASS}
+      />
+    </label>
+  );
+  const nonEu = requiresNonEuBorderFields(text("residenceCountry"));
+  return (
+    <fieldset className="rounded-xl border border-[#1e2329] bg-[#11161d] p-4 sm:p-5">
+      <legend className="px-1 text-sm font-semibold">Traveler {index + 1}{isLead ? " · lead guest" : ""}</legend>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {!isLead && <button type="button" onClick={onMarkLead} className="rounded-md border border-[#2c333d] px-2.5 py-1.5 text-xs">Make lead guest</button>}
+        {canRemove && <button type="button" onClick={onRemove} className="rounded-md border border-rose-500/30 px-2.5 py-1.5 text-xs text-rose-200">Remove</button>}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {field("firstName", "First name", "text", "given-name")}
+        {field("lastName", "Last name", "text", "family-name")}
+        {field("dateOfBirth", "Date of birth", "date", "bday")}
+        <ControlledSelect label="Gender" value={text("gender")} options={GENDERS} onChange={(value) => onChange("gender", value)} />
+        <ControlledSelect label="Citizenship country" value={text("citizenshipCountry")} options={COUNTRY_CODES} onChange={(value) => onChange("citizenshipCountry", value)} />
+        <ControlledSelect label="Birth country" value={text("birthCountry")} options={COUNTRY_CODES} onChange={(value) => onChange("birthCountry", value)} />
+        {field("birthPlace", "Birth place")}
+        <ControlledSelect label="Residence country" value={text("residenceCountry")} options={COUNTRY_CODES} onChange={(value) => onChange("residenceCountry", value)} />
+        {field("residencePlace", "Residence place")}
+        {field("residenceAddress", "Residence address", "text", "street-address")}
+        <ControlledSelect label="Document type" value={text("documentType")} options={DOCUMENT_TYPES} onChange={(value) => onChange("documentType", value)} />
+        {field("documentNumber", "Document number")}
+        {nonEu && (
+          <>
+            <label className="block min-w-0">
+              <span className="block text-sm font-medium">Border entry date</span>
+              <input type="date" value={text("borderEntryDate")} onChange={(event) => onChange("borderEntryDate", event.target.value)} className={STRUCTURED_INPUT_CLASS} />
+            </label>
+            <label className="block min-w-0">
+              <span className="block text-sm font-medium">Border entry place</span>
+              <input value={text("borderEntryPlace")} onChange={(event) => onChange("borderEntryPlace", event.target.value)} className={STRUCTURED_INPUT_CLASS} />
+            </label>
+            <label className="block min-w-0 sm:col-span-2">
+              <span className="block text-sm font-medium">Border entry point</span>
+              <input value={text("borderEntryPoint")} onChange={(event) => onChange("borderEntryPoint", event.target.value)} className={STRUCTURED_INPUT_CLASS} />
+            </label>
+          </>
+        )}
+      </div>
+    </fieldset>
   );
 }
 

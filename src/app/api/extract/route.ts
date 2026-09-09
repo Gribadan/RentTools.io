@@ -41,6 +41,19 @@ export async function POST(request: NextRequest) {
     }
     userId = session.userId;
 
+    // Opt-OUT, not opt-in. This gate is worth having, but defaulting it closed
+    // silently removes a feature hosts use today the moment this ships — and
+    // because the flag is NEXT_PUBLIC_ it is inlined at build time, so the
+    // droplet cannot switch it back on without a rebuild. Set
+    // NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED=false (and rebuild) to retire the
+    // legacy OCR path once its retention/deletion lifecycle is signed off.
+    if (process.env.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED === "false") {
+      return NextResponse.json(
+        { error: "Legacy passport OCR is disabled pending a verified retention and deletion lifecycle" },
+        { status: 503 },
+      );
+    }
+
     // Daily per-user quota — count successful + failed attempts in the last 24h
     // and reject before doing any Gemini work if the user is at or above the
     // configured limit. "0" or non-numeric disables the gate.

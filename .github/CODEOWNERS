@@ -1,0 +1,15 @@
+# Enforced when "Require review from Code Owners" is enabled for master.
+* @Gribadan
+
+# High-risk surfaces are explicit for clarity and future ownership splits.
+/.github/ @Gribadan
+/prisma/ @Gribadan
+/scripts/deploy.sh @Gribadan
+/scripts/install-build.sh @Gribadan
+/deploy/ @Gribadan
+/src/app/api/auth/ @Gribadan
+/src/app/api/g/ @Gribadan
+/src/app/api/admin/ @Gribadan
+/src/lib/auth.ts @Gribadan
+/src/lib/ownership.ts @Gribadan
+/src/lib/precheckin-crypto.ts @Gribadan

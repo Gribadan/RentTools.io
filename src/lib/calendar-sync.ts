@@ -1,37 +1,51 @@
 import { prisma } from "@/lib/prisma";
 import { parseICal, type ICalEvent } from "@/lib/ical";
 
+/** Surface transport diagnostics without exposing provider URLs or messages. */
+function transportErrorCodes(error: unknown): string[] {
+  const cause = error instanceof Error ? error.cause : undefined;
+  const codes = new Set<string>();
+  const add = (value: unknown) => {
+    if (!value || typeof value !== "object" || codes.size >= 4) return;
+    const code = (value as { code?: unknown }).code;
+    if (typeof code === "string" && /^[A-Z0-9_]{1,40}$/.test(code)) codes.add(code);
+  };
+  add(cause);
+  if (cause instanceof AggregateError) {
+    for (const nested of cause.errors.slice(0, 8)) add(nested);
+  }
+  return [...codes];
+}
+
 /**
  * Fetch and parse an iCal feed from a URL.
  */
 async function fetchICal(url: string): Promise<{ events: ICalEvent[]; error?: string }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
     const res = await fetch(url, {
       signal: controller.signal,
+      cache: "no-store",
       headers: {
         "User-Agent": "RentTool-CalendarSync/1.0",
         Accept: "text/calendar, text/plain, */*",
       },
     });
-    clearTimeout(timeout);
-
     if (!res.ok) {
       return { events: [], error: `HTTP ${res.status}: ${res.statusText}` };
     }
 
     const text = await res.text();
-    if (!text.includes("VCALENDAR")) {
-      return { events: [], error: "Response is not a valid iCal feed" };
-    }
-
     const events = parseICal(text);
     return { events };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return { events: [], error: msg };
+    const codes = transportErrorCodes(err);
+    return { events: [], error: codes.length > 0 ? `${msg} (${codes.join(", ")})` : msg };
+  } finally {
+    // Keep the timeout active while reading the body as well as the headers.
+    clearTimeout(timeout);
   }
 }
 
@@ -67,10 +81,11 @@ export async function syncAllCalendars(opts?: {
 }): Promise<{
   propertiesSynced: number;
   newEvents: number;
+  updatedEvents: number;
   removedEvents: number;
   errors: number;
 }> {
-  const summary = { propertiesSynced: 0, newEvents: 0, removedEvents: 0, errors: 0 };
+  const summary = { propertiesSynced: 0, newEvents: 0, updatedEvents: 0, removedEvents: 0, errors: 0 };
 
   // An empty (but present) propertyIds list means "nothing to sync" —
   // return early rather than letting `in: []` fall through.
@@ -132,7 +147,7 @@ export async function syncAllCalendars(opts?: {
         const today = new Date().toISOString().substring(0, 10);
 
         // Skip events created by our own RentTool feed (feedback loop prevention)
-        const filteredEvents = events.filter((e) => {
+        const futureEvents = events.filter((e) => {
           if (e.endDate < today) return false;
           if (e.uid.startsWith("renttool-")) return false;
           if (e.summary.includes("Blocked (") && e.summary.includes("+buffer")) return false;
@@ -140,175 +155,169 @@ export async function syncAllCalendars(opts?: {
           return true;
         });
 
-        // Also filter out 1-day "CLOSED" blocks that sit right before another event
-        // (likely our own buffer day reflected back by the platform)
-        const futureEvents = filteredEvents.filter((e) => {
-          // Only check 1-day events with "CLOSED" or "Not available" summary
-          const duration = Math.round(
-            (new Date(e.endDate + "T12:00:00Z").getTime() - new Date(e.startDate + "T12:00:00Z").getTime()) / (1000 * 60 * 60 * 24)
-          );
-          if (duration > 1) return true; // keep multi-day events
-          if (!e.summary.includes("CLOSED") && !e.summary.includes("Not available")) return true;
+        // A one-night CLOSED/Not available event can be a real reservation,
+        // even when another stay begins next day. Adjacency is not evidence
+        // that a block came from RentTools; only the markers above are.
 
-          // Check if this 1-day block is immediately before another event
-          const nextDay = e.endDate; // exclusive end = next day
-          const hasAdjacentEvent = filteredEvents.some(
-            (other) => other !== e && other.startDate === nextDay
-          );
-          if (hasAdjacentEvent) {
-            // This is likely a reflected buffer day — skip it
-            return false;
-          }
-          return true;
-        });
+        // Apply one complete snapshot atomically. A feed request must not see
+        // a half-reconciled event set, and a failed guest-link update must not
+        // leave its source event deleted. Network I/O stays outside the lock.
+        const { newEvents, updatedEvents, removedUIDs, migratedReservations, unlinkedReservations } =
+          await prisma.$transaction(async (tx) => {
+            // Get existing events for this property+platform
+            const existing = await tx.calendarEvent.findMany({
+              where: { propertyId, platform: link.platform },
+            });
+            const existingUIDs = new Set(existing.map((e) => e.uid));
+            const existingByUID = new Map(existing.map((e) => [e.uid, e]));
+            const fetchedUIDs = new Set(futureEvents.map((e) => e.uid));
 
-        // Get existing events for this property+platform
-        const existing = await prisma.calendarEvent.findMany({
-          where: { propertyId, platform: link.platform },
-        });
-        const existingUIDs = new Set(existing.map((e) => e.uid));
-        const fetchedUIDs = new Set(futureEvents.map((e) => e.uid));
-
-        // Detect new events
-        const newEvents = futureEvents.filter((e) => !existingUIDs.has(e.uid));
-
-        // Detect removed events (no longer in feed). Keep the full
-        // event rows (not just uids) so the prune step below can read
-        // each event's date range when migrating or unlinking every local
-        // claim/direct-extension segment attached to it.
-        const removedEvents = existing.filter(
-          (e) => !fetchedUIDs.has(e.uid) && e.endDate >= today
-        );
-        const removedUIDs = removedEvents.map((e) => e.uid);
-
-        // Insert new events
-        for (const event of newEvents) {
-          await prisma.calendarEvent.upsert({
-            where: {
-              propertyId_platform_uid: {
-                propertyId,
-                platform: link.platform,
-                uid: event.uid,
-              },
-            },
-            create: {
-              propertyId,
-              platform: link.platform,
-              uid: event.uid,
-              summary: event.summary,
-              startDate: event.startDate,
-              endDate: event.endDate,
-            },
-            update: {
-              summary: event.summary,
-              startDate: event.startDate,
-              endDate: event.endDate,
-            },
-          });
-        }
-
-        // Remove events no longer in the feed — but ONLY if they're
-        // still upcoming. Most platforms (Airbnb, Booking.com) trim
-        // past stays from their iCal feeds after some rolling window
-        // (a few months); without this guard our DB silently loses
-        // every historical booking, which kills the Reports page's
-        // ability to show year-over-year history. Past stays get
-        // preserved forever; cancellations of upcoming stays still
-        // get pruned on schedule.
-        //
-        // A "removed" event may actually be a UID REISSUE, not a
-        // cancellation — Booking.com in particular mints a fresh UID on
-        // almost every booking edit (arrival-time change, room-code
-        // change, guest edit). Before treating a vanished event as a
-        // real cancellation, check whether newEvents contains a same-
-        // platform event whose date range OVERLAPS the vanished one.
-        // If yes, migrate any linked Reservation to point at the new
-        // UID (preserving the host's name, guests, and passport docs)
-        // instead of nuking them. If no match, still preserve the
-        // Reservation by UNLINKING it (linkedEventUid = null) so guest
-        // data survives the platform's cancellation and the host can
-        // review and delete manually if desired.
-        let removedReservations = 0;
-        let migratedReservations = 0;
-        let unlinkedReservations = 0;
-        if (removedEvents.length > 0) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const todayIso = today.toISOString().substring(0, 10);
-          for (const ev of removedEvents) {
-            const deleted = await prisma.calendarEvent.deleteMany({
-              where: {
-                propertyId,
-                platform: link.platform,
-                uid: ev.uid,
-                endDate: { gte: todayIso },
-              },
+            // Detect new events
+            const newEvents = futureEvents.filter((e) => !existingUIDs.has(e.uid));
+            const updatedEvents = futureEvents.filter((event) => {
+              const previous = existingByUID.get(event.uid);
+              return previous && (previous.startDate !== event.startDate ||
+                previous.endDate !== event.endDate || previous.summary !== event.summary);
             });
 
-            if (deleted.count > 0) {
-              // UID reissue detection: does a newly-appearing event on
-              // the same platform overlap the vanished one's dates?
-              // Overlap uses the standard half-open predicate; if
-              // multiple candidates match, prefer the one with the
-              // largest date-range intersection (usually there's just
-              // one). Summary similarity is a secondary hint but not
-              // required — Booking normalises "CLOSED - Not available"
-              // across host-blocks and reservations alike.
-              const candidateReissue = newEvents.find(
-                (n) =>
-                  n.startDate < ev.endDate && n.endDate > ev.startDate,
-              );
+            // Detect removed events (no longer in feed). Keep the full
+            // event rows (not just uids) so the prune step below can read
+            // each event's date range when migrating or unlinking every local
+            // claim/direct-extension segment attached to it.
+            const removedEvents = existing.filter(
+              (e) => !fetchedUIDs.has(e.uid) && e.endDate >= today
+            );
+            const removedUIDs = removedEvents.map((e) => e.uid);
 
-              if (candidateReissue) {
-                const migrated = await prisma.reservation.updateMany({
+            // Providers commonly keep a UID when editing a stay. Reconcile changed
+            // dates as well as new UIDs, otherwise checkout stays stale forever.
+            for (const event of [...newEvents, ...updatedEvents]) {
+              await tx.calendarEvent.upsert({
+                where: {
+                  propertyId_platform_uid: {
+                    propertyId,
+                    platform: link.platform,
+                    uid: event.uid,
+                  },
+                },
+                create: {
+                  propertyId,
+                  platform: link.platform,
+                  uid: event.uid,
+                  summary: event.summary,
+                  startDate: event.startDate,
+                  endDate: event.endDate,
+                },
+                update: {
+                  summary: event.summary,
+                  startDate: event.startDate,
+                  endDate: event.endDate,
+                },
+              });
+            }
+
+            // Remove events no longer in the feed — but ONLY if they're
+            // still upcoming. Most platforms (Airbnb, Booking.com) trim
+            // past stays from their iCal feeds after some rolling window
+            // (a few months); without this guard our DB silently loses
+            // every historical booking, which kills the Reports page's
+            // ability to show year-over-year history. Past stays get
+            // preserved forever; cancellations of upcoming stays still
+            // get pruned on schedule.
+            //
+            // A "removed" event may actually be a UID REISSUE, not a
+            // cancellation — Booking.com in particular mints a fresh UID on
+            // almost every booking edit (arrival-time change, room-code
+            // change, guest edit). Before treating a vanished event as a
+            // real cancellation, check whether newEvents contains a same-
+            // platform event whose date range OVERLAPS the vanished one.
+            // If yes, migrate any linked Reservation to point at the new
+            // UID (preserving the host's name, guests, and passport docs)
+            // instead of nuking them. If no match, still preserve the
+            // Reservation by UNLINKING it (linkedEventUid = null) so guest
+            // data survives the platform's cancellation and the host can
+            // review and delete manually if desired.
+            let migratedReservations = 0;
+            let unlinkedReservations = 0;
+            if (removedEvents.length > 0) {
+              for (const ev of removedEvents) {
+                const deleted = await tx.calendarEvent.deleteMany({
                   where: {
                     propertyId,
-                    linkedEventUid: ev.uid,
-                    OR: [
-                      { linkedEventPlatform: link.platform },
-                      // Compatibility for rows created before source platform
-                      // became independent from the booking channel.
-                      { linkedEventPlatform: null, platform: link.platform },
-                    ],
-                  },
-                  data: { linkedEventUid: candidateReissue.uid },
-                });
-                migratedReservations += migrated.count;
-              } else {
-                // No reissue candidate — treat as a real cancellation.
-                // NEVER auto-delete a linked Reservation (it may carry
-                // guest passports or a paid Direct extension). Clear the
-                // complete relationship on both claims and extensions so
-                // each local row survives as an independent manual entry.
-                const unlinked = await prisma.reservation.updateMany({
-                  where: {
-                    propertyId,
-                    linkedEventUid: ev.uid,
-                    OR: [
-                      { linkedEventPlatform: link.platform },
-                      { linkedEventPlatform: null, platform: link.platform },
-                    ],
-                  },
-                  data: {
-                    linkedEventUid: null,
-                    linkedEventPlatform: null,
-                    linkedEventRole: null,
+                    platform: link.platform,
+                    uid: ev.uid,
+                    endDate: { gte: today },
                   },
                 });
-                unlinkedReservations += unlinked.count;
+
+                if (deleted.count > 0) {
+                  // UID reissue detection: does a newly-appearing event on
+                  // the same platform overlap the vanished one's dates?
+                  // Overlap uses the standard half-open predicate; if
+                  // multiple candidates match, prefer the one with the
+                  // largest date-range intersection (usually there's just
+                  // one). Summary similarity is a secondary hint but not
+                  // required — Booking normalises "CLOSED - Not available"
+                  // across host-blocks and reservations alike.
+                  const overlap = (candidate: ICalEvent) => Math.max(0,
+                    Date.parse(candidate.endDate < ev.endDate ? candidate.endDate : ev.endDate) -
+                    Date.parse(candidate.startDate > ev.startDate ? candidate.startDate : ev.startDate),
+                  );
+                  const candidateReissue = newEvents.filter((event) => overlap(event) > 0)
+                    .sort((a, b) => overlap(b) - overlap(a))[0];
+
+                  if (candidateReissue) {
+                    const migrated = await tx.reservation.updateMany({
+                      where: {
+                        propertyId,
+                        linkedEventUid: ev.uid,
+                        OR: [
+                          { linkedEventPlatform: link.platform },
+                          // Compatibility for rows created before source platform
+                          // became independent from the booking channel.
+                          { linkedEventPlatform: null, platform: link.platform },
+                        ],
+                      },
+                      data: { linkedEventUid: candidateReissue.uid },
+                    });
+                    migratedReservations += migrated.count;
+                  } else {
+                    // No reissue candidate — treat as a real cancellation.
+                    // NEVER auto-delete a linked Reservation (it may carry
+                    // guest passports or a paid Direct extension). Clear the
+                    // complete relationship on both claims and extensions so
+                    // each local row survives as an independent manual entry.
+                    const unlinked = await tx.reservation.updateMany({
+                      where: {
+                        propertyId,
+                        linkedEventUid: ev.uid,
+                        OR: [
+                          { linkedEventPlatform: link.platform },
+                          { linkedEventPlatform: null, platform: link.platform },
+                        ],
+                      },
+                      data: {
+                        linkedEventUid: null,
+                        linkedEventPlatform: null,
+                        linkedEventRole: null,
+                      },
+                    });
+                    unlinkedReservations += unlinked.count;
+                  }
+                }
               }
             }
-          }
-        }
-        removedReservations = migratedReservations + unlinkedReservations;
 
-        // Update link status
-        await prisma.calendarLink.update({
-          where: { id: link.id },
-          data: { lastFetchedAt: new Date(), lastError: null, failureCount: 0 },
-        });
+            // Update link status
+            await tx.calendarLink.update({
+              where: { id: link.id },
+              data: { lastFetchedAt: new Date(), lastError: null, failureCount: 0 },
+            });
+            return { newEvents, updatedEvents, removedUIDs, migratedReservations, unlinkedReservations };
+          });
 
         summary.newEvents += newEvents.length;
+        summary.updatedEvents += updatedEvents.length;
         summary.removedEvents += removedUIDs.length;
 
         if (newEvents.length > 0) {
@@ -316,6 +325,13 @@ export async function syncAllCalendars(opts?: {
             `${propertyName} / ${link.platform}: ${newEvents.length} new booking(s) detected — ${newEvents.map((e) => `${e.summary || "Blocked"} (${e.startDate} → ${e.endDate})`).join(", ")}`,
             "success",
             propertyId
+          );
+        }
+        if (updatedEvents.length > 0) {
+          await log(
+            `${propertyName} / ${link.platform}: ${updatedEvents.length} booking(s) updated (dates or summary changed)`,
+            "success",
+            propertyId,
           );
         }
         if (removedUIDs.length > 0) {
@@ -337,6 +353,18 @@ export async function syncAllCalendars(opts?: {
       } catch (err) {
         summary.errors++;
         const msg = err instanceof Error ? err.message : String(err);
+        try {
+          await prisma.calendarLink.update({
+            where: { id: link.id },
+            data: {
+              lastError: `Sync failed: ${msg}`,
+              lastFetchedAt: new Date(),
+              failureCount: { increment: 1 },
+            },
+          });
+        } catch {
+          // The same database outage may also prevent recording link health.
+        }
         await log(
           `${propertyName} / ${link.platform}: Unexpected error — ${msg}`,
           "error",
@@ -455,7 +483,7 @@ export async function syncAllCalendars(opts?: {
   }
 
   await log(
-    `Sync complete: ${summary.propertiesSynced} properties, ${summary.newEvents} new, ${summary.removedEvents} removed, ${summary.errors} errors`,
+    `Sync complete: ${summary.propertiesSynced} properties, ${summary.newEvents} new, ${summary.updatedEvents} updated, ${summary.removedEvents} removed, ${summary.errors} errors`,
     summary.errors > 0 ? "warn" : "success"
   );
 

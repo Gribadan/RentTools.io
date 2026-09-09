@@ -130,6 +130,23 @@ export async function PATCH(
       }
     }
 
+    if (body.bookedGuestCount !== undefined) {
+      if (body.bookedGuestCount === null || body.bookedGuestCount === "") {
+        data.bookedGuestCount = null;
+      } else if (
+        !Number.isInteger(body.bookedGuestCount) ||
+        body.bookedGuestCount < 1 ||
+        body.bookedGuestCount > 50
+      ) {
+        return NextResponse.json(
+          { error: "bookedGuestCount must be an integer from 1 to 50" },
+          { status: 400 },
+        );
+      } else {
+        data.bookedGuestCount = body.bookedGuestCount;
+      }
+    }
+
     // If the date range is changing, check for overlap with OTHER
     // reservations on the same property. The POST endpoint already
     // does this for new reservations; PATCH was missing the same

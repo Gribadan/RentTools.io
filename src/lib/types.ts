@@ -51,6 +51,8 @@ export interface Reservation {
    *  personal-chat WhatsApp / Telegram quick-buttons even on bookings
    *  with no passport guests. */
   phone?: string | null;
+  /** Confirmed number of travelers in this booking. */
+  bookedGuestCount?: number | null;
   propertyId: number;
   createdAt: string;
   guests?: Guest[];

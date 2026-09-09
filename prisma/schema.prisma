@@ -301,10 +301,14 @@ model Reservation {
   // booking) and use it to deeplink straight into a personal WhatsApp /
   // Telegram chat. Stored in the same loose E.164 shape Guest.phone uses.
   phone           String?
+  // Confirmed party size. iCal imports usually cannot provide it, so legacy
+  // rows may remain null until the owner confirms the booking details.
+  bookedGuestCount Int?
   propertyId      Int
   property        Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   guests          Guest[]
   guestFormSubmissions GuestFormSubmission[]
+  eVisitorReceipts EVisitorReceipt[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -547,6 +551,19 @@ model GuestFormSubmission {
   templateId    Int
   template      GuestFormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   shareToken    String            @unique
+  // New links are looked up by SHA-256 hash. `shareToken` remains for
+  // backwards compatibility with already-issued links; for new rows it holds
+  // only a non-secret legacy marker. The raw token is encrypted so an
+  // authenticated owner can copy the same link again without storing it in
+  // plaintext.
+  tokenHash      String?           @unique
+  tokenCiphertext String?
+  status         String            @default("NOT_INVITED")
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  securePayload  String            @default("")
+  ownerApprovedAt DateTime?
+  lastChangedAt  DateTime?
   // JSON: ordered list of { fieldId, type, label, value }. Captured at
   // submit time so template edits don't retroactively change history.
   answers       String            @default("[]")
@@ -556,6 +573,29 @@ model GuestFormSubmission {
 
   @@index([reservationId])
   @@index([templateId])
+  @@index([status])
+}
+
+model EVisitorReceipt {
+  id                  Int         @id @default(autoincrement())
+  reservationId       Int
+  reservation         Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  // Stable server-issued ID stored inside the encrypted pre-check-in payload.
+  // It is intentionally not the browser's clientId and contains no PII.
+  guestId             String
+  eVisitorGuid        String
+  action              String
+  environment         String      @default("test")
+  status              String
+  requestHash         String
+  attemptedAt         DateTime    @default(now())
+  readbackConfirmedAt DateTime?
+  attemptCount        Int         @default(1)
+  failureCode         String?
+
+  @@unique([reservationId, guestId, action, requestHash])
+  @@index([eVisitorGuid])
+  @@index([reservationId, guestId])
 }
 
 model CalendarPlatform {

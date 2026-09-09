@@ -1,5 +1,6 @@
 import type { Property, CalendarLink } from "@/lib/types";
 import { toDateStr } from "./utils";
+import { toReservationDateInput } from "@/lib/reservation-dates";
 import type { CalendarEvent, CalendarBar, ConflictInfo } from "./types";
 
 export interface ExportInput {
@@ -25,8 +26,8 @@ export function buildCalendarExportText(input: ExportInput): string {
 
   lines.push(`--- INTERNAL RESERVATIONS (${property.reservations.length}) ---`);
   for (const res of [...property.reservations].sort((a, b) => new Date(a.checkIn).getTime() - new Date(b.checkIn).getTime())) {
-    const s = toDateStr(new Date(res.checkIn));
-    const e = toDateStr(new Date(res.checkOut));
+    const s = toReservationDateInput(res.checkIn);
+    const e = toReservationDateInput(res.checkOut);
     lines.push(`[${res.platform?.toUpperCase()}] ${s} → ${e} | ${res.name} | ${res._count?.guests || 0} guests`);
   }
   lines.push("");

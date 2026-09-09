@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import type { Property, CalendarLink, DateOverride, Reservation } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
-import { toDateStr, addDaysStr } from "./utils";
+import { addDaysStr } from "./utils";
+import { toReservationDateInput } from "@/lib/reservation-dates";
 import type { CalendarEvent, CalendarBar, ConflictInfo } from "./types";
 import {
   calendarEventIdentity,
@@ -97,15 +98,11 @@ export function useCalendarData(
         stayDates.add(d);
         d = addDaysStr(d, 1);
       }
-      // evMap key is `<startDate>|<platform>` so cross-platform events on
-      // the same start day coexist. The old key was just startDate, which
-      // silently dropped every second event with a same-day twin from a
-      // different platform — symptom reported via the in-product feedback
-      // form: Booking Jun 1-10 + Airbnb Jun 1 rendered as a single one-day
-      // bar, because Airbnb's event won the map slot and Booking's 10-day
-      // range disappeared. Composite key fixes that without changing
-      // render order (startDate is still the first sort segment).
-      const evKey = `${ev.startDate}|${platform}`;
+      // Keep every source event, including same-platform events sharing
+      // a check-in date. Otherwise a shorter block arriving first can
+      // hide the later checkout of the real booking. The bars pass below
+      // unions overlapping ranges without discarding their booked days.
+      const evKey = `${ev.startDate}|${platform}|event:${ev.uid}`;
       if (!evMap.has(evKey)) {
         evMap.set(evKey, {
           name: ev.summary || "Reserved",
@@ -125,8 +122,8 @@ export function useCalendarData(
 
     for (const rawReservation of property.reservations) {
       const res = rawReservation as LinkedReservation;
-      const start = toDateStr(new Date(res.checkIn));
-      const end = toDateStr(new Date(res.checkOut));
+      const start = toReservationDateInput(res.checkIn);
+      const end = toReservationDateInput(res.checkOut);
       const platform = res.platform || "airbnb";
 
       let matchingEventStart: string | null = null;
@@ -238,10 +235,7 @@ export function useCalendarData(
           stayDates.add(d);
           d = addDaysStr(d, 1);
         }
-        // Same composite key as the iCal write path above — keeps the
-        // Map's key format consistent so the sort + iterate downstream
-        // (bars memo at L411 onward) sees one homogeneous keyspace.
-        evMap.set(`${start}|${platform}`, {
+        evMap.set(`${start}|${platform}|reservation:${res.id}`, {
           name: res.name,
           platform,
           startDate: start,
@@ -395,8 +389,8 @@ export function useCalendarData(
           e.uid === res.linkedEventUid,
       );
       if (!ev) continue;
-      const resStart = toDateStr(new Date(res.checkIn));
-      const resEnd = toDateStr(new Date(res.checkOut));
+      const resStart = toReservationDateInput(res.checkIn);
+      const resEnd = toReservationDateInput(res.checkOut);
       // If the reservation's range overlaps the event's range it's a
       // "claim" of the event itself — the boundary is implicit and
       // there is no transition day to suppress.
@@ -547,8 +541,8 @@ export function useCalendarData(
           (e) => e.platform === sourcePlatform && e.uid === extLinkedUid,
         );
         if (linkedEv) {
-          const rStart = toDateStr(new Date(matchingResForExt!.checkIn));
-          const rEnd = toDateStr(new Date(matchingResForExt!.checkOut));
+          const rStart = toReservationDateInput(matchingResForExt!.checkIn);
+          const rEnd = toReservationDateInput(matchingResForExt!.checkOut);
           const overlapsLinked =
             linkedEv.startDate < rEnd && linkedEv.endDate > rStart;
           isExtension = !overlapsLinked;
@@ -576,8 +570,8 @@ export function useCalendarData(
       if (isGenericSummary) {
         const matchingRes = property.reservations.find(rawReservation => {
           const r = rawReservation as LinkedReservation;
-          const rStart = toDateStr(new Date(r.checkIn));
-          const rEnd = toDateStr(new Date(r.checkOut));
+          const rStart = toReservationDateInput(r.checkIn);
+          const rEnd = toReservationDateInput(r.checkOut);
           if (!(rStart < ev.endDate && rEnd > ev.startDate)) return false;
           if (r.linkedEventUid) {
             return (
@@ -631,10 +625,23 @@ export function useCalendarData(
       });
     }
 
+    const linkedSources = new Set<string>();
+    for (const reservation of property.reservations) {
+      const platform = linkedSourcePlatform(reservation);
+      if (platform && reservation.linkedEventUid) {
+        linkedSources.add(calendarEventIdentity(platform, reservation.linkedEventUid));
+      }
+    }
+    const hasLinkedSource = (bar: CalendarBar) => !!bar.eventUid &&
+      linkedSources.has(calendarEventIdentity(bar.platform, bar.eventUid));
+    const hasManagedIdentity = (bar: CalendarBar) => !!bar.reservationId || hasLinkedSource(bar);
+
     const deduped: CalendarBar[] = [];
     for (const bar of result) {
       const existing = deduped.find(
-        b => b.platform === bar.platform && b.startDate < bar.endDate && b.endDate > bar.startDate
+        b => b.platform === bar.platform && b.startDate < bar.endDate && b.endDate > bar.startDate &&
+          !(b.reservationId && bar.reservationId && b.reservationId !== bar.reservationId) &&
+          !(b.eventUid && bar.eventUid && b.eventUid !== bar.eventUid && hasManagedIdentity(b) && hasManagedIdentity(bar))
       );
       if (existing) {
         if (bar.startDate < existing.startDate) existing.startDate = bar.startDate;
@@ -642,8 +649,11 @@ export function useCalendarData(
         if (bar.reservationId && !existing.reservationId) {
           existing.name = bar.name;
           existing.reservationId = bar.reservationId;
+          // The displayed guest and source UID must refer to the same
+          // reservation, even when a generic overlapping block came first.
+          existing.eventUid = bar.eventUid;
         }
-        if (bar.eventUid && !existing.eventUid) {
+        if (bar.eventUid && !existing.reservationId && (!existing.eventUid || (hasLinkedSource(bar) && !hasLinkedSource(existing)))) {
           existing.eventUid = bar.eventUid;
         }
         if (bar.linkedEventUid && !existing.linkedEventUid) {
