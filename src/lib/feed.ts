@@ -156,12 +156,16 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
     // The booking channel is a label, not proof that its platform still
     // holds these nights. An unlinked Airbnb-labelled local reservation
     // used to disappear from Airbnb's feed while still blocking Booking.
-    // Only suppress nights actually present in the target's imported feed;
-    // every remaining local night must keep blocking that target as well.
+    // Only an explicit link proves the reservation is a claim of the target's
+    // source event. An unrelated native block on the same dates (including a
+    // host's emergency manual reclose) must not suppress local occupancy.
+    // Suppress only that linked source's nights; all remaining local nights
+    // must keep blocking the target as well.
     // Subtraction also preserves a host's added nights around a source stay.
     let segments = [event];
-    if (reservationChannel(res) === forPlatform) {
-      for (const source of allEvents.filter(e => e.platform === forPlatform)) {
+    if (reservationChannel(res) === forPlatform && res.linkedEventUid &&
+        (res.linkedEventPlatform || res.platform) === forPlatform) {
+      for (const source of allEvents.filter(e => e.platform === forPlatform && e.uid === res.linkedEventUid)) {
         segments = segments.flatMap((segment) => {
           if (source.endDate <= segment.startDate || source.startDate >= segment.endDate) {
             return [segment];
@@ -275,7 +279,11 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
   // Re-key the final public events once more so neither dates, source UIDs nor
   // internal IDs leak through the bearer-readable feed. The date range is part
   // of the hash input, keeping the opaque identifier stable across refreshes.
-  const publicEvents = finalEvents.map((event) => ({
+  // A manual closed date can exactly match an existing one-night stay or
+  // cleaning block. Deduplicate after overrides too, or the range-based
+  // public UID below would occur twice and invalidate the feed.
+  const finalRanges = new Map(finalEvents.map((event) => [`${event.startDate}/${event.endDate}`, event]));
+  const publicEvents = [...finalRanges.values()].map((event) => ({
     ...event,
     uid: opaqueEventUid("feed-event", propertyId, forPlatform, event.startDate, event.endDate),
     summary: "Blocked",

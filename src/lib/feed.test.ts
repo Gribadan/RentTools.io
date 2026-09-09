@@ -319,6 +319,49 @@ describe("generateFeed — self-origin loop guard", () => {
 });
 
 describe("generateFeed — local occupancy remains authoritative", () => {
+  it("exports an unlinked local stay even while the host's emergency platform block covers the same dates", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([{
+      ...source, uid: "emergency-native-block", summary: "Not available",
+      startDate: "2099-09-15", endDate: "2099-09-25",
+    }]);
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension, platform: "airbnb", linkedEventUid: null,
+      linkedEventPlatform: null, linkedEventRole: null,
+      checkIn: new Date("2099-09-15T00:00:00.000Z"),
+      checkOut: new Date("2099-09-25T00:00:00.000Z"),
+    }]);
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([expect.objectContaining({
+      startDate: "2099-09-15", endDate: "2099-09-25",
+    })]);
+  });
+
+  it("emits one UID when a closed override overlaps a one-night reservation", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([]);
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      linkedEventUid: null,
+      linkedEventPlatform: null,
+      linkedEventRole: null,
+      checkIn: new Date("2099-09-15T00:00:00.000Z"),
+      checkOut: new Date("2099-09-16T00:00:00.000Z"),
+    }]);
+    mocks.dateOverrideFindMany.mockResolvedValue([
+      { date: "2099-09-15", type: "closed" },
+      { date: "2099-09-20", type: "closed" },
+    ]);
+
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    // A repeated UID makes the full snapshot invalid for a strict importer.
+    // Keep the occupied night and the unrelated manual block exactly once.
+    expect(parseICal(result.ical).map(({ startDate, endDate }) => ({ startDate, endDate }))).toEqual([
+      { startDate: "2099-09-15", endDate: "2099-09-16" },
+      { startDate: "2099-09-20", endDate: "2099-09-21" },
+    ]);
+  });
+
   it.each(["airbnb", "booking"])("exports an unlinked Airbnb-labelled reservation to %s", async (platform) => {
     mocks.calendarEventFindMany.mockResolvedValue([]);
     mocks.reservationFindMany.mockResolvedValue([{
