@@ -7,7 +7,7 @@ instructions and `scripts/install-build.sh` do not apply to this deployment.
 
 ## Release gates and credentials
 
-`.github/workflows/deploy.yml` builds an immutable `renttools-site:<full SHA>`
+`.github/workflows/deploy.yml` authorizes an immutable `renttools-site:<full SHA>`
 image only for current `master` after successful CI for that exact commit.
 The deployment then requires the GitHub `Production` environment approval and
 checks that `master` has not advanced. A manual `preflight` run uses the same
@@ -23,8 +23,9 @@ restrict,command="/home/ubuntu/renttools/github-deploy-gateway.sh" <public key>
 Configure `DROPLET_HOST`, `DROPLET_USER` and `DROPLET_KNOWN_HOSTS` for the current
 host. Verify its host key through an existing trusted connection before storing
 the known-hosts entry. Do not put a general shared-host administrator key in
-GitHub. The gateway accepts only `renttools-preflight`, `renttools-upload <SHA>`
-and `renttools-deploy <SHA>`; arbitrary shell, forwarding and SFTP are unavailable.
+GitHub. The gateway accepts only `renttools-preflight`, `renttools-upload <SHA>`,
+`renttools-deploy <SHA>` and `renttools-build-deploy <SHA>`; arbitrary shell,
+forwarding and SFTP are unavailable.
 
 A maintainer installs these reviewed files through their existing administrator
 connection, with Unix line endings, owner `ubuntu`, and no other-user writes:
@@ -33,12 +34,33 @@ connection, with Unix line endings, owner `ubuntu`, and no other-user writes:
 | --- | --- | --- |
 | `scripts/github-deploy-gateway.sh` | `/home/ubuntu/renttools/github-deploy-gateway.sh` | `700` |
 | `scripts/install-docker-build.sh` | `/home/ubuntu/renttools/install-docker-build.sh` | `700` |
+| `scripts/build-docker-release.sh` | `/home/ubuntu/renttools/build-docker-release.sh` | `700` |
 | `.github/scripts/deploy-preflight.py` | `/home/ubuntu/renttools/deploy-preflight.py` | `600` |
 
-Workflow runs upload only the image, never executable deployment scripts.
+Workflow runs invoke installed commands, never upload executable deployment scripts.
 Changes to these installed scripts require a separate maintainer review and
 installation. Test the dedicated key with a denied arbitrary command and a
 successful `renttools-preflight` before enabling deployment.
+
+The default release path builds on the server because image transfer from the
+GitHub artifact network is slow on this host. `build-docker-release.sh` fetches
+the exact current public master into an isolated Git archive context, without
+changing the `app` source snapshot. All npm installation, Prisma generation and
+Next compilation run in one non-root container limited to 2 GiB RAM, 3 GiB total
+RAM plus swap, two CPUs and a 1536 MiB Node heap. It mounts only that temporary
+source directory, never production data or the Docker socket. The base image
+setup and final packaging perform no application compilation.
+
+Selected public client settings and an optional Sentry source-map token are
+read from private server settings into a temporary environment file outside the
+source context. Build database/JWT/cron values are dummy values. A new runtime
+image copies only prepared application files from the source directory; the
+build container is never committed. Environment files, registry configuration
+and secret-key files are excluded, and packaging refuses output containing the
+Sentry token. Temporary environments and build containers are removed; private
+logs are scrubbed. The resulting image uses the same verified backup, migration
+and rollback installer as the upload path. Builds require 8 GiB free disk and
+leave the existing service running until the installer is ready to proceed.
 
 ## Runtime configuration and data
 

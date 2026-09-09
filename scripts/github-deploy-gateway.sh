@@ -45,6 +45,8 @@ finally:
 ' "$ROOT/incoming/$SHA.image.tar.gz"
 elif [[ "$COMMAND" =~ ^renttools-deploy\ ([0-9a-f]{40})$ ]]; then
   exec bash "$ROOT/install-docker-build.sh" "${BASH_REMATCH[1]}"
+elif [[ "$COMMAND" =~ ^renttools-build-deploy\ ([0-9a-f]{40})$ ]]; then
+  exec bash "$ROOT/build-docker-release.sh" "${BASH_REMATCH[1]}"
 else
   echo 'Command is not allowed by the RentTools deployment gateway.' >&2
   exit 1
