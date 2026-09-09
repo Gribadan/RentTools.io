@@ -156,12 +156,32 @@ jobs:
           docker build --file deploy/docker/Dockerfile \
             --build-arg GIT_COMMIT_SHA="$IMAGE_SHA" \
             --tag "renttools-ci:$IMAGE_SHA" .
+          # Test the server fallback's exact packaging path without repeating
+          # npm/Next: use the already built /app as prepared source output.
+          PREPARED_CONTEXT=$(mktemp -d "$RUNNER_TEMP/renttools-prepared.XXXXXX")
+          SOURCE_CONTAINER="renttools-ci-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          trap 'docker rm -f "$SOURCE_CONTAINER" >/dev/null 2>&1 || true' EXIT
+          docker create --name "$SOURCE_CONTAINER" "renttools-ci:$IMAGE_SHA" >/dev/null
+          docker cp "$SOURCE_CONTAINER:/app/." "$PREPARED_CONTEXT"
+          cp deploy/docker/Prepared.Dockerfile deploy/docker/Prepared.Dockerfile.dockerignore "$PREPARED_CONTEXT/"
+          printf 'SYNTHETIC_IGNORE_SENTINEL=true\n' > "$PREPARED_CONTEXT/.env.production"
+          printf 'SYNTHETIC_IGNORE_SENTINEL=true\n' > "$PREPARED_CONTEXT/.npmrc"
+          docker build --target base --file deploy/docker/Dockerfile \
+            --tag "renttools-ci-base:$IMAGE_SHA" .
+          docker build --file "$PREPARED_CONTEXT/Prepared.Dockerfile" \
+            --build-arg "BASE_IMAGE=renttools-ci-base:$IMAGE_SHA" \
+            --build-arg "GIT_COMMIT_SHA=$IMAGE_SHA" \
+            --tag "renttools-ci-prepared:$IMAGE_SHA" "$PREPARED_CONTEXT"
+          test "$(docker image inspect "renttools-ci-prepared:$IMAGE_SHA" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$IMAGE_SHA"
           # Exercise the actual Linux runtime without production credentials or
           # network access. Reapplying DDL must preserve a valid SQLite schema.
           docker run --rm --network none \
             --env DATABASE_URL=file:/tmp/renttools-ci.db \
-            --entrypoint sh "renttools-ci:$IMAGE_SHA" -ec '
+            --entrypoint sh "renttools-ci-prepared:$IMAGE_SHA" -ec '
               test "$(id -u)" = 1000
+              test ! -f /app/.env.production
+              test ! -f /app/.npmrc
+              test -z "${SENTRY_AUTH_TOKEN:-}"
               ./node_modules/.bin/tsx prisma/push-schema.ts
               ./node_modules/.bin/tsx prisma/push-schema.ts
               test "$(sqlite3 /tmp/renttools-ci.db "PRAGMA integrity_check;")" = ok

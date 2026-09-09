@@ -1,7 +1,7 @@
 name: Deploy RentTools
 
-# Build an immutable image on GitHub; the restricted server gateway replaces
-# only the existing RentTools Compose service on the shared Docker host.
+# CI validates the image on GitHub. The approved, resource-capped server build
+# avoids slow image transfers and replaces only the RentTools Compose service.
 on:
   workflow_run:
     workflows: [CI]
@@ -61,7 +61,7 @@ jobs:
           if ! ssh -i "$SSH_DIR/id_deploy" \
               -o BatchMode=yes -o IdentitiesOnly=yes \
               -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_DIR/known_hosts" \
-              -o ConnectTimeout=15 -o ConnectionAttempts=1 \
+              -o ConnectTimeout=15 -o ConnectionAttempts=3 \
               -o ServerAliveInterval=15 -o ServerAliveCountMax=2 \
               "$DROPLET_USER@$DROPLET_HOST" renttools-preflight \
               2> "$SSH_DIR/ssh-error.log"; then
@@ -78,9 +78,9 @@ jobs:
           fi
 
   build:
-    name: Build Docker image on runner
+    name: Verify release eligibility
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 3
     if: >-
       ${{ github.repository == 'Gribadan/RentTools.io' && vars.DROPLET_HOST != '' &&
           ((github.event_name == 'workflow_dispatch' && inputs.mode != 'preflight' &&
@@ -89,11 +89,6 @@ jobs:
             github.event.workflow_run.event == 'push' &&
             github.event.workflow_run.head_branch == 'master' &&
             github.event.workflow_run.head_repository.full_name == github.repository)) }}
-    env:
-      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
-      NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED: ${{ vars.NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED }}
     steps:
       - name: Verify current master and successful CI
         env:
@@ -112,41 +107,12 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout verified release
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ env.DEPLOY_SHA }}
-          persist-credentials: false
-
-      - name: Build immutable production image
-        run: |
-          set -euo pipefail
-          docker build --platform linux/amd64 -f deploy/docker/Dockerfile \
-            --tag "renttools-site:$DEPLOY_SHA" \
-            --build-arg "GIT_COMMIT_SHA=$DEPLOY_SHA" \
-            --build-arg NEXT_PUBLIC_SENTRY_DSN \
-            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID \
-            --build-arg "NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED=${NEXT_PUBLIC_LEGACY_PASSPORT_OCR_ENABLED:-true}" \
-            --secret id=sentry_auth_token,env=SENTRY_AUTH_TOKEN .
-          docker image save "renttools-site:$DEPLOY_SHA" | gzip -1 > renttools-image.tar.gz
-          sha256sum renttools-image.tar.gz > renttools-image.tar.gz.sha256
-
-      - name: Upload image artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: docker-${{ env.DEPLOY_SHA }}
-          path: |
-            renttools-image.tar.gz
-            renttools-image.tar.gz.sha256
-          compression-level: 0
-          retention-days: 3
-
   deploy:
     name: Replace RentTools Docker service
     needs: build
     runs-on: ubuntu-latest
     if: ${{ vars.DROPLET_HOST != '' }}
-    timeout-minutes: 20
+    timeout-minutes: 55
     environment: Production
     steps:
       - name: Refuse a stale deployment after approval
@@ -160,12 +126,7 @@ jobs:
             exit 1
           fi
 
-      - name: Download image artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: docker-${{ env.DEPLOY_SHA }}
-
-      - name: Upload image and invoke the installed deployment gateway
+      - name: Build with fixed resource limits and invoke the deployment installer
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
           KNOWN_HOSTS: ${{ vars.DROPLET_KNOWN_HOSTS }}
@@ -177,7 +138,6 @@ jobs:
             echo "::error::Deployment credentials or host configuration are incomplete."
             exit 1
           fi
-          sha256sum --check renttools-image.tar.gz.sha256
           SSH_DIR="$RUNNER_TEMP/renttools-deploy"
           mkdir -m 700 -p "$SSH_DIR"
           trap 'rm -f "$SSH_DIR/id_deploy"' EXIT
@@ -186,13 +146,7 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > "$SSH_DIR/known_hosts"
           SSH=(ssh -i "$SSH_DIR/id_deploy" -o BatchMode=yes -o IdentitiesOnly=yes
                -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$SSH_DIR/known_hosts"
-               -o ConnectTimeout=15 -o ConnectionAttempts=1
+               -o ConnectTimeout=15 -o ConnectionAttempts=3
                -o ServerAliveInterval=20 -o ServerAliveCountMax=20
                "$DROPLET_USER@$DROPLET_HOST")
-          RECEIVED=$("${SSH[@]}" "renttools-upload $DEPLOY_SHA" < renttools-image.tar.gz)
-          EXPECTED=$(sha256sum renttools-image.tar.gz | awk '{print $1}')
-          if [ "$RECEIVED" != "$EXPECTED" ]; then
-            echo "::error::Uploaded image checksum did not match."
-            exit 1
-          fi
-          "${SSH[@]}" "renttools-deploy $DEPLOY_SHA"
+          "${SSH[@]}" "renttools-build-deploy $DEPLOY_SHA"
