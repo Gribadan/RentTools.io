@@ -20,7 +20,10 @@
 **/.sentryclirc
 **/.npmrc
 **/*.db
-**/*.sqlite*
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite-wal
+**/*.sqlite-shm
 **/*.pem
 **/*.key
 public/uploads/
