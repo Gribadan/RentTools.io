@@ -56,6 +56,13 @@ Before approving a database-affecting deployment:
 4. identify whether rollback is code-only or requires a forward data repair;
 5. verify every new required environment variable exists on the droplet.
 
+To inspect the configured server before a release, manually run **Deploy to
+droplet** with mode **preflight** on a protected, reviewed branch. It still
+requires the `Production` environment approval. This mode only reports release
+and health information, setting-presence booleans, and backup file metadata;
+it does not build, deploy, create a backup, query guest data, or change the server.
+Ordinary deployment remains restricted to current `master` with successful CI.
+
 ## 3. Security settings
 
 Enable:

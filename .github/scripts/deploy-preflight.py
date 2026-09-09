@@ -24,6 +24,11 @@ SETTINGS = (
 )
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, file, code, message, headers, new_url):
+        return None
+
+
 def command(args):
     try:
         result = subprocess.run(
@@ -82,11 +87,14 @@ except OSError:
 
 try:
     try:
-        response = urllib.request.urlopen("http://127.0.0.1:3000/api/health", timeout=10)
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+        response = opener.open("http://127.0.0.1:3000/api/health", timeout=10)
     except urllib.error.HTTPError as error:
         response = error
     with response:
         body = json.loads(response.read(65536))
+        if not isinstance(body, dict):
+            raise ValueError("Unexpected health response")
         health = {"httpStatus": response.status}
         for key in ("status", "db"):
             if body.get(key) in ("ok", "error"):
