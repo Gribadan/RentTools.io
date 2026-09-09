@@ -96,7 +96,8 @@ export async function isPropertyOwner(
  */
 export async function listAccessiblePropertyIds(
   userId: number,
-  role: string
+  role: string,
+  access: "read" | "manage" = "read",
 ): Promise<number[]> {
   const ids = new Set<number>();
 
@@ -115,7 +116,7 @@ export async function listAccessiblePropertyIds(
   for (const m of managed) ids.add(m.propertyId);
 
   // Cleaning assignments (only for cleaner role; in normal role we don't surface cleaner-only props)
-  if (role === "cleaner") {
+  if (role === "cleaner" && access === "read") {
     const assigned = await prisma.cleanerAssignment.findMany({
       where: { cleanerId: userId },
       select: { propertyId: true },

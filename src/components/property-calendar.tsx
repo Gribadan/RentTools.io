@@ -33,6 +33,8 @@ interface CopyShape {
   syncNow: string;
   syncing: string;
   syncDone: string;
+  refreshError: string;
+  syncError: string;
   syncCooldown: (seconds: number) => string;
   pickADay: string;
   pickADayHint: string;
@@ -47,6 +49,8 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Sync now",
     syncing: "Syncing…",
     syncDone: "Calendar updated",
+    refreshError: "Calendar refresh failed. Displayed availability may be out of date. Try again.",
+    syncError: "One or more calendars could not sync. Check calendar connections before relying on these dates.",
     syncCooldown: (s) => `Sync available in ${s}s`,
     pickADay: "Pick a day",
     pickADayHint: "Click any date in the calendar to open its actions or create a reservation.",
@@ -59,6 +63,8 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Синхронизировать сейчас",
     syncing: "Синхронизация…",
     syncDone: "Календарь обновлён",
+    refreshError: "Не удалось обновить календарь. Показанные даты могут быть неактуальны. Попробуйте ещё раз.",
+    syncError: "Не удалось синхронизировать один или несколько календарей. Проверьте подключения, прежде чем полагаться на эти даты.",
     syncCooldown: (s) => `Синхронизация будет доступна через ${s} с`,
     pickADay: "Выберите день",
     pickADayHint: "Кликните по любой дате в календаре, чтобы открыть действия и создать бронь.",
@@ -71,6 +77,8 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Jetzt synchronisieren",
     syncing: "Wird synchronisiert…",
     syncDone: "Kalender aktualisiert",
+    refreshError: "Der Kalender konnte nicht aktualisiert werden. Die angezeigte Verfügbarkeit ist möglicherweise veraltet. Versuchen Sie es erneut.",
+    syncError: "Mindestens ein Kalender konnte nicht synchronisiert werden. Prüfen Sie die Kalenderverbindungen, bevor Sie sich auf diese Daten verlassen.",
     syncCooldown: (s) => `Synchronisierung in ${s} s möglich`,
     pickADay: "Tag auswählen",
     pickADayHint: "Klicken Sie auf ein Datum im Kalender, um Aktionen zu öffnen oder eine Buchung anzulegen.",
@@ -83,6 +91,8 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Synchroniser maintenant",
     syncing: "Synchronisation…",
     syncDone: "Calendrier mis à jour",
+    refreshError: "La mise à jour du calendrier a échoué. Les disponibilités affichées peuvent être obsolètes. Réessayez.",
+    syncError: "Un ou plusieurs calendriers n’ont pas pu être synchronisés. Vérifiez les connexions avant de vous fier à ces dates.",
     syncCooldown: (s) => `Synchronisation possible dans ${s} s`,
     pickADay: "Choisissez un jour",
     pickADayHint: "Cliquez sur une date du calendrier pour ouvrir les actions ou créer une réservation.",
@@ -95,6 +105,8 @@ const COPY: Record<Locale, CopyShape> = {
     syncNow: "Sincronizar ahora",
     syncing: "Sincronizando…",
     syncDone: "Calendario actualizado",
+    refreshError: "No se pudo actualizar el calendario. La disponibilidad mostrada puede estar desactualizada. Inténtelo de nuevo.",
+    syncError: "No se pudieron sincronizar uno o varios calendarios. Revise las conexiones antes de confiar en estas fechas.",
     syncCooldown: (s) => `Sincronización disponible en ${s} s`,
     pickADay: "Elija un día",
     pickADayHint: "Haga clic en cualquier fecha del calendario para abrir sus acciones o crear una reserva.",
@@ -150,24 +162,21 @@ export function PropertyCalendar({
   const [extensionActionBar, setExtensionActionBar] = useState<ExtensionActionBar | null>(null);
   const [extensionActionAnchor, setExtensionActionAnchor] = useState<DOMRect | null>(null);
 
-  const { syncedEvents, links, overrides, loadingEvents, syncing, lastSyncAt, syncJustDone, refetchOverrides, handleSyncNow } =
+  const { syncedEvents, links, overrides, loadingEvents, syncing, lastSyncAt, syncJustDone, calendarError, refetchOverrides, handleSyncNow } =
     useCalendarFetch(property.id);
 
   // Live cooldown countdown for the "Sync now" button. `nowTick` is
   // bumped once a second only while a cooldown is active, so the
   // remaining-seconds label re-renders without a permanent interval.
-  const [nowTick, setNowTick] = useState(0);
+  const [nowTick, setNowTick] = useState(() => Date.now());
   const syncCooldownRemaining = lastSyncAt
-    ? Math.max(0, Math.ceil((lastSyncAt + SYNC_COOLDOWN_MS - Date.now()) / 1000))
+    ? Math.max(0, Math.ceil((lastSyncAt + SYNC_COOLDOWN_MS - Math.max(lastSyncAt, nowTick)) / 1000))
     : 0;
   useEffect(() => {
     if (syncCooldownRemaining <= 0) return;
-    const id = window.setInterval(() => setNowTick((n) => n + 1), 1000);
+    const id = window.setInterval(() => setNowTick(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [syncCooldownRemaining]);
-  // nowTick is read so the effect's dependency on syncCooldownRemaining
-  // recomputes each tick; reference it to satisfy the linter.
-  void nowTick;
   const syncDisabled = syncing || syncCooldownRemaining > 0;
 
   const today = useMemo(() => {
@@ -713,6 +722,11 @@ export function PropertyCalendar({
                 </button>
               </div>
             </div>
+            {calendarError && (
+              <p role="alert" className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-[var(--ink)]">
+                {calendarError === "refresh" ? c.refreshError : c.syncError}
+              </p>
+            )}
             <div className="grid grid-cols-7 pb-2">
               {WEEKDAYS.map((wd) => (
                 <div

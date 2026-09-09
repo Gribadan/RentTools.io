@@ -12,5 +12,8 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return children;
+  // Browser translation replaces React-owned text with <font> nodes. Sentry
+  // recorded those nodes immediately before removeChild/insertBefore crashes.
+  // The dashboard already provides its own language selector.
+  return <div translate="no" className="notranslate">{children}</div>;
 }

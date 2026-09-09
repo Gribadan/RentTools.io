@@ -317,3 +317,70 @@ describe("generateFeed — self-origin loop guard", () => {
     }
   });
 });
+
+describe("generateFeed — local occupancy remains authoritative", () => {
+  it.each(["airbnb", "booking"])("exports an unlinked Airbnb-labelled reservation to %s", async (platform) => {
+    mocks.calendarEventFindMany.mockResolvedValue([]);
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      platform: "airbnb",
+      linkedEventUid: null,
+      linkedEventPlatform: null,
+      linkedEventRole: null,
+      checkIn: new Date("2099-09-15T00:00:00.000Z"),
+      checkOut: new Date("2099-09-25T00:00:00.000Z"),
+    }]);
+    // An old force-open must not defeat the later local reservation.
+    mocks.dateOverrideFindMany.mockResolvedValue([{ date: "2099-09-18", type: "open" }]);
+    const result = await generateFeed(12, platform);
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([expect.objectContaining({
+      startDate: "2099-09-15", endDate: "2099-09-25",
+    })]);
+  });
+
+  it("does not reflect a claimed source stay back into its own platform", async () => {
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      platform: "airbnb",
+      linkedEventRole: "claim",
+      checkIn: new Date(`${source.startDate}T00:00:00.000Z`),
+      checkOut: new Date(`${source.endDate}T00:00:00.000Z`),
+    }]);
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical).filter(e => e.uid !== "renttools-placeholder")).toEqual([]);
+  });
+
+  it("exports local nights on both sides of a shorter source stay", async () => {
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      platform: "airbnb",
+      linkedEventRole: "claim",
+      checkIn: new Date("2099-08-17T00:00:00.000Z"),
+      checkOut: new Date("2099-08-25T00:00:00.000Z"),
+    }]);
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([
+      expect.objectContaining({ startDate: "2099-08-17", endDate: "2099-08-19" }),
+      expect.objectContaining({ startDate: "2099-08-23", endDate: "2099-08-25" }),
+    ]);
+  });
+
+  it("keeps a preserved local reservation blocked after its imported UID disappears", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([]);
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      platform: "airbnb",
+      linkedEventRole: "claim",
+      checkIn: new Date(`${source.startDate}T00:00:00.000Z`),
+      checkOut: new Date(`${source.endDate}T00:00:00.000Z`),
+    }]);
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([expect.objectContaining({
+      startDate: source.startDate, endDate: source.endDate,
+    })]);
+  });
+});

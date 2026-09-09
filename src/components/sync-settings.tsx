@@ -257,6 +257,14 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   // step, not two.
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const requestFailed: Record<Locale, string> = {
+    en: "The request failed. Check your connection and try again.",
+    ru: "Запрос не выполнен. Проверьте подключение и попробуйте ещё раз.",
+    es: "La solicitud falló. Comprueba la conexión e inténtalo de nuevo.",
+    de: "Die Anfrage ist fehlgeschlagen. Prüfe die Verbindung und versuche es erneut.",
+    fr: "La requête a échoué. Vérifiez la connexion et réessayez.",
+  };
   const [testing, setTesting] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [copied, setCopied] = useState<string | null>(null);
@@ -312,14 +320,23 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   }, [propertyId]);
 
   const fetchData = async () => {
-    const [linksRes, syncRes, tokenRes] = await Promise.all([
-      fetch(`/api/calendar/links?propertyId=${propertyId}`),
-      fetch(`/api/calendar/sync?propertyId=${propertyId}&limit=50`),
-      fetch(`/api/properties/${propertyId}/rotate-feed-token`),
-    ]);
-    if (linksRes.ok) {
-      const data: CalendarLink[] = await linksRes.json();
-      setLinks(data);
+    try {
+      const [linksRes, syncRes, tokenRes] = await Promise.all([
+        fetch(`/api/calendar/links?propertyId=${propertyId}`),
+        fetch(`/api/calendar/sync?propertyId=${propertyId}&limit=50`),
+        fetch(`/api/properties/${propertyId}/rotate-feed-token`),
+      ]);
+      if (!linksRes.ok || !syncRes.ok || !tokenRes.ok) {
+        throw new Error("Settings refresh failed");
+      }
+      const [data, syncData, tokenData] = await Promise.all([
+        linksRes.json(), syncRes.json(), tokenRes.json(),
+      ]);
+      if (!Array.isArray(data) || !Array.isArray(syncData?.logs) ||
+          !tokenData || !(tokenData.feedToken === null || typeof tokenData.feedToken === "string")) {
+        throw new Error("Invalid settings response");
+      }
+      setLinks(data as CalendarLink[]);
       // Populate URL inputs from EVERY existing link, not just airbnb/booking.
       // The user might have a Vrbo or custom-platform link from the
       // onboarding wizard that wouldn't otherwise hydrate.
@@ -328,36 +345,42 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
         for (const l of data) next[l.platform] = l.icalExportUrl;
         return next;
       });
+      setLogs(syncData.logs);
+      setFeedToken(tokenData.feedToken);
+      return true;
+    } catch {
+      setRequestError(requestFailed[locale]);
+      return false;
+    } finally {
+      setLoading(false);
     }
-    if (syncRes.ok) {
-      const data = await syncRes.json();
-      setLogs(data.logs || []);
-    }
-    if (tokenRes.ok) {
-      const data = await tokenRes.json();
-      setFeedToken(typeof data.feedToken === "string" ? data.feedToken : null);
-    }
-    setLoading(false);
   };
 
   const handleRotateToken = async () => {
+    setRequestError(null);
     setRotating(true);
     try {
       const res = await fetch(`/api/properties/${propertyId}/rotate-feed-token`, { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        if (typeof data.feedToken === "string") setFeedToken(data.feedToken);
-      }
+      if (!res.ok) throw new Error("Token update failed");
+      const data = await res.json();
+      if (typeof data.feedToken !== "string") throw new Error("Invalid token response");
+      setFeedToken(data.feedToken);
+    } catch {
+      setRequestError(requestFailed[locale]);
     } finally {
       setRotating(false);
     }
   };
 
   const handleClearToken = async () => {
+    setRequestError(null);
     setRotating(true);
     try {
       const res = await fetch(`/api/properties/${propertyId}/rotate-feed-token`, { method: "DELETE" });
-      if (res.ok) setFeedToken(null);
+      if (!res.ok) throw new Error("Token update failed");
+      setFeedToken(null);
+    } catch {
+      setRequestError(requestFailed[locale]);
     } finally {
       setRotating(false);
     }
@@ -405,13 +428,19 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   const handleDelete = async (platform: string) => {
     const link = getLink(platform);
     if (!link) return;
-    await fetch(`/api/calendar/links/${link.id}`, { method: "DELETE" });
-    setUrlInputs((prev) => {
-      const next = { ...prev };
-      delete next[platform];
-      return next;
-    });
-    await fetchData();
+    setRequestError(null);
+    try {
+      const res = await fetch(`/api/calendar/links/${link.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Calendar removal failed");
+      setUrlInputs((prev) => {
+        const next = { ...prev };
+        delete next[platform];
+        return next;
+      });
+      await fetchData();
+    } catch {
+      setRequestError(requestFailed[locale]);
+    }
   };
 
   const handleTest = async (platform: string, url: string) => {
@@ -436,19 +465,36 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   const handleUpdateBuffer = async (platform: string, field: "bufferBefore" | "bufferAfter", value: number) => {
     const link = getLink(platform);
     if (!link) return;
-    await fetch(`/api/calendar/links/${link.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: value }),
-    });
-    await fetchData();
+    setRequestError(null);
+    try {
+      const res = await fetch(`/api/calendar/links/${link.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) throw new Error("Buffer update failed");
+      await fetchData();
+    } catch {
+      setRequestError(requestFailed[locale]);
+    }
   };
 
   const handleSync = async () => {
+    if (syncing) return;
     setSyncing(true);
+    setRequestError(null);
     try {
-      await fetch("/api/calendar/sync", { method: "POST" });
+      const res = await fetch("/api/calendar/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyId }),
+      });
+      if (!res.ok) throw new Error("Sync request failed");
+      const result = await res.json();
       await fetchData();
+      if (!result || result.errors !== 0) setRequestError(t("sync.feedError"));
+    } catch {
+      setRequestError(requestFailed[locale]);
     } finally {
       setSyncing(false);
     }
@@ -460,10 +506,14 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
     return feedToken ? `${base}?token=${feedToken}` : base;
   };
 
-  const copyUrl = (url: string, key: string) => {
-    navigator.clipboard.writeText(url);
-    setCopied(key);
-    setTimeout(() => setCopied(null), 2000);
+  const copyUrl = async (url: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setRequestError(requestFailed[locale]);
+    }
   };
 
   // Preset platforms — same set as the onboarding wizard so a host who
@@ -611,6 +661,15 @@ export function SyncSettings({ propertyId, propertyName, properties, minNights, 
   return (
     <div className="-mx-3 sm:-mx-6 lg:-mx-8">
     <div className="cls-isolate mx-auto max-w-[1760px] space-y-8 px-3 sm:px-5">
+      {requestError && (
+        <div role="alert" className="rounded-md border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800">
+          {requestError}
+          <button type="button" className="ml-3 underline" onClick={async () => {
+            setRequestError(null);
+            await fetchData();
+          }}>{t("common.refresh")}</button>
+        </div>
+      )}
       {/* Property switcher — top-of-page pill row so the user can
           jump between properties without using the top-bar dropdown.
           Hidden when only one property exists (PropertySwitcher

@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [] });
     }
 
-    const accessibleIds = await listAccessiblePropertyIds(session.userId, session.role);
+    // Guest identity data requires management access, just like /api/guests.
+    // A cleaning assignment grants calendar access, not guest search access.
+    const accessibleIds = await listAccessiblePropertyIds(session.userId, session.role, "manage");
     if (accessibleIds.length === 0) {
       return NextResponse.json({ results: [] });
     }
@@ -26,8 +28,11 @@ export async function GET(request: NextRequest) {
         reservation: { property: { id: { in: accessibleIds } } },
         OR: [
           { fullName: { contains: q } },
-          { passportNumber: { contains: q } },
-          { country: { contains: q } },
+          // Masking results alone still allows guessing hidden document values.
+          ...(!session.impersonatorId ? [
+            { passportNumber: { contains: q } },
+            { country: { contains: q } },
+          ] : []),
         ],
       },
       select: {
@@ -51,8 +56,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Redact passport / nationality in results when a superadmin is
-    // impersonating — search still matches server-side, but the
-    // impersonating session never sees the document values.
+    // impersonating; document fields are also excluded from search matching.
     const redact = !!session.impersonatorId;
     const results = guests.map((g) => ({
       guestId: g.id,

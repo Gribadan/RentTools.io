@@ -65,7 +65,7 @@ describe("parseICal", () => {
     expect(parseICal("BEGIN:VCALENDAR\r\nEND:VCALENDAR")).toEqual([]);
   });
 
-  it("uses startDate as endDate when DTEND is missing", () => {
+  it("uses the next day as exclusive checkout when an all-day DTEND is missing", () => {
     const ics = [
       "BEGIN:VCALENDAR",
       "BEGIN:VEVENT",
@@ -78,7 +78,34 @@ describe("parseICal", () => {
 
     const events = parseICal(ics);
     expect(events[0].startDate).toBe("2026-06-01");
-    expect(events[0].endDate).toBe("2026-06-01");
+    expect(events[0].endDate).toBe("2026-06-02");
+  });
+
+  it("keeps checkout exclusive, including a Booking stay from September 9 to 13", () => {
+    const events = parseICal("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:booking-stay\nDTSTART;VALUE=DATE:20260909\nDTEND;VALUE=DATE:20260913\nEND:VEVENT\nEND:VCALENDAR");
+    expect(events[0]).toMatchObject({ startDate: "2026-09-09", endDate: "2026-09-13" });
+  });
+
+  it.each([
+    "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20260909",
+    "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20260909\nEND:VCALENDAR",
+    "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20260230\nEND:VEVENT\nEND:VCALENDAR",
+    "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20260909\nDTEND;VALUE=DATE:20260908\nEND:VEVENT\nEND:VCALENDAR",
+    "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nDTSTART;VALUE=DATE:20260909\nRRULE:FREQ=WEEKLY\nEND:VEVENT\nEND:VCALENDAR",
+    "BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:x\nSUMMARY:Unreadable dates\nEND:VEVENT\nEND:VCALENDAR",
+    "<html>VCALENDAR temporary upstream error</html>",
+  ])("rejects incomplete/unsupported feeds rather than returning partial inventory (%#)", (ics) => {
+    expect(() => parseICal(ics)).toThrow();
+  });
+
+  it("supports folded properties, case-insensitive field names and day durations", () => {
+    const events = parseICal("BEGIN:VCALENDAR\nBEGIN:VEVENT\nuid;VALUE=TEXT:booking-\n 123\nsummary;LANGUAGE=en:Reserved\ndtstart;VALUE=DATE:20260909\nDURATION:P4D\nEND:VEVENT\nEND:VCALENDAR");
+    expect(events[0]).toEqual({ uid: "booking-123", summary: "Reserved", startDate: "2026-09-09", endDate: "2026-09-13" });
+  });
+
+  it("ignores cancelled events and nested alarm properties", () => {
+    const events = parseICal("BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:cancelled\nSTATUS:CANCELLED\nEND:VEVENT\nBEGIN:VEVENT\nUID:active\nDTSTART;VALUE=DATE:20260909\nDTEND;VALUE=DATE:20260913\nBEGIN:VALARM\nDTSTART:20260908T100000Z\nSUMMARY:Reminder\nEND:VALARM\nEND:VEVENT\nEND:VCALENDAR");
+    expect(events).toEqual([{ uid: "active", summary: "", startDate: "2026-09-09", endDate: "2026-09-13" }]);
   });
 });
 

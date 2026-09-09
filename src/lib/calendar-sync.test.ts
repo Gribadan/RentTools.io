@@ -11,10 +11,12 @@ const mocks = vi.hoisted(() => ({
   syncLogCreate: vi.fn(),
   syncLogFindMany: vi.fn(),
   syncLogDeleteMany: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $transaction: mocks.transaction,
     calendarLink: {
       findMany: mocks.calendarLinkFindMany,
       update: mocks.calendarLinkUpdate,
@@ -37,6 +39,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { syncAllCalendars } from "./calendar-sync";
+import { prisma } from "@/lib/prisma";
 
 const propertyId = 12;
 const link = {
@@ -74,6 +77,7 @@ function ical(events: Array<{ uid: string; start: string; end: string }>): strin
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.transaction.mockImplementation(async (callback) => callback(prisma));
   mocks.calendarLinkFindMany.mockResolvedValue([link]);
   mocks.calendarLinkUpdate.mockResolvedValue({ ...link, failureCount: 0 });
   mocks.calendarEventDeleteMany.mockResolvedValue({ count: 1 });
@@ -149,5 +153,71 @@ describe("calendar sync — durable linked reservation metadata", () => {
         linkedEventRole: null,
       },
     });
+  });
+});
+
+describe("calendar sync — authoritative snapshots", () => {
+  it("reports a failed snapshot transaction as a failed link, without claiming success", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(ical([]))));
+    mocks.transaction.mockRejectedValueOnce(new Error("database busy"));
+    const result = await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(result).toMatchObject({ newEvents: 0, updatedEvents: 0, removedEvents: 0, errors: 1 });
+    expect(mocks.calendarLinkUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lastError: "Sync failed: database busy", failureCount: { increment: 1 } }),
+    }));
+  });
+
+  it("updates a changed checkout under the same UID without unlinking guest details", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(ical([
+      { uid: oldEvent.uid, start: oldEvent.startDate, end: "2099-08-24" },
+    ]))));
+    mocks.calendarEventFindMany.mockResolvedValueOnce([oldEvent]);
+    const result = await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(result).toMatchObject({ newEvents: 0, updatedEvents: 1, removedEvents: 0, errors: 0 });
+    expect(mocks.calendarEventUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      update: { summary: "Reserved", startDate: oldEvent.startDate, endDate: "2099-08-24" },
+    }));
+    expect(mocks.calendarEventDeleteMany).not.toHaveBeenCalled();
+    expect(mocks.reservationUpdateMany).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith(link.icalExportUrl, expect.objectContaining({ cache: "no-store" }));
+  });
+
+  it.each([
+    ical([]).replace("END:VCALENDAR", ""),
+    ical([{ uid: "unreadable", start: "2099-08-19", end: "2099-08-23" }]).replace("20990819", "invalid"),
+    ical([{ uid: "incomplete", start: "2099-08-19", end: "2099-08-23" }]).replace("END:VEVENT", ""),
+  ])("preserves all previous bookings when the provider returns a malformed snapshot (%#)", async (body) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(body)));
+    mocks.calendarEventFindMany.mockResolvedValue([oldEvent]);
+    const result = await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(result).toMatchObject({ newEvents: 0, updatedEvents: 0, removedEvents: 0, errors: 1 });
+    expect(mocks.calendarEventUpsert).not.toHaveBeenCalled();
+    expect(mocks.calendarEventDeleteMany).not.toHaveBeenCalled();
+    expect(mocks.calendarLinkUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lastError: expect.any(String), failureCount: { increment: 1 } }),
+    }));
+  });
+
+  it("retains a real one-night CLOSED block immediately before another stay", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(ical([
+      { uid: "one-night", start: "2099-08-18", end: "2099-08-19" },
+      { uid: oldEvent.uid, start: oldEvent.startDate, end: oldEvent.endDate },
+    ]).replace("SUMMARY:Reserved", "SUMMARY:CLOSED - Not available"))));
+    mocks.calendarEventFindMany.mockResolvedValueOnce([oldEvent]);
+    const result = await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(result).toMatchObject({ newEvents: 1, removedEvents: 0, errors: 0 });
+    expect(mocks.calendarEventUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({ uid: "one-night", startDate: "2099-08-18", endDate: "2099-08-19" }),
+    }));
+  });
+
+  it("still excludes explicit RentTools feedback events", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(ical([
+      { uid: "renttool-feedback", start: "2099-08-18", end: "2099-08-19" },
+    ]))));
+    mocks.calendarEventFindMany.mockResolvedValueOnce([]);
+    const result = await syncAllCalendars({ propertyIds: [propertyId] });
+    expect(result).toMatchObject({ newEvents: 0, removedEvents: 0, errors: 0 });
+    expect(mocks.calendarEventUpsert).not.toHaveBeenCalled();
   });
 });

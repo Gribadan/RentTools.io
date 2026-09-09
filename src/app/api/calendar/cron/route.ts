@@ -12,9 +12,9 @@ export async function GET(request: NextRequest) {
 
   const secret = request.nextUrl.searchParams.get("secret");
   const expected = process.env.CRON_SECRET || process.env.JWT_SECRET;
-  const bearerOk = request.headers.get("authorization") === `Bearer ${expected}`;
+  const bearerOk = !!expected && request.headers.get("authorization") === `Bearer ${expected}`;
 
-  if (!bearerOk && (!secret || secret !== expected)) {
+  if (!expected || (!bearerOk && (!secret || secret !== expected))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

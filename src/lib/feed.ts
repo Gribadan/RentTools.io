@@ -145,13 +145,42 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
       endDate: e.endDate,
     }));
 
-  for (const res of allReservations.filter(r => reservationChannel(r) !== forPlatform)) {
-    otherEvents.push({
+  for (const res of allReservations) {
+    const event: ICalEvent = {
       uid: opaqueEventUid("reservation", propertyId, res.id),
       summary: "Blocked",
       startDate: new Date(res.checkIn).toISOString().substring(0, 10),
       endDate: new Date(res.checkOut).toISOString().substring(0, 10),
-    });
+    };
+
+    // The booking channel is a label, not proof that its platform still
+    // holds these nights. An unlinked Airbnb-labelled local reservation
+    // used to disappear from Airbnb's feed while still blocking Booking.
+    // Only suppress nights actually present in the target's imported feed;
+    // every remaining local night must keep blocking that target as well.
+    // Subtraction also preserves a host's added nights around a source stay.
+    let segments = [event];
+    if (reservationChannel(res) === forPlatform) {
+      for (const source of allEvents.filter(e => e.platform === forPlatform)) {
+        segments = segments.flatMap((segment) => {
+          if (source.endDate <= segment.startDate || source.startDate >= segment.endDate) {
+            return [segment];
+          }
+          const remaining: ICalEvent[] = [];
+          if (segment.startDate < source.startDate) {
+            remaining.push({ ...segment, endDate: source.startDate });
+          }
+          if (source.endDate < segment.endDate) {
+            remaining.push({ ...segment, startDate: source.endDate });
+          }
+          return remaining;
+        });
+      }
+    }
+    otherEvents.push(...segments.map((segment) => ({
+      ...segment,
+      uid: opaqueEventUid("reservation-segment", propertyId, res.id, segment.startDate, segment.endDate),
+    })));
   }
 
   // Same-platform events (buffer-only)
