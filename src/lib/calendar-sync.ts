@@ -1,5 +1,31 @@
 import { prisma } from "@/lib/prisma";
-import { parseICal, type ICalEvent } from "@/lib/ical";
+import { addDays, parseICal, type ICalEvent } from "@/lib/ical";
+import type { Prisma } from "@/generated/prisma/client";
+
+async function refreshUneditedClaims(
+  tx: Prisma.TransactionClient,
+  propertyId: number,
+  platform: string,
+  previous: Pick<ICalEvent, "uid" | "startDate" | "endDate">,
+  next: ICalEvent,
+) {
+  if (previous.startDate === next.startDate && previous.endDate === next.endDate) return;
+  // Follow a provider's changed dates only when the local claim still has
+  // the previous source range. Preserve host corrections and paid extensions.
+  await tx.reservation.updateMany({
+    where: {
+      propertyId,
+      linkedEventUid: previous.uid,
+      AND: [
+        { OR: [{ linkedEventPlatform: platform }, { linkedEventPlatform: null, platform }] },
+        { OR: [{ linkedEventRole: "claim" }, { linkedEventRole: null }] },
+      ],
+      checkIn: { gte: new Date(previous.startDate), lt: new Date(addDays(previous.startDate, 1)) },
+      checkOut: { gte: new Date(previous.endDate), lt: new Date(addDays(previous.endDate, 1)) },
+    },
+    data: { checkIn: new Date(next.startDate), checkOut: new Date(next.endDate) },
+  });
+}
 
 /** Surface transport diagnostics without exposing provider URLs or messages. */
 function transportErrorCodes(error: unknown): string[] {
@@ -214,6 +240,8 @@ export async function syncAllCalendars(opts?: {
                   endDate: event.endDate,
                 },
               });
+              const previous = existingByUID.get(event.uid);
+              if (previous) await refreshUneditedClaims(tx, propertyId, link.platform, previous, event);
             }
 
             // Remove events no longer in the feed — but ONLY if they're
@@ -267,6 +295,7 @@ export async function syncAllCalendars(opts?: {
                     .sort((a, b) => overlap(b) - overlap(a))[0];
 
                   if (candidateReissue) {
+                    await refreshUneditedClaims(tx, propertyId, link.platform, ev, candidateReissue);
                     const migrated = await tx.reservation.updateMany({
                       where: {
                         propertyId,

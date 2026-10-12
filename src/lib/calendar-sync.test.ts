@@ -220,7 +220,19 @@ describe("calendar sync — authoritative snapshots", () => {
       update: { summary: "Reserved", startDate: oldEvent.startDate, endDate: "2099-08-24" },
     }));
     expect(mocks.calendarEventDeleteMany).not.toHaveBeenCalled();
-    expect(mocks.reservationUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.reservationUpdateMany).toHaveBeenCalledWith({
+      where: {
+        propertyId,
+        linkedEventUid: oldEvent.uid,
+        AND: [
+          { OR: [{ linkedEventPlatform: "airbnb" }, { linkedEventPlatform: null, platform: "airbnb" }] },
+          { OR: [{ linkedEventRole: "claim" }, { linkedEventRole: null }] },
+        ],
+        checkIn: { gte: new Date("2099-08-19"), lt: new Date("2099-08-20") },
+        checkOut: { gte: new Date("2099-08-23"), lt: new Date("2099-08-24") },
+      },
+      data: { checkIn: new Date("2099-08-19"), checkOut: new Date("2099-08-24") },
+    });
     expect(fetch).toHaveBeenCalledWith(link.icalExportUrl, expect.objectContaining({ cache: "no-store" }));
   });
 
