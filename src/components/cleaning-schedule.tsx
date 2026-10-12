@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 import type { Property, CalendarLink, DateOverride } from "@/lib/types";
 import { bookingWindowCutoff } from "@/lib/types";
+import { toReservationDateInput } from "@/lib/reservation-dates";
 
 interface CopyShape {
   dateLocale: string;
@@ -133,7 +134,7 @@ interface CleaningDay {
   manualNote?: string;
   movableTo?: string;
   hoursAvailable?: number; // only when meaningful (< 24h, true same-day turnover)
-  isManual?: boolean; // true if created via a "closed" date override
+  isManual?: boolean; // true if explicitly scheduled via a "cleaning" override
   // Context dates that drive the date-specific reason text. Keeping them
   // on the row means formatReason can be a pure function.
   prevEndDate?: string;     // checkout date of prev booking
@@ -277,8 +278,8 @@ export function computeCleaningDays(
   }
 
   for (const res of property.reservations) {
-    const start = toDateStr(new Date(res.checkIn));
-    const end = toDateStr(new Date(res.checkOut));
+    const start = toReservationDateInput(res.checkIn);
+    const end = toReservationDateInput(res.checkOut);
     let d = start;
     while (d <= end) { allBooked.add(d); d = addDaysStr(d, 1); }
     const platform = (res.platform || "airbnb").trim().toLowerCase();
@@ -551,11 +552,12 @@ export function computeCleaningDays(
 
   // Apply date overrides
   const openDates = new Set(dateOverrides.filter(o => o.type === "open").map(o => o.date));
-  const closedDates = dateOverrides.filter(o => o.type === "closed");
+  const cleaningDates = dateOverrides.filter(o => o.type === "cleaning");
+  const manualDates = new Set(cleaningDates.map(o => o.date));
 
-  const filtered = result.filter(d => !openDates.has(d.date));
+  const filtered = result.filter(d => !openDates.has(d.date) && !manualDates.has(d.date));
 
-  for (const o of closedDates) {
+  for (const o of cleaningDates) {
     if (!filtered.some(d => d.date === o.date)) {
       filtered.push({
         date: o.date,
