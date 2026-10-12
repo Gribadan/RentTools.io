@@ -22,7 +22,8 @@ function resolveDbConfig(): { url: string; authToken?: string } {
   if (dbUrl?.startsWith("file:")) {
     // file:./data/prod.db → resolve to absolute path; ensure parent dir exists
     const rel = dbUrl.slice("file:".length);
-    const abs = path.isAbsolute(rel) ? rel : path.resolve(process.cwd(), rel);
+    // Runtime database paths must not pull local data into build artifacts.
+    const abs = path.isAbsolute(rel) ? rel : path.resolve(/* turbopackIgnore: true */ process.cwd(), rel);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     return { url: `file:${abs}` };
   }
