@@ -81,6 +81,7 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 
 ## Branching and commits
 
+- **Owner authorship for automated work**: commits prepared on the owner's behalf use only Ilya's (`Gribadan`) configured Git name and email. Check the local Git identity before committing; do not invent or replace it. Do not add automated co-author or sign-off trailers, contributor attribution, or assistant/model/tool names in commit messages, PR titles or descriptions, code comments, or repository documentation. This rule applies to future automated work as well.
 - Branch from `master`: `git checkout -b feat/<short-description>` (or `fix/`, `chore/`, `docs/`).
 - **Conventional Commits**: `<type>(<scope>): <subject>` — e.g. `feat(reports): add CSV export with date range`. Types in use: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
 - One logical change per commit. Don't bundle unrelated work. The commit message should explain *why* the change is needed — the diff already shows what.
