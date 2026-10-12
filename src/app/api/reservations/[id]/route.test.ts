@@ -97,6 +97,47 @@ beforeEach(() => {
 });
 
 describe("PATCH /api/reservations/:id — date edits", () => {
+  it("checks an unchanged legacy checkout by day and preserves its free-night override", async () => {
+    const legacy = {
+      ...original,
+      linkedEventUid: null,
+      checkIn: new Date("2026-08-19T14:00:00Z"),
+      checkOut: new Date("2026-08-23T12:00:00Z"),
+    };
+    mocks.reservationFindUnique.mockResolvedValue(legacy);
+    mocks.reservationUpdate.mockImplementation(async ({ data }) => ({ ...legacy, ...data }));
+
+    const response = await PATCH(patchRequest({ checkIn: "2026-08-18" }), patchParams());
+
+    expect(response.status).toBe(200);
+    expect(mocks.reservationFindFirst).toHaveBeenCalledWith({
+      where: {
+        propertyId,
+        id: { not: reservationId },
+        checkIn: { lt: new Date("2026-08-23T00:00:00Z") },
+        checkOut: { gte: new Date("2026-08-19T00:00:00Z") },
+      },
+      select: { name: true, checkIn: true, checkOut: true },
+    });
+    expect(mocks.dateOverrideDeleteMany).toHaveBeenCalledWith({
+      where: {
+        propertyId,
+        date: { in: ["2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", "2026-08-22"] },
+        type: { in: ["open", "closed"] },
+      },
+    });
+  });
+
+  it("rejects a zero-night edit even if the unchanged legacy checkout is at noon", async () => {
+    mocks.reservationFindUnique.mockResolvedValue({
+      ...original,
+      checkOut: new Date("2026-08-23T12:00:00Z"),
+    });
+    const response = await PATCH(patchRequest({ checkIn: "2026-08-23" }), patchParams());
+    expect(response.status).toBe(400);
+    expect(mocks.reservationUpdate).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["checkIn", "not-a-date", "Invalid checkIn date"],
     ["checkOut", "not-a-date", "Invalid checkOut date"],

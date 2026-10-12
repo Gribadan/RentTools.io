@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { canManageProperty } from "@/lib/ownership";
 import { normalizePhone } from "@/lib/sanitize";
-import { parseReservationDate } from "@/lib/reservation-dates";
+import { parseReservationDate, reservationOverlapFilter } from "@/lib/reservation-dates";
 import { loadEffectiveLinkedStayRange } from "@/lib/linked-stay";
 
 async function loadManageableReservation(
@@ -158,8 +158,8 @@ export async function PATCH(
         select: { checkIn: true, checkOut: true, propertyId: true },
       });
       if (current) {
-        const newCheckIn = (data.checkIn as Date | undefined) ?? current.checkIn;
-        const newCheckOut = (data.checkOut as Date | undefined) ?? current.checkOut;
+        const newCheckIn = (data.checkIn as Date | undefined) ?? parseReservationDate(current.checkIn.toISOString())!;
+        const newCheckOut = (data.checkOut as Date | undefined) ?? parseReservationDate(current.checkOut.toISOString())!;
         if (newCheckOut <= newCheckIn) {
           return NextResponse.json({ error: "checkOut must be after checkIn" }, { status: 400 });
         }
@@ -167,8 +167,7 @@ export async function PATCH(
           where: {
             propertyId: current.propertyId,
             id: { not: numId },
-            checkIn: { lt: newCheckOut },
-            checkOut: { gt: newCheckIn },
+            ...reservationOverlapFilter(newCheckIn, newCheckOut),
           },
           select: { name: true, checkIn: true, checkOut: true },
         });
@@ -333,12 +332,12 @@ export async function PATCH(
     // already covered those dates also gets the cleanup.
     {
       const datesToClear: string[] = [];
-      const start = new Date(reservation.checkIn);
-      const end = new Date(reservation.checkOut);
+      const start = parseReservationDate(reservation.checkIn.toISOString())!;
+      const end = parseReservationDate(reservation.checkOut.toISOString())!;
       const d = new Date(start);
       while (d < end) {
         datesToClear.push(d.toISOString().substring(0, 10));
-        d.setDate(d.getDate() + 1);
+        d.setUTCDate(d.getUTCDate() + 1);
       }
       if (datesToClear.length > 0) {
         await prisma.dateOverride.deleteMany({

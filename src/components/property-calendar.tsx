@@ -395,7 +395,7 @@ export function PropertyCalendar({
     // turnover ends ON the last selected day rather than the morning
     // after it, so we must not re-derive it from the selection here.
     const checkOut = data.checkOut;
-    await fetch(`/api/reservations`, {
+    const response = await fetch(`/api/reservations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -406,6 +406,10 @@ export function PropertyCalendar({
         propertyId: property.id,
       }),
     });
+    if (!response.ok) {
+      const body = await response.json().catch(() => null) as { error?: unknown } | null;
+      throw new Error(typeof body?.error === "string" ? body.error : "Reservation save failed");
+    }
     clearSelection();
     window.location.reload();
   };

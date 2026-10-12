@@ -78,6 +78,21 @@ beforeEach(() => {
 });
 
 describe("POST /api/reservations — linked calendar source", () => {
+  it("clears exactly the booked nights across a daylight-saving transition", async () => {
+    const previousTimezone = process.env.TZ;
+    process.env.TZ = "America/Los_Angeles";
+    try {
+      const response = await POST(postRequest({ checkIn: "2026-03-07", checkOut: "2026-03-09" }));
+      expect(response.status).toBe(200);
+      expect(mocks.dateOverrideDeleteMany).toHaveBeenCalledWith({
+        where: { propertyId, date: { in: ["2026-03-07", "2026-03-08"] }, type: { in: ["open", "closed"] } },
+      });
+    } finally {
+      if (previousTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTimezone;
+    }
+  });
+
   it("normalizes and excludes only the exact property/platform/UID source", async () => {
     mocks.calendarEventFindFirst
       .mockResolvedValueOnce({
