@@ -9,7 +9,7 @@ A single $4–6/month droplet running:
 - Next.js app served on `localhost:3000`, supervised by **systemd** (auto-restart on crash, auto-start on reboot)
 - **nginx** reverse proxy on 80/443 with **Let's Encrypt** TLS
 - **SQLite** database file on the same droplet (no separate DB host)
-- Native **cron** for calendar sync every 10 minutes
+- Native **cron** for calendar sync every 5 minutes
 - **Daily SQLite backups** with rotation (14 daily / 8 weekly / 6 monthly)
 - **ufw** firewall + **fail2ban** + automatic security updates
 

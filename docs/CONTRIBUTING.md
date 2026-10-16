@@ -100,8 +100,8 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
    commit is independently useful and tested.
 6. `master` is protected and deployable. Combine overlapping PRs on a temporary
    integration branch and run CI there; never use `master` as a staging area.
-7. Deployment starts only after `CI` succeeds on `master`, then passes through
-   the GitHub `Production` environment. The deploy scripts create and verify an
+7. Deployment starts only after `CI` succeeds on `master` and the owner explicitly
+   authorizes the release. The deploy scripts create and verify an
    online SQLite backup before any deployment change; database changes also
    require additive migration/rollback review before approval.
 
@@ -140,12 +140,17 @@ clear the queue.
 
 ## Releasing
 
-A successful `CI` run on `master` triggers deployment. The deploy job uses the
-protected GitHub `Production` environment, so repository settings can require
-maintainer approval before the droplet changes. The 10-minute cron tick handles
-periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts`, make
-sure `deploy/cron/rent-tool.cron` still calls the right URL with the right
-`CRON_SECRET`.
+A successful `CI` run on `master` produces a native ARM64 image artifact after
+tests and image checks pass. It does not authorize deployment. The owner releases
+the verified artifact through the current registered deployment procedure, with
+a consistent database backup and the previous healthy image available. The
+legacy SSH deployment workflow is disabled for the hosted instance.
+
+The scheduler checks every five minutes and the application enforces the selected
+interval without overlapping runs. Self-hosters must install one scheduler owner
+and configure a dedicated `CRON_SECRET`; `deploy/cron/rent-tool.cron` is the legacy
+single-host template. A request can take several minutes when provider feeds are
+slow, so a client timeout must not be mistaken for cancellation of server work.
 
 ## Code of conduct (lite)
 
