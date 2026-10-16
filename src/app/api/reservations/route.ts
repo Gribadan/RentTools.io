@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { canManageProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 import { normalizePlatformSlug } from "@/lib/platforms";
 import { parseReservationDate, reservationOverlapFilter } from "@/lib/reservation-dates";
@@ -310,6 +311,7 @@ export async function POST(request: NextRequest) {
       linkedEventPlatform: reservation.linkedEventPlatform,
       linkedEventRole: reservation.linkedEventRole,
     });
+    await notifyPropertyChange(propertyId);
     return NextResponse.json(reservation);
   } catch (err) {
     console.error("Route error:", err);

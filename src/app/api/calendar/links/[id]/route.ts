@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { canManageProperty } from "@/lib/ownership";
 import { normalizeIcalUrl } from "@/lib/calendar-link-input";
 
@@ -65,6 +66,7 @@ export async function PATCH(
       bufferAfter: body.bufferAfter,
     });
 
+    await notifyPropertyChange(owned.propertyId);
     return NextResponse.json(updated);
   } catch (err) {
     console.error("Route error:", err);
@@ -99,6 +101,7 @@ export async function DELETE(
       propertyId: owned.propertyId,
     });
 
+    await notifyPropertyChange(owned.propertyId);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Route error:", err);

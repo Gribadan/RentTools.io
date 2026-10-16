@@ -141,6 +141,21 @@ curl -b cookies.txt \
 
 ## Calendar
 
+### `GET /api/live` — session
+
+Opens a private `text/event-stream` connection for the signed-in user. A `refresh`
+event with an empty JSON object signals a committed calendar change on a property
+the user owns or is assigned to; clients reread their authorized API endpoints.
+No guest information, calendar URLs or property identifiers are sent. Imported
+calendar updates, reservation changes, date overrides and calendar-link changes
+send notifications. Connections send keepalives and expire after five minutes so
+reconnection revalidates the session. Limits return 429 with `Retry-After`.
+
+The browser shares one connection per tab, rereads on reconnect and browser
+resume, and retains its visible-tab refresh interval as a fallback. Publication
+uses the current application process; multiple application workers require a
+shared publisher before relying on cross-worker delivery.
+
 ### `GET /api/calendar/links?propertyId=X` — session
 Returns `CalendarLink[]` for the property.
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { addDays, parseICal, type ICalEvent } from "@/lib/ical";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -492,6 +493,7 @@ export async function syncAllCalendars(opts?: {
     }
 
     summary.propertiesSynced++;
+    await notifyPropertyChange(propertyId);
   }
 
   // Clean old logs (keep last 500)

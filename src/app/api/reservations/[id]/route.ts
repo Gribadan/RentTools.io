@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { canManageProperty } from "@/lib/ownership";
 import { normalizePhone } from "@/lib/sanitize";
 import { parseReservationDate, reservationOverlapFilter } from "@/lib/reservation-dates";
@@ -351,6 +352,7 @@ export async function PATCH(
     }
 
     await logAudit(session.userId, "update", "reservation", numId, data);
+    await notifyPropertyChange(reservation.propertyId);
     return NextResponse.json(reservation);
   } catch (err) {
     console.error("Route error:", err);
@@ -399,6 +401,7 @@ export async function DELETE(
     }
 
     await logAudit(session.userId, "delete", "reservation", numId);
+    await notifyPropertyChange(owned.propertyId);
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Route error:", err);

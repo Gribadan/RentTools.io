@@ -12,7 +12,10 @@ const mocks = vi.hoisted(() => ({
   syncLogFindMany: vi.fn(),
   syncLogDeleteMany: vi.fn(),
   transaction: vi.fn(),
+  notifyPropertyChange: vi.fn(),
 }));
+
+vi.mock("@/lib/live-events", () => ({ notifyPropertyChange: mocks.notifyPropertyChange }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -138,6 +141,10 @@ describe("calendar sync — durable linked reservation metadata", () => {
     const result = await syncAllCalendars({ propertyIds: [propertyId] });
 
     expect(result).toMatchObject({ propertiesSynced: 1, removedEvents: 1, errors: 0 });
+    expect(mocks.notifyPropertyChange).toHaveBeenCalledWith(propertyId);
+    expect(mocks.transaction.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.notifyPropertyChange.mock.invocationCallOrder[0],
+    );
     expect(mocks.reservationUpdateMany).toHaveBeenCalledWith({
       where: {
         propertyId,
