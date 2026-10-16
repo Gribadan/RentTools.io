@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { StayPlan } from "@/components/calendar/stay-plan";
 import { getExtendedStayRange } from "@/components/calendar/extendable-bookings";
 import { referencesSyncedEvent } from "@/components/calendar/linked-bookings";
@@ -536,7 +536,7 @@ interface DateActionsPanelProps {
   onScheduleCleaning: () => void;
   onRemoveOverride: () => void;
   onExtendBooking: (booking: ExtendableBooking) => Promise<ExtendBookingResult>;
-  onCreateReservation: (data: { name: string; platform: string; checkOut: string }) => void;
+  onCreateReservation: (data: { name: string; platform: string; checkOut: string }) => Promise<void>;
   /** Shrink an existing manual reservation by setting its checkOut to
    *  `newCheckOut` (YYYY-MM-DD). Surfaced when the host clicks one date
    *  inside the bar of a reservation they own. The wrapper resolves
@@ -589,22 +589,11 @@ export function DateActionsPopover({
   const [resName, setResName] = useState("");
   const [resPlatform, setResPlatform] = useState<string>("airbnb");
   const [submitting, setSubmitting] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [extendingKey, setExtendingKey] = useState<string | null>(null);
   const [extendError, setExtendError] = useState<string | null>(null);
 
-  // Reset the create-reservation form whenever the selection changes
-  // (e.g. user added another date). Otherwise typed name would carry
-  // over into a different selection state.
-  useEffect(() => {
-    setCreating(false);
-    setResName("");
-    setResPlatform("airbnb");
-    setSubmitting(false);
-    if (!extendingRef.current) setExtendingKey(null);
-    setExtendError(null);
-  }, [selectedDates.join(",")]);
-
-  const localizeExtendError = (error?: string) => {
+  const localizeSaveError = (error?: string) => {
     if (error === "Overlapping reservation exists") {
       return t("reservation.manualOverlap");
     }
@@ -631,7 +620,7 @@ export function DateActionsPopover({
     setExtendError(null);
     try {
       const result = await onExtendBooking(booking);
-      if (!result.ok) setExtendError(localizeExtendError(result.error));
+      if (!result.ok) setExtendError(localizeSaveError(result.error));
     } catch {
       setExtendError(t("reservation.saveFailed"));
     } finally {
@@ -656,7 +645,7 @@ export function DateActionsPopover({
   // Single-date mode header status text — matches old per-date popup.
   const singleStatusText = (() => {
     if (!singleStatus) return "";
-    if (singleStatus.hasBar) {
+    if (!allUnbooked) {
       if (singleDateBars.length > 1) {
         return c.staysTurnover(singleDateBars.length);
       }
@@ -722,6 +711,27 @@ export function DateActionsPopover({
     const lCreate = c.createReservation;
     const lCreateDesc = c.createReservationDesc;
     const createAction: ResolvedAction = { kind: "createReservation", label: lCreate, description: lCreateDesc, tone: "primary", onClick: () => setCreating(true) };
+    const blockAction: ResolvedAction = { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate };
+
+    const unbookedActions: ResolvedAction[] = (() => {
+      if (!allUnbooked) return [];
+      if (singleStatus.isManualCleaning) {
+        return [createAction, { kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride }, blockAction];
+      }
+      if (singleStatus.isClosedOverride) {
+        return [createAction, { kind: "removeBlock", label: lUnblock, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride }];
+      }
+      if (singleStatus.isOpenOverride) {
+        return [createAction, { kind: "removeOverride", label: lRemoveOverride, description: lRemoveOverrideDesc, tone: "neutral", onClick: onRemoveOverride }, blockAction, { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
+      }
+      if (singleStatus.isBuffer || singleStatus.isSameDayCleaning || singleStatus.isPotential) {
+        return [createAction, { kind: "openForBooking", label: c.cancelCleaningOnAuto, description: c.cancelCleaningOnAutoDesc, tone: "open", onClick: onOpenDate }, blockAction];
+      }
+      if (singleStatus.isUnbookable) {
+        return [createAction, { kind: "openForBooking", label: lOpen, description: lOpenDesc, tone: "open", onClick: onOpenDate }, blockAction];
+      }
+      return [createAction, blockAction, { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
+    })();
 
     if (singleStatus.hasBar) {
       // On a booked day the only meaningful actions are around the
@@ -818,6 +828,11 @@ export function DateActionsPopover({
         return null;
       })();
 
+      // Checkout stays in the timeline and retains its trim control, but
+      // the night is free unless another stay starts or continues here.
+      if (allUnbooked) {
+        return [...unbookedActions, ...(trimAction ? [trimAction] : [])];
+      }
       if (singleStatus.isManualCleaning) {
         return [
           { kind: "removeCleaning", label: lCancelCleaning, description: lRemoveCleaningDesc, tone: "open", onClick: onRemoveOverride },
@@ -838,30 +853,7 @@ export function DateActionsPopover({
         ...(trimAction ? [trimAction] : []),
       ];
     }
-    if (singleStatus.isManualCleaning) {
-      return [createAction, { kind: "removeCleaning", label: lRemoveCleaning, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride }, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }];
-    }
-    if (singleStatus.isClosedOverride) {
-      return [createAction, { kind: "removeBlock", label: lUnblock, description: lRemoveOverrideDesc, tone: "open", onClick: onRemoveOverride }];
-    }
-    if (singleStatus.isOpenOverride) {
-      return [createAction, { kind: "removeOverride", label: lRemoveOverride, description: lRemoveOverrideDesc, tone: "neutral", onClick: onRemoveOverride }, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }, { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
-    }
-    // Auto-detected unavailable. Two label flavours:
-    //   * Cleaning days (buffer / same-day / potential): "Cancel
-    //     cleaning" — the host's mental model is "the cleaner is
-    //     not coming this day, schedule it elsewhere".
-    //   * Min-nights blocks (unbookable): "Make available" — the
-    //     date is locked for booking-fit reasons, no cleaning concept.
-    if (singleStatus.isBuffer || singleStatus.isSameDayCleaning || singleStatus.isPotential) {
-      const lCancelCleaning = c.cancelCleaningOnAuto;
-      const lCancelCleaningDesc = c.cancelCleaningOnAutoDesc;
-      return [createAction, { kind: "openForBooking", label: lCancelCleaning, description: lCancelCleaningDesc, tone: "open", onClick: onOpenDate }];
-    }
-    if (singleStatus.isUnbookable) {
-      return [createAction, { kind: "openForBooking", label: lOpen, description: lOpenDesc, tone: "open", onClick: onOpenDate }];
-    }
-    return [createAction, { kind: "block", label: lBlock, description: lBlockDesc, tone: "block", onClick: onCloseDate }, { kind: "scheduleCleaning", label: lSchedule, description: lScheduleDesc, tone: "cleaning", onClick: onScheduleCleaning }];
+    return unbookedActions;
   })();
 
   // Bulk-mode actions: simpler — operate on the whole selection.
@@ -971,10 +963,13 @@ export function DateActionsPopover({
 
   const submitCreate = async () => {
     const finalName = resName.trim();
-    if (!finalName || !stayPlan) return;
+    if (!finalName || !stayPlan || submitting) return;
     setSubmitting(true);
+    setCreateError(null);
     try {
-      onCreateReservation({ name: finalName, platform: resPlatform, checkOut: stayPlan.checkOut });
+      await onCreateReservation({ name: finalName, platform: resPlatform, checkOut: stayPlan.checkOut });
+    } catch (error) {
+      setCreateError(localizeSaveError(error instanceof Error ? error.message : undefined));
     } finally {
       setSubmitting(false);
     }
@@ -982,7 +977,7 @@ export function DateActionsPopover({
 
   const singleStatusBadgeClass = !singleStatus
     ? ""
-    : singleStatus.hasBar
+    : !allUnbooked
       ? "bg-[var(--m-accent)]/10 text-[var(--m-accent)]"
       : singleStatus.isOpenOverride
         ? "bg-emerald-500/10 text-emerald-500"
@@ -1198,6 +1193,7 @@ export function DateActionsPopover({
         {/* Create-reservation form (shared by single + bulk modes) */}
         {creating ? (
           <div className="px-5 py-4 space-y-4">
+            {createError && <div role="alert" className="text-sm text-rose-500">{createError}</div>}
             <div>
               <label className="block text-[11px] font-medium uppercase tracking-wide text-[var(--ink-4)] mb-1.5">
                 {c.guestName}

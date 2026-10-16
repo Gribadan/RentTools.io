@@ -26,6 +26,17 @@ export function toReservationDateInput(value: string): string {
   return parsed ? parsed.toISOString().slice(0, 10) : "";
 }
 
+/** Compare occupied calendar nights without rewriting legacy timed rows. */
+export function reservationOverlapFilter(checkIn: Date, checkOut: Date) {
+  const firstConflictingCheckout = parseReservationDate(checkIn.toISOString())!;
+  firstConflictingCheckout.setUTCDate(firstConflictingCheckout.getUTCDate() + 1);
+  return {
+    checkIn: { lt: parseReservationDate(checkOut.toISOString())! },
+    // A legacy checkout at noon still leaves that day's night free.
+    checkOut: { gte: firstConflictingCheckout },
+  };
+}
+
 export function reservationNights(checkIn: string, checkOut: string): number {
   const start = parseReservationDate(checkIn);
   const end = parseReservationDate(checkOut);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { canManageProperty, canReadProperty } from "@/lib/ownership";
 
 // GET /api/date-overrides?propertyId=1
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
         date,
         type,
       });
+      await notifyPropertyChange(numId);
       return NextResponse.json({ action: "removed", date, type });
     }
 
@@ -104,6 +106,7 @@ export async function POST(request: NextRequest) {
       override.id,
       { propertyId: numId, date, type }
     );
+    await notifyPropertyChange(numId);
 
     return NextResponse.json({ action: "created", override });
   } catch (err) {
@@ -146,6 +149,7 @@ export async function DELETE(request: NextRequest) {
         propertyId: numId,
         date,
       });
+      await notifyPropertyChange(numId);
       return NextResponse.json({ action: "removed", date });
     } catch {
       return NextResponse.json({ action: "not_found", date });

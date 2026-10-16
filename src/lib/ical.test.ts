@@ -110,6 +110,18 @@ describe("parseICal", () => {
 });
 
 describe("generateICal", () => {
+  it("terminates every content line, including the last, with CRLF", () => {
+    const output = generateICal([]);
+    expect(output.endsWith("END:VCALENDAR\r\n")).toBe(true);
+    expect(output.replaceAll("\r\n", "")).not.toMatch(/[\r\n]/);
+  });
+
+  it("escapes a property's calendar name without injecting content lines", () => {
+    const output = generateICal([], "Apartment, été; upstairs\r\nBEGIN:VEVENT");
+    expect(output).toContain("X-WR-CALNAME:Apartment\\, été\\; upstairs\\nBEGIN:VEVENT\r\n");
+    expect(parseICal(output)).toHaveLength(1);
+  });
+
   it("emits a VCALENDAR with one VEVENT per input event", () => {
     const out = generateICal([
       { uid: "u1", summary: "Block", startDate: "2026-04-10", endDate: "2026-04-12" },

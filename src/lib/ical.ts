@@ -117,7 +117,7 @@ export function generateICal(
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     "PRODID:-//RentTool//CalendarSync//EN",
-    `X-WR-CALNAME:${calendarName}`,
+    `X-WR-CALNAME:${calendarName.replace(/\\/g, "\\\\").replace(/\r\n|\r|\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;")}`,
     "METHOD:PUBLISH",
   ];
 
@@ -148,7 +148,7 @@ export function generateICal(
   }
 
   lines.push("END:VCALENDAR");
-  return lines.join("\r\n");
+  return lines.join("\r\n") + "\r\n";
 }
 
 function formatNowUTC(): string {

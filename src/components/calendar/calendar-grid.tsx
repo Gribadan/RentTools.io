@@ -273,6 +273,7 @@ export function CalendarGrid({
               const isConflict = conflictDates.has(ds);
               const segments = segmentsForDay(dayNum);
               const hasBar = hasBarOnDay(dayNum);
+              const hasOccupiedNight = bars.some((bar) => ds >= bar.startDate && ds < bar.endDate);
               // Two flavours of manual-cleaning state:
               //   * hasManualCleaning — host explicitly set a cleaning
               //     override for this date, regardless of whether a bar
@@ -288,15 +289,10 @@ export function CalendarGrid({
               const isPotential = potentialDates.has(ds) && !hasBar && !isBuffer && !isManualCleaning;
               const isUnbookable = unbookableDates.has(ds) && !hasBar && !isBuffer && !isPotential && !isManualCleaning;
               const isSameDayCleaning = sameDayCleaningDates.has(ds);
-              // Effective open/closed overrides — suppressed when a
-              // reservation bar already covers the cell. The override
-              // row still exists in the DB; we just hide the visual
-              // signal so the host doesn't see a green "open" tint
-              // (or ring) under a confirmed booking. Same for closed
-              // overrides — once a reservation lands the override is
-              // moot, the bar already says "occupied".
-              const isOpen = openOverrides.has(ds) && !hasBar;
-              const isClosed = closedOverrides.has(ds) && !hasBar;
+              // The checkout bar covers only the departing stay. A host's
+              // override still applies to that date's free night.
+              const isOpen = openOverrides.has(ds) && !hasOccupiedNight;
+              const isClosed = closedOverrides.has(ds) && !hasOccupiedNight;
               const isSelected = selectedDates.has(ds);
               const bg = isOpen ? "bg-emerald-500/8"
                 : isClosed ? "bg-rose-500/8"
@@ -312,6 +308,7 @@ export function CalendarGrid({
               return (
                 <div
                   key={`c-${dayNum}`}
+                  data-date={ds}
                   onClick={(e) => {
                     onCellClick(ds, (e.currentTarget as HTMLElement).getBoundingClientRect());
                   }}
@@ -485,6 +482,14 @@ export function CalendarGrid({
                       </div>
                     );
                   })}
+
+                  {hasBar && (isOpen || isClosed) && (
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
+                      <div className={`rounded px-1.5 h-[18px] flex items-center text-[10px] border font-semibold leading-none shadow-sm whitespace-nowrap ${isClosed ? "text-rose-500 bg-rose-500/10 border-rose-500/20" : "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"}`}>
+                        {t(isClosed ? "calendar.closed" : "calendar.open")}
+                      </div>
+                    </div>
+                  )}
 
                   {isSameDayCleaning && !isOpen && !isClosed && (
                     /* Same-day cleaning chip. Anchored top-center so it

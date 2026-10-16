@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { SyncLogEntry } from "@/lib/types";
+import { DEFAULT_SYNC_FREQUENCY } from "@/lib/calendar-schedule";
 
 interface ScheduleSettings {
   autoEnabled: boolean;
@@ -19,10 +20,10 @@ interface PropertyEventCounts {
 }
 
 export function TasksPanel() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [schedule, setSchedule] = useState<ScheduleSettings>({
     autoEnabled: true,
-    frequencyMinutes: 10,
+    frequencyMinutes: DEFAULT_SYNC_FREQUENCY,
     lastRun: null,
     lastResult: null,
   });
@@ -30,6 +31,9 @@ export function TasksPanel() {
   const [syncing, setSyncing] = useState(false);
   const [logLimit, setLogLimit] = useState(100);
   const [eventCounts, setEventCounts] = useState<PropertyEventCounts[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [snapshotTime, setSnapshotTime] = useState(0);
 
   const fetchData = useCallback(async () => {
     const [schedRes, logsRes, propsRes] = await Promise.all([
@@ -37,6 +41,7 @@ export function TasksPanel() {
       fetch(`/api/calendar/sync?limit=${logLimit}`),
       fetch("/api/properties"),
     ]);
+    setSnapshotTime(Date.now());
     if (schedRes.ok) setSchedule(await schedRes.json());
     let allEvents: { propertyId: number; platform: string }[] = [];
     if (logsRes.ok) {
@@ -57,26 +62,26 @@ export function TasksPanel() {
   }, [logLimit]);
 
   useEffect(() => {
-    fetchData();
+    const timer = window.setTimeout(() => { void fetchData().catch(() => {}); }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchData]);
 
-  const handleToggleAuto = async () => {
-    const newValue = !schedule.autoEnabled;
-    await fetch("/api/calendar/schedule", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ autoEnabled: newValue }),
-    });
-    setSchedule((s) => ({ ...s, autoEnabled: newValue }));
-  };
-
-  const handleFrequencyChange = async (minutes: number) => {
-    await fetch("/api/calendar/schedule", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ frequencyMinutes: minutes }),
-    });
-    setSchedule((s) => ({ ...s, frequencyMinutes: minutes }));
+  const saveSchedule = async (changes: Partial<Pick<ScheduleSettings, "autoEnabled" | "frequencyMinutes">>) => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const response = await fetch("/api/calendar/schedule", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(changes),
+      });
+      if (!response.ok) throw new Error("Schedule save failed");
+      setSchedule((current) => ({ ...current, ...changes }));
+    } catch {
+      setSaveError(locale === "ru" ? "Не удалось сохранить расписание. Попробуйте ещё раз." : "Could not save the schedule. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleManualSync = async () => {
@@ -95,7 +100,7 @@ export function TasksPanel() {
   })();
 
   const timeSince = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    const diff = snapshotTime - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return "just now";
     if (mins < 60) return `${mins}m ago`;
@@ -144,7 +149,8 @@ export function TasksPanel() {
           <h2 className="text-sm font-semibold text-[var(--ink)]">{t("tasks.autoSync")}</h2>
           {/* Toggle */}
           <button
-            onClick={handleToggleAuto}
+            onClick={() => saveSchedule({ autoEnabled: !schedule.autoEnabled })}
+            disabled={saving}
             className={`relative h-6 w-11 rounded-full transition-colors ${
               schedule.autoEnabled ? "bg-[var(--m-accent)]" : "bg-[var(--line-2)]"
             }`}
@@ -155,6 +161,8 @@ export function TasksPanel() {
           </button>
         </div>
 
+        {saveError && <p role="alert" className="text-sm text-rose-500">{saveError}</p>}
+
         {schedule.autoEnabled && (
           <>
             <div className="flex items-center gap-3">
@@ -162,7 +170,8 @@ export function TasksPanel() {
               <div className="relative">
                 <select
                   value={schedule.frequencyMinutes}
-                  onChange={(e) => handleFrequencyChange(Number(e.target.value))}
+                  onChange={(e) => saveSchedule({ frequencyMinutes: Number(e.target.value) })}
+                  disabled={saving}
                   className="h-8 appearance-none rounded-md border border-[var(--line-2)] bg-[var(--bg)] pl-3 pr-8 text-sm text-[var(--ink)] outline-none focus:border-[var(--ink)]"
                 >
                   <option value={5}>5 minutes</option>
@@ -189,7 +198,9 @@ export function TasksPanel() {
                 </p>
               )}
               <p className="text-xs text-[var(--ink-4)]">
-                On the hosted instance this runs from the system cron every 10 minutes. Self-hosters can wire it into <code className="text-[var(--ink-3)]">crontab</code> or any external scheduler (e.g. <a href="https://cron-job.org" target="_blank" rel="noopener noreferrer" className="text-[var(--ink)] hover:underline">cron-job.org</a>).
+                {locale === "ru"
+                  ? "Сервер проверяет расписание каждые 5 минут. При самостоятельном размещении настройте внешний планировщик не реже выбранного интервала. Долгий проход завершится до следующего запуска."
+                  : "The hosted scheduler checks every 5 minutes. Self-hosters should trigger cron at least as often as the selected interval. A slow sync finishes before another can start."}
               </p>
             </div>
           </>

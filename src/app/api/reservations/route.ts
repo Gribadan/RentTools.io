@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { canManageProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 import { normalizePlatformSlug } from "@/lib/platforms";
-import { parseReservationDate } from "@/lib/reservation-dates";
+import { parseReservationDate, reservationOverlapFilter } from "@/lib/reservation-dates";
 import { loadEffectiveLinkedStayRange } from "@/lib/linked-stay";
 
 export async function GET(request: NextRequest) {
@@ -87,8 +88,7 @@ export async function POST(request: NextRequest) {
     const overlap = await prisma.reservation.findFirst({
       where: {
         propertyId,
-        checkIn: { lt: checkOutDate },
-        checkOut: { gt: checkInDate },
+        ...reservationOverlapFilter(checkInDate, checkOutDate),
       },
       select: { name: true, checkIn: true, checkOut: true },
     });
@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
       const d = new Date(checkInDate);
       while (d < checkOutDate) {
         datesToClear.push(d.toISOString().substring(0, 10));
-        d.setDate(d.getDate() + 1);
+        d.setUTCDate(d.getUTCDate() + 1);
       }
     }
     if (datesToClear.length > 0) {
@@ -311,6 +311,7 @@ export async function POST(request: NextRequest) {
       linkedEventPlatform: reservation.linkedEventPlatform,
       linkedEventRole: reservation.linkedEventRole,
     });
+    await notifyPropertyChange(propertyId);
     return NextResponse.json(reservation);
   } catch (err) {
     console.error("Route error:", err);

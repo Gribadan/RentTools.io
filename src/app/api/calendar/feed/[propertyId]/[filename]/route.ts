@@ -93,6 +93,7 @@ function icalResponse(ical: string, forPlatform: string): NextResponse {
   return new NextResponse(ical, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
+      "Content-Length": String(Buffer.byteLength(ical, "utf8")),
       "Content-Disposition": `inline; filename="calendar-${forPlatform}.ics"`,
       "Cache-Control": "no-cache, no-store, must-revalidate",
     },

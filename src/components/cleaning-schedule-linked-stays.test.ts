@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import type { CalendarLink, Property, Reservation } from "@/lib/types";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CalendarLink, DateOverride, Property, Reservation } from "@/lib/types";
 import { computeCleaningDays } from "./cleaning-schedule";
 
 function reservation(overrides: Partial<Reservation> = {}): Reservation {
@@ -60,6 +60,39 @@ function source(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+afterEach(() => vi.unstubAllEnvs());
+
+function override(type: DateOverride["type"], date = "2026-11-07"): DateOverride {
+  return { id: 1, propertyId: 68, date, type, note: "Host instruction", createdAt: "2026-10-01T00:00:00Z" };
+}
+
+describe("availability blocks and explicit cleaning", () => {
+  it("does not turn a plain closed date into a cleaning task", () => {
+    expect(computeCleaningDays(property([]), [], [link()], [override("closed")])).toEqual([]);
+  });
+
+  it("lists an explicitly scheduled cleaning with its note", () => {
+    const days = computeCleaningDays(property([]), [], [link()], [override("cleaning")]);
+    expect(days).toMatchObject([{ date: "2026-11-07", kind: "manual", isManual: true, manualNote: "Host instruction" }]);
+  });
+
+  it("retains a real checkout cleaning when its night is also closed", () => {
+    const days = computeCleaningDays(property([]), [source()], [link()], [override("closed", "2026-08-23")]);
+    expect(days.filter(day => day.type === "cleaning")).toMatchObject([{ date: "2026-08-23", kind: "after" }]);
+  });
+
+  it("uses the manual cleaning instruction in place of an automatic suggestion", () => {
+    const days = computeCleaningDays(property([]), [source()], [link()], [override("cleaning", "2026-08-23")]);
+    expect(days.filter(day => day.date === "2026-08-23")).toMatchObject([{ kind: "manual", isManual: true, manualNote: "Host instruction" }]);
+  });
+
+  it("keeps manual checkout cleaning on the chosen day in a western timezone", () => {
+    vi.stubEnv("TZ", "America/Los_Angeles");
+    const days = computeCleaningDays(property([reservation({ linkedEventUid: null })]), [], [link()]);
+    expect(days.filter(day => day.type === "cleaning").map(day => day.date)).toEqual(["2026-08-25"]);
+  });
+});
 
 describe("connected-stay cleaning boundaries", () => {
   it("removes the internal source-to-Direct cleaning and keeps final checkout", () => {

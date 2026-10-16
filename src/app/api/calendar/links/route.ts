@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { notifyPropertyChange } from "@/lib/live-events";
 import { canManageProperty } from "@/lib/ownership";
 import { normalizeIcalUrl, normalizePlatformSlug } from "@/lib/calendar-link-input";
 
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
         platform: platformSlug,
         propertyId: Number(propertyId),
       });
+      await notifyPropertyChange(Number(propertyId));
       return NextResponse.json(updated);
     }
 
@@ -119,6 +121,7 @@ export async function POST(request: NextRequest) {
       propertyId: Number(propertyId),
     });
 
+    await notifyPropertyChange(Number(propertyId));
     return NextResponse.json(link);
   } catch (err) {
     console.error("Route error:", err);

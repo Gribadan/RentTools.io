@@ -187,3 +187,57 @@ jobs:
               test "$(sqlite3 /tmp/renttools-ci.db "PRAGMA integrity_check;")" = ok
               sqlite3 /tmp/renttools-ci.db ".schema Reservation" | grep -q "CREATE TABLE"
             '
+
+  arm-image:
+    name: ARM64 release image
+    needs: build-and-test
+    if: ${{ github.repository == 'Gribadan/RentTools.io' && github.ref == 'refs/heads/master' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    env:
+      IMAGE_SHA: ${{ github.sha }}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+      NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+    steps:
+      - name: Checkout tested source
+        uses: actions/checkout@v6
+
+      - name: Build native ARM64 image off-host
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = aarch64
+          test -n "$NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+          test -n "$NEXT_PUBLIC_SENTRY_DSN"
+          docker buildx create --name renttools-arm --driver docker-container \
+            --driver-opt memory=3500m,memory-swap=3500m,cpu-period=100000,cpu-quota=200000,restart-policy=no --use
+          trap 'docker buildx rm renttools-arm >/dev/null 2>&1 || true' EXIT
+          docker buildx build --load --platform linux/arm64 --file deploy/docker/Dockerfile \
+            --build-arg GIT_COMMIT_SHA="$IMAGE_SHA" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN \
+            --tag "renttools-site:$IMAGE_SHA" .
+          test "$(docker image inspect "renttools-site:$IMAGE_SHA" --format '{{.Architecture}}')" = arm64
+          test "$(docker image inspect "renttools-site:$IMAGE_SHA" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$IMAGE_SHA"
+          docker run --rm --network none --memory 768m --cpus 1 --pids-limit 128 \
+            --env DATABASE_URL=file:/tmp/renttools-arm-test.db \
+            --entrypoint sh "renttools-site:$IMAGE_SHA" -ec '
+              test "$(id -u)" = 1000
+              test -z "${SENTRY_AUTH_TOKEN:-}"
+              test ! -f /app/.env.local
+              ./node_modules/.bin/tsx prisma/push-schema.ts
+              ./node_modules/.bin/tsx prisma/push-schema.ts
+              test "$(sqlite3 /tmp/renttools-arm-test.db "PRAGMA integrity_check;")" = ok
+            '
+          mkdir release
+          docker image inspect "renttools-site:$IMAGE_SHA" --format '{{json .}}' > release/image.json
+          docker save "renttools-site:$IMAGE_SHA" | gzip -1 > release/renttools-arm64.tar.gz
+          (cd release && sha256sum renttools-arm64.tar.gz image.json > SHA256SUMS)
+
+      - name: Upload verified image
+        uses: actions/upload-artifact@v4
+        with:
+          name: renttools-arm64-${{ github.sha }}
+          path: release/
+          compression-level: 0
+          retention-days: 3
+          if-no-files-found: error

@@ -12,7 +12,10 @@ const mocks = vi.hoisted(() => ({
   syncLogFindMany: vi.fn(),
   syncLogDeleteMany: vi.fn(),
   transaction: vi.fn(),
+  notifyPropertyChange: vi.fn(),
 }));
+
+vi.mock("@/lib/live-events", () => ({ notifyPropertyChange: mocks.notifyPropertyChange }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -138,6 +141,10 @@ describe("calendar sync — durable linked reservation metadata", () => {
     const result = await syncAllCalendars({ propertyIds: [propertyId] });
 
     expect(result).toMatchObject({ propertiesSynced: 1, removedEvents: 1, errors: 0 });
+    expect(mocks.notifyPropertyChange).toHaveBeenCalledWith(propertyId);
+    expect(mocks.transaction.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.notifyPropertyChange.mock.invocationCallOrder[0],
+    );
     expect(mocks.reservationUpdateMany).toHaveBeenCalledWith({
       where: {
         propertyId,
@@ -220,7 +227,19 @@ describe("calendar sync — authoritative snapshots", () => {
       update: { summary: "Reserved", startDate: oldEvent.startDate, endDate: "2099-08-24" },
     }));
     expect(mocks.calendarEventDeleteMany).not.toHaveBeenCalled();
-    expect(mocks.reservationUpdateMany).not.toHaveBeenCalled();
+    expect(mocks.reservationUpdateMany).toHaveBeenCalledWith({
+      where: {
+        propertyId,
+        linkedEventUid: oldEvent.uid,
+        AND: [
+          { OR: [{ linkedEventPlatform: "airbnb" }, { linkedEventPlatform: null, platform: "airbnb" }] },
+          { OR: [{ linkedEventRole: "claim" }, { linkedEventRole: null }] },
+        ],
+        checkIn: { gte: new Date("2099-08-19"), lt: new Date("2099-08-20") },
+        checkOut: { gte: new Date("2099-08-23"), lt: new Date("2099-08-24") },
+      },
+      data: { checkIn: new Date("2099-08-19"), checkOut: new Date("2099-08-24") },
+    });
     expect(fetch).toHaveBeenCalledWith(link.icalExportUrl, expect.objectContaining({ cache: "no-store" }));
   });
 

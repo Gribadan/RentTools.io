@@ -1,4 +1,4 @@
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Property, Reservation } from "@/lib/types";
@@ -45,6 +45,31 @@ function calendarData(p: Property, events: CalendarEvent[] = []): CalendarData {
 
 function event(endDate: string, uid = "booking"): CalendarEvent {
   return { id: 1, platform: "booking", uid, summary: "Booking", startDate: "2026-10-09", endDate };
+}
+
+function renderGrid(overrides: Partial<ComponentProps<typeof CalendarGrid>> = {}): string {
+  const empty = new Set<string>();
+  return renderToStaticMarkup(createElement(CalendarGrid, {
+    year: 2026,
+    month: 9,
+    today: new Date("2026-09-09T12:00:00Z"),
+    minNights: 1,
+    checkInTime: "14:00",
+    checkOutTime: "12:00",
+    bars: [{ ...event("2026-10-13"), name: "Booking", eventUid: "booking" }],
+    bufferDates: empty,
+    potentialDates: empty,
+    unbookableDates: empty,
+    sameDayCleaningDates: empty,
+    conflictDates: empty,
+    openOverrides: empty,
+    closedOverrides: empty,
+    cleaningOverrides: empty,
+    selectedDates: empty,
+    onSelectReservation: () => {},
+    onCellClick: () => {},
+    ...overrides,
+  }));
 }
 
 afterEach(() => {
@@ -132,29 +157,29 @@ describe("calendar checkout dates", () => {
   });
 
   it("renders the Oct 9–13 stay into the checkout cell on Tuesday the 13th", () => {
-    const empty = new Set<string>();
-    const markup = renderToStaticMarkup(createElement(CalendarGrid, {
-      year: 2026,
-      month: 9,
-      today: new Date("2026-09-09T12:00:00Z"),
-      minNights: 1,
-      checkInTime: "14:00",
-      checkOutTime: "12:00",
-      bars: [{ ...event("2026-10-13"), name: "Booking", eventUid: "booking" }],
-      bufferDates: empty,
-      potentialDates: empty,
-      unbookableDates: empty,
-      sameDayCleaningDates: empty,
-      conflictDates: empty,
-      openOverrides: empty,
-      closedOverrides: empty,
-      cleaningOverrides: empty,
-      selectedDates: empty,
-      onSelectReservation: () => {},
-      onCellClick: () => {},
-    }));
+    const markup = renderGrid();
     expect(markup).toContain("2026-10-09 14:00 → 2026-10-13 12:00");
     // The second week spans Monday plus half of Tuesday (checkout at noon).
     expect(markup).toContain("width:calc(200% - 0% - 50%");
+  });
+
+  it.each([
+    ["closedOverrides", "bg-rose-500/8", "Closed"],
+    ["openOverrides", "bg-emerald-500/8", "Open"],
+  ] as const)("shows %s on the free checkout night without hiding the stay", (key, tint, label) => {
+    const markup = renderGrid({ [key]: new Set(["2026-10-13"]) });
+    const checkoutClasses = markup.match(/data-date="2026-10-13"[^>]*class="([^"]*)"/)?.[1];
+    expect(checkoutClasses).toContain(tint);
+    expect(markup).toContain(`>${label}</div>`);
+    expect(markup).toContain("2026-10-09 14:00 → 2026-10-13 12:00");
+  });
+
+  it("keeps overrides from marking genuinely booked nights open or closed", () => {
+    const markup = renderGrid({
+      openOverrides: new Set(["2026-10-11"]),
+      closedOverrides: new Set(["2026-10-12"]),
+    });
+    expect(markup.match(/data-date="2026-10-11"[^>]*class="([^"]*)"/)?.[1]).not.toContain("bg-emerald-500/8");
+    expect(markup.match(/data-date="2026-10-12"[^>]*class="([^"]*)"/)?.[1]).not.toContain("bg-rose-500/8");
   });
 });

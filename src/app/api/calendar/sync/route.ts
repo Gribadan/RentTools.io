@@ -11,7 +11,7 @@ import { canReadProperty, listAccessiblePropertyIds } from "@/lib/ownership";
 //    view's "Sync now" button sends this).
 //  - no body            → sync every property the caller can access
 //    (the top-bar "Refresh all" button).
-// The 10-minute background cron remains the only system-wide sync.
+// The background cron remains the only system-wide sync.
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();

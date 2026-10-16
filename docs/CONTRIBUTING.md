@@ -81,6 +81,7 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 
 ## Branching and commits
 
+- **Owner authorship for automated work**: commits prepared on the owner's behalf use only Ilya's (`Gribadan`) configured Git name and email. Check the local Git identity before committing; do not invent or replace it. Do not add automated co-author or sign-off trailers, contributor attribution, or assistant/model/tool names in commit messages, PR titles or descriptions, code comments, or repository documentation. This rule applies to future automated work as well.
 - Branch from `master`: `git checkout -b feat/<short-description>` (or `fix/`, `chore/`, `docs/`).
 - **Conventional Commits**: `<type>(<scope>): <subject>` — e.g. `feat(reports): add CSV export with date range`. Types in use: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
 - One logical change per commit. Don't bundle unrelated work. The commit message should explain *why* the change is needed — the diff already shows what.
@@ -99,8 +100,8 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
    commit is independently useful and tested.
 6. `master` is protected and deployable. Combine overlapping PRs on a temporary
    integration branch and run CI there; never use `master` as a staging area.
-7. Deployment starts only after `CI` succeeds on `master`, then passes through
-   the GitHub `Production` environment. The deploy scripts create and verify an
+7. Deployment starts only after `CI` succeeds on `master` and the owner explicitly
+   authorizes the release. The deploy scripts create and verify an
    online SQLite backup before any deployment change; database changes also
    require additive migration/rollback review before approval.
 
@@ -139,12 +140,17 @@ clear the queue.
 
 ## Releasing
 
-A successful `CI` run on `master` triggers deployment. The deploy job uses the
-protected GitHub `Production` environment, so repository settings can require
-maintainer approval before the droplet changes. The 10-minute cron tick handles
-periodic calendar sync; if you change `src/app/api/calendar/cron/route.ts`, make
-sure `deploy/cron/rent-tool.cron` still calls the right URL with the right
-`CRON_SECRET`.
+A successful `CI` run on `master` produces a native ARM64 image artifact after
+tests and image checks pass. It does not authorize deployment. The owner releases
+the verified artifact through the current registered deployment procedure, with
+a consistent database backup and the previous healthy image available. The
+legacy SSH deployment workflow is disabled for the hosted instance.
+
+The scheduler checks every five minutes and the application enforces the selected
+interval without overlapping runs. Self-hosters must install one scheduler owner
+and configure a dedicated `CRON_SECRET`; `deploy/cron/rent-tool.cron` is the legacy
+single-host template. A request can take several minutes when provider feeds are
+slow, so a client timeout must not be mistaken for cancellation of server work.
 
 ## Code of conduct (lite)
 
