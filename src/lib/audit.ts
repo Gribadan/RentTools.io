@@ -16,6 +16,7 @@ export type AuditResource =
   | "guest"
   | "override"
   | "calendarLink"
+  | "calendarSchedule"
   | "manager"
   | "user" // RT-21.7: account creation, suspension, password change
   | "blogComment" // RT-20.4: super-admin moderation

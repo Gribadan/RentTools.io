@@ -12,15 +12,15 @@ export const dynamic = "force-dynamic";
  * (e.g. cron-job.org). Server-side so the secret never ends up in the
  * client bundle.
  *
- * Auth: requires a logged-in user (superadmin in practice; not enforced
- * here because the secret is also reachable from server logs etc).
+ * Auth: superadmin only. The scheduler credential must not reach other users.
  */
 export async function GET() {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session.role !== "superadmin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const secret = process.env.CRON_SECRET || process.env.JWT_SECRET;
+    const secret = process.env.CRON_SECRET;
     if (!secret || secret === "fallback-secret-change-me") {
       return NextResponse.json({
         url: null,
@@ -37,7 +37,9 @@ export async function GET() {
     }
 
     const url = `${proto}://${host}/api/calendar/cron?secret=${encodeURIComponent(secret)}`;
-    return NextResponse.json({ url, configured: true });
+    return NextResponse.json({ url, configured: true }, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (err) {
     console.error("Route error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

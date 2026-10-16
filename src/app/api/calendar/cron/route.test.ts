@@ -114,7 +114,95 @@ describe("manual sync cannot postpone other hosts' scheduled sync", () => {
     expect(await scheduledResponse.json()).toMatchObject({ ok: true, propertiesSynced: 1 });
     expect(mocks.syncAllCalendars).toHaveBeenNthCalledWith(2);
     // Only the global cron should advance the shared scheduling state.
-    expect(mocks.appSettingsUpsert).toHaveBeenCalledTimes(2);
+    expect(mocks.appSettingsUpsert).toHaveBeenCalledTimes(3);
     expect(state.get("sync_last_run")).toBe("2026-09-09T18:15:00.000Z");
+  });
+});
+
+describe("scheduled cadence", () => {
+  let state: Map<string, string>;
+  const trigger = () => GET(new NextRequest("https://renttools.test/api/calendar/cron", {
+    headers: { authorization: "Bearer configured-secret" },
+  }));
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-16T03:00:17Z"));
+    vi.stubEnv("CRON_SECRET", "configured-secret");
+    state = new Map([["sync_frequency_minutes", "5"]]);
+    mocks.appSettingsFindUnique.mockImplementation(async ({ where: { key } }) =>
+      state.has(key) ? { key, value: state.get(key) } : null,
+    );
+    mocks.appSettingsUpsert.mockImplementation(async ({ where: { key }, update: { value } }) => {
+      state.set(key, value);
+      return { key, value };
+    });
+  });
+
+  it("runs the next slot after a long batch, including an early scheduler tick", async () => {
+    mocks.syncAllCalendars.mockImplementationOnce(async () => {
+      vi.setSystemTime(new Date("2026-10-16T03:02:38Z"));
+      return { propertiesSynced: 221, errors: 0 };
+    });
+    await trigger();
+    expect(state.get("sync_last_started")).toBe("2026-10-16T03:00:17.000Z");
+    expect(state.get("sync_last_run")).toBe("2026-10-16T03:02:38.000Z");
+    vi.setSystemTime(new Date("2026-10-16T03:05:02Z"));
+    expect(await (await trigger()).json()).not.toHaveProperty("skipped");
+    expect(mocks.syncAllCalendars).toHaveBeenCalledTimes(2);
+  });
+
+  it("deduplicates a repeated call in the same slot", async () => {
+    await trigger();
+    vi.setSystemTime(new Date("2026-10-16T03:04:59Z"));
+    expect(await (await trigger()).json()).toMatchObject({ skipped: true });
+    expect(mocks.syncAllCalendars).toHaveBeenCalledOnce();
+  });
+
+  it("does not overlap even when the previous batch crosses the next slot", async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    mocks.syncAllCalendars.mockReturnValueOnce(pending);
+    const first = trigger();
+    await vi.waitFor(() => expect(mocks.syncAllCalendars).toHaveBeenCalledOnce());
+    vi.setSystemTime(new Date("2026-10-16T03:10:00Z"));
+    expect(await (await trigger()).json()).toMatchObject({ skipped: true, reason: "Sync already running" });
+    finish();
+    await first;
+    await trigger();
+    expect(mocks.syncAllCalendars).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([undefined, "broken", "0", "-5"])("uses a safe five-minute default for %s", async (frequency) => {
+    if (frequency === undefined) state.delete("sync_frequency_minutes");
+    else state.set("sync_frequency_minutes", frequency);
+    await trigger();
+    vi.setSystemTime(new Date("2026-10-16T03:05:00Z"));
+    await trigger();
+    expect(mocks.syncAllCalendars).toHaveBeenCalledTimes(2);
+  });
+
+  it("honors longer configured intervals and disabled auto-sync", async () => {
+    state.set("sync_frequency_minutes", "15");
+    await trigger();
+    vi.setSystemTime(new Date("2026-10-16T03:10:00Z"));
+    expect(await (await trigger()).json()).toMatchObject({ skipped: true });
+    vi.setSystemTime(new Date("2026-10-16T03:15:00Z"));
+    await trigger();
+    state.set("sync_auto_enabled", "false");
+    vi.setSystemTime(new Date("2026-10-16T03:30:00Z"));
+    expect(await (await trigger()).json()).toMatchObject({ skipped: true, reason: "Auto-sync disabled" });
+    expect(mocks.syncAllCalendars).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases the guard after failure while keeping completion status separate", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.syncAllCalendars.mockRejectedValueOnce(new Error("Synthetic failure"));
+    expect((await trigger()).status).toBe(500);
+    expect(JSON.parse(state.get("sync_last_result")!)).toEqual({ error: "Synthetic failure" });
+    vi.setSystemTime(new Date("2026-10-16T03:05:00Z"));
+    expect((await trigger()).status).toBe(200);
+    expect(mocks.syncAllCalendars).toHaveBeenCalledTimes(2);
+    consoleError.mockRestore();
   });
 });

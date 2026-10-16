@@ -4,7 +4,7 @@
 # Sources CRON_SECRET from .env.production (so the secret never appears
 # in the crontab itself), then calls the local sync endpoint.
 #
-# Wired up by deploy/cron/rent-tool.cron, which runs this every 10 min
+# Wired up by deploy/cron/rent-tool.cron, which runs this every 5 min
 # under the `app` user.
 #
 # Exit codes:
@@ -38,7 +38,7 @@ fi
 # -s  silent (no progress)
 # -S  show errors anyway
 # -m  hard cap on total time
-HTTP_OUT="$(curl -fsS -m 30 "${ENDPOINT}?secret=${CRON_SECRET}" 2>&1)"
+HTTP_OUT="$(curl -fsS -m 540 "${ENDPOINT}?secret=${CRON_SECRET}" 2>&1)"
 RC=$?
 
 if [ $RC -ne 0 ]; then

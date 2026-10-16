@@ -186,12 +186,23 @@ intended to be imported by Airbnb / Booking.com. Optional `?platform=` filter.
 Same content as above; the trailing filename is for platform compatibility
 (some require a `.ics` suffix in the URL).
 
-### `GET /api/calendar/cron?token=$CRON_SECRET` — cron
-Triggers the same sync as `POST /api/calendar/sync` but is meant to be hit
-by an external scheduler (cron-job.org). Rejects requests with the wrong token.
+### `GET /api/calendar/cron` — cron
+System-wide sync, authenticated by `Authorization: Bearer $CRON_SECRET` or
+`?secret=$CRON_SECRET`. Uses the configured interval (default five minutes)
+and persists the last start separately from completion. Schedule slots avoid
+skipping a tick because of batch duration or scheduler jitter. Repeated calls
+in the same slot and overlapping requests return `{ ok: true, skipped: true,
+reason }`. Run one scheduler owner and one Node process; multiple workers need
+a shared job lock. Manual refresh does not advance the global schedule.
 
-### `GET /api/calendar/schedule` / `PUT /api/calendar/schedule` — session
-Reads / updates the cron schedule settings.
+### `GET /api/calendar/schedule` / `PUT /api/calendar/schedule` — superadmin
+Reads / updates the global cron schedule. Accepts boolean `autoEnabled` and
+`frequencyMinutes` of 5, 10, 15, 30, 60, 120, 360, 720 or 1440. Invalid settings
+return 400. `lastRun` remains the last completion timestamp. Changes are audited.
+
+### `GET /api/calendar/cron-url` — superadmin
+Returns the scheduler URL only when a dedicated `CRON_SECRET` is configured.
+Never exposes the session-signing secret. Other users receive 403.
 
 ### `GET /api/calendar/health` — session
 Returns per-property feed status: `{ properties: [{ id, name, airbnbFeed: { url, status, eventCount }, bookingFeed: {...} }] }`.
