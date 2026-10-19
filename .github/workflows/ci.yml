@@ -234,7 +234,7 @@ jobs:
           (cd release && sha256sum renttools-arm64.tar.gz image.json > SHA256SUMS)
 
       - name: Upload verified image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: renttools-arm64-${{ github.sha }}
           path: release/
