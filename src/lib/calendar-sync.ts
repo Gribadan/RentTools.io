@@ -189,7 +189,7 @@ export async function syncAllCalendars(opts?: {
         // Apply one complete snapshot atomically. A feed request must not see
         // a half-reconciled event set, and a failed guest-link update must not
         // leave its source event deleted. Network I/O stays outside the lock.
-        const { newEvents, updatedEvents, removedUIDs, migratedReservations, unlinkedReservations } =
+        const { newEvents, updatedEvents, removedUIDs, migratedReservations, unlinkedReservations, ambiguousReservations } =
           await prisma.$transaction(async (tx) => {
             // Get existing events for this property+platform
             const existing = await tx.calendarEvent.findMany({
@@ -258,9 +258,10 @@ export async function syncAllCalendars(opts?: {
             // cancellation — Booking.com in particular mints a fresh UID on
             // almost every booking edit (arrival-time change, room-code
             // change, guest edit). Before treating a vanished event as a
-            // real cancellation, check whether newEvents contains a same-
-            // platform event whose date range OVERLAPS the vanished one.
-            // If yes, migrate any linked Reservation to point at the new
+            // real cancellation, check for a one-to-one overlap with a new
+            // same-platform event. Splits and merges do not identify which
+            // stay owns saved guest details, even if one overlap is larger.
+            // For a unique replacement, migrate linked Reservations to the new
             // UID (preserving the host's name, guests, and passport docs)
             // instead of nuking them. If no match, still preserve the
             // Reservation by UNLINKING it (linkedEventUid = null) so guest
@@ -268,6 +269,9 @@ export async function syncAllCalendars(opts?: {
             // review and delete manually if desired.
             let migratedReservations = 0;
             let unlinkedReservations = 0;
+            let ambiguousReservations = 0;
+            const overlaps = (a: ICalEvent, b: ICalEvent) =>
+              a.startDate < b.endDate && a.endDate > b.startDate;
             if (removedEvents.length > 0) {
               for (const ev of removedEvents) {
                 const deleted = await tx.calendarEvent.deleteMany({
@@ -280,20 +284,11 @@ export async function syncAllCalendars(opts?: {
                 });
 
                 if (deleted.count > 0) {
-                  // UID reissue detection: does a newly-appearing event on
-                  // the same platform overlap the vanished one's dates?
-                  // Overlap uses the standard half-open predicate; if
-                  // multiple candidates match, prefer the one with the
-                  // largest date-range intersection (usually there's just
-                  // one). Summary similarity is a secondary hint but not
-                  // required — Booking normalises "CLOSED - Not available"
-                  // across host-blocks and reservations alike.
-                  const overlap = (candidate: ICalEvent) => Math.max(0,
-                    Date.parse(candidate.endDate < ev.endDate ? candidate.endDate : ev.endDate) -
-                    Date.parse(candidate.startDate > ev.startDate ? candidate.startDate : ev.startDate),
-                  );
-                  const candidateReissue = newEvents.filter((event) => overlap(event) > 0)
-                    .sort((a, b) => overlap(b) - overlap(a))[0];
+                  const candidates = newEvents.filter((event) => overlaps(event, ev));
+                  const candidate = candidates.length === 1 ? candidates[0] : undefined;
+                  const candidateReissue = candidate &&
+                    removedEvents.filter((event) => overlaps(candidate, event)).length === 1
+                    ? candidate : undefined;
 
                   if (candidateReissue) {
                     await refreshUneditedClaims(tx, propertyId, link.platform, ev, candidateReissue);
@@ -312,7 +307,7 @@ export async function syncAllCalendars(opts?: {
                     });
                     migratedReservations += migrated.count;
                   } else {
-                    // No reissue candidate — treat as a real cancellation.
+                    // Cancellation or ambiguous replacement: keep local data for review.
                     // NEVER auto-delete a linked Reservation (it may carry
                     // guest passports or a paid Direct extension). Clear the
                     // complete relationship on both claims and extensions so
@@ -333,6 +328,7 @@ export async function syncAllCalendars(opts?: {
                       },
                     });
                     unlinkedReservations += unlinked.count;
+                    if (candidates.length > 0) ambiguousReservations += unlinked.count;
                   }
                 }
               }
@@ -343,7 +339,7 @@ export async function syncAllCalendars(opts?: {
               where: { id: link.id },
               data: { lastFetchedAt: new Date(), lastError: null, failureCount: 0 },
             });
-            return { newEvents, updatedEvents, removedUIDs, migratedReservations, unlinkedReservations };
+            return { newEvents, updatedEvents, removedUIDs, migratedReservations, unlinkedReservations, ambiguousReservations };
           });
 
         summary.newEvents += newEvents.length;
@@ -371,6 +367,9 @@ export async function syncAllCalendars(opts?: {
           }
           if (unlinkedReservations > 0) {
             parts.push(`${unlinkedReservations} reservation(s) unlinked (kept as manual; guest data preserved)`);
+          }
+          if (ambiguousReservations > 0) {
+            parts.push(`${ambiguousReservations} reservation(s) need review: source events split or merged; saved dates were preserved`);
           }
           await log(
             `${propertyName} / ${link.platform}: ${removedUIDs.length} feed event(s) removed${

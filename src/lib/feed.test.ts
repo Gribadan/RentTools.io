@@ -411,6 +411,55 @@ describe("generateFeed — local occupancy remains authoritative", () => {
     ]);
   });
 
+  it("does not echo a separate native stay after a claimed source splits", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([
+      source,
+      { ...source, id: 3, uid: "second-native-stay", startDate: source.endDate, endDate: "2099-08-25" },
+    ]);
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      platform: "airbnb",
+      linkedEventRole: "claim",
+    }]);
+
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical).filter(event => event.uid !== "renttools-placeholder")).toEqual([]);
+  });
+
+  it("keeps only host-added nights not held by either native stay", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([
+      source,
+      { ...source, id: 3, uid: "second-native-stay", startDate: source.endDate, endDate: "2099-08-25" },
+    ]);
+    mocks.reservationFindMany.mockResolvedValue([{
+      ...extension,
+      platform: "airbnb",
+      linkedEventRole: "claim",
+      checkIn: new Date("2099-08-17T00:00:00.000Z"),
+      checkOut: new Date("2099-08-27T00:00:00.000Z"),
+    }]);
+
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([
+      expect.objectContaining({ startDate: "2099-08-17", endDate: source.startDate }),
+      expect.objectContaining({ startDate: "2099-08-25", endDate: "2099-08-27" }),
+    ]);
+  });
+
+  it("continues publishing a real Direct extension even if another native block covers it", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([
+      source,
+      { ...source, id: 3, uid: "emergency-native-block", startDate: source.endDate, endDate: "2099-08-25" },
+    ]);
+    const result = await generateFeed(12, "airbnb");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([
+      expect.objectContaining({ startDate: source.endDate, endDate: "2099-08-25" }),
+    ]);
+  });
+
   it("keeps a preserved local reservation blocked after its imported UID disappears", async () => {
     mocks.calendarEventFindMany.mockResolvedValue([]);
     mocks.reservationFindMany.mockResolvedValue([{

@@ -15,6 +15,7 @@ import {
   type ExtensionActionBar,
 } from "@/components/calendar/extension-actions-popover";
 import { ConflictBanner } from "@/components/calendar/conflict-banner";
+import { ClaimSourceNotice } from "@/components/calendar/claim-source-notice";
 import { useCalendarFetch, SYNC_COOLDOWN_MS } from "@/components/calendar/use-calendar-fetch";
 import { useCalendarData } from "@/components/calendar/use-calendar-data";
 import {
@@ -731,6 +732,7 @@ export function PropertyCalendar({
                 {calendarError === "refresh" ? c.refreshError : c.syncError}
               </p>
             )}
+            <ClaimSourceNotice reservations={property.reservations} events={syncedEvents} loading={loadingEvents} />
             <div className="grid grid-cols-7 pb-2">
               {WEEKDAYS.map((wd) => (
                 <div

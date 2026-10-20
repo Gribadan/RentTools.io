@@ -156,6 +156,109 @@ describe("calendar checkout dates", () => {
     ]));
   });
 
+  it("keeps an adjacent explicit claim separate after its linked source shrinks", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-09T12:00:00Z"));
+    const firstClaim: Reservation = {
+      ...reservation,
+      checkOut: "2026-10-12T00:00:00.000Z",
+      linkedEventUid: "retained-source",
+      linkedEventRole: "claim",
+    };
+    const secondClaim: Reservation = {
+      ...reservation,
+      id: 2,
+      name: "Second guest",
+      checkIn: "2026-10-12T00:00:00.000Z",
+      linkedEventUid: "retained-source",
+      linkedEventRole: "claim",
+    };
+    const p = { ...property([firstClaim, secondClaim]), cleaningEnabled: true };
+    const data = calendarData(p, [event("2026-10-12", "retained-source")]);
+
+    expect(data.bars).toHaveLength(2);
+    expect(data.bars.find((bar) => bar.reservationId === 2)).toMatchObject({
+      startDate: "2026-10-12", endDate: "2026-10-13", isExtension: false,
+    });
+    expect(data.bars.every((bar) => !bar.linkedBefore && !bar.linkedAfter)).toBe(true);
+    expect(data.sameDayCleaningDates.has("2026-10-12")).toBe(true);
+    expect(data.dateToReservation.get("2026-10-12")?.id).toBe(2);
+  });
+
+  it("does not merge an unmatched claim into a different source at the same dates", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-09T12:00:00Z"));
+    const secondClaim: Reservation = {
+      ...reservation,
+      id: 2,
+      name: "Second guest",
+      checkIn: "2026-10-12T00:00:00.000Z",
+      linkedEventUid: "retained-source",
+      linkedEventRole: "claim",
+    };
+    const p = { ...property([secondClaim]), cleaningEnabled: true };
+    const nextSource = { ...event("2026-10-13", "new-source"), startDate: "2026-10-12" };
+    for (const events of [
+      [event("2026-10-12", "retained-source"), nextSource],
+      [nextSource, event("2026-10-12", "retained-source")],
+    ]) {
+      const data = calendarData(p, events);
+      expect(data.bars).toHaveLength(3);
+      expect(data.bars).toEqual(expect.arrayContaining([
+        expect.objectContaining({ eventUid: "new-source", startDate: "2026-10-12", endDate: "2026-10-13" }),
+        expect.objectContaining({ reservationId: 2, startDate: "2026-10-12", endDate: "2026-10-13", isExtension: false }),
+      ]));
+      const localBar = data.bars.find((bar) => bar.reservationId === 2)!;
+      const sourceBar = data.bars.find((bar) => bar.eventUid === "new-source")!;
+      expect(localBar.rowIdx).not.toBe(sourceBar.rowIdx);
+      expect(data.bars.every((bar) => !bar.linkedBefore && !bar.linkedAfter)).toBe(true);
+      expect(data.sameDayCleaningDates.has("2026-10-12")).toBe(true);
+      expect(data.bookingDates.has("2026-10-13")).toBe(true);
+    }
+  });
+
+  it.each(["extension", null] as const)("preserves the cleaning-free boundary for a %s extension", (role) => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-09T12:00:00Z"));
+    const extension: Reservation = {
+      ...reservation,
+      checkIn: "2026-10-12T00:00:00.000Z",
+      platform: role ? "direct" : "booking",
+      linkedEventUid: "retained-source",
+      linkedEventPlatform: "booking",
+      linkedEventRole: role,
+    };
+    const data = calendarData(
+      { ...property([extension]), cleaningEnabled: true },
+      [event("2026-10-12", "retained-source")],
+    );
+    expect(data.bars).toHaveLength(2);
+    expect(data.bars.find((bar) => bar.reservationId === 1)).toMatchObject({
+      isExtension: true, linkedBefore: true,
+    });
+    expect(data.bars.find((bar) => bar.eventUid === "retained-source")).toMatchObject({ linkedAfter: true });
+    expect(data.sameDayCleaningDates.has("2026-10-12")).toBe(false);
+  });
+
+  it("retains source occupancy when a local claim has narrower dates", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-09T12:00:00Z"));
+    const claim: Reservation = {
+      ...reservation,
+      checkIn: "2026-10-10T00:00:00.000Z",
+      checkOut: "2026-10-12T00:00:00.000Z",
+      linkedEventUid: "retained-source",
+      linkedEventRole: "claim",
+    };
+    const data = calendarData(property([claim]), [event("2026-10-13", "retained-source")]);
+    // Editing local guest metadata must not reopen nights still blocked upstream.
+    expect(data.bars).toMatchObject([{
+      reservationId: 1, eventUid: "retained-source", startDate: "2026-10-09", endDate: "2026-10-13",
+    }]);
+    expect(data.bookingDates.has("2026-10-09")).toBe(true);
+    expect(data.bookingDates.has("2026-10-12")).toBe(true);
+  });
+
   it("renders the Oct 9–13 stay into the checkout cell on Tuesday the 13th", () => {
     const markup = renderGrid();
     expect(markup).toContain("2026-10-09 14:00 → 2026-10-13 12:00");
