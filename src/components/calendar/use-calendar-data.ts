@@ -381,7 +381,9 @@ export function useCalendarData(
     const linkedBoundaryDates = new Set<string>();
     for (const rawReservation of property.reservations) {
       const res = rawReservation as LinkedReservation;
-      if (!res.linkedEventUid) continue;
+      // A source can shrink beside a different guest's existing claim. Its
+      // durable role must not turn that claim into a cleaning-free extension.
+      if (!res.linkedEventUid || res.linkedEventRole === "claim") continue;
       const sourcePlatform = linkedSourcePlatform(res);
       const ev = syncedEvents.find(
         (e) =>
@@ -635,13 +637,18 @@ export function useCalendarData(
     const hasLinkedSource = (bar: CalendarBar) => !!bar.eventUid &&
       linkedSources.has(calendarEventIdentity(bar.platform, bar.eventUid));
     const hasManagedIdentity = (bar: CalendarBar) => !!bar.reservationId || hasLinkedSource(bar);
+    const hasDifferentClaimSource = (claim: CalendarBar, source: CalendarBar) =>
+      claim.linkedEventRole === "claim" && !!claim.linkedEventUid &&
+      !!source.eventUid && !referencesSyncedEvent(claim, source);
 
     const deduped: CalendarBar[] = [];
     for (const bar of result) {
       const existing = deduped.find(
         b => b.platform === bar.platform && b.startDate < bar.endDate && b.endDate > bar.startDate &&
           !(b.reservationId && bar.reservationId && b.reservationId !== bar.reservationId) &&
-          !(b.eventUid && bar.eventUid && b.eventUid !== bar.eventUid && hasManagedIdentity(b) && hasManagedIdentity(bar))
+          !(b.eventUid && bar.eventUid && b.eventUid !== bar.eventUid && hasManagedIdentity(b) && hasManagedIdentity(bar)) &&
+          // Matching dates alone cannot reassign a stale claim to a new UID.
+          !hasDifferentClaimSource(b, bar) && !hasDifferentClaimSource(bar, b)
       );
       if (existing) {
         if (bar.startDate < existing.startDate) existing.startDate = bar.startDate;
@@ -678,7 +685,7 @@ export function useCalendarData(
       }
     }
     for (const bar of deduped) {
-      if (!bar.linkedEventUid) continue;
+      if (!bar.isExtension || !bar.linkedEventUid) continue;
       const sourcePlatform = linkedSourcePlatform(bar);
       if (!sourcePlatform) continue;
       const partner = eventUidToBar.get(
@@ -729,7 +736,7 @@ export function useCalendarData(
       // Linked-partner: inherit row from the partner that's already
       // been assigned (the earlier-starting one of the pair).
       let inheritedIdx: number | undefined;
-      if (bar.linkedEventUid) {
+      if (bar.isExtension && bar.linkedEventUid) {
         for (const other of sortedForRows) {
           if (other === bar) continue;
           if (referencesSyncedEvent(bar, other) && assigned.has(other)) {

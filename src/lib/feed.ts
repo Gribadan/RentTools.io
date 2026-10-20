@@ -159,13 +159,20 @@ export async function generateFeed(propertyId: number, forPlatform: string): Pro
     // Only an explicit link proves the reservation is a claim of the target's
     // source event. An unrelated native block on the same dates (including a
     // host's emergency manual reclose) must not suppress local occupancy.
-    // Suppress only that linked source's nights; all remaining local nights
-    // must keep blocking the target as well.
-    // Subtraction also preserves a host's added nights around a source stay.
+    // After a provider splits a merged event, a claim can retain the old UID
+    // while another native event now holds some of its nights. Reflecting those
+    // nights back would recreate the merged block. Only explicit claims with
+    // an existing source may also subtract that platform's other native events.
+    // Unlinked local bookings and Direct extensions remain independent, and
+    // host-added nights outside the native inventory must still be exported.
     let segments = [event];
     if (reservationChannel(res) === forPlatform && res.linkedEventUid &&
         (res.linkedEventPlatform || res.platform) === forPlatform) {
-      for (const source of allEvents.filter(e => e.platform === forPlatform && e.uid === res.linkedEventUid)) {
+      const linkedSource = allEvents.find(e => e.platform === forPlatform && e.uid === res.linkedEventUid);
+      const nativeSources = res.linkedEventRole === "claim" && linkedSource
+        ? allEvents.filter(e => e.platform === forPlatform)
+        : linkedSource ? [linkedSource] : [];
+      for (const source of nativeSources) {
         segments = segments.flatMap((segment) => {
           if (source.endDate <= segment.startDate || source.startDate >= segment.endDate) {
             return [segment];
