@@ -6,11 +6,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
-import type { Property } from "@/lib/types";
 
 interface CopyShape {
   tabDashboard: string;
   tabCalendar: string;
+  tabOverview: string;
   tabCleaning: string;
   tabReports: string;
   tabProperty: string;
@@ -39,6 +39,7 @@ const COPY: Record<Locale, CopyShape> = {
   en: {
     tabDashboard: "Dashboard",
     tabCalendar: "Calendar",
+    tabOverview: "All calendars",
     tabCleaning: "Cleaning",
     tabReports: "Reports",
     tabProperty: "Property",
@@ -64,6 +65,7 @@ const COPY: Record<Locale, CopyShape> = {
     refreshAllDone: "Calendars updated",
   },
   ru: {
+    tabOverview: "Общий календарь",
     tabDashboard: "Обзор",
     tabCalendar: "Календарь",
     tabCleaning: "Уборки",
@@ -90,6 +92,7 @@ const COPY: Record<Locale, CopyShape> = {
     refreshAllDone: "Календари обновлены",
   },
   de: {
+    tabOverview: "Alle Kalender",
     tabDashboard: "Übersicht",
     tabCalendar: "Kalender",
     tabCleaning: "Reinigung",
@@ -117,6 +120,7 @@ const COPY: Record<Locale, CopyShape> = {
     refreshAllDone: "Kalender aktualisiert",
   },
   fr: {
+    tabOverview: "Tous les calendriers",
     tabDashboard: "Tableau de bord",
     tabCalendar: "Calendrier",
     tabCleaning: "Ménage",
@@ -144,6 +148,7 @@ const COPY: Record<Locale, CopyShape> = {
     refreshAllDone: "Calendriers actualisés",
   },
   es: {
+    tabOverview: "Todos los calendarios",
     tabDashboard: "Panel",
     tabCalendar: "Calendario",
     tabCleaning: "Limpieza",
@@ -172,7 +177,13 @@ const COPY: Record<Locale, CopyShape> = {
   },
 };
 
-export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guest-form" | "guests" | "settings" | "tasks" | "reports" | "profile";
+export type AppView = "dashboard" | "overview" | "calendar" | "cleaning" | "sync" | "guest-form" | "guests" | "settings" | "tasks" | "reports" | "profile";
+
+export interface TopBarProperty {
+  id: number;
+  name: string;
+  reservations: { _count?: { guests: number } }[];
+}
 
 interface GuestSearchResult {
   guestId: number;
@@ -188,7 +199,7 @@ interface GuestSearchResult {
 }
 
 interface TopBarProps {
-  properties: Property[];
+  properties: TopBarProperty[];
   selectedPropertyId: number | null;
   activeView: AppView;
   onSelectProperty: (id: number | null) => void;
@@ -208,7 +219,6 @@ export function TopBar({
   properties,
   selectedPropertyId,
   activeView,
-  onSelectProperty,
   onChangeView,
   onNavigate,
   onOpenReservation,
@@ -259,12 +269,7 @@ export function TopBar({
 
   useEffect(() => {
     const q = searchQuery.trim();
-    if (q.length < 2) {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-    setSearchLoading(true);
+    if (q.length < 2) return;
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
@@ -273,12 +278,12 @@ export function TopBar({
         });
         if (res.ok) {
           const data = await res.json();
-          setSearchResults((data.results || []) as GuestSearchResult[]);
+          if (!ctrl.signal.aborted) setSearchResults((data.results || []) as GuestSearchResult[]);
         }
       } catch {
         // aborted or network — ignore
       } finally {
-        setSearchLoading(false);
+        if (!ctrl.signal.aborted) setSearchLoading(false);
       }
     }, 200);
     return () => {
@@ -302,9 +307,6 @@ export function TopBar({
     }
   };
 
-  // Property-required views — Calendar / Cleaning / Settings only make
-  // sense in a property context. If user clicks one with no property
-  // selected, auto-pick the first one in the same nav.
   const goToTab = (view: AppView) => {
     // Dashboard is the portfolio-wide view; clicking it always drops
     // the property scope so the user lands on the home/overview no
@@ -313,11 +315,10 @@ export function TopBar({
       onNavigate({ property: null, reservation: null, view: "dashboard" });
       return;
     }
-    // Calendar is the only tab that strictly requires a property —
-    // there is no cross-property calendar view (a single grid can't
-    // show 5 properties' bars meaningfully). Cleaning and Reports
-    // are dual-mode: routing them with no property lands on the
-    // global aggregate view, not a forced first-property pick.
+    if (view === "overview") {
+      onNavigate({ property: null, reservation: null, view: "overview" });
+      return;
+    }
     const requiresProperty = view === "calendar" || view === "sync";
     if (requiresProperty && !selectedPropertyId && properties.length > 0) {
       onNavigate({ property: properties[0].id, view });
@@ -342,7 +343,7 @@ export function TopBar({
     }
   };
 
-  // All five tabs render at every scope so the header stays put.
+  // Tabs render at every scope so the header stays put.
   // Property-required tabs (Calendar, Property) auto-pick the first
   // property when clicked without a selection — see goToTab above.
   // The property selector to the left of the strip is the
@@ -351,6 +352,7 @@ export function TopBar({
   // Stripe / Linear / GitHub all use the same stable-header pattern.
   const tabs: { key: AppView; label: string; show: boolean }[] = [
     { key: "dashboard", label: c.tabDashboard, show: true },
+    { key: "overview", label: c.tabOverview, show: true },
     { key: "calendar", label: c.tabCalendar, show: true },
     { key: "cleaning", label: c.tabCleaning, show: true },
     { key: "reports", label: c.tabReports, show: true },
@@ -452,7 +454,7 @@ export function TopBar({
                       // closure and silently reverted the property
                       // change. That was the "doesn't work on first
                       // click" bug.
-                      onNavigate({ property: null, reservation: null, view: "dashboard" });
+                      onNavigate({ property: null, reservation: null, view: activeView === "calendar" || activeView === "overview" ? "overview" : "dashboard" });
                       setPropDropdown(false);
                     }}
                     className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors ${
@@ -462,7 +464,7 @@ export function TopBar({
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                     </svg>
-                    {c.dashboardAll}
+                    {activeView === "calendar" || activeView === "overview" ? c.allProperties : c.dashboardAll}
                   </button>
 
                   <div className="my-1 h-px bg-[var(--line-2)]" />
@@ -489,7 +491,7 @@ export function TopBar({
                           onNavigate({
                             property: p.id,
                             reservation: null,
-                            view: activeView === "dashboard" ? "calendar" : activeView,
+                            view: activeView === "dashboard" || activeView === "overview" ? "calendar" : activeView,
                           });
                           setPropDropdown(false);
                         }}
@@ -504,7 +506,7 @@ export function TopBar({
                         </span>
                         <span className="flex-1 min-w-0 text-left">
                           <span className={`block truncate ${p.id === selectedPropertyId ? "font-medium" : ""}`}>{p.name}</span>
-                          <span className="block truncate text-[11px] text-[var(--ink-4)]">{countLabel}</span>
+                          {activeView !== "overview" && <span className="block truncate text-[11px] text-[var(--ink-4)]">{countLabel}</span>}
                         </span>
                         {p.id === selectedPropertyId && (
                           <svg className="h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -541,7 +543,7 @@ export function TopBar({
             left & right groups can size naturally without throwing off
             the centerline. pointer-events trick lets the wider invisible
             wrapper not eat clicks on logo/avatar. */}
-        <nav className="absolute inset-x-0 top-0 bottom-0 mx-auto pointer-events-none hidden lg:flex items-center justify-center" aria-label="Primary">
+        <nav className="absolute inset-x-0 top-0 bottom-0 mx-auto pointer-events-none hidden xl:flex items-center justify-center" aria-label="Primary">
           <div className="pointer-events-auto flex items-center">
             {tabs.filter(tab => tab.show).map(tab => (
               <NavTab
@@ -607,7 +609,11 @@ export function TopBar({
                   <input
                     ref={searchInputRef}
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setSearchResults([]);
+                      setSearchLoading(e.target.value.trim().length >= 2);
+                    }}
                     placeholder={c.searchPlaceholder}
                     className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
                   />
@@ -832,7 +838,7 @@ export function TopBar({
           permanent scrollbar; the fade-on-edge gradient hints at
           horizontal overflow without taking vertical space. */}
       <nav
-        className="flex items-center gap-1 overflow-x-auto whitespace-nowrap px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 lg:hidden"
+        className="flex items-center gap-1 overflow-x-auto whitespace-nowrap px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 xl:hidden"
         aria-label="Primary mobile"
       >
         {tabs.filter(tab => tab.show).map(tab => (

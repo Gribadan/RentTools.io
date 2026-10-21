@@ -67,6 +67,13 @@ Returns `{ success: true }`.
 
 ## Reservations
 
+### `GET /api/reservations/[id]` - session, property management access
+Returns one reservation for the existing reservation card, including reservation-level
+contact/group fields and the guest count. Guest records and travel-document fields
+are not included; the existing guest endpoint applies its own management and support
+redaction checks. Cleaner-only access and inaccessible reservations return `404`.
+Responses are private and not cached.
+
 ### `GET /api/reservations?propertyId=X` — session
 Returns `Reservation[]` with `_count.guests`. `propertyId` query param is required.
 
@@ -140,6 +147,23 @@ curl -b cookies.txt \
 ---
 
 ## Calendar
+
+### `GET /api/calendar/overview?month=YYYY-MM` - session
+Returns `{ month, startDate, endDate, properties }` for one calendar month.
+Properties are filtered server-side through the existing owner, manager, and
+cleaner assignments. Each row contains calendar settings, `canManage`, projected
+reservations/events, buffer settings, date-override types, and a `syncFailed` flag.
+Initial occupancy queries are bounded to the month (including its checkout
+boundary); exact linked and overlapping claim partners are also returned so
+clipping does not change existing booking identities. The endpoint does not
+fetch unrestricted history. Display occupancy remains checkout-exclusive.
+
+No guest records, document fields, feed URLs/tokens, reservation contacts, group
+links, override notes, or source error text are returned. Cleaner-only rows use
+generic booking names, omit persistent reservation IDs, and replace source UIDs
+with response-local identities; they cannot open the management reservation card.
+Invalid/missing months return `400`; occupancy failures return `500`, rather
+than successful empty dates. Responses are private and not cached.
 
 ### `GET /api/live` — session
 
