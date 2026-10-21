@@ -1,0 +1,2060 @@
+diff --git a/docs/API.md b/docs/API.md
+index 01e72c4..006afc7 100644
+--- a/docs/API.md
++++ b/docs/API.md
+@@ -67,6 +67,13 @@ Returns `{ success: true }`.
+ 
+ ## Reservations
+ 
++### `GET /api/reservations/[id]` - session, property management access
++Returns one reservation for the existing reservation card, including reservation-level
++contact/group fields and the guest count. Guest records and travel-document fields
++are not included; the existing guest endpoint applies its own management and support
++redaction checks. Cleaner-only access and inaccessible reservations return `404`.
++Responses are private and not cached.
++
+ ### `GET /api/reservations?propertyId=X` — session
+ Returns `Reservation[]` with `_count.guests`. `propertyId` query param is required.
+ 
+@@ -141,6 +148,23 @@ curl -b cookies.txt \
+ 
+ ## Calendar
+ 
++### `GET /api/calendar/overview?month=YYYY-MM` - session
++Returns `{ month, startDate, endDate, properties }` for one calendar month.
++Properties are filtered server-side through the existing owner, manager, and
++cleaner assignments. Each row contains calendar settings, `canManage`, projected
++reservations/events, buffer settings, date-override types, and a `syncFailed` flag.
++Initial occupancy queries are bounded to the month (including its checkout
++boundary); exact linked and overlapping claim partners are also returned so
++clipping does not change existing booking identities. The endpoint does not
++fetch unrestricted history. Display occupancy remains checkout-exclusive.
++
++No guest records, document fields, feed URLs/tokens, reservation contacts, group
++links, override notes, or source error text are returned. Cleaner-only rows use
++generic booking names, omit persistent reservation IDs, and replace source UIDs
++with response-local identities; they cannot open the management reservation card.
++Invalid/missing months return `400`; occupancy failures return `500`, rather
++than successful empty dates. Responses are private and not cached.
++
+ ### `GET /api/live` — session
+ 
+ Opens a private `text/event-stream` connection for the signed-in user. A `refresh`
+diff --git a/src/app/api/calendar/overview/route.test.ts b/src/app/api/calendar/overview/route.test.ts
+new file mode 100644
+index 0000000..2b63535
+--- /dev/null
++++ b/src/app/api/calendar/overview/route.test.ts
+@@ -0,0 +1,186 @@
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { NextRequest } from "next/server";
++
++const mocks = vi.hoisted(() => ({ session: vi.fn(), properties: vi.fn(), managed: vi.fn(), assigned: vi.fn(), reservations: vi.fn(), events: vi.fn() }));
++vi.mock("@/lib/auth", () => ({ getSession: mocks.session }));
++vi.mock("@/lib/prisma", () => ({ prisma: {
++  property: { findMany: mocks.properties }, propertyManager: { findMany: mocks.managed },
++  cleanerAssignment: { findMany: mocks.assigned }, reservation: { findMany: mocks.reservations },
++  calendarEvent: { findMany: mocks.events },
++} }));
++import { GET } from "./route";
++
++type Row = Record<string, unknown>;
++type Query = { where: Row; select: Row };
++const date = (value: string) => new Date(`${value}T00:00:00.000Z`);
++const reservation = (id: number, propertyId: number, checkIn: string, checkOut: string, linkedEventUid: string | null = null) => ({
++  id, propertyId, name: `Synthetic guest ${id}`, checkIn: date(checkIn), checkOut: date(checkOut),
++  platform: "airbnb", linkedEventUid, linkedEventPlatform: linkedEventUid ? "airbnb" : null, linkedEventRole: linkedEventUid ? "claim" : null,
++  phone: "private-contact", tgGroupUrl: "private-group", guests: [{ passportNumber: "private-document" }],
++});
++const propertyRows = [1, 2, 3, 4].map((id) => ({
++  id, userId: id === 1 ? 7 : 80, name: `Synthetic property ${id}`, minNights: 1,
++  checkInTime: "14:00", checkOutTime: "12:00", bookingWindow: 365, cleaningEnabled: true,
++  feedToken: "private-feed", calendarLinks: [{ platform: "airbnb", bufferBefore: 0, bufferAfter: 0, lastError: null, lastFetchedAt: date("2026-10-20"), icalExportUrl: "private-source" }],
++  dateOverrides: [{ date: "2026-10-08", type: "closed", note: "private-note" }, { date: "2020-01-01", type: "closed" }],
++}));
++const reservationRows = [
++  reservation(11, 1, "2026-10-18", "2026-10-24"), reservation(12, 1, "2026-10-24", "2026-10-26"),
++  reservation(13, 1, "2020-01-06", "2020-01-09"), reservation(14, 1, "2026-09-29", "2026-10-06", "shared-uid"),
++  reservation(15, 2, "2026-10-23", "2026-10-29"), reservation(16, 3, "2026-10-14", "2026-10-16", "cleaner-private-uid"),
++  reservation(17, 4, "2026-10-18", "2026-10-24", "shared-uid"),
++  reservation(18, 1, "2026-09-28", "2026-09-30", "shared-uid"),
++];
++const eventRows = [
++  { propertyId: 1, platform: "airbnb", uid: "shared-uid", summary: "Synthetic earlier source", startDate: "2026-09-28", endDate: "2026-09-30" },
++  { propertyId: 3, platform: "airbnb", uid: "cleaner-private-uid", summary: "Synthetic private guest", startDate: "2026-10-14", endDate: "2026-10-16" },
++  { propertyId: 3, platform: "airbnb", uid: "cleaner-private-block", summary: "Synthetic private Blocked details", startDate: "2026-10-18", endDate: "2026-10-20" },
++  { propertyId: 4, platform: "airbnb", uid: "shared-uid", summary: "Foreign account", startDate: "2026-09-28", endDate: "2026-09-30" },
++  { propertyId: 1, platform: "booking", uid: "old-uid", summary: "Old source", startDate: "2020-01-01", endDate: "2020-01-10" },
++];
++
++function comparable(value: unknown): string | number | null | undefined {
++  if (value instanceof Date) return value.getTime();
++  return value as string | number | null | undefined;
++}
++function matches(row: Row, where: Row): boolean {
++  return Object.entries(where).every(([key, filter]) => {
++    if (key === "OR") return (filter as Row[]).some((part) => matches(row, part));
++    if (filter && typeof filter === "object" && !(filter instanceof Date)) {
++      return Object.entries(filter).every(([operator, expected]) => {
++        const actual = comparable(row[key]);
++        const target = comparable(expected);
++        if (operator === "in") return (expected as unknown[]).includes(row[key]);
++        if (operator === "lt") return actual != null && target != null && actual < target;
++        if (operator === "gt") return actual != null && target != null && actual > target;
++        if (operator === "gte") return actual != null && target != null && actual >= target;
++        throw new Error(`Unsupported fixture operator ${operator}`);
++      });
++    }
++    return row[key] === filter;
++  });
++}
++function project(row: Row, select: Row): Row {
++  return Object.fromEntries(Object.entries(select).map(([key, option]) => {
++    if (option === true) return [key, row[key]];
++    const nested = option as { select: Row; where?: Row };
++    return [key, (row[key] as Row[]).filter((child) => !nested.where || matches(child, nested.where)).map((child) => project(child, nested.select))];
++  }));
++}
++const runQuery = (rows: Row[], { where, select }: Query) => rows.filter((row) => matches(row, where)).map((row) => project(row, select));
++const request = (month = "2026-10") => new NextRequest(`https://renttools.test/api/calendar/overview?month=${month}`);
++
++beforeEach(() => {
++  vi.resetAllMocks();
++  mocks.session.mockResolvedValue({ userId: 7, role: "user" });
++  mocks.properties.mockImplementation((query: Query) => Promise.resolve(runQuery(propertyRows, query)));
++  mocks.managed.mockImplementation(({ where }: Query) => Promise.resolve(where.managerId === 7 || where.managerId === 8 ? [{ propertyId: 2 }] : []));
++  mocks.assigned.mockImplementation(({ where }: Query) => Promise.resolve(where.cleanerId === 7 || where.cleanerId === 9 ? [{ propertyId: 3 }] : []));
++  mocks.reservations.mockImplementation((query: Query) => Promise.resolve(runQuery(reservationRows, query)));
++  mocks.events.mockImplementation((query: Query) => Promise.resolve(runQuery(eventRows, query)));
++});
++
++describe("monthly calendar overview access and source projection", () => {
++  it("requires authentication before querying any data", async () => {
++    mocks.session.mockResolvedValue(null);
++    expect((await GET(request())).status).toBe(401);
++    expect(mocks.properties).not.toHaveBeenCalled();
++    expect(mocks.reservations).not.toHaveBeenCalled();
++  });
++  it.each(["", "2026-13", "2026-1", "2026-10-01"])("rejects month %s before querying", async (month) => {
++    expect((await GET(request(month))).status).toBe(400);
++    expect(mocks.properties).not.toHaveBeenCalled();
++  });
++  it("returns only owned and managed properties with bounded history and exact source partners", async () => {
++    const response = await GET(request());
++    const body = await response.json();
++    expect(response.status).toBe(200);
++    expect(response.headers.get("cache-control")).toBe("private, no-store");
++    expect(body.properties.map((row: Row) => row.id)).toEqual([1, 2]);
++    expect(body.properties.every((row: Row) => row.canManage)).toBe(true);
++    expect(body.properties.every((row: Row) => row.syncFailed === false)).toBe(true);
++    expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([18, 14, 11, 12]);
++    expect(body.properties[0].events).toEqual([expect.objectContaining({ uid: "shared-uid", startDate: "2026-09-28" })]);
++    expect(body.properties[0].overrides).toEqual([{ date: "2026-10-08", type: "closed" }]);
++    expect(JSON.stringify(body)).not.toMatch(/private-|Foreign account|old-uid|2020-01/);
++    expect(mocks.reservations.mock.calls[0][0].where).toEqual({ propertyId: { in: [1, 2] }, checkIn: { lt: date("2026-11-01") }, checkOut: { gte: date("2026-10-01") } });
++    for (const [query] of [...mocks.reservations.mock.calls, ...mocks.events.mock.calls]) {
++      expect(query.where.propertyId).toEqual({ in: [1, 2] });
++      expect(query.where.checkIn || query.where.startDate || query.where.OR).toBeTruthy();
++    }
++    expect(mocks.assigned).not.toHaveBeenCalled();
++  });
++  it("redacts cleaner-only identities without breaking linked source equality or blocked semantics", async () => {
++    mocks.session.mockResolvedValue({ userId: 9, role: "cleaner" });
++    const body = await (await GET(request())).json();
++    expect(body.properties.map((row: Row) => row.id)).toEqual([3]);
++    const row = body.properties[0];
++    expect(row.canManage).toBe(false);
++    expect(row.reservations[0].id).toBeUndefined();
++    expect(row.reservations[0].name).toBe("Reserved");
++    expect(row.events[0].summary).toBe("Reserved");
++    expect(row.events[1].summary).toBe("Blocked");
++    expect(row.reservations[0].linkedEventUid).toBe(row.events[0].uid);
++    expect(JSON.stringify(body)).not.toMatch(/private|Synthetic guest|Synthetic private|"id":16|shared-uid/);
++  });
++  it("limits a separately granted manager to their assigned property", async () => {
++    mocks.session.mockResolvedValue({ userId: 8, role: "user" });
++    const body = await (await GET(request())).json();
++    expect(body.properties.map((row: Row) => row.id)).toEqual([2]);
++    expect(body.properties[0].canManage).toBe(true);
++    expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([15]);
++  });
++  it("keeps legacy timed boundary rows date-stable and excludes the next month's arrivals", async () => {
++    const rows = [
++      { ...reservation(31, 1, "2026-09-30", "2026-10-01"), checkIn: new Date("2026-09-30T14:00:00Z"), checkOut: new Date("2026-10-01T12:00:00Z") },
++      { ...reservation(32, 1, "2026-10-31", "2026-11-02"), checkIn: new Date("2026-10-31T23:00:00Z") },
++      reservation(33, 1, "2026-11-01", "2026-11-02"),
++    ];
++    mocks.reservations.mockImplementation((query: Query) => Promise.resolve(runQuery(rows, query)));
++    const body = await (await GET(request())).json();
++    expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([31, 32]);
++    expect(body.properties[0].reservations[0].checkOut).toBe("2026-10-01T12:00:00.000Z");
++    expect(body.properties[0].reservations[1].checkIn).toBe("2026-10-31T23:00:00.000Z");
++  });
++  it("does not give a superadmin unrelated accounts through the overview", async () => {
++    mocks.session.mockResolvedValue({ userId: 99, role: "superadmin" });
++    const body = await (await GET(request())).json();
++    expect(body.properties).toEqual([]);
++    expect(mocks.events).not.toHaveBeenCalled();
++  });
++  it("preserves management rights for cleaner-role owners and managers alongside redacted assigned properties", async () => {
++    mocks.session.mockResolvedValue({ userId: 7, role: "cleaner" });
++    const body = await (await GET(request())).json();
++    expect(body.properties.map((row: Row) => [row.id, row.canManage])).toEqual([[1, true], [2, true], [3, false]]);
++    expect(body.properties[0].reservations.some((row: Row) => row.id === 11)).toBe(true);
++    expect(body.properties[2].reservations[0].id).toBeUndefined();
++  });
++  it("returns an empty authorized account without touching occupancy tables", async () => {
++    mocks.session.mockResolvedValue({ userId: 99, role: "user" });
++    const body = await (await GET(request())).json();
++    expect(body.properties).toEqual([]);
++    expect(mocks.events).not.toHaveBeenCalled();
++    expect(mocks.reservations).not.toHaveBeenCalled();
++  });
++  it("does not turn an occupancy failure into empty dates", async () => {
++    mocks.events.mockRejectedValue(new Error("Synthetic database unavailable"));
++    const log = vi.spyOn(console, "error").mockImplementation(() => {});
++    const response = await GET(request());
++    expect(response.status).toBe(500);
++    expect(await response.json()).toEqual({ error: "Internal server error" });
++    log.mockRestore();
++  });
++  it.each([
++    { lastFetchedAt: null, lastError: null },
++    { lastFetchedAt: date("2026-10-20"), lastError: "Synthetic private upstream error" },
++  ])("marks never-synced and failed feeds unknown without returning raw health fields", async (health) => {
++    const rows = propertyRows.map((property) => ({
++      ...property,
++      calendarLinks: property.calendarLinks.map((link) => ({ ...link, ...health })),
++    }));
++    mocks.properties.mockImplementation((query: Query) => Promise.resolve(runQuery(rows, query)));
++    const body = await (await GET(request())).json();
++    expect(body.properties.every((row: Row) => row.syncFailed === true)).toBe(true);
++    expect(JSON.stringify(body)).not.toMatch(/lastFetchedAt|lastError|upstream error/);
++  });
++});
+diff --git a/src/app/api/calendar/overview/route.ts b/src/app/api/calendar/overview/route.ts
+new file mode 100644
+index 0000000..a4de1ce
+--- /dev/null
++++ b/src/app/api/calendar/overview/route.ts
+@@ -0,0 +1,151 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getSession } from "@/lib/auth";
++import { prisma } from "@/lib/prisma";
++import { listAccessiblePropertyIds } from "@/lib/ownership";
++import { calendarOverviewMonth, type CalendarOverviewResponse } from "@/lib/calendar-overview";
++import { toReservationDateInput } from "@/lib/reservation-dates";
++
++const reservationSelect = {
++  id: true, propertyId: true, name: true, checkIn: true, checkOut: true,
++  platform: true, linkedEventUid: true, linkedEventPlatform: true, linkedEventRole: true,
++} as const;
++const eventSelect = {
++  propertyId: true, platform: true, uid: true, summary: true, startDate: true, endDate: true,
++} as const;
++const responseHeaders = { "Cache-Control": "private, no-store" };
++
++export async function GET(request: NextRequest) {
++  try {
++    const session = await getSession();
++    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: responseHeaders });
++    const range = calendarOverviewMonth(request.nextUrl.searchParams.get("month"));
++    if (!range) return NextResponse.json({ error: "A valid month (YYYY-MM) is required" }, { status: 400, headers: responseHeaders });
++
++    const [readIds, manageIds] = await Promise.all([
++      listAccessiblePropertyIds(session.userId, session.role, "read"),
++      listAccessiblePropertyIds(session.userId, session.role, "manage"),
++    ]);
++    const manageable = new Set(manageIds);
++    const response: CalendarOverviewResponse = {
++      month: range.month, startDate: range.startDate, endDate: range.endDate, properties: [],
++    };
++    if (readIds.length === 0) return NextResponse.json(response, { headers: responseHeaders });
++
++    const properties = await prisma.property.findMany({
++      where: { id: { in: readIds } },
++      orderBy: [{ name: "asc" }, { id: "asc" }],
++      select: {
++        id: true, name: true, minNights: true, checkInTime: true, checkOutTime: true,
++        bookingWindow: true, cleaningEnabled: true,
++        calendarLinks: { select: { platform: true, bufferBefore: true, bufferAfter: true, lastError: true, lastFetchedAt: true } },
++        dateOverrides: {
++          where: { date: { gte: range.startDate, lt: range.endDate } },
++          select: { date: true, type: true },
++        },
++      },
++    });
++    const propertyIds = properties.map((property) => property.id);
++    const propertyScope = { propertyId: { in: propertyIds } };
++    const [reservations, events] = await Promise.all([
++      prisma.reservation.findMany({
++        where: { ...propertyScope, checkIn: { lt: range.end }, checkOut: { gte: range.start } },
++        select: reservationSelect,
++        orderBy: [{ checkIn: "asc" }, { id: "asc" }],
++      }),
++      prisma.calendarEvent.findMany({
++        where: { ...propertyScope, startDate: { lt: range.endDate }, endDate: { gte: range.startDate } },
++        select: eventSelect,
++        orderBy: [{ startDate: "asc" }, { uid: "asc" }],
++      }),
++    ]);
++
++    // Preserve source identity before clipping. A local claim may extend into
++    // this month while its truncated source, or another claim, is outside it.
++    const sourceQueries = reservations.flatMap((reservation) => {
++      const linkedPlatform = reservation.linkedEventPlatform || reservation.platform;
++      return [
++        ...(reservation.linkedEventUid ? [{
++          propertyId: reservation.propertyId, platform: linkedPlatform, uid: reservation.linkedEventUid,
++        }] : []),
++        {
++          propertyId: reservation.propertyId,
++          platform: reservation.platform,
++          startDate: { lt: toReservationDateInput(reservation.checkOut.toISOString()) },
++          endDate: { gt: toReservationDateInput(reservation.checkIn.toISOString()) },
++        },
++      ];
++    });
++    if (sourceQueries.length > 0) {
++      events.push(...await prisma.calendarEvent.findMany({
++        where: { ...propertyScope, OR: sourceQueries }, select: eventSelect,
++        orderBy: [{ startDate: "asc" }, { uid: "asc" }],
++      }));
++    }
++    const eventKey = (event: typeof events[number]) => `${event.propertyId}\u0000${event.platform}\u0000${event.uid}`;
++    const uniqueEvents = [...new Map(events.map((event) => [eventKey(event), event])).values()]
++      .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.uid.localeCompare(b.uid) || a.platform.localeCompare(b.platform));
++    if (uniqueEvents.length > 0) {
++      const partners = await prisma.reservation.findMany({
++        where: {
++          ...propertyScope,
++          OR: uniqueEvents.flatMap((event) => [
++            {
++              propertyId: event.propertyId,
++              linkedEventUid: event.uid,
++              OR: [{ linkedEventPlatform: event.platform }, { linkedEventPlatform: null, platform: event.platform }],
++            },
++            {
++              propertyId: event.propertyId, platform: event.platform, linkedEventUid: null,
++              checkIn: { lt: new Date(`${event.endDate}T00:00:00.000Z`) },
++              checkOut: { gt: new Date(`${event.startDate}T00:00:00.000Z`) },
++            },
++          ]),
++        },
++        select: reservationSelect,
++        orderBy: [{ checkIn: "asc" }, { id: "asc" }],
++      });
++      reservations.push(...partners);
++    }
++    const uniqueReservations = [...new Map(reservations.map((reservation) => [reservation.id, reservation])).values()]
++      .sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime() || a.id - b.id);
++
++    response.properties = properties.map((property) => {
++      const canManage = manageable.has(property.id);
++      const sourceIds = new Map<string, string>();
++      const sourceId = (platform: string, uid: string) => {
++        if (canManage) return uid;
++        const key = `${platform}\u0000${uid}`;
++        if (!sourceIds.has(key)) sourceIds.set(key, `source-${sourceIds.size + 1}`);
++        return sourceIds.get(key)!;
++      };
++      return {
++        id: property.id, name: property.name, minNights: property.minNights,
++        checkInTime: property.checkInTime, checkOutTime: property.checkOutTime,
++        bookingWindow: property.bookingWindow, cleaningEnabled: property.cleaningEnabled, canManage,
++        reservations: uniqueReservations.filter((reservation) => reservation.propertyId === property.id).map((reservation) => ({
++          ...(canManage ? { id: reservation.id } : {}),
++          name: canManage ? reservation.name : "Reserved",
++          checkIn: reservation.checkIn.toISOString(), checkOut: reservation.checkOut.toISOString(),
++          platform: reservation.platform,
++          linkedEventUid: reservation.linkedEventUid ? sourceId(reservation.linkedEventPlatform || reservation.platform, reservation.linkedEventUid) : null,
++          linkedEventPlatform: reservation.linkedEventPlatform,
++          linkedEventRole: reservation.linkedEventRole === "claim" || reservation.linkedEventRole === "extension" ? reservation.linkedEventRole : null,
++        })),
++        events: uniqueEvents.filter((event) => event.propertyId === property.id).map((event) => ({
++          platform: event.platform, uid: sourceId(event.platform, event.uid),
++          summary: canManage ? event.summary : event.platform === "airbnb" && (event.summary.includes("Not available") || event.summary.includes("Blocked")) ? "Blocked" : "Reserved",
++          startDate: event.startDate, endDate: event.endDate,
++        })),
++        links: property.calendarLinks.map((link) => ({ platform: link.platform, bufferBefore: link.bufferBefore, bufferAfter: link.bufferAfter })),
++        overrides: property.dateOverrides.filter((override) => override.type === "open" || override.type === "closed" || override.type === "cleaning").map((override) => ({
++          date: override.date, type: override.type as "open" | "closed" | "cleaning",
++        })),
++        syncFailed: property.calendarLinks.some((link) => !link.lastFetchedAt || Boolean(link.lastError)),
++      };
++    });
++    return NextResponse.json(response, { headers: responseHeaders });
++  } catch (error) {
++    console.error("Calendar overview error:", error);
++    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: responseHeaders });
++  }
++}
+diff --git a/src/app/api/reservations/[id]/route.get.test.ts b/src/app/api/reservations/[id]/route.get.test.ts
+new file mode 100644
+index 0000000..86812fe
+--- /dev/null
++++ b/src/app/api/reservations/[id]/route.get.test.ts
+@@ -0,0 +1,88 @@
++import { beforeEach, describe, expect, it, vi } from "vitest";
++import { NextRequest } from "next/server";
++
++const mocks = vi.hoisted(() => ({ session: vi.fn(), reservation: vi.fn(), property: vi.fn(), manager: vi.fn(), assignment: vi.fn() }));
++vi.mock("@/lib/auth", () => ({ getSession: mocks.session }));
++vi.mock("@/lib/audit", () => ({ logAudit: vi.fn() }));
++vi.mock("@/lib/live-events", () => ({ notifyPropertyChange: vi.fn() }));
++vi.mock("@/lib/prisma", () => ({ prisma: {
++  reservation: { findUnique: mocks.reservation }, property: { findUnique: mocks.property },
++  propertyManager: { findUnique: mocks.manager }, cleanerAssignment: { findUnique: mocks.assignment },
++} }));
++import { GET } from "./route";
++
++const synthetic = (id: number, propertyId: number) => ({
++  id, propertyId, name: `Synthetic reservation ${id}`, platform: "direct", checkIn: new Date("2026-10-18T00:00:00Z"),
++  checkOut: new Date("2026-10-24T00:00:00Z"), linkedEventUid: null, linkedEventPlatform: null, linkedEventRole: null,
++  phone: null, tgGroupUrl: null, waGroupUrl: null, groupName: null, bookedGuestCount: 2,
++  createdAt: new Date("2026-10-01T00:00:00Z"), _count: { guests: 1 }, guests: [{ passportNumber: "private-document" }],
++});
++const fixtures = [synthetic(11, 1), synthetic(15, 2), synthetic(99, 4)];
++const request = (id = "11") => GET(new NextRequest(`https://renttools.test/api/reservations/${id}`), { params: Promise.resolve({ id }) });
++
++beforeEach(() => {
++  vi.resetAllMocks();
++  mocks.session.mockResolvedValue({ userId: 7, role: "user" });
++  mocks.reservation.mockImplementation(({ where, select }: { where: { id: number; propertyId?: number }; select: Record<string, unknown> }) => {
++    const row = fixtures.find((fixture) => fixture.id === where.id && (where.propertyId === undefined || fixture.propertyId === where.propertyId));
++    if (!row) return Promise.resolve(null);
++    return Promise.resolve(Object.fromEntries(Object.keys(select).map((key) => [key, row[key as keyof typeof row]])));
++  });
++  mocks.property.mockImplementation(({ where }: { where: { id: number } }) => Promise.resolve({ userId: where.id === 1 ? 7 : 80 }));
++  mocks.manager.mockImplementation(({ where }: { where: { managerId_propertyId: { managerId: number; propertyId: number } } }) => {
++    const key = where.managerId_propertyId;
++    return Promise.resolve(key.managerId === 8 && key.propertyId === 2 ? { id: 1 } : null);
++  });
++  mocks.assignment.mockImplementation(({ where }: { where: { cleanerId_propertyId: { cleanerId: number; propertyId: number } } }) => {
++    const key = where.cleanerId_propertyId;
++    return Promise.resolve(key.cleanerId === 9 && key.propertyId === 1 ? { id: 1 } : null);
++  });
++});
++
++describe("single reservation read management boundary", () => {
++  it("loads only the owner's requested card and never guest document records", async () => {
++    const response = await request();
++    const body = await response.json();
++    expect(response.status).toBe(200);
++    expect(body.id).toBe(11);
++    expect(body._count).toEqual({ guests: 1 });
++    expect(body.guests).toBeUndefined();
++    expect(JSON.stringify(body)).not.toContain("private-document");
++    expect(response.headers.get("cache-control")).toBe("private, no-store");
++    expect(mocks.reservation.mock.calls[1][0].where).toEqual({ id: 11, propertyId: 1 });
++    expect(mocks.reservation.mock.calls[1][0].select.guests).toBeUndefined();
++  });
++  it("permits the existing manager grant", async () => {
++    mocks.session.mockResolvedValue({ userId: 8, role: "user" });
++    expect((await request("15")).status).toBe(200);
++  });
++  it.each([
++    { userId: 9, role: "cleaner" }, { userId: 12, role: "user" }, { userId: 12, role: "superadmin" },
++  ])("denies non-management access for $role/$userId", async (session) => {
++    mocks.session.mockResolvedValue(session);
++    expect((await request()).status).toBe(404);
++    expect(mocks.reservation).toHaveBeenCalledOnce();
++  });
++  it("does not let an owner select a foreign account's reservation", async () => {
++    expect((await request("99")).status).toBe(404);
++    expect(mocks.reservation).toHaveBeenCalledOnce();
++  });
++  it("requires a session without touching reservation data", async () => {
++    mocks.session.mockResolvedValue(null);
++    expect((await request()).status).toBe(401);
++    expect(mocks.reservation).not.toHaveBeenCalled();
++  });
++  it.each(["-1", "0", "11x", "NaN", "9007199254740992"])("rejects malformed ID %s", async (id) => {
++    expect((await request(id)).status).toBe(400);
++    expect(mocks.reservation).not.toHaveBeenCalled();
++  });
++  it("returns 404 for an absent reservation", async () => {
++    expect((await request("500")).status).toBe(404);
++  });
++  it("reports a database failure without a partial card", async () => {
++    mocks.reservation.mockRejectedValue(new Error("Synthetic unavailable"));
++    const log = vi.spyOn(console, "error").mockImplementation(() => {});
++    expect((await request()).status).toBe(500);
++    log.mockRestore();
++  });
++});
+diff --git a/src/app/api/reservations/[id]/route.ts b/src/app/api/reservations/[id]/route.ts
+index 252d765..f68d673 100644
+--- a/src/app/api/reservations/[id]/route.ts
++++ b/src/app/api/reservations/[id]/route.ts
+@@ -31,6 +31,38 @@ async function loadManageableReservation(
+   return reservation;
+ }
+ 
++export async function GET(
++  _request: NextRequest,
++  { params }: { params: Promise<{ id: string }> },
++) {
++  const headers = { "Cache-Control": "private, no-store" };
++  try {
++    const session = await getSession();
++    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
++    const { id } = await params;
++    if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
++      return NextResponse.json({ error: "Invalid ID" }, { status: 400, headers });
++    }
++    const owned = await loadManageableReservation(Number(id), session.userId, session.role);
++    if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404, headers });
++    const reservation = await prisma.reservation.findUnique({
++      where: { id: owned.id, propertyId: owned.propertyId },
++      select: {
++        id: true, name: true, checkIn: true, checkOut: true, platform: true,
++        linkedEventUid: true, linkedEventPlatform: true, linkedEventRole: true,
++        phone: true, tgGroupUrl: true, waGroupUrl: true, groupName: true,
++        bookedGuestCount: true, propertyId: true, createdAt: true,
++        _count: { select: { guests: true } },
++      },
++    });
++    if (!reservation) return NextResponse.json({ error: "Not found" }, { status: 404, headers });
++    return NextResponse.json(reservation, { headers });
++  } catch (error) {
++    console.error("Reservation detail error:", error);
++    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers });
++  }
++}
++
+ export async function PATCH(
+   request: NextRequest,
+   { params }: { params: Promise<{ id: string }> }
+diff --git a/src/app/dashboard/page.tsx b/src/app/dashboard/page.tsx
+index 57859e5..d727c55 100644
+--- a/src/app/dashboard/page.tsx
++++ b/src/app/dashboard/page.tsx
+@@ -20,8 +20,26 @@ import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
+ import { AnnouncementBanner } from "@/components/announcement-banner";
+ import { SupportFooter } from "@/components/support-footer";
+ import { CleanerApp } from "@/components/cleaner-app";
++import { CalendarOverview } from "@/components/calendar/calendar-overview";
++import type { CalendarOverviewProperty } from "@/lib/calendar-overview";
++import { dashboardHref, type DashboardNavigation } from "@/lib/dashboard-navigation";
+ import type { Property, Guest } from "@/lib/types";
+ 
++async function loadProperties(signal?: AbortSignal): Promise<Property[]> {
++  const response = await fetch("/api/properties", { signal });
++  if (!response.ok) throw new Error(`Properties request failed (${response.status})`);
++  const data: unknown = await response.json();
++  if (!Array.isArray(data)) throw new Error("Invalid properties response");
++  return data;
++}
++
++async function loadGuests(reservationId: number, signal?: AbortSignal): Promise<Guest[]> {
++  const response = await fetch(`/api/guests?reservationId=${reservationId}`, { signal });
++  if (!response.ok) throw new Error(`Guests request failed (${response.status})`);
++  const data: unknown = await response.json();
++  return Array.isArray(data) ? data : [];
++}
++
+ function CleanerShell({
+   user,
+ }: {
+@@ -43,7 +61,8 @@ function AppContent({
+   const router = useRouter();
+   const searchParams = useSearchParams();
+   const [properties, setProperties] = useState<Property[]>([]);
+-  const [guests, setGuests] = useState<Guest[]>([]);
++  const [overviewProperties, setOverviewProperties] = useState<CalendarOverviewProperty[]>([]);
++  const [guestData, setGuestData] = useState<{ reservationId: number; guests: Guest[] } | null>(null);
+   const [loadingProperties, setLoadingProperties] = useState(true);
+ 
+   // Derive state from URL params
+@@ -51,31 +70,19 @@ function AppContent({
+   const selectedReservationId = searchParams.get("reservation") ? Number(searchParams.get("reservation")) : null;
+   const activeView: AppView = (searchParams.get("view") as AppView) ||
+     (selectedReservationId ? "guests" : selectedPropertyId ? "calendar" : "dashboard");
++  const guests = activeView !== "overview" && guestData?.reservationId === selectedReservationId ? guestData.guests : [];
+ 
+-  // Navigate by updating URL params. The previous `month=YYYY-MM`
+-  // param is gone — the calendar is now a vertical multi-month stack
+-  // (no prev / next pagination), so there's no "active month" to
+-  // preserve.
+-  const navigate = useCallback((params: { property?: number | null; reservation?: number | null; view?: AppView }) => {
+-    const sp = new URLSearchParams();
+-    const propId = params.property !== undefined ? params.property : selectedPropertyId;
+-    const resId = params.reservation !== undefined ? params.reservation : (params.property !== undefined ? null : selectedReservationId);
+-    const view = params.view || (resId ? "guests" : propId ? "calendar" : "dashboard");
+-
+-    if (propId) sp.set("property", String(propId));
+-    if (resId) sp.set("reservation", String(resId));
+-    // Only set view param if it's not the default for the context
+-    const defaultView = resId ? "guests" : propId ? "calendar" : "dashboard";
+-    if (view !== defaultView) sp.set("view", view);
+-
+-    const qs = sp.toString();
+-    router.push(qs ? `/dashboard?${qs}` : "/dashboard");
+-  }, [router, selectedPropertyId, selectedReservationId]);
+-
+-  // Convenience setters that update URL
+-  const setSelectedPropertyId = useCallback((id: number | null) => {
+-    navigate({ property: id, reservation: null });
+-  }, [navigate]);
++  const overviewMonth = searchParams.get("overviewMonth");
++  const overviewSearch = searchParams.get("overviewSearch") || "";
++
++  const navigate = useCallback((params: DashboardNavigation & { view?: AppView }) => {
++    router.push(dashboardHref({
++      propertyId: selectedPropertyId,
++      reservationId: selectedReservationId,
++      overviewMonth,
++      overviewSearch,
++    }, params));
++  }, [router, selectedPropertyId, selectedReservationId, overviewMonth, overviewSearch]);
+ 
+   const setSelectedReservationId = useCallback((id: number | null) => {
+     if (id) {
+@@ -91,50 +98,57 @@ function AppContent({
+     navigate({ view });
+   }, [navigate]);
+ 
+-  useEffect(() => {
+-    fetchProperties();
+-  }, []);
+-
+-  // Multi-manager visibility: a second manager viewing the dashboard
+-  // should see a new direct booking (or a rename / cleaning toggle /
+-  // reservation edit) added by another manager without needing to log
+-  // out and back in. Refetch on tab focus + poll every 60 s while
+-  // visible — cheap, and matches the calendar's own live-refresh so
+-  // both surfaces stay in sync.
+-  useLiveRefresh(() => fetchProperties());
+-
+-  useEffect(() => {
+-    if (selectedReservationId) {
+-      fetchGuests(selectedReservationId);
+-    } else {
+-      setGuests([]);
+-    }
+-  }, [selectedReservationId]);
+-
+-  const fetchProperties = async () => {
++  const fetchProperties = useCallback(async () => {
++    if (activeView === "overview") return;
+     setLoadingProperties(true);
+     try {
+-      const res = await fetch("/api/properties");
+-      const data = await res.json();
+-      if (Array.isArray(data)) {
+-        setProperties(data);
+-      } else {
+-        console.error("Properties API returned non-array:", data);
+-        setProperties([]);
+-      }
++      setProperties(await loadProperties());
+     } catch (err) {
+       console.error("Failed to fetch properties:", err);
+       setProperties([]);
+     } finally {
+       setLoadingProperties(false);
+     }
+-  };
++  }, [activeView]);
+ 
+-  const fetchGuests = async (reservationId: number) => {
+-    const res = await fetch(`/api/guests?reservationId=${reservationId}`);
+-    const data = await res.json();
+-    setGuests(data);
+-  };
++  useEffect(() => {
++    if (activeView === "overview") return;
++    const controller = new AbortController();
++    void loadProperties(controller.signal).then((data) => {
++      if (!controller.signal.aborted) setProperties(data);
++    }).catch((error) => {
++      if (!controller.signal.aborted) {
++        console.error("Failed to fetch properties:", error);
++        setProperties([]);
++      }
++    }).finally(() => {
++      if (!controller.signal.aborted) setLoadingProperties(false);
++    });
++    return () => controller.abort();
++  }, [activeView]);
++
++  // Multi-manager visibility: a second manager viewing the dashboard
++  // should see a new direct booking (or a rename / cleaning toggle /
++  // reservation edit) added by another manager without needing to log
++  // out and back in. Refetch on tab focus + poll every 60 s while
++  // visible - cheap, and matches the calendar's own live-refresh so
++  // both surfaces stay in sync.
++  useLiveRefresh(fetchProperties);
++
++  const fetchGuests = useCallback(async (reservationId: number) => {
++    setGuestData({ reservationId, guests: await loadGuests(reservationId) });
++  }, []);
++
++  useEffect(() => {
++    if (!selectedReservationId || activeView === "overview") return;
++    const controller = new AbortController();
++    void loadGuests(selectedReservationId, controller.signal).then((data) => {
++      if (!controller.signal.aborted) setGuestData({ reservationId: selectedReservationId, guests: data });
++    }).catch((error) => {
++      if (!controller.signal.aborted) console.error("Failed to fetch guests:", error);
++    });
++    return () => controller.abort();
++  }, [selectedReservationId, activeView]);
+ 
+   const handleAddProperty = async (name: string) => {
+     const res = await fetch("/api/properties", {
+@@ -260,7 +274,7 @@ function AppContent({
+       fetchGuests(selectedReservationId);
+       fetchProperties();
+     }
+-  }, [selectedReservationId]);
++  }, [selectedReservationId, fetchGuests, fetchProperties]);
+ 
+   const handleLogout = async () => {
+     await fetch("/api/auth/logout", { method: "POST" });
+@@ -284,6 +298,21 @@ function AppContent({
+   const selectedReservation = selectedProperty?.reservations.find(r => r.id === selectedReservationId);
+ 
+   const renderContent = () => {
++    if (activeView === "overview") {
++      return (
++        <CalendarOverview
++          month={overviewMonth}
++          query={overviewSearch}
++          selectedReservationId={selectedReservationId}
++          onMonthChange={(month) => navigate({ view: "overview", overviewMonth: month })}
++          onQueryChange={(query) => navigate({ view: "overview", overviewSearch: query })}
++          onOpenReservation={(propertyId, reservationId) => navigate({ property: propertyId, reservation: reservationId, view: "overview" })}
++          onOpenProperty={(propertyId) => navigate({ property: propertyId, reservation: null, view: "calendar" })}
++          onCloseReservation={() => navigate({ property: null, reservation: null, view: "overview" })}
++          onPropertiesLoaded={setOverviewProperties}
++        />
++      );
++    }
+     // Global views (no property selected)
+     const isSuperAdmin = user.role === "superadmin";
+ 
+@@ -441,14 +470,14 @@ function AppContent({
+     <div className="editorial flex h-screen flex-col overflow-hidden bg-[var(--bg)]">
+       <AnnouncementBanner />
+       <TopBar
+-        properties={properties}
+-        selectedPropertyId={selectedPropertyId}
++        properties={activeView === "overview" ? overviewProperties.map((property) => ({ id: property.id, name: property.name, reservations: [] })) : properties}
++        selectedPropertyId={activeView === "overview" ? null : selectedPropertyId}
+         activeView={activeView}
+         onSelectProperty={handleSelectProperty}
+         onChangeView={setActiveView}
+         onNavigate={navigate}
+         onOpenReservation={(propId, resId) =>
+-          navigate({ property: propId, reservation: resId, view: "guests" })
++          navigate({ property: propId, reservation: resId, view: activeView === "overview" ? "overview" : "guests" })
+         }
+         username={user.username}
+         userRole={user.role}
+@@ -456,7 +485,7 @@ function AppContent({
+       />
+       <SyncAlertsBanner />
+       <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 pb-3 sm:pb-6 lg:pb-8" style={{ scrollbarGutter: "stable" }}>
+-        {loadingProperties && properties.length === 0 ? (
++        {activeView !== "overview" && loadingProperties && properties.length === 0 ? (
+           <div className="flex h-full items-center justify-center">
+             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-2)] border-t-sky-400" />
+           </div>
+diff --git a/src/components/calendar/calendar-overview.tsx b/src/components/calendar/calendar-overview.tsx
+new file mode 100644
+index 0000000..2ea88ac
+--- /dev/null
++++ b/src/components/calendar/calendar-overview.tsx
+@@ -0,0 +1,162 @@
++"use client";
++
++import { useCallback, useEffect, useRef, useState } from "react";
++import { CalendarDays, ChevronLeft, ChevronRight, Search } from "lucide-react";
++import { EmptyState } from "@/components/empty-state";
++import { useI18n } from "@/lib/i18n/context";
++import { useLiveRefresh } from "@/lib/use-live-refresh";
++import { calendarOverviewMonth, type CalendarOverviewProperty, type CalendarOverviewResponse } from "@/lib/calendar-overview";
++import { toDateStr, addDaysStr } from "./utils";
++import { toReservationDateInput } from "@/lib/reservation-dates";
++import { bookingWindowCutoff } from "@/lib/types";
++import { CalendarOverviewRow } from "./overview-row";
++import { OVERVIEW_DAY_WIDTH, OVERVIEW_PROPERTY_COLUMN_CLASS } from "./overview-layout";
++import { OverviewReservation } from "./overview-reservation";
++
++interface CalendarOverviewProps {
++  month: string | null;
++  query: string;
++  selectedReservationId: number | null;
++  onMonthChange: (month: string) => void;
++  onQueryChange: (query: string) => void;
++  onOpenReservation: (propertyId: number, reservationId: number) => void;
++  onOpenProperty: (propertyId: number) => void;
++  onCloseReservation: () => void;
++  onPropertiesLoaded: (properties: CalendarOverviewProperty[]) => void;
++}
++
++export function CalendarOverview(props: CalendarOverviewProps) {
++  const { locale } = useI18n();
++  const ru = locale === "ru";
++  const today = toDateStr(new Date());
++  const month = calendarOverviewMonth(props.month)?.month ?? today.slice(0, 7);
++  const range = calendarOverviewMonth(month)!;
++  const [data, setData] = useState<CalendarOverviewResponse | null>(null);
++  const [errorMonth, setErrorMonth] = useState<string | null>(null);
++  const [loading, setLoading] = useState(true);
++  const [reload, setReload] = useState(0);
++  const scroller = useRef<HTMLDivElement>(null);
++  const scrollToToday = useRef(false);
++  const loadedCallback = useRef(props.onPropertiesLoaded);
++  useEffect(() => { loadedCallback.current = props.onPropertiesLoaded; }, [props.onPropertiesLoaded]);
++  const refresh = useCallback(() => setReload(value => value + 1), []);
++  useLiveRefresh(refresh);
++
++  useEffect(() => {
++    const controller = new AbortController();
++    Promise.resolve().then(() => {
++      if (controller.signal.aborted) return null;
++      setLoading(true);
++      return fetch(`/api/calendar/overview?month=${month}`, { signal: controller.signal, cache: "no-store" });
++    })
++      .then(async response => {
++        if (!response) return;
++        if (!response.ok) throw new Error("Calendar unavailable");
++        const result = await response.json() as CalendarOverviewResponse;
++        if (result.month !== month || !Array.isArray(result.properties)) throw new Error("Invalid calendar response");
++        if (controller.signal.aborted) return;
++        setData(result);
++        setErrorMonth(null);
++        loadedCallback.current(result.properties);
++      })
++      .catch(() => { if (!controller.signal.aborted) setErrorMonth(month); })
++      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
++    return () => controller.abort();
++  }, [month, reload]);
++
++  useEffect(() => { if (scroller.current) scroller.current.scrollLeft = 0; }, [month]);
++  useEffect(() => {
++    if (scrollToToday.current && data?.month === month && scroller.current) {
++      scroller.current.scrollLeft = Math.max(0, (Number(today.slice(8)) - 3) * OVERVIEW_DAY_WIDTH);
++      scrollToToday.current = false;
++    }
++  }, [data, month, today]);
++
++  const days = Array.from({ length: Math.round((range.end.getTime() - range.start.getTime()) / 86400000) }, (_, index) => addDaysStr(range.startDate, index));
++  const currentData = data?.month === month ? data : null;
++  const visible = currentData?.properties.filter(property => property.name.toLocaleLowerCase(locale).includes(props.query.trim().toLocaleLowerCase(locale))) ?? [];
++  const changeMonth = (offset: number) => {
++    const next = new Date(range.start);
++    next.setUTCMonth(next.getUTCMonth() + offset);
++    const value = next.toISOString().slice(0, 7);
++    if (calendarOverviewMonth(value)) props.onMonthChange(value);
++  };
++  const goToday = () => {
++    scrollToToday.current = month !== today.slice(0, 7);
++    props.onMonthChange(today.slice(0, 7));
++    if (month === today.slice(0, 7) && scroller.current) {
++      scroller.current.scrollLeft = Math.max(0, (Number(today.slice(8)) - 3) * OVERVIEW_DAY_WIDTH);
++    }
++  };
++  const selectedProperty = currentData?.properties.find(property => property.reservations.some(reservation => reservation.id === props.selectedReservationId));
++  const hasOccupancy = visible.some(property => property.syncFailed ||
++    property.reservations.some(reservation => toReservationDateInput(reservation.checkIn) < range.endDate && toReservationDateInput(reservation.checkOut) > range.startDate) ||
++    property.events.some(event => event.startDate < range.endDate && event.endDate > range.startDate && event.startDate < bookingWindowCutoff(property.bookingWindow || 365)) ||
++    property.overrides.some(override => override.type !== "open"));
++  const controlClass = "min-h-11 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-sm text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]";
++
++  return (
++    <section className="mx-auto max-w-[1760px]" aria-label={ru ? "Общий календарь" : "All calendars"}>
++      {props.selectedReservationId && (
++        <OverviewReservation key={props.selectedReservationId} reservationId={props.selectedReservationId} propertyName={selectedProperty?.name} onClose={props.onCloseReservation} onChanged={refresh} />
++      )}
++      <div hidden={!!props.selectedReservationId}>
++        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
++          <div>
++            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">{ru ? "Общий календарь" : "All calendars"}</h1>
++            <p className="mt-1 text-sm text-[var(--ink-3)]">{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(range.start)} · {ru ? "Все объекты" : "All properties"}</p>
++          </div>
++          <div className="grid w-full grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_auto]">
++            <button className={controlClass} onClick={goToday}>{ru ? "Сегодня" : "Today"}</button>
++            <button className={controlClass} onClick={() => changeMonth(-1)} aria-label={ru ? "Предыдущий месяц" : "Previous month"} disabled={month === "1000-01"}><ChevronLeft size={18} /></button>
++            <label className="sr-only" htmlFor="overview-month">{ru ? "Месяц" : "Month"}</label>
++            <input id="overview-month" type="month" min="1000-01" max="9999-11" value={month} onChange={event => { if (calendarOverviewMonth(event.target.value)) props.onMonthChange(event.target.value); }} className={`${controlClass} min-w-0 w-full sm:w-44`} />
++            <button className={controlClass} onClick={() => changeMonth(1)} aria-label={ru ? "Следующий месяц" : "Next month"} disabled={month === "9999-11"}><ChevronRight size={18} /></button>
++          </div>
++        </div>
++        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
++          <label className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-3 sm:max-w-sm">
++            <Search size={17} className="shrink-0 text-[var(--ink-3)]" aria-hidden="true" />
++            <span className="sr-only">{ru ? "Поиск по названию объекта" : "Search properties"}</span>
++            <input type="search" value={props.query} onChange={event => props.onQueryChange(event.target.value)} placeholder={ru ? "Поиск по названию объекта" : "Search properties"} className="min-w-0 flex-1 bg-transparent py-2 text-sm text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--m-accent)]" />
++          </label>
++          <p className="text-xs text-[var(--ink-3)]">{ru ? "Даты — ночи до выезда. Прокрутите вправо →" : "Dates show nights before checkout. Scroll right →"}</p>
++        </div>
++        {loading && currentData && <p role="status" className="mb-2 text-xs text-[var(--ink-3)]">{ru ? "Обновление…" : "Updating…"}</p>}
++        {errorMonth === month ? (
++          <div role="alert" className="rounded-xl border border-red-400/50 bg-red-400/10 p-6 text-sm text-[var(--ink)]">
++            <p>{ru ? "Не удалось загрузить календарь. Занятость неизвестна." : "Calendar could not be loaded. Availability is unknown."}</p>
++            <button className={`${controlClass} mt-3`} onClick={refresh} disabled={loading}>{loading ? (ru ? "Загрузка…" : "Loading…") : (ru ? "Повторить" : "Retry")}</button>
++          </div>
++        ) : !currentData ? (
++          <div role="status" className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-10 text-center text-[var(--ink-3)]">{ru ? "Загрузка календаря…" : "Loading calendar…"}</div>
++        ) : currentData.properties.length === 0 ? (
++          <EmptyState icon={<CalendarDays size={20} />} title={ru ? "Нет доступных объектов" : "No properties yet"} description={ru ? "Здесь появятся объекты, к которым у вас есть доступ." : "Properties you can access will appear here."} />
++        ) : visible.length === 0 ? (
++          <EmptyState icon={<Search size={20} />} title={ru ? "Объекты не найдены" : "No matching properties"} description={ru ? "Попробуйте другое название или очистите поиск." : "Try another name or clear the search."} cta={{ label: ru ? "Сбросить поиск" : "Clear search", onClick: () => props.onQueryChange("") }} />
++        ) : (
++          <>
++            {!hasOccupancy && (
++              <p role="status" className="mb-3 rounded-lg border border-[var(--line)] p-3 text-sm text-[var(--ink-3)]">{ru ? "В этом месяце нет бронирований или блокировок." : "No bookings or blocks this month."}</p>
++            )}
++            <div ref={scroller} tabIndex={0} role="region" aria-label={ru ? "Календарь объектов, горизонтальная прокрутка" : "Property calendar, scroll horizontally"} className="max-h-[65vh] overflow-auto rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
++              <div role="table" aria-label={ru ? "Занятость объектов" : "Property occupancy"} className="min-w-full w-max">
++                <div role="row" className="sticky top-0 z-30 flex min-w-full border-b border-[var(--line-2)] bg-[var(--bg-2)]">
++                  <div role="columnheader" className={`${OVERVIEW_PROPERTY_COLUMN_CLASS} sticky left-0 z-40 flex shrink-0 items-center border-r border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-xs font-semibold text-[var(--ink-3)]`}>{ru ? "Объект" : "Property"} · {visible.length}</div>
++                  {days.map(day => (
++                    <div role="columnheader" key={day} aria-label={day} className={`flex h-16 shrink-0 flex-col items-center justify-center border-r border-[var(--line)] text-xs ${day === today ? "bg-[var(--m-accent)]/10 font-semibold text-[var(--m-accent)]" : "text-[var(--ink-3)]"}`} style={{ width: OVERVIEW_DAY_WIDTH }}>
++                      <span>{new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}</span>
++                      <span className="mt-1 text-base font-semibold">{Number(day.slice(8))}</span>
++                    </div>
++                  ))}
++                </div>
++                {visible.map(property => <CalendarOverviewRow key={property.id} property={property} monthStart={range.startDate} monthEnd={range.endDate} today={today} onOpenReservation={props.onOpenReservation} onOpenProperty={props.onOpenProperty} />)}
++              </div>
++            </div>
++            <p className="mt-3 text-xs text-[var(--ink-3)]">{ru ? "Соседние полосы разделены границей смены гостей. Пересечения показаны отдельными полосами." : "Separate bars mark guest turnover. Overlapping stays appear on separate lines."}</p>
++          </>
++        )}
++      </div>
++    </section>
++  );
++}
+diff --git a/src/components/calendar/overview-layout.test.tsx b/src/components/calendar/overview-layout.test.tsx
+new file mode 100644
+index 0000000..0b868ec
+--- /dev/null
++++ b/src/components/calendar/overview-layout.test.tsx
+@@ -0,0 +1,187 @@
++import { createElement } from "react";
++import { renderToStaticMarkup } from "react-dom/server";
++import { afterEach, describe, expect, it, vi } from "vitest";
++import type { CalendarOverviewProperty } from "@/lib/calendar-overview";
++import type { Property, Reservation } from "@/lib/types";
++import { reservationNights } from "@/lib/reservation-dates";
++import { I18nProvider } from "@/lib/i18n/context";
++import { translations, type Locale } from "@/lib/i18n/translations";
++import { layoutOverviewBar, overviewDayCount, OVERVIEW_DAY_WIDTH } from "./overview-layout";
++import { CalendarOverviewRow } from "./overview-row";
++import type { CalendarBar, CalendarEvent } from "./types";
++import { useCalendarData, type CalendarData } from "./use-calendar-data";
++
++const bar: CalendarBar = { startDate: "2026-10-18", endDate: "2026-10-24", name: "First guest", platform: "direct" };
++
++function reservation(id: number, start: string, end: string): Reservation {
++  return { id, propertyId: 1, name: `Guest ${id}`, platform: "direct", checkIn: `${start}T00:00:00.000Z`, checkOut: `${end}T00:00:00.000Z`, createdAt: "2026-01-01T00:00:00.000Z" };
++}
++
++function property(reservations: Reservation[] = []): Property {
++  return { id: 1, userId: 1, name: "Apartment", minNights: 1, checkInTime: "14:00", checkOutTime: "12:00", bookingWindow: 365, cleaningEnabled: false, feedToken: null, createdAt: "", reservations };
++}
++
++function canonicalBars(reservations: Reservation[], events: CalendarEvent[] = []): CalendarData {
++  let result: CalendarData | undefined;
++  function Probe() {
++    result = useCalendarData(property(reservations), events, [], []);
++    return null;
++  }
++  renderToStaticMarkup(createElement(Probe));
++  return result!;
++}
++
++function overviewProperty(): CalendarOverviewProperty {
++  return {
++    id: 1,
++    name: "A very long apartment name with a separate entrance and a courtyard",
++    minNights: 1,
++    checkInTime: "14:00",
++    checkOutTime: "12:00",
++    bookingWindow: 365,
++    cleaningEnabled: false,
++    canManage: true,
++    reservations: [
++      { id: 1, name: "First guest", checkIn: "2026-10-18", checkOut: "2026-10-24", platform: "direct", linkedEventUid: null, linkedEventPlatform: null, linkedEventRole: null },
++      { id: 2, name: "Second guest", checkIn: "2026-10-24", checkOut: "2026-10-26", platform: "direct", linkedEventUid: null, linkedEventPlatform: null, linkedEventRole: null },
++    ],
++    events: [],
++    links: [],
++    overrides: [],
++    syncFailed: false,
++  };
++}
++
++afterEach(() => {
++  vi.useRealTimers();
++  vi.unstubAllEnvs();
++});
++
++describe("overview date-only geometry", () => {
++  it("counts leap months and the year boundary without local-time arithmetic", () => {
++    expect(overviewDayCount("2028-02-01", "2028-03-01")).toBe(29);
++    expect(overviewDayCount("2026-12-01", "2027-01-01")).toBe(31);
++    expect(overviewDayCount("bad", "2027-01-01")).toBe(0);
++  });
++
++  it.each(["America/Los_Angeles", "Pacific/Kiritimati", "Europe/Berlin"])("keeps the same occupied columns in %s", (timezone) => {
++    vi.stubEnv("TZ", timezone);
++    expect(layoutOverviewBar(bar, "2026-10-01", "2026-11-01")).toEqual({ startColumn: 17, span: 6, continuesBefore: false, continuesAfter: false, rowIdx: 0 });
++    expect(layoutOverviewBar({ ...bar, startDate: "2026-12-30", endDate: "2027-01-03" }, "2027-01-01", "2027-02-01")).toMatchObject({ startColumn: 0, span: 2, continuesBefore: true, continuesAfter: false });
++  });
++
++  it("clips long stays at both month boundaries", () => {
++    expect(layoutOverviewBar({ ...bar, startDate: "2026-08-10", endDate: "2027-01-14", rowIdx: 2 }, "2026-10-01", "2026-11-01")).toEqual({ startColumn: 0, span: 31, continuesBefore: true, continuesAfter: true, rowIdx: 2 });
++  });
++
++  it("does not paint a checkout night or an out-of-month stay", () => {
++    expect(layoutOverviewBar({ ...bar, endDate: "2026-11-01" }, "2026-11-01", "2026-12-01")).toBeNull();
++    expect(layoutOverviewBar({ ...bar, startDate: "2026-11-01", endDate: "2026-11-03" }, "2026-10-01", "2026-11-01")).toBeNull();
++    expect(layoutOverviewBar({ ...bar, endDate: bar.startDate }, "2026-10-01", "2026-11-01")).toBeNull();
++  });
++});
++
++describe("overview canonical booking boundaries", () => {
++  it.each([
++    ["2026-10-18", "2026-10-24", "2026-10-26", "2026-10-01", "2026-11-01", 8],
++    ["2027-01-06", "2027-01-09", "2027-01-10", "2027-01-01", "2027-02-01", 4],
++  ])("keeps %s–%s / %s separate without double-counting nights", (start, turnover, end, monthStart, monthEnd, nights) => {
++    vi.useFakeTimers();
++    vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
++    const reservations = [reservation(1, start, turnover), reservation(2, turnover, end)];
++    const data = canonicalBars(reservations);
++    expect(data.bars).toHaveLength(2);
++    expect(data.bars.map((item) => item.rowIdx)).toEqual([0, 0]);
++    const layouts = data.bars.map((item) => layoutOverviewBar(item, monthStart, monthEnd)!);
++    expect(layouts[0].startColumn + layouts[0].span).toBe(layouts[1].startColumn);
++    expect(layouts.reduce((total, layout) => total + layout.span, 0)).toBe(nights);
++    expect(reservations.reduce((total, item) => total + reservationNights(item.checkIn, item.checkOut), 0)).toBe(nights);
++  });
++
++  it("retains adjacent source events instead of merging the guest change", () => {
++    vi.useFakeTimers();
++    vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
++    const data = canonicalBars([], [
++      { id: 1, uid: "source-first", summary: "Reserved", platform: "booking", startDate: "2026-10-18", endDate: "2026-10-24" },
++      { id: 2, uid: "source-second", summary: "Reserved", platform: "booking", startDate: "2026-10-24", endDate: "2026-10-26" },
++    ]);
++    expect(data.bars).toHaveLength(2);
++    expect(data.bars.map((item) => item.rowIdx)).toEqual([0, 0]);
++  });
++
++  it("keeps real intersections in separate visible lanes", () => {
++    const data = canonicalBars([reservation(1, "2026-10-18", "2026-10-25"), reservation(2, "2026-10-24", "2026-10-26")]);
++    expect(data.bars).toHaveLength(2);
++    expect(new Set(data.bars.map((item) => item.rowIdx)).size).toBe(2);
++    expect(data.bars.map((item) => layoutOverviewBar(item, "2026-10-01", "2026-11-01")?.rowIdx)).toEqual([0, 1]);
++  });
++});
++
++describe("overview row markup", () => {
++  it("keeps long property identity sticky and both reservation actions keyboard reachable", () => {
++    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
++      property: overviewProperty(), monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
++    }));
++    expect(markup).toContain("sticky left-0");
++    expect(markup).toContain(overviewProperty().name);
++    expect(markup).toContain("Calendar →");
++    expect(markup).toContain('data-reservation-id="1"');
++    expect(markup).toContain('data-reservation-id="2"');
++    expect(markup.match(/data-lane="0"/g)).toHaveLength(2);
++    expect(markup).toContain(`left:${23 * OVERVIEW_DAY_WIDTH + 2}px`);
++    expect(markup).toContain('aria-label="First guest');
++  });
++
++  it("offers individual-calendar actions for redacted cleaner stays without reservation ids", () => {
++    const projected = overviewProperty();
++    projected.canManage = false;
++    projected.reservations = projected.reservations.map((item) => ({ ...item, id: undefined, name: "Reserved" }));
++    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
++      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
++    }));
++    expect(markup).not.toContain("data-reservation-id");
++    expect(markup).not.toContain("Open reservation");
++    expect(markup).toContain("Open property calendar");
++    expect(markup.match(/data-lane="0"/g)).toHaveLength(2);
++  });
++
++  it("marks failed synchronization as unverified even when no stays were returned", () => {
++    const projected = { ...overviewProperty(), syncFailed: true, reservations: [] };
++    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
++      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
++    }));
++    expect(markup).toContain('data-calendar-status="unverified"');
++    expect(markup).toContain("Sync failed. Availability unverified.");
++    expect(markup).toContain("bg-amber-500/10");
++  });
++
++  it.each(["en", "ru", "de", "fr", "es"] as const)("shows existing manual cleaning blocks in an otherwise empty %s row", (locale: Locale) => {
++    const projected: CalendarOverviewProperty = {
++      ...overviewProperty(), cleaningEnabled: true, reservations: [], overrides: [{ date: "2026-10-16", type: "cleaning" }],
++    };
++    const row = createElement(CalendarOverviewRow, {
++      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
++    });
++    const markup = renderToStaticMarkup(<I18nProvider initialLocale={locale}>{row}</I18nProvider>);
++    expect(markup).toContain('data-visible-booking-count="0"');
++    expect(markup).toContain('data-blocked-date-count="1"');
++    expect(markup).toContain('data-date="2026-10-16" data-date-status="cleaning"');
++    expect(markup).toContain("bg-[var(--cleaning-cell-bg)]");
++    expect(markup).toContain(translations["calendar.manualCleaning"][locale]);
++  });
++
++  it("honors the existing cleaning-disabled setting without hiding closed overrides", () => {
++    const projected: CalendarOverviewProperty = {
++      ...overviewProperty(), cleaningEnabled: false, reservations: [], overrides: [{ date: "2026-10-16", type: "cleaning" }, { date: "2026-10-17", type: "closed" }],
++    };
++    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
++      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
++    }));
++    expect(markup).not.toContain("Manual cleaning");
++    expect(markup).not.toContain('data-date-status="cleaning"');
++    expect(markup).toContain('data-date="2026-10-16" data-date-status="unmodified"');
++    expect(markup).toContain('data-date="2026-10-17" data-date-status="closed"');
++    expect(markup).toContain('data-visible-booking-count="0"');
++    expect(markup).toContain('data-blocked-date-count="1"');
++  });
++});
+diff --git a/src/components/calendar/overview-layout.ts b/src/components/calendar/overview-layout.ts
+new file mode 100644
+index 0000000..e815cfd
+--- /dev/null
++++ b/src/components/calendar/overview-layout.ts
+@@ -0,0 +1,47 @@
++import { parseReservationDate } from "@/lib/reservation-dates";
++import type { CalendarBar } from "./types";
++
++export const OVERVIEW_DAY_WIDTH = 48;
++export const OVERVIEW_PROPERTY_COLUMN_CLASS = "w-32 sm:w-52";
++export const OVERVIEW_BAR_HEIGHT = 32;
++export const OVERVIEW_LANE_HEIGHT = 40;
++export const OVERVIEW_ROW_PADDING = 12;
++
++const DAY_MS = 86_400_000;
++
++export interface OverviewBarLayout {
++  startColumn: number;
++  span: number;
++  continuesBefore: boolean;
++  continuesAfter: boolean;
++  rowIdx: number;
++}
++
++export function overviewDayCount(startDate: string, endDate: string): number {
++  const start = parseReservationDate(startDate);
++  const end = parseReservationDate(endDate);
++  if (!start || !end || end <= start) return 0;
++  return Math.round((end.getTime() - start.getTime()) / DAY_MS);
++}
++
++export function layoutOverviewBar(
++  bar: CalendarBar,
++  monthStart: string,
++  monthEnd: string,
++): OverviewBarLayout | null {
++  const start = parseReservationDate(bar.startDate);
++  const end = parseReservationDate(bar.endDate);
++  const visibleStart = parseReservationDate(monthStart);
++  const visibleEnd = parseReservationDate(monthEnd);
++  if (!start || !end || !visibleStart || !visibleEnd || end <= start || visibleEnd <= visibleStart) return null;
++  if (end <= visibleStart || start >= visibleEnd) return null;
++  const clippedStart = Math.max(start.getTime(), visibleStart.getTime());
++  const clippedEnd = Math.min(end.getTime(), visibleEnd.getTime());
++  return {
++    startColumn: Math.round((clippedStart - visibleStart.getTime()) / DAY_MS),
++    span: Math.round((clippedEnd - clippedStart) / DAY_MS),
++    continuesBefore: start < visibleStart,
++    continuesAfter: end > visibleEnd,
++    rowIdx: bar.rowIdx ?? 0,
++  };
++}
+diff --git a/src/components/calendar/overview-reservation.tsx b/src/components/calendar/overview-reservation.tsx
+new file mode 100644
+index 0000000..9e8da32
+--- /dev/null
++++ b/src/components/calendar/overview-reservation.tsx
+@@ -0,0 +1,146 @@
++"use client";
++
++import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
++import { ReservationView } from "@/components/reservation-view";
++import { useI18n } from "@/lib/i18n/context";
++import type { Guest, Reservation } from "@/lib/types";
++
++interface OverviewReservationProps {
++  reservationId: number;
++  propertyName?: string;
++  onClose: () => void;
++  onChanged: () => void;
++}
++
++type ReservationActions = ComponentProps<typeof ReservationView>;
++type CardData = { id: number; reservation: Reservation; guests: Guest[] };
++
++async function responseError(response: Response): Promise<string> {
++  const body: unknown = await response.json().catch(() => null);
++  return body && typeof body === "object" && "error" in body && typeof body.error === "string"
++    ? body.error
++    : `Request failed (${response.status})`;
++}
++
++export function OverviewReservation({ reservationId, propertyName, onClose, onChanged }: OverviewReservationProps) {
++  const { locale } = useI18n();
++  const ru = locale === "ru";
++  const [data, setData] = useState<CardData | null>(null);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState<string | null>(null);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const requestVersion = useRef(0);
++
++  const load = useCallback(async (signal?: AbortSignal) => {
++    const version = ++requestVersion.current;
++    setLoading(true);
++    setError(null);
++    try {
++      const [reservationResponse, guestsResponse] = await Promise.all([
++        fetch(`/api/reservations/${reservationId}`, { signal, cache: "no-store" }),
++        fetch(`/api/guests?reservationId=${reservationId}`, { signal, cache: "no-store" }),
++      ]);
++      if (!reservationResponse.ok) throw new Error(await responseError(reservationResponse));
++      if (!guestsResponse.ok) throw new Error(await responseError(guestsResponse));
++      const reservation: Reservation = await reservationResponse.json();
++      const guests: Guest[] = await guestsResponse.json();
++      if (reservation.id !== reservationId || !Array.isArray(guests)) throw new Error("Invalid reservation response");
++      if (version === requestVersion.current && !signal?.aborted) {
++        setData({ id: reservationId, reservation, guests });
++      }
++    } catch (err) {
++      if (version === requestVersion.current && !signal?.aborted) {
++        setError(err instanceof Error ? err.message : "Request failed");
++      }
++    } finally {
++      if (version === requestVersion.current && !signal?.aborted) setLoading(false);
++    }
++  }, [reservationId]);
++
++  useEffect(() => {
++    const controller = new AbortController();
++    void Promise.resolve().then(() => {
++      if (!controller.signal.aborted) return load(controller.signal);
++    });
++    return () => controller.abort();
++  }, [load]);
++
++  const mutate = async (url: string, method: "PATCH" | "DELETE", fields?: unknown) => {
++    setActionError(null);
++    try {
++      const response = await fetch(url, {
++        method,
++        ...(fields !== undefined ? {
++          headers: { "Content-Type": "application/json" },
++          body: JSON.stringify(fields),
++        } : {}),
++      });
++      if (!response.ok) throw new Error(await responseError(response));
++      return { ok: true as const };
++    } catch (err) {
++      const message = err instanceof Error ? err.message : "Request failed";
++      setActionError(message);
++      return { ok: false as const, error: message };
++    }
++  };
++
++  const refresh = () => {
++    void load();
++    onChanged();
++  };
++
++  const updateReservation: ReservationActions["onUpdateReservation"] = async (id, fields) => {
++    const result = await mutate(`/api/reservations/${id}`, "PATCH", fields);
++    if (result.ok) refresh();
++    return result;
++  };
++
++  const deleteReservation: ReservationActions["onDeleteReservation"] = async (id) => {
++    const result = await mutate(`/api/reservations/${id}`, "DELETE");
++    if (result.ok) {
++      onChanged();
++      onClose();
++    }
++    return result;
++  };
++
++  const updateGuest: ReservationActions["onUpdateGuest"] = async (id, fields) => {
++    const result = await mutate(`/api/guests/${id}`, "PATCH", fields);
++    if (!result.ok) throw new Error(result.error);
++    refresh();
++  };
++
++  const deleteGuest: ReservationActions["onDeleteGuest"] = async (id) => {
++    if ((await mutate(`/api/guests/${id}`, "DELETE")).ok) refresh();
++  };
++
++  const updateParent: ReservationActions["onUpdateParent"] = async (id, parentId) => {
++    if ((await mutate(`/api/guests/${id}`, "PATCH", { parentId })).ok) refresh();
++  };
++
++  return (
++    <section aria-label={ru ? "Карточка бронирования" : "Reservation details"}>
++      <button type="button" onClick={onClose}
++        className="mb-4 min-h-11 rounded-lg border border-[var(--line-2)] px-4 text-sm text-[var(--ink)] hover:bg-[var(--bg-3)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
++        ← {ru ? "Вернуться в общий календарь" : "Back to all calendars"}
++      </button>
++      {actionError && <p role="alert" className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">{actionError}</p>}
++      {loading || (!error && data?.id !== reservationId) ? (
++        <p role="status" className="py-10 text-center text-[var(--ink-3)]">{ru ? "Загрузка бронирования…" : "Loading reservation…"}</p>
++      ) : error ? (
++        <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-5">
++          <p>{ru ? "Не удалось загрузить бронирование." : "Unable to load this reservation."}</p>
++          <p className="mt-1 text-sm text-[var(--ink-3)]">{error}</p>
++          <button type="button" onClick={() => void load()} className="mt-3 min-h-11 rounded-lg border border-[var(--line-2)] px-4 focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
++            {ru ? "Повторить" : "Retry"}
++          </button>
++        </div>
++      ) : data && (
++        <ReservationView key={reservationId} reservation={data.reservation} guests={data.guests}
++          propertyName={propertyName} onGuestsUpdated={refresh} onDeleteGuest={deleteGuest}
++          onDeleteReservation={deleteReservation} onUpdateReservation={updateReservation}
++          onUpdateParent={updateParent} onUpdateGuest={updateGuest} />
++      )}
++    </section>
++  );
++}
+diff --git a/src/components/calendar/overview-row.tsx b/src/components/calendar/overview-row.tsx
+new file mode 100644
+index 0000000..dba6fe2
+--- /dev/null
++++ b/src/components/calendar/overview-row.tsx
+@@ -0,0 +1,186 @@
++"use client";
++
++import { useMemo } from "react";
++import type { CalendarOverviewProperty } from "@/lib/calendar-overview";
++import type { CalendarLink, DateOverride, Property } from "@/lib/types";
++import { useI18n } from "@/lib/i18n/context";
++import type { Locale } from "@/lib/i18n/translations";
++import type { CalendarEvent } from "./types";
++import { useCalendarData } from "./use-calendar-data";
++import { addDaysStr } from "./utils";
++import {
++  layoutOverviewBar,
++  overviewDayCount,
++  OVERVIEW_BAR_HEIGHT,
++  OVERVIEW_DAY_WIDTH,
++  OVERVIEW_LANE_HEIGHT,
++  OVERVIEW_PROPERTY_COLUMN_CLASS,
++  OVERVIEW_ROW_PADDING,
++} from "./overview-layout";
++
++const COPY: Record<Locale, { calendar: string; openCalendar: string; openReservation: string; closed: string; overlap: string; unverified: string }> = {
++  en: { calendar: "Calendar →", openCalendar: "Open property calendar", openReservation: "Open reservation", closed: "Closed", overlap: "Overlapping stays", unverified: "Sync failed. Availability unverified." },
++  ru: { calendar: "Календарь →", openCalendar: "Открыть календарь объекта", openReservation: "Открыть бронь", closed: "Закрыто", overlap: "Пересечение броней", unverified: "Ошибка синхронизации. Даты не проверены." },
++  de: { calendar: "Kalender →", openCalendar: "Objektkalender öffnen", openReservation: "Buchung öffnen", closed: "Gesperrt", overlap: "Überlappende Aufenthalte", unverified: "Synchronisierung fehlgeschlagen. Verfügbarkeit ungeprüft." },
++  fr: { calendar: "Calendrier →", openCalendar: "Ouvrir le calendrier du logement", openReservation: "Ouvrir la réservation", closed: "Fermé", overlap: "Séjours superposés", unverified: "Échec de synchronisation. Disponibilité non vérifiée." },
++  es: { calendar: "Calendario →", openCalendar: "Abrir el calendario del alojamiento", openReservation: "Abrir reserva", closed: "Cerrado", overlap: "Estancias superpuestas", unverified: "Falló la sincronización. Disponibilidad sin verificar." },
++};
++
++function platformColor(platform: string): string {
++  if (platform === "airbnb") return "#cf2344";
++  if (platform === "booking") return "#003580";
++  if (platform === "vrbo") return "#2c5da9";
++  if (platform === "direct") return "#166c65";
++  return "#475569";
++}
++
++export interface CalendarOverviewRowProps {
++  property: CalendarOverviewProperty;
++  monthStart: string;
++  monthEnd: string;
++  today?: string;
++  onOpenReservation: (propertyId: number, reservationId: number) => void;
++  onOpenProperty: (propertyId: number) => void;
++}
++
++export function CalendarOverviewRow({
++  property,
++  monthStart,
++  monthEnd,
++  today,
++  onOpenReservation,
++  onOpenProperty,
++}: CalendarOverviewRowProps) {
++  const { locale, t } = useI18n();
++  const c = COPY[locale];
++  const inputs = useMemo(() => {
++    const calendarProperty: Property = {
++      id: property.id,
++      userId: 0,
++      name: property.name,
++      minNights: property.minNights,
++      checkInTime: property.checkInTime,
++      checkOutTime: property.checkOutTime,
++      bookingWindow: property.bookingWindow,
++      cleaningEnabled: property.cleaningEnabled,
++      feedToken: null,
++      createdAt: "",
++      reservations: property.reservations.map((reservation, index) => ({
++        ...reservation,
++        id: reservation.id ?? -(index + 1),
++        propertyId: property.id,
++        createdAt: "",
++      })),
++    };
++    const events: CalendarEvent[] = property.events.map((event, index) => ({ ...event, id: index + 1 }));
++    const links: CalendarLink[] = property.links.map((link, index) => ({
++      ...link,
++      id: index + 1,
++      propertyId: property.id,
++      icalExportUrl: "",
++      lastFetchedAt: null,
++      lastError: null,
++      failureCount: 0,
++      createdAt: "",
++    }));
++    const overrides: DateOverride[] = property.overrides.map((override, index) => ({
++      ...override,
++      id: index + 1,
++      propertyId: property.id,
++      note: "",
++      createdAt: "",
++    }));
++    return { calendarProperty, events, links, overrides };
++  }, [property]);
++  const { bars, closedOverrides, cleaningOverrides } = useCalendarData(inputs.calendarProperty, inputs.events, inputs.links, inputs.overrides);
++  const visibleBars = bars.flatMap((bar) => {
++    const layout = layoutOverviewBar(bar, monthStart, monthEnd);
++    return layout ? [{ bar, layout }] : [];
++  });
++  const numberOfDays = overviewDayCount(monthStart, monthEnd);
++  const numberOfLanes = Math.max(1, ...visibleBars.map(({ layout }) => layout.rowIdx + 1));
++  const blockedDates = Array.from(new Set([...closedOverrides, ...cleaningOverrides])).filter((date) => date >= monthStart && date < monthEnd);
++  const minHeight = OVERVIEW_ROW_PADDING * 2 + numberOfLanes * OVERVIEW_LANE_HEIGHT + (property.syncFailed ? 24 : 0) + (blockedDates.length ? 20 : 0);
++  const reservationIds = new Set(property.reservations.flatMap((reservation) => reservation.id ? [reservation.id] : []));
++
++  return (
++    <div role="row" data-property-id={property.id} data-calendar-status={property.syncFailed ? "unverified" : "ready"} data-visible-booking-count={visibleBars.length} data-blocked-date-count={blockedDates.length} className="flex min-w-full w-max border-b border-[var(--line)]">
++      <div role="rowheader" className={`${OVERVIEW_PROPERTY_COLUMN_CLASS} sticky left-0 z-20 flex shrink-0 items-center border-r border-[var(--line)] bg-[var(--bg-2)] px-3 py-3`}>
++        <button
++          type="button"
++          onClick={() => onOpenProperty(property.id)}
++          aria-label={`${c.openCalendar}: ${property.name}`}
++          className="min-h-11 w-full rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
++        >
++          <span className="block break-words text-sm font-medium leading-5 text-[var(--ink)]">{property.name}</span>
++          <span className="mt-1 block text-xs text-sky-600 dark:text-sky-400">{c.calendar}</span>
++          {property.syncFailed && <span className="mt-2 block text-xs font-normal text-amber-700 dark:text-amber-300">⚠ {c.unverified}</span>}
++        </button>
++      </div>
++      <div
++        role="cell"
++        aria-colspan={numberOfDays}
++        aria-label={`${property.name}: ${monthStart} – ${monthEnd}${property.syncFailed ? ` · ${c.unverified}` : ""}`}
++        className="relative self-stretch"
++        style={{ width: numberOfDays * OVERVIEW_DAY_WIDTH, minHeight }}
++      >
++        <div aria-hidden="true" className="absolute inset-0 flex">
++          {Array.from({ length: numberOfDays }, (_, index) => {
++            const date = addDaysStr(monthStart, index);
++            const closed = closedOverrides.has(date);
++            const cleaning = cleaningOverrides.has(date);
++            return (
++              <div
++                key={date}
++                data-date={date}
++                data-date-status={property.syncFailed ? "unverified" : closed ? "closed" : cleaning ? "cleaning" : "unmodified"}
++                className={`relative h-full shrink-0 border-r border-[var(--line)] ${property.syncFailed ? "bg-amber-500/10" : closed ? "bg-rose-500/10" : cleaning ? "bg-[var(--cleaning-cell-bg)]" : date === today ? "bg-sky-500/8" : ""}`}
++                style={{ width: OVERVIEW_DAY_WIDTH }}
++              >
++                {closed && <span className="absolute inset-x-0 truncate text-center text-[9px] text-rose-600 dark:text-rose-300" style={{ bottom: property.syncFailed ? 28 : 4 }}>{c.closed}</span>}
++                {cleaning && <span className="absolute inset-x-0 break-words px-0.5 text-center text-[9px] leading-3 text-[var(--cleaning-fg)]" style={{ bottom: property.syncFailed ? 28 : 4 }}>{t("calendar.manualCleaning")}</span>}
++              </div>
++            );
++          })}
++        </div>
++        {blockedDates.map((date) => <span key={date} className="sr-only">{date}: {cleaningOverrides.has(date) ? t("calendar.manualCleaning") : c.closed}. </span>)}
++        {property.syncFailed && <span className="absolute bottom-1 left-2 text-xs text-amber-700 dark:text-amber-300">⚠ {c.unverified}</span>}
++        {visibleBars.map(({ bar, layout }, index) => {
++          const overlaps = visibleBars.some(({ bar: other }, otherIndex) => otherIndex !== index && other.startDate < bar.endDate && other.endDate > bar.startDate);
++          const canOpenReservation = property.canManage && !!bar.reservationId && reservationIds.has(bar.reservationId);
++          const action = canOpenReservation ? c.openReservation : c.openCalendar;
++          const description = `${bar.name} · ${property.name} · ${bar.startDate} – ${bar.endDate}${overlaps ? ` · ${c.overlap}` : ""} · ${action}`;
++          return (
++            <button
++              type="button"
++              key={`${bar.reservationId ?? "event"}-${bar.platform}-${bar.eventUid ?? index}-${bar.startDate}`}
++              data-reservation-id={canOpenReservation ? bar.reservationId : undefined}
++              data-start-date={bar.startDate}
++              data-end-date={bar.endDate}
++              data-lane={layout.rowIdx}
++              aria-label={description}
++              title={description}
++              onClick={() => canOpenReservation ? onOpenReservation(property.id, bar.reservationId!) : onOpenProperty(property.id)}
++              className={`absolute flex scroll-ml-36 items-center border px-2 text-left text-xs font-medium text-white hover:brightness-110 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white sm:scroll-ml-56 ${layout.continuesBefore || bar.linkedBefore ? "rounded-l-none" : "rounded-l-md"} ${layout.continuesAfter || bar.linkedAfter ? "rounded-r-none" : "rounded-r-md"} ${overlaps ? "border-amber-300" : "border-white/20"}`}
++              style={{
++                left: layout.startColumn * OVERVIEW_DAY_WIDTH + 2,
++                width: layout.span * OVERVIEW_DAY_WIDTH - 4,
++                top: OVERVIEW_ROW_PADDING + layout.rowIdx * OVERVIEW_LANE_HEIGHT,
++                height: OVERVIEW_BAR_HEIGHT,
++                backgroundColor: platformColor(bar.platform),
++                backgroundImage: bar.isExtension ? "repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(255,255,255,.16) 5px,rgba(255,255,255,.16) 7px)" : undefined,
++              }}
++            >
++              <span data-overview-bar-label className="sticky left-[136px] flex min-w-0 max-w-[min(100%,calc(100vw_-_168px))] shrink-0 items-center gap-1 overflow-hidden sm:left-[216px] sm:max-w-[min(100%,calc(100vw_-_288px))]">
++                {layout.continuesBefore && <span aria-hidden="true" className="shrink-0">‹</span>}
++                <span className="min-w-0 truncate">{bar.name}</span>
++                {overlaps && <span aria-hidden="true" className="shrink-0">!</span>}
++                <span aria-hidden="true" className="shrink-0">{layout.continuesAfter ? "›" : "↗"}</span>
++              </span>
++            </button>
++          );
++        })}
++      </div>
++    </div>
++  );
++}
+diff --git a/src/components/reservation-view-dates.test.tsx b/src/components/reservation-view-dates.test.tsx
+new file mode 100644
+index 0000000..185c50e
+--- /dev/null
++++ b/src/components/reservation-view-dates.test.tsx
+@@ -0,0 +1,51 @@
++import { createElement, type ComponentProps } from "react";
++import { renderToStaticMarkup } from "react-dom/server";
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { ReservationView } from "./reservation-view";
++import type { Reservation } from "@/lib/types";
++
++const base: Reservation = {
++  id: 1,
++  propertyId: 1,
++  name: "Synthetic guest",
++  platform: "direct",
++  checkIn: "2027-01-06T00:00:00.000Z",
++  checkOut: "2027-01-09T00:00:00.000Z",
++  createdAt: "2026-01-01T00:00:00.000Z",
++};
++
++function renderReservation(reservation = base): string {
++  const props: ComponentProps<typeof ReservationView> = {
++    reservation,
++    guests: [],
++    propertyName: "Synthetic apartment",
++    onGuestsUpdated: () => {},
++    onDeleteGuest: () => {},
++    onDeleteReservation: () => {},
++    onUpdateReservation: () => {},
++    onUpdateParent: () => {},
++    onUpdateGuest: async () => {},
++  };
++  return renderToStaticMarkup(createElement(ReservationView, props));
++}
++
++afterEach(() => vi.unstubAllEnvs());
++
++describe("reservation card date-only display", () => {
++  it.each(["Pacific/Honolulu", "UTC", "Asia/Tokyo"])("keeps header, nights and group dates stable in %s", (timezone) => {
++    vi.stubEnv("TZ", timezone);
++    const html = renderReservation();
++    expect(html).toContain("06 Jan 2027 — 09 Jan 2027");
++    expect(html).toContain("3 nights");
++    expect(html).toContain("Direct 6-9 January 2027 - Synthetic - Synthetic apartment");
++    expect(html).not.toContain("05 Jan 2027");
++  });
++
++  it.each(["Pacific/Honolulu", "UTC", "Asia/Tokyo"])("keeps year and month boundaries in %s", (timezone) => {
++    vi.stubEnv("TZ", timezone);
++    const html = renderReservation({ ...base, checkIn: "2026-12-31T00:00:00.000Z", checkOut: "2027-01-03T00:00:00.000Z" });
++    expect(html).toContain("31 Dec 2026 — 03 Jan 2027");
++    expect(html).toContain("Direct 31 December 2026-3 January 2027 - Synthetic - Synthetic apartment");
++    expect(html).toContain("3 nights");
++  });
++});
+diff --git a/src/components/reservation-view.tsx b/src/components/reservation-view.tsx
+index 353b282..1060563 100644
+--- a/src/components/reservation-view.tsx
++++ b/src/components/reservation-view.tsx
+@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/context";
+ import type { Locale } from "@/lib/i18n/translations";
+ import type { Guest, Reservation } from "@/lib/types";
+ import {
++  parseReservationDate,
+   reservationNights,
+   toReservationDateInput,
+   validateReservationDateRange,
+@@ -112,18 +113,19 @@ function platformShortLabel(slug: string): string {
+  *  Months are full English names (matches the examples the user gave).
+  */
+ function formatStayRange(checkInIso: string, checkOutIso: string): string {
+-  const ci = new Date(checkInIso);
+-  const co = new Date(checkOutIso);
+-  const ciDay = ci.getDate();
+-  const coDay = co.getDate();
+-  const ciMon = ci.toLocaleDateString("en-GB", { month: "long" });
+-  const coMon = co.toLocaleDateString("en-GB", { month: "long" });
+-  const ciYear = ci.getFullYear();
+-  const coYear = co.getFullYear();
++  const ci = parseReservationDate(checkInIso);
++  const co = parseReservationDate(checkOutIso);
++  if (!ci || !co) return `${checkInIso}-${checkOutIso}`;
++  const ciDay = ci.getUTCDate();
++  const coDay = co.getUTCDate();
++  const ciMon = ci.toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
++  const coMon = co.toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
++  const ciYear = ci.getUTCFullYear();
++  const coYear = co.getUTCFullYear();
+   if (ciYear !== coYear) {
+     return `${ciDay} ${ciMon} ${ciYear}-${coDay} ${coMon} ${coYear}`;
+   }
+-  if (ci.getMonth() !== co.getMonth()) {
++  if (ci.getUTCMonth() !== co.getUTCMonth()) {
+     return `${ciDay} ${ciMon}-${coDay} ${coMon} ${ciYear}`;
+   }
+   return `${ciDay}-${coDay} ${ciMon} ${ciYear}`;
+@@ -956,11 +958,12 @@ export function ReservationView({
+   };
+ 
+   const formatDate = (dateStr: string) => {
+-    return new Date(dateStr).toLocaleDateString("en-GB", {
++    return parseReservationDate(dateStr)?.toLocaleDateString("en-GB", {
+       day: "2-digit",
+       month: "short",
+       year: "numeric",
+-    });
++      timeZone: "UTC",
++    }) ?? dateStr;
+   };
+ 
+   const exportGuestsCsv = () => {
+diff --git a/src/components/top-bar.tsx b/src/components/top-bar.tsx
+index d429d75..c65df00 100644
+--- a/src/components/top-bar.tsx
++++ b/src/components/top-bar.tsx
+@@ -6,11 +6,11 @@ import { ThemeToggle } from "@/components/theme-toggle";
+ import { useI18n } from "@/lib/i18n/context";
+ import type { Locale } from "@/lib/i18n/translations";
+ import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
+-import type { Property } from "@/lib/types";
+ 
+ interface CopyShape {
+   tabDashboard: string;
+   tabCalendar: string;
++  tabOverview: string;
+   tabCleaning: string;
+   tabReports: string;
+   tabProperty: string;
+@@ -39,6 +39,7 @@ const COPY: Record<Locale, CopyShape> = {
+   en: {
+     tabDashboard: "Dashboard",
+     tabCalendar: "Calendar",
++    tabOverview: "All calendars",
+     tabCleaning: "Cleaning",
+     tabReports: "Reports",
+     tabProperty: "Property",
+@@ -64,6 +65,7 @@ const COPY: Record<Locale, CopyShape> = {
+     refreshAllDone: "Calendars updated",
+   },
+   ru: {
++    tabOverview: "Общий календарь",
+     tabDashboard: "Обзор",
+     tabCalendar: "Календарь",
+     tabCleaning: "Уборки",
+@@ -90,6 +92,7 @@ const COPY: Record<Locale, CopyShape> = {
+     refreshAllDone: "Календари обновлены",
+   },
+   de: {
++    tabOverview: "Alle Kalender",
+     tabDashboard: "Übersicht",
+     tabCalendar: "Kalender",
+     tabCleaning: "Reinigung",
+@@ -117,6 +120,7 @@ const COPY: Record<Locale, CopyShape> = {
+     refreshAllDone: "Kalender aktualisiert",
+   },
+   fr: {
++    tabOverview: "Tous les calendriers",
+     tabDashboard: "Tableau de bord",
+     tabCalendar: "Calendrier",
+     tabCleaning: "Ménage",
+@@ -144,6 +148,7 @@ const COPY: Record<Locale, CopyShape> = {
+     refreshAllDone: "Calendriers actualisés",
+   },
+   es: {
++    tabOverview: "Todos los calendarios",
+     tabDashboard: "Panel",
+     tabCalendar: "Calendario",
+     tabCleaning: "Limpieza",
+@@ -172,7 +177,13 @@ const COPY: Record<Locale, CopyShape> = {
+   },
+ };
+ 
+-export type AppView = "dashboard" | "calendar" | "cleaning" | "sync" | "guest-form" | "guests" | "settings" | "tasks" | "reports" | "profile";
++export type AppView = "dashboard" | "overview" | "calendar" | "cleaning" | "sync" | "guest-form" | "guests" | "settings" | "tasks" | "reports" | "profile";
++
++export interface TopBarProperty {
++  id: number;
++  name: string;
++  reservations: { _count?: { guests: number } }[];
++}
+ 
+ interface GuestSearchResult {
+   guestId: number;
+@@ -188,7 +199,7 @@ interface GuestSearchResult {
+ }
+ 
+ interface TopBarProps {
+-  properties: Property[];
++  properties: TopBarProperty[];
+   selectedPropertyId: number | null;
+   activeView: AppView;
+   onSelectProperty: (id: number | null) => void;
+@@ -208,7 +219,6 @@ export function TopBar({
+   properties,
+   selectedPropertyId,
+   activeView,
+-  onSelectProperty,
+   onChangeView,
+   onNavigate,
+   onOpenReservation,
+@@ -259,12 +269,7 @@ export function TopBar({
+ 
+   useEffect(() => {
+     const q = searchQuery.trim();
+-    if (q.length < 2) {
+-      setSearchResults([]);
+-      setSearchLoading(false);
+-      return;
+-    }
+-    setSearchLoading(true);
++    if (q.length < 2) return;
+     const ctrl = new AbortController();
+     const t = setTimeout(async () => {
+       try {
+@@ -273,12 +278,12 @@ export function TopBar({
+         });
+         if (res.ok) {
+           const data = await res.json();
+-          setSearchResults((data.results || []) as GuestSearchResult[]);
++          if (!ctrl.signal.aborted) setSearchResults((data.results || []) as GuestSearchResult[]);
+         }
+       } catch {
+         // aborted or network — ignore
+       } finally {
+-        setSearchLoading(false);
++        if (!ctrl.signal.aborted) setSearchLoading(false);
+       }
+     }, 200);
+     return () => {
+@@ -302,9 +307,6 @@ export function TopBar({
+     }
+   };
+ 
+-  // Property-required views — Calendar / Cleaning / Settings only make
+-  // sense in a property context. If user clicks one with no property
+-  // selected, auto-pick the first one in the same nav.
+   const goToTab = (view: AppView) => {
+     // Dashboard is the portfolio-wide view; clicking it always drops
+     // the property scope so the user lands on the home/overview no
+@@ -313,11 +315,10 @@ export function TopBar({
+       onNavigate({ property: null, reservation: null, view: "dashboard" });
+       return;
+     }
+-    // Calendar is the only tab that strictly requires a property —
+-    // there is no cross-property calendar view (a single grid can't
+-    // show 5 properties' bars meaningfully). Cleaning and Reports
+-    // are dual-mode: routing them with no property lands on the
+-    // global aggregate view, not a forced first-property pick.
++    if (view === "overview") {
++      onNavigate({ property: null, reservation: null, view: "overview" });
++      return;
++    }
+     const requiresProperty = view === "calendar" || view === "sync";
+     if (requiresProperty && !selectedPropertyId && properties.length > 0) {
+       onNavigate({ property: properties[0].id, view });
+@@ -342,7 +343,7 @@ export function TopBar({
+     }
+   };
+ 
+-  // All five tabs render at every scope so the header stays put.
++  // Tabs render at every scope so the header stays put.
+   // Property-required tabs (Calendar, Property) auto-pick the first
+   // property when clicked without a selection — see goToTab above.
+   // The property selector to the left of the strip is the
+@@ -351,6 +352,7 @@ export function TopBar({
+   // Stripe / Linear / GitHub all use the same stable-header pattern.
+   const tabs: { key: AppView; label: string; show: boolean }[] = [
+     { key: "dashboard", label: c.tabDashboard, show: true },
++    { key: "overview", label: c.tabOverview, show: true },
+     { key: "calendar", label: c.tabCalendar, show: true },
+     { key: "cleaning", label: c.tabCleaning, show: true },
+     { key: "reports", label: c.tabReports, show: true },
+@@ -452,7 +454,7 @@ export function TopBar({
+                       // closure and silently reverted the property
+                       // change. That was the "doesn't work on first
+                       // click" bug.
+-                      onNavigate({ property: null, reservation: null, view: "dashboard" });
++                      onNavigate({ property: null, reservation: null, view: activeView === "calendar" || activeView === "overview" ? "overview" : "dashboard" });
+                       setPropDropdown(false);
+                     }}
+                     className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+@@ -462,7 +464,7 @@ export function TopBar({
+                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                     </svg>
+-                    {c.dashboardAll}
++                    {activeView === "calendar" || activeView === "overview" ? c.allProperties : c.dashboardAll}
+                   </button>
+ 
+                   <div className="my-1 h-px bg-[var(--line-2)]" />
+@@ -489,7 +491,7 @@ export function TopBar({
+                           onNavigate({
+                             property: p.id,
+                             reservation: null,
+-                            view: activeView === "dashboard" ? "calendar" : activeView,
++                            view: activeView === "dashboard" || activeView === "overview" ? "calendar" : activeView,
+                           });
+                           setPropDropdown(false);
+                         }}
+@@ -504,7 +506,7 @@ export function TopBar({
+                         </span>
+                         <span className="flex-1 min-w-0 text-left">
+                           <span className={`block truncate ${p.id === selectedPropertyId ? "font-medium" : ""}`}>{p.name}</span>
+-                          <span className="block truncate text-[11px] text-[var(--ink-4)]">{countLabel}</span>
++                          {activeView !== "overview" && <span className="block truncate text-[11px] text-[var(--ink-4)]">{countLabel}</span>}
+                         </span>
+                         {p.id === selectedPropertyId && (
+                           <svg className="h-4 w-4 shrink-0 text-[var(--m-accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+@@ -541,7 +543,7 @@ export function TopBar({
+             left & right groups can size naturally without throwing off
+             the centerline. pointer-events trick lets the wider invisible
+             wrapper not eat clicks on logo/avatar. */}
+-        <nav className="absolute inset-x-0 top-0 bottom-0 mx-auto pointer-events-none hidden lg:flex items-center justify-center" aria-label="Primary">
++        <nav className="absolute inset-x-0 top-0 bottom-0 mx-auto pointer-events-none hidden xl:flex items-center justify-center" aria-label="Primary">
+           <div className="pointer-events-auto flex items-center">
+             {tabs.filter(tab => tab.show).map(tab => (
+               <NavTab
+@@ -607,7 +609,11 @@ export function TopBar({
+                   <input
+                     ref={searchInputRef}
+                     value={searchQuery}
+-                    onChange={(e) => setSearchQuery(e.target.value)}
++                    onChange={(e) => {
++                      setSearchQuery(e.target.value);
++                      setSearchResults([]);
++                      setSearchLoading(e.target.value.trim().length >= 2);
++                    }}
+                     placeholder={c.searchPlaceholder}
+                     className="ml-2 min-w-0 flex-1 bg-transparent text-sm text-[var(--ink)] placeholder-[var(--ink-4)] outline-none"
+                   />
+@@ -832,7 +838,7 @@ export function TopBar({
+           permanent scrollbar; the fade-on-edge gradient hints at
+           horizontal overflow without taking vertical space. */}
+       <nav
+-        className="flex items-center gap-1 overflow-x-auto whitespace-nowrap px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 lg:hidden"
++        className="flex items-center gap-1 overflow-x-auto whitespace-nowrap px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 xl:hidden"
+         aria-label="Primary mobile"
+       >
+         {tabs.filter(tab => tab.show).map(tab => (
+diff --git a/src/lib/calendar-overview.test.ts b/src/lib/calendar-overview.test.ts
+new file mode 100644
+index 0000000..c837350
+--- /dev/null
++++ b/src/lib/calendar-overview.test.ts
+@@ -0,0 +1,19 @@
++import { describe, expect, it } from "vitest";
++import { calendarOverviewMonth } from "./calendar-overview";
++
++describe("overview calendar months", () => {
++  it.each([null, "", "2026-1", "2026-00", "2026-13", "2026-10-01", "2026-10x", "9999-12", "0000-01", "2026-10 "])("rejects malformed month %s", (month) => {
++    expect(calendarOverviewMonth(month)).toBeNull();
++  });
++  it.each([
++    ["2026-12", "2026-12-01", "2027-01-01"],
++    ["2027-01", "2027-01-01", "2027-02-01"],
++    ["2028-02", "2028-02-01", "2028-03-01"],
++  ])("keeps date-only boundaries for %s", (month, startDate, endDate) => {
++    const range = calendarOverviewMonth(month)!;
++    expect(range.startDate).toBe(startDate);
++    expect(range.endDate).toBe(endDate);
++    expect(range.start.toISOString()).toBe(`${startDate}T00:00:00.000Z`);
++    expect(range.end.toISOString()).toBe(`${endDate}T00:00:00.000Z`);
++  });
++});
+diff --git a/src/lib/calendar-overview.ts b/src/lib/calendar-overview.ts
+new file mode 100644
+index 0000000..9a6b8f7
+--- /dev/null
++++ b/src/lib/calendar-overview.ts
+@@ -0,0 +1,69 @@
++import type { Reservation } from "@/lib/types";
++
++export interface CalendarOverviewReservation {
++  id?: number;
++  name: string;
++  checkIn: string;
++  checkOut: string;
++  platform: string;
++  linkedEventUid: string | null;
++  linkedEventPlatform: string | null;
++  linkedEventRole: Reservation["linkedEventRole"];
++}
++
++export interface CalendarOverviewEvent {
++  platform: string;
++  uid: string;
++  summary: string;
++  startDate: string;
++  endDate: string;
++}
++
++export interface CalendarOverviewLink {
++  platform: string;
++  bufferBefore: number;
++  bufferAfter: number;
++}
++
++export interface CalendarOverviewOverride {
++  date: string;
++  type: "open" | "closed" | "cleaning";
++}
++
++export interface CalendarOverviewProperty {
++  id: number;
++  name: string;
++  minNights: number;
++  checkInTime: string;
++  checkOutTime: string;
++  bookingWindow: number;
++  cleaningEnabled: boolean;
++  canManage: boolean;
++  reservations: CalendarOverviewReservation[];
++  events: CalendarOverviewEvent[];
++  links: CalendarOverviewLink[];
++  overrides: CalendarOverviewOverride[];
++  syncFailed: boolean;
++}
++
++export interface CalendarOverviewResponse {
++  month: string;
++  startDate: string;
++  endDate: string;
++  properties: CalendarOverviewProperty[];
++}
++
++export function calendarOverviewMonth(value: unknown): {
++  month: string;
++  startDate: string;
++  endDate: string;
++  start: Date;
++  end: Date;
++} | null {
++  if (typeof value !== "string" || !/^(?:[1-9]\d{3})-(?:0[1-9]|1[0-2])$/.test(value)) return null;
++  const start = new Date(`${value}-01T00:00:00.000Z`);
++  const end = new Date(start);
++  end.setUTCMonth(end.getUTCMonth() + 1);
++  if (end.getUTCFullYear() > 9999) return null;
++  return { month: value, startDate: `${value}-01`, endDate: end.toISOString().slice(0, 10), start, end };
++}
+diff --git a/src/lib/dashboard-navigation.test.ts b/src/lib/dashboard-navigation.test.ts
+new file mode 100644
+index 0000000..3833af7
+--- /dev/null
++++ b/src/lib/dashboard-navigation.test.ts
+@@ -0,0 +1,50 @@
++import { describe, expect, it } from "vitest";
++import { dashboardHref } from "./dashboard-navigation";
++
++const overview = {
++  propertyId: null,
++  reservationId: null,
++  overviewMonth: "2026-12",
++  overviewSearch: "Studio & loft",
++};
++
++function query(href: string) {
++  return Object.fromEntries(new URL(href, "https://example.invalid").searchParams);
++}
++
++describe("overview navigation", () => {
++  it("opens a card with the selected month and exact property filter intact", () => {
++    expect(query(dashboardHref(overview, { property: 7, reservation: 19, view: "overview" }))).toEqual({
++      property: "7", reservation: "19", view: "overview", overviewMonth: "2026-12", overviewSearch: "Studio & loft",
++    });
++  });
++
++  it("returns from a card to all rows without retaining a stale reservation", () => {
++    const current = { ...overview, propertyId: 7, reservationId: 19 };
++    expect(query(dashboardHref(current, { property: null, reservation: null, view: "overview" }))).toEqual({
++      view: "overview", overviewMonth: "2026-12", overviewSearch: "Studio & loft",
++    });
++  });
++
++  it("carries the overview context through an individual calendar and back", () => {
++    expect(query(dashboardHref({ ...overview, propertyId: 7, reservationId: 19 }, { property: 8, view: "calendar" }))).toEqual({
++      property: "8", overviewMonth: "2026-12", overviewSearch: "Studio & loft",
++    });
++    expect(query(dashboardHref({ ...overview, propertyId: 8 }, { property: null, reservation: null, view: "overview" }))).toEqual({
++      view: "overview", overviewMonth: "2026-12", overviewSearch: "Studio & loft",
++    });
++  });
++
++  it("accepts a year transition and an explicitly cleared filter", () => {
++    expect(query(dashboardHref(overview, { view: "overview", overviewMonth: "2027-01", overviewSearch: "" }))).toEqual({
++      view: "overview", overviewMonth: "2027-01",
++    });
++  });
++
++  it("preserves existing default dashboard and property URLs", () => {
++    const current = { ...overview, overviewMonth: null, overviewSearch: "" };
++    expect(dashboardHref(current, {})).toBe("/dashboard");
++    expect(dashboardHref(current, { property: 7 })).toBe("/dashboard?property=7");
++    expect(dashboardHref(current, { property: 7, reservation: 19 })).toBe("/dashboard?property=7&reservation=19");
++  });
++});
+diff --git a/src/lib/dashboard-navigation.ts b/src/lib/dashboard-navigation.ts
+new file mode 100644
+index 0000000..b1ac713
+--- /dev/null
++++ b/src/lib/dashboard-navigation.ts
+@@ -0,0 +1,35 @@
++interface DashboardLocation {
++  propertyId: number | null;
++  reservationId: number | null;
++  overviewMonth: string | null;
++  overviewSearch: string;
++}
++
++export interface DashboardNavigation {
++  property?: number | null;
++  reservation?: number | null;
++  view?: string;
++  overviewMonth?: string;
++  overviewSearch?: string;
++}
++
++export function dashboardHref(current: DashboardLocation, next: DashboardNavigation): string {
++  const propertyId = next.property !== undefined ? next.property : current.propertyId;
++  const reservationId = next.reservation !== undefined
++    ? next.reservation
++    : next.property !== undefined ? null : current.reservationId;
++  const defaultView = reservationId ? "guests" : propertyId ? "calendar" : "dashboard";
++  const view = next.view || defaultView;
++  const month = next.overviewMonth ?? current.overviewMonth;
++  const query = next.overviewSearch ?? current.overviewSearch;
++  const params = new URLSearchParams();
++
++  if (propertyId) params.set("property", String(propertyId));
++  if (reservationId) params.set("reservation", String(reservationId));
++  if (view !== defaultView) params.set("view", view);
++  if (month) params.set("overviewMonth", month);
++  if (query) params.set("overviewSearch", query);
++
++  const search = params.toString();
++  return search ? `/dashboard?${search}` : "/dashboard";
++}

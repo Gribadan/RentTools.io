@@ -1,0 +1,147 @@
+{
+  "checks": [
+    {
+      "name": "Three properties; adjacent October stays share a lane; real overlap uses separate lanes",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Sticky property names and October checkout-exclusive night widths",
+      "details": "6 + 2 nights; 4 px turnover boundary",
+      "passed": true
+    },
+    {
+      "name": "Keyboard opens existing card; return preserves January and property search",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Previous/next month crosses December–January using keyboard",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Today restores current local calendar month",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Search-empty differs from empty occupancy with visible property rows",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Long stays clip at month/year boundaries without adding checkout night",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Mobile controls fit one row; Tab reaches calendar and ArrowRight scrolls dates",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "375 px mobile: document fits width; dates scroll; long identity and header remain sticky",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Mobile Today scrolls to current date after changing month",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Server error exposes unknown availability and hides free-looking grid",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Retry after stale successful data keeps unknown status until success",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Loading has a separate status",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Overview/card route makes no unbounded properties or sync history request",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Individual calendar link and overview roundtrip",
+      "details": "Legacy individual-calendar requests allowed after overview request index 43",
+      "passed": true
+    },
+    {
+      "name": "Zero and one property states",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Real synthetic DB: owner/manager scope, cleaner redaction/card denial, foreign account isolation",
+      "details": "",
+      "passed": true
+    },
+    {
+      "name": "Russian mobile copy renders and fits viewport",
+      "details": "",
+      "passed": true
+    }
+  ],
+  "requests": [
+    "/api/auth/session",
+    "/api/site-config",
+    "/api/sync-alerts",
+    "/api/site-config",
+    "/api/calendar/overview?month=2026-10",
+    "/api/live",
+    "/api/calendar/overview?month=2026-10",
+    "/api/calendar/overview?month=2027-01",
+    "/api/reservations/3",
+    "/api/guests?reservationId=3",
+    "/api/message-templates?propertyId=1",
+    "/api/properties/1/guest-form",
+    "/api/reservations/3/guest-form/share",
+    "/api/calendar/overview?month=2026-12",
+    "/api/calendar/overview?month=2027-01",
+    "/api/calendar/overview?month=2026-12",
+    "/api/calendar/overview?month=2026-10",
+    "/api/calendar/overview?month=2028-06",
+    "/api/auth/session",
+    "/api/site-config",
+    "/api/sync-alerts",
+    "/api/site-config",
+    "/api/calendar/overview?month=2027-01",
+    "/api/live",
+    "/api/calendar/overview?month=2027-01",
+    "/api/auth/session",
+    "/api/site-config",
+    "/api/sync-alerts",
+    "/api/site-config",
+    "/api/calendar/overview?month=2026-10",
+    "/api/live",
+    "/api/calendar/overview?month=2026-10",
+    "/api/calendar/overview?month=2027-01",
+    "/api/calendar/overview?month=2026-10",
+    "/api/calendar/overview?month=2026-10",
+    "/api/calendar/overview?month=2026-10",
+    "/api/auth/session",
+    "/api/site-config",
+    "/api/sync-alerts",
+    "/api/site-config",
+    "/api/calendar/overview?month=2026-10",
+    "/api/live",
+    "/api/calendar/overview?month=2026-10",
+    "/api/properties",
+    "/api/cleaner-assignments?propertyId=1",
+    "/api/calendar/sync?propertyId=1&limit=200",
+    "/api/calendar/links?propertyId=1",
+    "/api/date-overrides?propertyId=1",
+    "/api/calendar/overview?month=2026-10"
+  ],
+  "mutations": [],
+  "errors": []
+}

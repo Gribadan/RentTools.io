@@ -1,0 +1,29 @@
+diff --git a/package-lock.json b/package-lock.json
+index 5975378..05ad5fe 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -11335,9 +11335,9 @@
+       }
+     },
+     "node_modules/vite": {
+-      "version": "8.2.2",
+-      "resolved": "https://registry.npmjs.org/vite/-/vite-8.2.2.tgz",
+-      "integrity": "sha512-cFKLV/PRgAUlIRm5WjMjJ86jrftzpqcgH+Us+DS8mI3CDNiH30Whrz8uHL3+MOLPAgqbMBAqWdAHAphOAM+z/Q==",
++      "version": "8.2.4",
++      "resolved": "https://registry.npmjs.org/vite/-/vite-8.2.4.tgz",
++      "integrity": "sha512-lfauXnrf2x0p+UoA+wXh0dgFWnUjCyG6Js95KBkgaCwUU9k0DAHI4W6Q0WCx+h+5g+Alce1y4Zi2QjjK0UvGBw==",
+       "dev": true,
+       "license": "MIT",
+       "dependencies": {
+diff --git a/package.json b/package.json
+index f3397c4..af041f1 100644
+--- a/package.json
++++ b/package.json
+@@ -57,6 +57,7 @@
+     "vitest": "^4.1.11"
+   },
+   "overrides": {
++    "vite": "8.2.4",
+     "@next/eslint-plugin-next": {
+       "fast-glob": "npm:tinyglobby@0.2.17"
+     },
