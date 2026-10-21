@@ -57,6 +57,7 @@
     "vitest": "^4.1.11"
   },
   "overrides": {
+    "vite": "8.2.4",
     "@next/eslint-plugin-next": {
       "fast-glob": "npm:tinyglobby@0.2.17"
     },
