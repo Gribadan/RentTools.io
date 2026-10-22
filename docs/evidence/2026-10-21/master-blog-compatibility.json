@@ -1,0 +1,44 @@
+[
+  {
+    "Path": "content/blog/guest-id-verification-short-term-rental.de.md",
+    "Expected": "9ccee90181863d08beed166a6f74896af7e2c63b",
+    "Raw": "d48dcabc9512efb8e504e53f63d60d431546460d",
+    "Normalized": "9ccee90181863d08beed166a6f74896af7e2c63b",
+    "Matches": true
+  },
+  {
+    "Path": "content/blog/guest-id-verification-short-term-rental.es.md",
+    "Expected": "a7c75a00a66f38a05292ecd002c220952b618134",
+    "Raw": "a71b677dfd0a9cf92e437c8b63d24a856a6c0acc",
+    "Normalized": "a7c75a00a66f38a05292ecd002c220952b618134",
+    "Matches": true
+  },
+  {
+    "Path": "content/blog/guest-id-verification-short-term-rental.fr.md",
+    "Expected": "06d6620cc6c229af694191287f3e003fb5b251b8",
+    "Raw": "6a624f37575adc5471cbf90fdc62db30d550e86d",
+    "Normalized": "06d6620cc6c229af694191287f3e003fb5b251b8",
+    "Matches": true
+  },
+  {
+    "Path": "content/blog/guest-id-verification-short-term-rental.md",
+    "Expected": "ceb38ff3b2d88f49600e981abe7dc2ae466a1373",
+    "Raw": "8ad3fb528c870d4e2da6c45d15f9fc438baf2164",
+    "Normalized": "ceb38ff3b2d88f49600e981abe7dc2ae466a1373",
+    "Matches": true
+  },
+  {
+    "Path": "content/blog/guest-id-verification-short-term-rental.ru.md",
+    "Expected": "07b7d5a0a240b90d4e1d1f10b95af154e80b4199",
+    "Raw": "4918c02bbfa74a19b7553cf6a55dc2698e21076f",
+    "Normalized": "07b7d5a0a240b90d4e1d1f10b95af154e80b4199",
+    "Matches": true
+  },
+  {
+    "Path": "public/blog-covers/guest-id-verification-short-term-rental.webp",
+    "Expected": "f3b812fa9e2c6853b851703bdee9cf082415cfd4",
+    "Raw": "f3b812fa9e2c6853b851703bdee9cf082415cfd4",
+    "Normalized": "f3b812fa9e2c6853b851703bdee9cf082415cfd4",
+    "Matches": true
+  }
+]

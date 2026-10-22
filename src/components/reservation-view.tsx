@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
 import type { Guest, Reservation } from "@/lib/types";
 import {
+  parseReservationDate,
   reservationNights,
   toReservationDateInput,
   validateReservationDateRange,
@@ -112,18 +113,19 @@ function platformShortLabel(slug: string): string {
  *  Months are full English names (matches the examples the user gave).
  */
 function formatStayRange(checkInIso: string, checkOutIso: string): string {
-  const ci = new Date(checkInIso);
-  const co = new Date(checkOutIso);
-  const ciDay = ci.getDate();
-  const coDay = co.getDate();
-  const ciMon = ci.toLocaleDateString("en-GB", { month: "long" });
-  const coMon = co.toLocaleDateString("en-GB", { month: "long" });
-  const ciYear = ci.getFullYear();
-  const coYear = co.getFullYear();
+  const ci = parseReservationDate(checkInIso);
+  const co = parseReservationDate(checkOutIso);
+  if (!ci || !co) return `${checkInIso}-${checkOutIso}`;
+  const ciDay = ci.getUTCDate();
+  const coDay = co.getUTCDate();
+  const ciMon = ci.toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
+  const coMon = co.toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
+  const ciYear = ci.getUTCFullYear();
+  const coYear = co.getUTCFullYear();
   if (ciYear !== coYear) {
     return `${ciDay} ${ciMon} ${ciYear}-${coDay} ${coMon} ${coYear}`;
   }
-  if (ci.getMonth() !== co.getMonth()) {
+  if (ci.getUTCMonth() !== co.getUTCMonth()) {
     return `${ciDay} ${ciMon}-${coDay} ${coMon} ${ciYear}`;
   }
   return `${ciDay}-${coDay} ${ciMon} ${ciYear}`;
@@ -956,11 +958,12 @@ export function ReservationView({
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString("en-GB", {
+    return parseReservationDate(dateStr)?.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
       year: "numeric",
-    });
+      timeZone: "UTC",
+    }) ?? dateStr;
   };
 
   const exportGuestsCsv = () => {

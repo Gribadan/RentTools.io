@@ -1,0 +1,100 @@
+{
+  "capturedAt": "2026-10-21T08:15:33.627Z",
+  "codeRevision": "c01f47d",
+  "sourceSnapshotParity": {
+    "trackedFiles": 880,
+    "mismatches": 0,
+    "lineEndingNormalization": "CRLF to LF for text"
+  },
+  "originalArtifactCount": 25,
+  "publicTextReportsSanitized": [
+    "verification.md",
+    "dependency-fix-verification.md",
+    "screenshot-delivery-status.json"
+  ],
+  "screenshots": [
+    {
+      "file": "overview-desktop-october.png",
+      "sha256": "25359c703fca01909b00cb1b38137fd3b872485b0337d6f3dc53018fd3752318"
+    },
+    {
+      "file": "overview-empty-occupancy.png",
+      "sha256": "621aee1dc7254fa8846fc4878159a3ae9e52091afeb8ca7a186add179e360234"
+    },
+    {
+      "file": "overview-error.png",
+      "sha256": "c9af79516556d32d1fab2c65129e148e580f35462201dfaaecf302c37acd278c"
+    },
+    {
+      "file": "overview-january-turnover.png",
+      "sha256": "2597e1d0d0c822962126293b95eb79dd9d668384a54497ac353bd9aa3b52df1f"
+    },
+    {
+      "file": "overview-loading.png",
+      "sha256": "3428d189636b1c89be21d31d8d40644e12c0847d87d07f83c2138cf307cb60b0"
+    },
+    {
+      "file": "overview-mobile-october.png",
+      "sha256": "8add91508c2a431d29b0fbf758ea35cc93206f24af1abb9c2d53778ee4fccf54"
+    },
+    {
+      "file": "overview-mobile-russian.png",
+      "sha256": "54ea1f37330b3b269a8b0a0a89385280132b16b47372506b03804274da71dbed"
+    },
+    {
+      "file": "overview-mobile-sticky.png",
+      "sha256": "3c5a0128464b455ce537af712d296bdde1e7d2cffd93d913e0ba14a8e737afec"
+    },
+    {
+      "file": "overview-mobile-top.png",
+      "sha256": "317f1978dfc522a3a08770b32e2a3242d8dd6a95a54ce82ecb58ed7489188b32"
+    },
+    {
+      "file": "overview-no-results.png",
+      "sha256": "277c01c5e91b1f54ff7f7fc6d07ad896f44d9b65177e70963c0cd7fe7e2f13c0"
+    },
+    {
+      "file": "overview-one-properties.png",
+      "sha256": "d90dd08b2371ca6590cc54e17d1e43f5b52fb137502c7dd3a5734d637cce4769"
+    },
+    {
+      "file": "overview-reservation-card.png",
+      "sha256": "48f0b861fe7c3f6a83ad89d7de6a396353ce160c66b3842d09424f61e0a09252"
+    },
+    {
+      "file": "overview-retry.png",
+      "sha256": "173c9144c6653762dd7907d35b8e366eb77fcb557efd0d46f10d7e01df1c97c7"
+    },
+    {
+      "file": "overview-year-clipping.png",
+      "sha256": "361c0a91b328ad4e76ae7d20b464a0cf3921a149c8aadd32d282fd761b9cddee"
+    },
+    {
+      "file": "overview-zero-properties.png",
+      "sha256": "ee5e695ee5459ae55688695d295718acf0e6796155319e62209a9fe87c777ca8"
+    }
+  ],
+  "latestLocalChecks": {
+    "testFiles": 52,
+    "testsPassed": 595,
+    "testExitCode": 0,
+    "typecheckExitCode": 0,
+    "auditFindings": 0,
+    "auditExitCode": 0,
+    "peerGraphExitCode": 0
+  },
+  "earlierBrowserVerification": {
+    "groupsPassed": 18,
+    "groupsTotal": 18,
+    "javascriptErrors": 0,
+    "apiMutations": 0,
+    "fixtures": "synthetic"
+  },
+  "buildEvidence": {
+    "previousLocalWebpackBuild": "passed",
+    "defaultLocalBuild": "Windows instrumentation loader worker startup limitation",
+    "linuxCI": "required for this pull request",
+    "dockerRuntimeChecks": "required in CI"
+  },
+  "deploymentPerformed": false
+}

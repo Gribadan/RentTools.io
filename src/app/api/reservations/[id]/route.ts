@@ -31,6 +31,38 @@ async function loadManageableReservation(
   return reservation;
 }
 
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const headers = { "Cache-Control": "private, no-store" };
+  try {
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers });
+    const { id } = await params;
+    if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
+      return NextResponse.json({ error: "Invalid ID" }, { status: 400, headers });
+    }
+    const owned = await loadManageableReservation(Number(id), session.userId, session.role);
+    if (!owned) return NextResponse.json({ error: "Not found" }, { status: 404, headers });
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: owned.id, propertyId: owned.propertyId },
+      select: {
+        id: true, name: true, checkIn: true, checkOut: true, platform: true,
+        linkedEventUid: true, linkedEventPlatform: true, linkedEventRole: true,
+        phone: true, tgGroupUrl: true, waGroupUrl: true, groupName: true,
+        bookedGuestCount: true, propertyId: true, createdAt: true,
+        _count: { select: { guests: true } },
+      },
+    });
+    if (!reservation) return NextResponse.json({ error: "Not found" }, { status: 404, headers });
+    return NextResponse.json(reservation, { headers });
+  } catch (error) {
+    console.error("Reservation detail error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers });
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

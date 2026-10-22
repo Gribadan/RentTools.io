@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Build + tests",
+    "id": 119078231151,
+    "conclusion": "failure",
+    "steps": [
+      {
+        "name": "Set up job",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Checkout",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Validate GitHub Actions workflows",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Pull request policy checks",
+        "conclusion": "skipped",
+        "number": 4
+      },
+      {
+        "name": "Forbidden-paths check",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Secret-content scan",
+        "conclusion": "success",
+        "number": 6
+      },
+      {
+        "name": "Set up Node.js 22",
+        "conclusion": "success",
+        "number": 7
+      },
+      {
+        "name": "Install dependencies",
+        "conclusion": "success",
+        "number": 8
+      },
+      {
+        "name": "Audit dependencies (high/critical only)",
+        "conclusion": "failure",
+        "number": 9
+      },
+      {
+        "name": "Type-check + production build",
+        "conclusion": "skipped",
+        "number": 10
+      },
+      {
+        "name": "Unit tests",
+        "conclusion": "skipped",
+        "number": 11
+      },
+      {
+        "name": "Validate production Docker image and SQLite migrations",
+        "conclusion": "skipped",
+        "number": 12
+      },
+      {
+        "name": "Post Set up Node.js 22",
+        "conclusion": "skipped",
+        "number": 23
+      },
+      {
+        "name": "Post Checkout",
+        "conclusion": "success",
+        "number": 24
+      },
+      {
+        "name": "Complete job",
+        "conclusion": "success",
+        "number": 25
+      }
+    ]
+  },
+  {
+    "name": "ARM64 release image",
+    "id": 119078433716,
+    "conclusion": "skipped",
+    "steps": []
+  }
+]

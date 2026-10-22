@@ -1,0 +1,27 @@
+{
+  "featureCommit": "9e8dee2c92cb11a98e95b58502d6790fdb8e9c9d",
+  "compatibilityMaster": "a6ca4e94a2518095eb41fe3a68f27409e494c4a4",
+  "viteBefore": "8.2.2",
+  "viteAfter": "8.2.4",
+  "vitest": "4.1.11",
+  "changedDependencyNodes": [
+    "node_modules/vite"
+  ],
+  "auditExitCode": 0,
+  "auditFindings": 0,
+  "testFiles": 52,
+  "testsPassed": 595,
+  "testExitCode": 0,
+  "typecheckExitCode": 0,
+  "peerGraphExitCode": 0,
+  "defaultBuildExitCode": 1,
+  "defaultBuildLimitation": "Windows Turbopack Sentry loader worker exits before connection",
+  "webpackBuild": "passed",
+  "blogFiles": 6,
+  "blogGitHashesMatch": true,
+  "noGitMerge": true,
+  "noPushOrPR": true,
+  "noExternalUpload": true,
+  "webpackBuildExitCode": 0,
+  "dependencyCommit": "4ff9f566f09200885fd251472f77ed7f952dad8e"
+}

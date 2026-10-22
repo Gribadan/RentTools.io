@@ -79,6 +79,15 @@ export interface ChangelogEntry {
 // Newest first. The renderer never sorts — order here is order shown.
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    date: "2026-10-22",
+    changes: [
+      {
+        kind: "added",
+        text: "View every property's bookings and cleaning buffers together in one monthly calendar.",
+      },
+    ],
+  },
+  {
     date: "2026-06-13",
     changes: [
       {

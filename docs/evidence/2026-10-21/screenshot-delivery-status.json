@@ -1,0 +1,39 @@
+{
+  "requested_destination": "Personal file library; historical delivery attempt before repository publication",
+  "screenshots": [
+    {
+      "name": "overview-desktop-october.png",
+      "size_bytes": 100975,
+      "caption_ru": "Общий календарь: несколько объектов, поиск, месяц, отдельные границы соседних броней и реальные пересечения."
+    },
+    {
+      "name": "overview-mobile-top.png",
+      "size_bytes": 64025,
+      "caption_ru": "Мобильный обзор: читаемые даты с горизонтальной прокруткой и закреплёнными названиями объектов."
+    },
+    {
+      "name": "overview-january-turnover.png",
+      "size_bytes": 82142,
+      "caption_ru": "Январский период: отдельные брони 6–9 и 9–10 января сохраняют границу смены гостей."
+    }
+  ],
+  "privacy_check": "Actual local implementation; synthetic fixture properties and guests only. No real bookings, contacts, documents, tokens or secrets.",
+  "upload_attempt": {
+    "method": "One ordered batch of three synthetic screenshots",
+    "started_at_utc": "2026-10-21T07:58:58Z",
+    "finished_at_utc": "2026-10-21T07:59:00Z",
+    "exit_code": 1,
+    "stdout_bytes": 0,
+    "stderr": "library upload failed: prepare_uploads failed",
+    "known_stage": "prepare_uploads returned isError; helper stopped before byte transfer or finalize_uploads",
+    "original_service_error_details": "Not preserved by the helper CLI; exact backend reason unavailable",
+    "library_file_ids": [],
+    "retry_performed": false,
+    "direct_upload_fallback_performed": false
+  },
+  "read_only_verification": {
+    "exact_filename_search": "No results for any of the three names",
+    "recent_library_list": "No files created after 2026-10-21T07:53:00Z; items=[], next_cursor=null"
+  },
+  "status": "Historical upload failed before byte transfer; no remotely stored file was confirmed. Screenshots are included in this repository evidence directory."
+}

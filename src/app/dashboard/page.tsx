@@ -20,7 +20,25 @@ import { SyncAlertsBanner } from "@/components/sync-alerts-banner";
 import { AnnouncementBanner } from "@/components/announcement-banner";
 import { SupportFooter } from "@/components/support-footer";
 import { CleanerApp } from "@/components/cleaner-app";
+import { CalendarOverview } from "@/components/calendar/calendar-overview";
+import type { CalendarOverviewProperty } from "@/lib/calendar-overview";
+import { dashboardHref, type DashboardNavigation } from "@/lib/dashboard-navigation";
 import type { Property, Guest } from "@/lib/types";
+
+async function loadProperties(signal?: AbortSignal): Promise<Property[]> {
+  const response = await fetch("/api/properties", { signal });
+  if (!response.ok) throw new Error(`Properties request failed (${response.status})`);
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) throw new Error("Invalid properties response");
+  return data;
+}
+
+async function loadGuests(reservationId: number, signal?: AbortSignal): Promise<Guest[]> {
+  const response = await fetch(`/api/guests?reservationId=${reservationId}`, { signal });
+  if (!response.ok) throw new Error(`Guests request failed (${response.status})`);
+  const data: unknown = await response.json();
+  return Array.isArray(data) ? data : [];
+}
 
 function CleanerShell({
   user,
@@ -43,7 +61,8 @@ function AppContent({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
-  const [guests, setGuests] = useState<Guest[]>([]);
+  const [overviewProperties, setOverviewProperties] = useState<CalendarOverviewProperty[]>([]);
+  const [guestData, setGuestData] = useState<{ reservationId: number; guests: Guest[] } | null>(null);
   const [loadingProperties, setLoadingProperties] = useState(true);
 
   // Derive state from URL params
@@ -51,31 +70,19 @@ function AppContent({
   const selectedReservationId = searchParams.get("reservation") ? Number(searchParams.get("reservation")) : null;
   const activeView: AppView = (searchParams.get("view") as AppView) ||
     (selectedReservationId ? "guests" : selectedPropertyId ? "calendar" : "dashboard");
+  const guests = activeView !== "overview" && guestData?.reservationId === selectedReservationId ? guestData.guests : [];
 
-  // Navigate by updating URL params. The previous `month=YYYY-MM`
-  // param is gone — the calendar is now a vertical multi-month stack
-  // (no prev / next pagination), so there's no "active month" to
-  // preserve.
-  const navigate = useCallback((params: { property?: number | null; reservation?: number | null; view?: AppView }) => {
-    const sp = new URLSearchParams();
-    const propId = params.property !== undefined ? params.property : selectedPropertyId;
-    const resId = params.reservation !== undefined ? params.reservation : (params.property !== undefined ? null : selectedReservationId);
-    const view = params.view || (resId ? "guests" : propId ? "calendar" : "dashboard");
+  const overviewMonth = searchParams.get("overviewMonth");
+  const overviewSearch = searchParams.get("overviewSearch") || "";
 
-    if (propId) sp.set("property", String(propId));
-    if (resId) sp.set("reservation", String(resId));
-    // Only set view param if it's not the default for the context
-    const defaultView = resId ? "guests" : propId ? "calendar" : "dashboard";
-    if (view !== defaultView) sp.set("view", view);
-
-    const qs = sp.toString();
-    router.push(qs ? `/dashboard?${qs}` : "/dashboard");
-  }, [router, selectedPropertyId, selectedReservationId]);
-
-  // Convenience setters that update URL
-  const setSelectedPropertyId = useCallback((id: number | null) => {
-    navigate({ property: id, reservation: null });
-  }, [navigate]);
+  const navigate = useCallback((params: DashboardNavigation & { view?: AppView }) => {
+    router.push(dashboardHref({
+      propertyId: selectedPropertyId,
+      reservationId: selectedReservationId,
+      overviewMonth,
+      overviewSearch,
+    }, params));
+  }, [router, selectedPropertyId, selectedReservationId, overviewMonth, overviewSearch]);
 
   const setSelectedReservationId = useCallback((id: number | null) => {
     if (id) {
@@ -91,50 +98,57 @@ function AppContent({
     navigate({ view });
   }, [navigate]);
 
-  useEffect(() => {
-    fetchProperties();
-  }, []);
-
-  // Multi-manager visibility: a second manager viewing the dashboard
-  // should see a new direct booking (or a rename / cleaning toggle /
-  // reservation edit) added by another manager without needing to log
-  // out and back in. Refetch on tab focus + poll every 60 s while
-  // visible — cheap, and matches the calendar's own live-refresh so
-  // both surfaces stay in sync.
-  useLiveRefresh(() => fetchProperties());
-
-  useEffect(() => {
-    if (selectedReservationId) {
-      fetchGuests(selectedReservationId);
-    } else {
-      setGuests([]);
-    }
-  }, [selectedReservationId]);
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
+    if (activeView === "overview") return;
     setLoadingProperties(true);
     try {
-      const res = await fetch("/api/properties");
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setProperties(data);
-      } else {
-        console.error("Properties API returned non-array:", data);
-        setProperties([]);
-      }
+      setProperties(await loadProperties());
     } catch (err) {
       console.error("Failed to fetch properties:", err);
       setProperties([]);
     } finally {
       setLoadingProperties(false);
     }
-  };
+  }, [activeView]);
 
-  const fetchGuests = async (reservationId: number) => {
-    const res = await fetch(`/api/guests?reservationId=${reservationId}`);
-    const data = await res.json();
-    setGuests(data);
-  };
+  useEffect(() => {
+    if (activeView === "overview") return;
+    const controller = new AbortController();
+    void loadProperties(controller.signal).then((data) => {
+      if (!controller.signal.aborted) setProperties(data);
+    }).catch((error) => {
+      if (!controller.signal.aborted) {
+        console.error("Failed to fetch properties:", error);
+        setProperties([]);
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoadingProperties(false);
+    });
+    return () => controller.abort();
+  }, [activeView]);
+
+  // Multi-manager visibility: a second manager viewing the dashboard
+  // should see a new direct booking (or a rename / cleaning toggle /
+  // reservation edit) added by another manager without needing to log
+  // out and back in. Refetch on tab focus + poll every 60 s while
+  // visible - cheap, and matches the calendar's own live-refresh so
+  // both surfaces stay in sync.
+  useLiveRefresh(fetchProperties);
+
+  const fetchGuests = useCallback(async (reservationId: number) => {
+    setGuestData({ reservationId, guests: await loadGuests(reservationId) });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedReservationId || activeView === "overview") return;
+    const controller = new AbortController();
+    void loadGuests(selectedReservationId, controller.signal).then((data) => {
+      if (!controller.signal.aborted) setGuestData({ reservationId: selectedReservationId, guests: data });
+    }).catch((error) => {
+      if (!controller.signal.aborted) console.error("Failed to fetch guests:", error);
+    });
+    return () => controller.abort();
+  }, [selectedReservationId, activeView]);
 
   const handleAddProperty = async (name: string) => {
     const res = await fetch("/api/properties", {
@@ -260,7 +274,7 @@ function AppContent({
       fetchGuests(selectedReservationId);
       fetchProperties();
     }
-  }, [selectedReservationId]);
+  }, [selectedReservationId, fetchGuests, fetchProperties]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -284,6 +298,21 @@ function AppContent({
   const selectedReservation = selectedProperty?.reservations.find(r => r.id === selectedReservationId);
 
   const renderContent = () => {
+    if (activeView === "overview") {
+      return (
+        <CalendarOverview
+          month={overviewMonth}
+          query={overviewSearch}
+          selectedReservationId={selectedReservationId}
+          onMonthChange={(month) => navigate({ view: "overview", overviewMonth: month })}
+          onQueryChange={(query) => navigate({ view: "overview", overviewSearch: query })}
+          onOpenReservation={(propertyId, reservationId) => navigate({ property: propertyId, reservation: reservationId, view: "overview" })}
+          onOpenProperty={(propertyId) => navigate({ property: propertyId, reservation: null, view: "calendar" })}
+          onCloseReservation={() => navigate({ property: null, reservation: null, view: "overview" })}
+          onPropertiesLoaded={setOverviewProperties}
+        />
+      );
+    }
     // Global views (no property selected)
     const isSuperAdmin = user.role === "superadmin";
 
@@ -441,14 +470,14 @@ function AppContent({
     <div className="editorial flex h-screen flex-col overflow-hidden bg-[var(--bg)]">
       <AnnouncementBanner />
       <TopBar
-        properties={properties}
-        selectedPropertyId={selectedPropertyId}
+        properties={activeView === "overview" ? overviewProperties.map((property) => ({ id: property.id, name: property.name, reservations: [] })) : properties}
+        selectedPropertyId={activeView === "overview" ? null : selectedPropertyId}
         activeView={activeView}
         onSelectProperty={handleSelectProperty}
         onChangeView={setActiveView}
         onNavigate={navigate}
         onOpenReservation={(propId, resId) =>
-          navigate({ property: propId, reservation: resId, view: "guests" })
+          navigate({ property: propId, reservation: resId, view: activeView === "overview" ? "overview" : "guests" })
         }
         username={user.username}
         userRole={user.role}
@@ -456,7 +485,7 @@ function AppContent({
       />
       <SyncAlertsBanner />
       <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 pb-3 sm:pb-6 lg:pb-8" style={{ scrollbarGutter: "stable" }}>
-        {loadingProperties && properties.length === 0 ? (
+        {activeView !== "overview" && loadingProperties && properties.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--line-2)] border-t-sky-400" />
           </div>
