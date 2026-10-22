@@ -769,17 +769,11 @@ export function PropertyCalendar({
                   header, this label scrolls behind it (the header is
                   opaque + z-30) and the frozen header's <h2> already
                   shows the same name — no visual duplication.
-                  Skipped only for today's month (PAST_MONTHS index)
-                  because the calendar lands there on initial scroll
-                  and the frozen header already shows the same name —
-                  rendering it again at scroll=0 is a redundant
-                  duplicate. Past months and future months always get
-                  their in-flow label. */}
-              {i !== PAST_MONTHS && (
-                <h3 className="mb-2 sm:mb-3 text-base sm:text-xl font-semibold tracking-tight text-[var(--ink-2)]">
-                  {monthLabel}
-                </h3>
-              )}
+                  Every month keeps its label when the sticky header is
+                  outside the viewport or the page is restored mid-scroll. */}
+              <h3 className="mb-2 sm:mb-3 text-base sm:text-xl font-semibold tracking-tight text-[var(--ink-2)]">
+                {monthLabel}
+              </h3>
               <div className="rounded-lg border border-[var(--line)] bg-[var(--bg-2)] [overflow:clip] [overflow-clip-margin:12px]">
                 <CalendarGrid
                   year={m.getFullYear()}

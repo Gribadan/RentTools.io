@@ -36,6 +36,8 @@ export interface CalendarBar {
   /** Symmetric: a linked partner abuts on the RIGHT. */
   linkedAfter?: boolean;
   isExtension?: boolean;
+  isAvailabilityBlock?: boolean;
+  conflictDates?: string[];
   /** Vertical stacking row assigned by the interval-graph coloring
    *  pass in use-calendar-data.ts. 0 = primary row (top of cell), 1 =
    *  stacked below, etc. Computed so that two bars overlapping on any
@@ -61,6 +63,5 @@ export interface BarSegment extends CalendarBar {
 
 export interface ConflictInfo {
   date: string;
-  airbnbName: string;
-  bookingName: string;
+  bookings: { platform: string; name: string }[];
 }

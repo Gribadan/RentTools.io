@@ -162,10 +162,11 @@ export function CalendarOverviewRow({
         {days.filter(day => day.label).map(({ date, label }) => <span key={date} className="sr-only">{date}: {label}. </span>)}
         {property.syncFailed && <span className="absolute bottom-1 left-2 text-xs text-amber-700 dark:text-amber-300">⚠ {c.unverified}</span>}
         {visibleBars.map(({ bar, layout }, index) => {
-          const overlaps = visibleBars.some(({ bar: other }, otherIndex) => otherIndex !== index && other.startDate < bar.endDate && other.endDate > bar.startDate);
+          const overlaps = bar.conflictDates?.some(date => date >= monthStart && date < monthEnd) ?? false;
+          const label = bar.isAvailabilityBlock ? `${bar.name} · ${t("calendar.availabilityBlock")}` : bar.name;
           const canOpenReservation = property.canManage && !!bar.reservationId && reservationIds.has(bar.reservationId);
           const action = canOpenReservation ? c.openReservation : c.openCalendar;
-          const description = `${bar.name} · ${property.name} · ${bar.startDate} – ${bar.endDate}${overlaps ? ` · ${c.overlap}` : ""} · ${action}`;
+          const description = `${label} · ${property.name} · ${bar.startDate} – ${bar.endDate}${overlaps ? ` · ${c.overlap}` : ""} · ${action}`;
           return (
             <button
               type="button"
@@ -183,13 +184,13 @@ export function CalendarOverviewRow({
                 width: layout.span * OVERVIEW_DAY_WIDTH - 4,
                 top: OVERVIEW_ROW_PADDING + layout.rowIdx * OVERVIEW_LANE_HEIGHT,
                 height: OVERVIEW_BAR_HEIGHT,
-                backgroundColor: platformColor(bar.platform),
-                backgroundImage: bar.isExtension ? "repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(255,255,255,.16) 5px,rgba(255,255,255,.16) 7px)" : undefined,
+                backgroundColor: bar.isAvailabilityBlock ? "#64748b" : platformColor(bar.platform),
+                backgroundImage: bar.isExtension || bar.isAvailabilityBlock ? "repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(255,255,255,.16) 5px,rgba(255,255,255,.16) 7px)" : undefined,
               }}
             >
               <span data-overview-bar-label className="sticky left-[136px] flex min-w-0 max-w-[min(100%,calc(100vw_-_168px))] shrink-0 items-center gap-1 overflow-hidden sm:left-[216px] sm:max-w-[min(100%,calc(100vw_-_288px))]">
                 {layout.continuesBefore && <span aria-hidden="true" className="shrink-0">‹</span>}
-                <span className="min-w-0 truncate">{bar.name}</span>
+                <span className="min-w-0 truncate">{label}</span>
                 {overlaps && <span aria-hidden="true" className="shrink-0">!</span>}
                 <span aria-hidden="true" className="shrink-0">{layout.continuesAfter ? "›" : "↗"}</span>
               </span>
