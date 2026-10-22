@@ -97,16 +97,21 @@ export function CalendarOverview(props: CalendarOverviewProps) {
       )}
       <div hidden={!!props.selectedReservationId}>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">{c.title}</h1>
-            <p className="mt-1 text-sm text-[var(--ink-3)]">{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(range.start)} · {c.allProperties}</p>
+          <div className="flex w-full flex-wrap items-start justify-between gap-3 sm:w-auto">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">{c.title}</h1>
+              <p className="mt-1 text-sm text-[var(--ink-3)]">{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(range.start)} · {c.allProperties}</p>
+            </div>
+            <button className={`${controlClass} shrink-0 sm:hidden`} onClick={goToday}>{t("calendar.today")}</button>
           </div>
-          <div className="grid w-full grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_auto]">
-            <button className={controlClass} onClick={goToday}>{t("calendar.today")}</button>
-            <button className={controlClass} onClick={() => changeMonth(-1)} aria-label={c.previousMonth} disabled={month === "1000-01"}><ChevronLeft size={18} /></button>
-            <label className="sr-only" htmlFor="overview-month">{c.month}</label>
-            <input id="overview-month" type="month" min="1000-01" max="9999-11" value={month} onChange={event => { if (calendarOverviewMonth(event.target.value)) props.onMonthChange(event.target.value); }} className={`${controlClass} min-w-0 w-full sm:w-44`} />
-            <button className={controlClass} onClick={() => changeMonth(1)} aria-label={c.nextMonth} disabled={month === "9999-11"}><ChevronRight size={18} /></button>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <button className={`${controlClass} hidden shrink-0 sm:block`} onClick={goToday}>{t("calendar.today")}</button>
+            <div className="grid min-w-0 flex-1 grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 sm:w-80 sm:flex-none">
+              <button className={`${controlClass} flex items-center justify-center px-0`} onClick={() => changeMonth(-1)} aria-label={c.previousMonth} disabled={month === "1000-01"}><ChevronLeft size={18} /></button>
+              <label className="sr-only" htmlFor="overview-month">{c.month}</label>
+              <input id="overview-month" type="month" min="1000-01" max="9999-11" value={month} onChange={event => { if (calendarOverviewMonth(event.target.value)) props.onMonthChange(event.target.value); }} className={`${controlClass} min-w-0 w-full`} />
+              <button className={`${controlClass} flex items-center justify-center px-0`} onClick={() => changeMonth(1)} aria-label={c.nextMonth} disabled={month === "9999-11"}><ChevronRight size={18} /></button>
+            </div>
           </div>
         </div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -121,7 +126,7 @@ export function CalendarOverview(props: CalendarOverviewProps) {
         {errorMonth === month ? (
           <div role="alert" className="rounded-xl border border-red-400/50 bg-red-400/10 p-6 text-sm text-[var(--ink)]">
             <p>{c.unavailable}</p>
-            <button className={`${controlClass} mt-3`} onClick={refresh} disabled={loading}>{loading ? (c.loading) : (c.retry)}</button>
+            <button className={`${controlClass} mt-3`} onClick={refresh} disabled={loading}>{loading ? c.loading : c.retry}</button>
           </div>
         ) : !currentData ? (
           <div role="status" className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-10 text-center text-[var(--ink-3)]">{c.loadingCalendar}</div>

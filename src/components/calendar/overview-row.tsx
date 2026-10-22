@@ -127,9 +127,10 @@ export function CalendarOverviewRow({
           type="button"
           onClick={() => onOpenProperty(property.id)}
           aria-label={`${c.openCalendar}: ${property.name}`}
+          title={property.name}
           className="min-h-11 w-full rounded text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500"
         >
-          <span className="block break-words text-sm font-medium leading-5 text-[var(--ink)]">{property.name}</span>
+          <span className="line-clamp-3 break-words text-sm font-medium leading-5 text-[var(--ink)] sm:line-clamp-2">{property.name}</span>
           <span className="mt-1 block text-xs text-sky-600 dark:text-sky-400">{c.calendar}</span>
           {property.syncFailed && <span className="mt-2 block text-xs font-normal text-amber-700 dark:text-amber-300">⚠ {c.unverified}</span>}
         </button>
