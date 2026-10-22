@@ -85,6 +85,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "added",
         text: "View every property's bookings and cleaning buffers together in one monthly calendar.",
       },
+      {
+        kind: "fixed",
+        text: "Calendar warnings now distinguish platform blocks from overlapping stays, including Direct bookings.",
+      },
     ],
   },
   {

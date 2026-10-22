@@ -3,6 +3,8 @@ import type { Property, CalendarLink, DateOverride, Reservation } from "@/lib/ty
 import { bookingWindowCutoff } from "@/lib/types";
 import { addDaysStr } from "./utils";
 import { toReservationDateInput } from "@/lib/reservation-dates";
+import { isPlatformAvailabilityBlock } from "@/lib/calendar-event-kind";
+import { calendarConflicts } from "./calendar-conflicts";
 import type { CalendarEvent, CalendarBar, ConflictInfo } from "./types";
 import {
   calendarEventIdentity,
@@ -25,6 +27,8 @@ interface CalendarEntry {
   linkedEventUid?: string;
   linkedEventPlatform?: string;
   linkedEventRole?: "claim" | "extension";
+  isAvailabilityBlock?: boolean;
+  conflictDates?: string[];
 }
 
 export interface CalendarData {
@@ -72,12 +76,9 @@ export function useCalendarData(
     const sameDayCleaning = new Set<string>();
     const potential = new Set<string>();
     const unbookable = new Set<string>();
-    const conflictSet = new Set<string>();
     const evMap = new Map<string, CalendarEntry>();
     const resMap = new Map<string, Reservation>();
     const allBooked = new Set<string>();
-    const airbnbStay = new Set<string>();
-    const bookingStay = new Set<string>();
 
     const allBookings: { start: string; end: string; platform: string; name: string }[] = [];
     const cutoff = bookingWindowCutoff(property.bookingWindow || 365);
@@ -86,16 +87,10 @@ export function useCalendarData(
       if (ev.startDate >= cutoff) continue;
       const platform = ev.platform;
       const dates = platform === "airbnb" ? airbnb : booking;
-      const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
       let d = ev.startDate;
       while (d <= ev.endDate) {
         dates.add(d);
         allBooked.add(d);
-        d = addDaysStr(d, 1);
-      }
-      d = ev.startDate;
-      while (d < ev.endDate) {
-        stayDates.add(d);
         d = addDaysStr(d, 1);
       }
       // Keep every source event, including same-platform events sharing
@@ -110,11 +105,10 @@ export function useCalendarData(
           startDate: ev.startDate,
           endDate: ev.endDate,
           eventUid: ev.uid,
+          isAvailabilityBlock: isPlatformAvailabilityBlock(ev),
         });
       }
-      const isAirbnbBlock = platform === "airbnb" && (
-        ev.summary.includes("Not available") || ev.summary.includes("Blocked")
-      );
+      const isAirbnbBlock = isPlatformAvailabilityBlock(ev);
       if (!isAirbnbBlock) {
         allBookings.push({ start: ev.startDate, end: ev.endDate, platform, name: ev.summary });
       }
@@ -171,9 +165,7 @@ export function useCalendarData(
         // to participate in the cleaning-gap math — otherwise the
         // gap detection sees a phantom hole between the previous and
         // next stays and surfaces "Cleaning?" on the next checkin.
-        const matchedAirbnbBlock = ev.platform === "airbnb" && (
-          (ev.name || "").includes("Not available") || (ev.name || "").includes("Blocked")
-        );
+        const matchedAirbnbBlock = !!ev.isAvailabilityBlock;
         // UNION of event dates and reservation dates for both the bar
         // and the blocked-day accumulators. A host who claims a bar and
         // then edits its dates (typical when a platform's iCal truncates
@@ -194,6 +186,7 @@ export function useCalendarData(
           reservationId: res.id,
           startDate: unionStart,
           endDate: unionEnd,
+          isAvailabilityBlock: false,
         });
         let d = unionStart;
         while (d <= unionEnd) {
@@ -205,16 +198,10 @@ export function useCalendarData(
         // days are already in these sets from the syncedEvents loop
         // above; Set.add() is idempotent so double-adds are harmless.
         const platformDates = ev.platform === "airbnb" ? airbnb : ev.platform === "booking" ? booking : airbnb;
-        const platformStayDates = ev.platform === "airbnb" ? airbnbStay : bookingStay;
         let bd = unionStart;
         while (bd <= unionEnd) {
           platformDates.add(bd);
           allBooked.add(bd);
-          bd = addDaysStr(bd, 1);
-        }
-        bd = unionStart;
-        while (bd < unionEnd) {
-          platformStayDates.add(bd);
           bd = addDaysStr(bd, 1);
         }
         if (matchedAirbnbBlock) {
@@ -222,17 +209,11 @@ export function useCalendarData(
         }
       } else {
         const dates = platform === "airbnb" ? airbnb : platform === "booking" ? booking : airbnb;
-        const stayDates = platform === "airbnb" ? airbnbStay : bookingStay;
         let d = start;
         while (d <= end) {
           dates.add(d);
           allBooked.add(d);
           resMap.set(d, res);
-          d = addDaysStr(d, 1);
-        }
-        d = start;
-        while (d < end) {
-          stayDates.add(d);
           d = addDaysStr(d, 1);
         }
         evMap.set(`${start}|${platform}|reservation:${res.id}`, {
@@ -241,6 +222,7 @@ export function useCalendarData(
           startDate: start,
           endDate: end,
           reservationId: res.id,
+          isAvailabilityBlock: false,
           // Carry linkedEventUid through so the bars step can pair this
           // standalone reservation with the iCal event it extends. Set
           // when the user used "Extend booking" / "Add as extension"
@@ -253,23 +235,9 @@ export function useCalendarData(
       }
     }
 
-    const conflictList: ConflictInfo[] = [];
-    for (const d of airbnbStay) {
-      if (bookingStay.has(d)) {
-        conflictSet.add(d);
-      }
-    }
-
-    if (conflictSet.size > 0) {
-      for (const d of conflictSet) {
-        const abEvent = syncedEvents.find(e => e.platform === "airbnb" && d >= e.startDate && d < e.endDate);
-        const bkEvent = syncedEvents.find(e => e.platform === "booking" && d >= e.startDate && d < e.endDate);
-        conflictList.push({
-          date: d,
-          airbnbName: abEvent?.summary || "Airbnb booking",
-          bookingName: bkEvent?.summary || "Booking reservation",
-        });
-      }
+    const { conflicts: conflictList, dates: conflictSet, datesByEntry } = calendarConflicts(evMap.values());
+    for (const entry of evMap.values()) {
+      entry.conflictDates = [...(datesByEntry.get(entry) ?? [])].sort();
     }
 
     // RT-25.3 — when the per-property cleaning master toggle is off,
@@ -415,9 +383,7 @@ export function useCalendarData(
       // Apr 19, ignoring that 2 of those days are blocked.
       const datesAbuttedByAirbnbBlockEnd = new Set<string>();
       for (const ev of syncedEvents) {
-        const isAirbnbBlock = ev.platform === "airbnb" && (
-          ev.summary.includes("Not available") || ev.summary.includes("Blocked")
-        );
+        const isAirbnbBlock = isPlatformAvailabilityBlock(ev);
         if (isAirbnbBlock) datesAbuttedByAirbnbBlockEnd.add(ev.endDate);
       }
 
@@ -624,6 +590,8 @@ export function useCalendarData(
         linkedEventPlatform: ev.linkedEventPlatform,
         linkedEventRole: ev.linkedEventRole,
         isExtension,
+        isAvailabilityBlock: !!ev.isAvailabilityBlock && !resId,
+        conflictDates: ev.conflictDates ?? [],
       });
     }
 
@@ -645,12 +613,14 @@ export function useCalendarData(
     for (const bar of result) {
       const existing = deduped.find(
         b => b.platform === bar.platform && b.startDate < bar.endDate && b.endDate > bar.startDate &&
+          b.isAvailabilityBlock === bar.isAvailabilityBlock &&
           !(b.reservationId && bar.reservationId && b.reservationId !== bar.reservationId) &&
           !(b.eventUid && bar.eventUid && b.eventUid !== bar.eventUid && hasManagedIdentity(b) && hasManagedIdentity(bar)) &&
           // Matching dates alone cannot reassign a stale claim to a new UID.
           !hasDifferentClaimSource(b, bar) && !hasDifferentClaimSource(bar, b)
       );
       if (existing) {
+        existing.conflictDates = [...new Set([...(existing.conflictDates ?? []), ...(bar.conflictDates ?? [])])].sort();
         if (bar.startDate < existing.startDate) existing.startDate = bar.startDate;
         if (bar.endDate > existing.endDate) existing.endDate = bar.endDate;
         if (bar.reservationId && !existing.reservationId) {

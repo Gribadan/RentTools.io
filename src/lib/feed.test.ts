@@ -46,7 +46,7 @@ const extension = {
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.propertyFindUnique.mockResolvedValue({
-    name: "Apt 68",
+    name: "Sample property",
     minNights: 1,
     bookingWindow: 36500,
   });
@@ -60,6 +60,16 @@ beforeEach(() => {
 });
 
 describe("generateFeed — Direct linked extensions", () => {
+  it("keeps Airbnb availability blocks closed in another platform's export", async () => {
+    mocks.calendarEventFindMany.mockResolvedValue([{ ...source, summary: "Airbnb (Not available)" }]);
+    mocks.reservationFindMany.mockResolvedValue([]);
+    const result = await generateFeed(12, "booking");
+    if ("error" in result) throw new Error(result.error);
+    expect(parseICal(result.ical)).toEqual([
+      expect.objectContaining({ startDate: source.startDate, endDate: source.endDate }),
+    ]);
+  });
+
   it("blocks the Direct nights back to the source platform", async () => {
     const result = await generateFeed(12, "airbnb");
     expect(result).not.toHaveProperty("error");

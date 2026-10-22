@@ -20,7 +20,6 @@ export function ConflictBanner({ conflicts }: ConflictBannerProps) {
   const { t, locale } = useI18n();
   if (conflicts.length === 0) return null;
   const conflictDateCount = new Set(conflicts.map(c => c.date)).size;
-  const uniqueDates = Array.from(new Set(conflicts.map(c => c.date)));
 
   return (
     <div className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-4 space-y-2">
@@ -34,10 +33,10 @@ export function ConflictBanner({ conflicts }: ConflictBannerProps) {
       </div>
       <p className="text-xs text-rose-500/80">{t("calendar.overlapWarning")}</p>
       <div className="space-y-1">
-        {uniqueDates.slice(0, 5).map(d => (
-          <p key={d} className="text-xs text-[var(--ink-2)]">
-            <span className="text-rose-500 font-medium">{d}</span>
-            {" — "}{t("calendar.airbnbBookingOverlap")}
+        {conflicts.slice(0, 5).map(conflict => (
+          <p key={conflict.date} className="text-xs text-[var(--ink-2)]">
+            <span className="text-rose-500 font-medium">{conflict.date}</span>
+            {" — "}{conflict.bookings.map(booking => `${booking.platform === "direct" ? "Direct" : booking.platform === "airbnb" ? "Airbnb" : booking.platform === "booking" ? "Booking.com" : booking.platform}: ${booking.name}`).join(" / ")}
           </p>
         ))}
         {conflictDateCount > 5 && (

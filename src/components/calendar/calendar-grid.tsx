@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useI18n } from "@/lib/i18n/context";
 import type { Locale } from "@/lib/i18n/translations";
-import { timeToPercent } from "./utils";
+import { addDaysStr, timeToPercent } from "./utils";
 import type { BarSegment, CalendarBar } from "./types";
 
 const DIRECT_COPY: Record<Locale, { label: string; connected: (platform: string) => string; open: string }> = {
@@ -360,6 +360,10 @@ export function CalendarGrid({
                   )}
 
                   {segments.map((seg, si) => {
+                    const segmentEnd = addDaysStr(ds, seg.span);
+                    const hasConflict = !seg.isAvailabilityBlock && (seg.conflictDates ?? [...conflictDates])
+                      .some(date => date >= ds && date < segmentEnd);
+                    const label = seg.isAvailabilityBlock ? `${seg.name} · ${t("calendar.availabilityBlock")}` : seg.name;
                     // Vertical stacking: rowIdx 0 keeps the original
                     // top-7 sm:top-9 position. rowIdx 1 sits below by
                     // ~16/22 px so it lands cleanly in the enlarged
@@ -416,7 +420,7 @@ export function CalendarGrid({
                       : `${seg.leftPct}%`;
                     const sourcePlatform = seg.linkedEventPlatform || seg.platform;
                     const directTitle = `${directCopy.label}: ${seg.name}. ${directCopy.connected(platformName(sourcePlatform))}. ${seg.startDate} ${checkInTime} → ${seg.endDate} ${checkOutTime}. ${directCopy.open}.`;
-                    const regularTitle = `${seg.name} · ${seg.startDate} ${checkInTime} → ${seg.endDate} ${checkOutTime}${isConflict ? " ⚠ CONFLICT" : ""}`;
+                    const regularTitle = `${label} · ${seg.startDate} ${checkInTime} → ${seg.endDate} ${checkOutTime}${hasConflict ? " ⚠ CONFLICT" : ""}`;
                     const activateBar = (element: HTMLElement) => {
                       const rect = element.getBoundingClientRect();
                       if (seg.isExtension && seg.reservationId && onOpenExtension) {
@@ -450,7 +454,8 @@ export function CalendarGrid({
                           // non-Booking bar fell through to the m-accent
                           // colour which made manual reservations look
                           // like Airbnb ones.
-                          isConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
+                          hasConflict ? "bg-rose-500 ring-1 ring-rose-500/40" :
+                          seg.isAvailabilityBlock ? "bg-slate-600/80 ring-1 ring-slate-300/30" :
                           seg.isExtension ? "bg-slate-600 ring-1 ring-slate-300/40" :
                           seg.platform === "booking" ? "bg-[#003580]" :
                           seg.platform === "airbnb" ? "bg-[var(--m-accent)]" :
@@ -465,7 +470,7 @@ export function CalendarGrid({
                           left: leftStyle,
                           width: widthStyle,
                           zIndex: 10,
-                          backgroundImage: seg.isExtension
+                          backgroundImage: seg.isExtension || seg.isAvailabilityBlock
                             ? "repeating-linear-gradient(-45deg, transparent 0 6px, rgba(255,255,255,0.22) 6px 8px)"
                             : undefined,
                         }}
@@ -478,7 +483,7 @@ export function CalendarGrid({
                             style={{ backgroundColor: platformColor(sourcePlatform) }}
                           />
                         )}
-                        {seg.showLabel ? (seg.isExtension ? `${directCopy.label} · ${seg.name}` : seg.name) : ""}
+                        {seg.showLabel ? (seg.isExtension ? `${directCopy.label} · ${seg.name}` : label) : ""}
                       </div>
                     );
                   })}

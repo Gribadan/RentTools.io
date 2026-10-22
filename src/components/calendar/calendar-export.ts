@@ -70,7 +70,7 @@ export function buildCalendarExportText(input: ExportInput): string {
   lines.push(`--- CONFLICTS (${conflicts.length} days) ---`);
   if (conflicts.length > 0) {
     for (const c of conflicts) {
-      lines.push(`⚠ ${c.date} | Airbnb: ${c.airbnbName} | Booking: ${c.bookingName}`);
+      lines.push(`⚠ ${c.date} | ${c.bookings.map(booking => `${booking.platform}: ${booking.name}`).join(" | ")}`);
     }
   } else {
     lines.push("No conflicts detected");
