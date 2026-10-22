@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentProps } from "r
 import { ReservationView } from "@/components/reservation-view";
 import { useI18n } from "@/lib/i18n/context";
 import type { Guest, Reservation } from "@/lib/types";
+import { OVERVIEW_COPY } from "./overview-copy";
 
 interface OverviewReservationProps {
   reservationId: number;
@@ -24,7 +25,7 @@ async function responseError(response: Response): Promise<string> {
 
 export function OverviewReservation({ reservationId, propertyName, onClose, onChanged }: OverviewReservationProps) {
   const { locale } = useI18n();
-  const ru = locale === "ru";
+  const c = OVERVIEW_COPY[locale];
   const [data, setData] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,8 +78,8 @@ export function OverviewReservation({ reservationId, propertyName, onClose, onCh
       });
       if (!response.ok) throw new Error(await responseError(response));
       return { ok: true as const };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Request failed";
+    } catch {
+      const message = c.requestFailed;
       setActionError(message);
       return { ok: false as const, error: message };
     }
@@ -119,20 +120,19 @@ export function OverviewReservation({ reservationId, propertyName, onClose, onCh
   };
 
   return (
-    <section aria-label={ru ? "Карточка бронирования" : "Reservation details"}>
+    <section aria-label={c.reservationDetails}>
       <button type="button" onClick={onClose}
         className="mb-4 min-h-11 rounded-lg border border-[var(--line-2)] px-4 text-sm text-[var(--ink)] hover:bg-[var(--bg-3)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
-        ← {ru ? "Вернуться в общий календарь" : "Back to all calendars"}
+        ← {c.backToOverview}
       </button>
       {actionError && <p role="alert" className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">{actionError}</p>}
       {loading || (!error && data?.id !== reservationId) ? (
-        <p role="status" className="py-10 text-center text-[var(--ink-3)]">{ru ? "Загрузка бронирования…" : "Loading reservation…"}</p>
+        <p role="status" className="py-10 text-center text-[var(--ink-3)]">{c.loadingReservation}</p>
       ) : error ? (
         <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 p-5">
-          <p>{ru ? "Не удалось загрузить бронирование." : "Unable to load this reservation."}</p>
-          <p className="mt-1 text-sm text-[var(--ink-3)]">{error}</p>
+          <p>{c.reservationUnavailable}</p>
           <button type="button" onClick={() => void load()} className="mt-3 min-h-11 rounded-lg border border-[var(--line-2)] px-4 focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
-            {ru ? "Повторить" : "Retry"}
+            {c.retry}
           </button>
         </div>
       ) : data && (

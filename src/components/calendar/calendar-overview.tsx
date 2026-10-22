@@ -12,6 +12,7 @@ import { bookingWindowCutoff } from "@/lib/types";
 import { CalendarOverviewRow } from "./overview-row";
 import { OVERVIEW_DAY_WIDTH, OVERVIEW_PROPERTY_COLUMN_CLASS } from "./overview-layout";
 import { OverviewReservation } from "./overview-reservation";
+import { OVERVIEW_COPY } from "./overview-copy";
 
 interface CalendarOverviewProps {
   month: string | null;
@@ -26,8 +27,8 @@ interface CalendarOverviewProps {
 }
 
 export function CalendarOverview(props: CalendarOverviewProps) {
-  const { locale } = useI18n();
-  const ru = locale === "ru";
+  const { locale, t } = useI18n();
+  const c = OVERVIEW_COPY[locale];
   const today = toDateStr(new Date());
   const month = calendarOverviewMonth(props.month)?.month ?? today.slice(0, 7);
   const range = calendarOverviewMonth(month)!;
@@ -96,53 +97,53 @@ export function CalendarOverview(props: CalendarOverviewProps) {
   const controlClass = "min-h-11 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-sm text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]";
 
   return (
-    <section className="mx-auto max-w-[1760px]" aria-label={ru ? "Общий календарь" : "All calendars"}>
+    <section className="mx-auto max-w-[1760px]" aria-label={c.title}>
       {props.selectedReservationId && (
         <OverviewReservation key={props.selectedReservationId} reservationId={props.selectedReservationId} propertyName={selectedProperty?.name} onClose={props.onCloseReservation} onChanged={refresh} />
       )}
       <div hidden={!!props.selectedReservationId}>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">{ru ? "Общий календарь" : "All calendars"}</h1>
-            <p className="mt-1 text-sm text-[var(--ink-3)]">{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(range.start)} · {ru ? "Все объекты" : "All properties"}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ink)]">{c.title}</h1>
+            <p className="mt-1 text-sm text-[var(--ink-3)]">{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(range.start)} · {c.allProperties}</p>
           </div>
           <div className="grid w-full grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 sm:w-auto sm:grid-cols-[auto_auto_auto_auto]">
-            <button className={controlClass} onClick={goToday}>{ru ? "Сегодня" : "Today"}</button>
-            <button className={controlClass} onClick={() => changeMonth(-1)} aria-label={ru ? "Предыдущий месяц" : "Previous month"} disabled={month === "1000-01"}><ChevronLeft size={18} /></button>
-            <label className="sr-only" htmlFor="overview-month">{ru ? "Месяц" : "Month"}</label>
+            <button className={controlClass} onClick={goToday}>{t("calendar.today")}</button>
+            <button className={controlClass} onClick={() => changeMonth(-1)} aria-label={c.previousMonth} disabled={month === "1000-01"}><ChevronLeft size={18} /></button>
+            <label className="sr-only" htmlFor="overview-month">{c.month}</label>
             <input id="overview-month" type="month" min="1000-01" max="9999-11" value={month} onChange={event => { if (calendarOverviewMonth(event.target.value)) props.onMonthChange(event.target.value); }} className={`${controlClass} min-w-0 w-full sm:w-44`} />
-            <button className={controlClass} onClick={() => changeMonth(1)} aria-label={ru ? "Следующий месяц" : "Next month"} disabled={month === "9999-11"}><ChevronRight size={18} /></button>
+            <button className={controlClass} onClick={() => changeMonth(1)} aria-label={c.nextMonth} disabled={month === "9999-11"}><ChevronRight size={18} /></button>
           </div>
         </div>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <label className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-3 sm:max-w-sm">
             <Search size={17} className="shrink-0 text-[var(--ink-3)]" aria-hidden="true" />
-            <span className="sr-only">{ru ? "Поиск по названию объекта" : "Search properties"}</span>
-            <input type="search" value={props.query} onChange={event => props.onQueryChange(event.target.value)} placeholder={ru ? "Поиск по названию объекта" : "Search properties"} className="min-w-0 flex-1 bg-transparent py-2 text-sm text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--m-accent)]" />
+            <span className="sr-only">{c.search}</span>
+            <input type="search" value={props.query} onChange={event => props.onQueryChange(event.target.value)} placeholder={c.search} className="min-w-0 flex-1 bg-transparent py-2 text-sm text-[var(--ink)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--m-accent)]" />
           </label>
-          <p className="text-xs text-[var(--ink-3)]">{ru ? "Даты — ночи до выезда. Прокрутите вправо →" : "Dates show nights before checkout. Scroll right →"}</p>
+          <p className="text-xs text-[var(--ink-3)]">{c.datesHint}</p>
         </div>
-        {loading && currentData && <p role="status" className="mb-2 text-xs text-[var(--ink-3)]">{ru ? "Обновление…" : "Updating…"}</p>}
+        {loading && currentData && <p role="status" className="mb-2 text-xs text-[var(--ink-3)]">{c.updating}</p>}
         {errorMonth === month ? (
           <div role="alert" className="rounded-xl border border-red-400/50 bg-red-400/10 p-6 text-sm text-[var(--ink)]">
-            <p>{ru ? "Не удалось загрузить календарь. Занятость неизвестна." : "Calendar could not be loaded. Availability is unknown."}</p>
-            <button className={`${controlClass} mt-3`} onClick={refresh} disabled={loading}>{loading ? (ru ? "Загрузка…" : "Loading…") : (ru ? "Повторить" : "Retry")}</button>
+            <p>{c.unavailable}</p>
+            <button className={`${controlClass} mt-3`} onClick={refresh} disabled={loading}>{loading ? (c.loading) : (c.retry)}</button>
           </div>
         ) : !currentData ? (
-          <div role="status" className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-10 text-center text-[var(--ink-3)]">{ru ? "Загрузка календаря…" : "Loading calendar…"}</div>
+          <div role="status" className="rounded-xl border border-[var(--line)] bg-[var(--bg-2)] p-10 text-center text-[var(--ink-3)]">{c.loadingCalendar}</div>
         ) : currentData.properties.length === 0 ? (
-          <EmptyState icon={<CalendarDays size={20} />} title={ru ? "Нет доступных объектов" : "No properties yet"} description={ru ? "Здесь появятся объекты, к которым у вас есть доступ." : "Properties you can access will appear here."} />
+          <EmptyState icon={<CalendarDays size={20} />} title={c.noProperties} description={c.noPropertiesDescription} />
         ) : visible.length === 0 ? (
-          <EmptyState icon={<Search size={20} />} title={ru ? "Объекты не найдены" : "No matching properties"} description={ru ? "Попробуйте другое название или очистите поиск." : "Try another name or clear the search."} cta={{ label: ru ? "Сбросить поиск" : "Clear search", onClick: () => props.onQueryChange("") }} />
+          <EmptyState icon={<Search size={20} />} title={c.noResults} description={c.noResultsDescription} cta={{ label: c.clearSearch, onClick: () => props.onQueryChange("") }} />
         ) : (
           <>
             {!hasOccupancy && (
-              <p role="status" className="mb-3 rounded-lg border border-[var(--line)] p-3 text-sm text-[var(--ink-3)]">{ru ? "В этом месяце нет бронирований или блокировок." : "No bookings or blocks this month."}</p>
+              <p role="status" className="mb-3 rounded-lg border border-[var(--line)] p-3 text-sm text-[var(--ink-3)]">{c.emptyMonth}</p>
             )}
-            <div ref={scroller} tabIndex={0} role="region" aria-label={ru ? "Календарь объектов, горизонтальная прокрутка" : "Property calendar, scroll horizontally"} className="max-h-[65vh] overflow-auto rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
-              <div role="table" aria-label={ru ? "Занятость объектов" : "Property occupancy"} className="min-w-full w-max">
+            <div ref={scroller} tabIndex={0} role="region" aria-label={c.scrollRegion} className="max-h-[65vh] overflow-auto rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
+              <div role="table" aria-label={c.occupancy} className="min-w-full w-max">
                 <div role="row" className="sticky top-0 z-30 flex min-w-full border-b border-[var(--line-2)] bg-[var(--bg-2)]">
-                  <div role="columnheader" className={`${OVERVIEW_PROPERTY_COLUMN_CLASS} sticky left-0 z-40 flex shrink-0 items-center border-r border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-xs font-semibold text-[var(--ink-3)]`}>{ru ? "Объект" : "Property"} · {visible.length}</div>
+                  <div role="columnheader" className={`${OVERVIEW_PROPERTY_COLUMN_CLASS} sticky left-0 z-40 flex shrink-0 items-center border-r border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-xs font-semibold text-[var(--ink-3)]`}>{c.property} · {visible.length}</div>
                   {days.map(day => (
                     <div role="columnheader" key={day} aria-label={day} className={`flex h-16 shrink-0 flex-col items-center justify-center border-r border-[var(--line)] text-xs ${day === today ? "bg-[var(--m-accent)]/10 font-semibold text-[var(--m-accent)]" : "text-[var(--ink-3)]"}`} style={{ width: OVERVIEW_DAY_WIDTH }}>
                       <span>{new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`))}</span>
@@ -153,7 +154,7 @@ export function CalendarOverview(props: CalendarOverviewProps) {
                 {visible.map(property => <CalendarOverviewRow key={property.id} property={property} monthStart={range.startDate} monthEnd={range.endDate} today={today} onOpenReservation={props.onOpenReservation} onOpenProperty={props.onOpenProperty} />)}
               </div>
             </div>
-            <p className="mt-3 text-xs text-[var(--ink-3)]">{ru ? "Соседние полосы разделены границей смены гостей. Пересечения показаны отдельными полосами." : "Separate bars mark guest turnover. Overlapping stays appear on separate lines."}</p>
+            <p className="mt-3 text-xs text-[var(--ink-3)]">{c.turnoverHint}</p>
           </>
         )}
       </div>
