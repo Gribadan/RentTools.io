@@ -1,5 +1,9 @@
 # DigitalOcean droplet setup
 
+> Historical systemd/nginx self-hosting guide. Current `renttools.io` production
+> uses the shared ARM64 host and [guarded Docker procedure](DOCKER-DEPLOYMENT.md).
+> Host sizing, deployment and cron instructions below do not apply to that host.
+
 This is the runbook for self-hosting `rent-tool` on a single DigitalOcean droplet
 (or any Ubuntu 24.04 VPS — DO is just the cheapest convenient option).
 
@@ -254,52 +258,17 @@ Covered by RT-13.10. Public health endpoint at `/api/health`.
 Covered by RT-13.7. The migration script at `scripts/migrate-turso-to-local.ts`
 copies all tables from your Turso instance to the local SQLite file.
 
-## 10. Auto-deploy from GitHub (RT-13.13)
+## 10. Deployment
 
-`.github/workflows/deploy.yml` SSHes into the droplet on every push to
-`master` and runs `scripts/deploy.sh`. The workflow is **inert by default**
-— it only runs once you set the `DROPLET_HOST` repo variable, so the
-public repo doesn't fail on every push for forks.
+The former GitHub SSH deployment workflow has been retired. Current production
+uses the [guarded Docker release procedure](DOCKER-DEPLOYMENT.md), with an explicit
+release instruction and an off-host verified ARM64 image. A push or successful CI
+run does not deploy the application. Do not configure the old `DROPLET_*` settings
+or install its gateway on the shared host.
 
-One-time setup:
-
-```bash
-# 1. On your laptop — generate a deploy keypair (no passphrase).
-ssh-keygen -t ed25519 -f droplet_deploy -N ""
-
-# 2. Append the .pub to the app user's authorized_keys on the droplet.
-cat droplet_deploy.pub | ssh root@<DROPLET_IP> 'cat >> /home/app/.ssh/authorized_keys'
-ssh root@<DROPLET_IP> 'chown app:app /home/app/.ssh/authorized_keys && chmod 600 /home/app/.ssh/authorized_keys'
-
-# 3. Get the droplet's host key fingerprint for known_hosts pinning.
-ssh-keyscan <DROPLET_IP>
-# Copy the ed25519 line(s) — you'll paste them into DROPLET_KNOWN_HOSTS below.
-
-# 4. Allow the `app` user passwordless sudo for ONLY the systemctl restart
-#    that deploy.sh needs. As root on the droplet:
-echo 'app ALL=(root) NOPASSWD: /bin/systemctl restart rent-tool' \
-  > /etc/sudoers.d/rent-tool-deploy
-chmod 440 /etc/sudoers.d/rent-tool-deploy
-visudo -c   # syntax check
-```
-
-In the GitHub repo Settings → Secrets and variables → Actions:
-
-| Kind | Name | Value |
-|------|------|-------|
-| Secret | `DEPLOY_KEY` | contents of `droplet_deploy` (the private key, the whole `-----BEGIN…END-----` block) |
-| Variable | `DROPLET_HOST` | the droplet's IP or hostname |
-| Variable | `DROPLET_USER` | `app` |
-| Variable | `DROPLET_KNOWN_HOSTS` | the `ssh-keyscan` output from step 3 |
-
-After the variables exist, the next push to `master` triggers a deploy.
-You can also run it manually from the Actions tab via `workflow_dispatch`.
-
-The deploy script is conservative: it aborts on any uncommitted changes
-in the droplet's working copy, runs `npm ci` + Prisma generate + `npm run
-build` BEFORE restarting the service, applies migrations via
-`prisma/push-schema.ts`, and smoke-tests `/api/health` after restart.
-A broken build never kills the running service.
+For an independent systemd/nginx self-hosted instance, establish a separate release
+procedure for that instance; its credentials, architecture and process supervisor
+are not interchangeable with the maintainer's Docker deployment.
 
 ## 11. Resource baseline + hourly alerts (RT-13.14)
 
@@ -311,7 +280,7 @@ Steady-state target on the $6 droplet (1 GB RAM, 25 GB SSD):
 | Disk used | < 3 GB | n/a | 80% triggers alert |
 | Load 1m | < 0.3 | < 0.8 | n/a |
 
-> **The renttools.io instance is NOT on this plan.** It runs the $4 tier —
+> **Historical retired deployment:** the former renttools.io instance used the $4 tier —
 > 458 MB RAM and an **8.7 GB** disk — so read the disk row above as a
 > ceiling of roughly 6.5 GB usable once the 2 GB swapfile is counted, not
 > 25 GB. `node_modules` alone is ~1.3 GB there, which puts steady state
