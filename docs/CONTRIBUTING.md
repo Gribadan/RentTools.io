@@ -101,9 +101,10 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 6. `master` is protected and deployable. Combine overlapping PRs on a temporary
    integration branch and run CI there; never use `master` as a staging area.
 7. Deployment starts only after `CI` succeeds on `master` and the owner explicitly
-   authorizes the release. The deploy scripts create and verify an
-   online SQLite backup before any deployment change; database changes also
-   require additive migration/rollback review before approval.
+   authorizes the release. Follow the [current Docker procedure](DOCKER-DEPLOYMENT.md):
+   verify the off-host ARM64 artifact, create and verify the owned-project online
+   SQLite backup, then deploy only `site` through the registered project controller.
+   Database changes also require additive migration/rollback review before approval.
 
 Maintainers should close superseded PRs with a link to the integrating PR and
 credit the original author. Do not merge duplicate implementations merely to

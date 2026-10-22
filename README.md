@@ -48,7 +48,7 @@ You trust RentTools with your booking data and guest documents. The full source 
 
 Sign up at **[renttools.io](https://renttools.io)** — no credit card, per-account rate limits keep usage sane on the shared instance.
 
-You can also self-host the same code on any cheap Linux box. The maintainer's instance runs on a $4 DigitalOcean droplet behind Cloudflare. See [docs/DROPLET-SETUP.md](docs/DROPLET-SETUP.md) for the runbook.
+You can also self-host the same code on a Linux server. The maintainer's production instance uses the guarded ARM64 Docker release procedure in [docs/DOCKER-DEPLOYMENT.md](docs/DOCKER-DEPLOYMENT.md). The older [single-VPS setup guide](docs/DROPLET-SETUP.md) describes a separate systemd/nginx installation.
 
 ---
 
