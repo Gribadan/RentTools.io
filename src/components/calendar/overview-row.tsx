@@ -17,6 +17,7 @@ import {
   OVERVIEW_PROPERTY_COLUMN_CLASS,
   OVERVIEW_ROW_PADDING,
 } from "./overview-layout";
+import { OVERVIEW_COPY } from "./overview-copy";
 
 const COPY: Record<Locale, { calendar: string; openCalendar: string; openReservation: string; closed: string; overlap: string; unverified: string }> = {
   en: { calendar: "Calendar →", openCalendar: "Open property calendar", openReservation: "Open reservation", closed: "Closed", overlap: "Overlapping stays", unverified: "Sync failed. Availability unverified." },
@@ -53,6 +54,7 @@ export function CalendarOverviewRow({
 }: CalendarOverviewRowProps) {
   const { locale, t } = useI18n();
   const c = COPY[locale];
+  const overviewCopy = OVERVIEW_COPY[locale];
   const inputs = useMemo(() => {
     const calendarProperty: Property = {
       id: property.id,
@@ -92,19 +94,34 @@ export function CalendarOverviewRow({
     }));
     return { calendarProperty, events, links, overrides };
   }, [property]);
-  const { bars, closedOverrides, cleaningOverrides } = useCalendarData(inputs.calendarProperty, inputs.events, inputs.links, inputs.overrides);
+  const { bars, closedOverrides, cleaningOverrides, bufferDates, unbookableDates, potentialDates, sameDayCleaningDates, openOverrides } = useCalendarData(inputs.calendarProperty, inputs.events, inputs.links, inputs.overrides);
   const visibleBars = bars.flatMap((bar) => {
     const layout = layoutOverviewBar(bar, monthStart, monthEnd);
     return layout ? [{ bar, layout }] : [];
   });
   const numberOfDays = overviewDayCount(monthStart, monthEnd);
   const numberOfLanes = Math.max(1, ...visibleBars.map(({ layout }) => layout.rowIdx + 1));
-  const blockedDates = Array.from(new Set([...closedOverrides, ...cleaningOverrides])).filter((date) => date >= monthStart && date < monthEnd);
-  const minHeight = OVERVIEW_ROW_PADDING * 2 + numberOfLanes * OVERVIEW_LANE_HEIGHT + (property.syncFailed ? 24 : 0) + (blockedDates.length ? 20 : 0);
+  const days = Array.from({ length: numberOfDays }, (_, index) => {
+    const date = addDaysStr(monthStart, index);
+    const occupied = visibleBars.some(({ bar }) => date >= bar.startDate && date < bar.endDate);
+    const closed = closedOverrides.has(date) && !occupied;
+    const cleaning = cleaningOverrides.has(date);
+    const open = openOverrides.has(date) && !occupied;
+    const buffer = bufferDates.has(date) && !occupied;
+    const unbookable = unbookableDates.has(date) && !occupied;
+    const potential = potentialDates.has(date);
+    const sameDayCleaning = sameDayCleaningDates.has(date);
+    const status = closed ? "closed" : cleaning ? "cleaning" : open ? "open" : buffer ? "buffer" : unbookable ? "unbookable" : potential ? "potential" : sameDayCleaning ? "turnover" : "unmodified";
+    const label = closed ? c.closed : cleaning ? t("calendar.manualCleaning") : open ? t("calendar.open") : buffer ? overviewCopy.buffer : unbookable ? overviewCopy.unbookable : potential ? t("calendar.cleaningQ") : sameDayCleaning ? t("calendar.cleaning") : null;
+    return { date, status, label, blocked: closed || cleaning || buffer || unbookable };
+  });
+  const blockedDates = days.filter(day => day.blocked);
+  const hasLabels = days.some(day => day.label);
+  const minHeight = OVERVIEW_ROW_PADDING * 2 + numberOfLanes * OVERVIEW_LANE_HEIGHT + (property.syncFailed ? 24 : 0) + (hasLabels ? 28 : 0);
   const reservationIds = new Set(property.reservations.flatMap((reservation) => reservation.id ? [reservation.id] : []));
 
   return (
-    <div role="row" data-property-id={property.id} data-calendar-status={property.syncFailed ? "unverified" : "ready"} data-visible-booking-count={visibleBars.length} data-blocked-date-count={blockedDates.length} className="flex min-w-full w-max border-b border-[var(--line)]">
+    <div role="row" data-property-id={property.id} data-calendar-status={property.syncFailed ? "unverified" : "ready"} data-visible-booking-count={visibleBars.length} data-blocked-date-count={blockedDates.length} data-calendar-occupied={property.syncFailed || visibleBars.length > 0 || days.some(day => day.label && day.status !== "open")} className="flex min-w-full w-max border-b border-[var(--line)]">
       <div role="rowheader" className={`${OVERVIEW_PROPERTY_COLUMN_CLASS} sticky left-0 z-20 flex shrink-0 items-center border-r border-[var(--line)] bg-[var(--bg-2)] px-3 py-3`}>
         <button
           type="button"
@@ -125,25 +142,23 @@ export function CalendarOverviewRow({
         style={{ width: numberOfDays * OVERVIEW_DAY_WIDTH, minHeight }}
       >
         <div aria-hidden="true" className="absolute inset-0 flex">
-          {Array.from({ length: numberOfDays }, (_, index) => {
-            const date = addDaysStr(monthStart, index);
-            const closed = closedOverrides.has(date);
-            const cleaning = cleaningOverrides.has(date);
+          {days.map(({ date, status, label }) => {
+            const background = property.syncFailed ? "bg-amber-500/10" : status === "closed" ? "bg-rose-500/10" : status === "cleaning" || status === "buffer" ? "bg-[var(--cleaning-cell-bg)]" : status === "open" ? "bg-emerald-500/8" : status === "unbookable" ? "bg-[var(--ink-4)]/10" : date === today ? "bg-sky-500/8" : "";
             return (
               <div
                 key={date}
                 data-date={date}
-                data-date-status={property.syncFailed ? "unverified" : closed ? "closed" : cleaning ? "cleaning" : "unmodified"}
-                className={`relative h-full shrink-0 border-r border-[var(--line)] ${property.syncFailed ? "bg-amber-500/10" : closed ? "bg-rose-500/10" : cleaning ? "bg-[var(--cleaning-cell-bg)]" : date === today ? "bg-sky-500/8" : ""}`}
+                data-date-status={property.syncFailed ? "unverified" : status}
+                title={label ? `${date}: ${label}` : date}
+                className={`relative h-full shrink-0 border-r border-[var(--line)] ${background}`}
                 style={{ width: OVERVIEW_DAY_WIDTH }}
               >
-                {closed && <span className="absolute inset-x-0 truncate text-center text-[9px] text-rose-600 dark:text-rose-300" style={{ bottom: property.syncFailed ? 28 : 4 }}>{c.closed}</span>}
-                {cleaning && <span className="absolute inset-x-0 break-words px-0.5 text-center text-[9px] leading-3 text-[var(--cleaning-fg)]" style={{ bottom: property.syncFailed ? 28 : 4 }}>{t("calendar.manualCleaning")}</span>}
+                {label && <span className={`absolute inset-x-0 line-clamp-2 break-words px-0.5 text-center text-[9px] leading-3 ${status === "closed" ? "text-rose-600 dark:text-rose-300" : status === "open" ? "text-emerald-600 dark:text-emerald-300" : status === "unbookable" || status === "potential" ? "text-[var(--ink-3)]" : "text-[var(--cleaning-fg)]"}`} style={{ bottom: property.syncFailed ? 28 : 4 }}>{label}</span>}
               </div>
             );
           })}
         </div>
-        {blockedDates.map((date) => <span key={date} className="sr-only">{date}: {cleaningOverrides.has(date) ? t("calendar.manualCleaning") : c.closed}. </span>)}
+        {days.filter(day => day.label).map(({ date, label }) => <span key={date} className="sr-only">{date}: {label}. </span>)}
         {property.syncFailed && <span className="absolute bottom-1 left-2 text-xs text-amber-700 dark:text-amber-300">⚠ {c.unverified}</span>}
         {visibleBars.map(({ bar, layout }, index) => {
           const overlaps = visibleBars.some(({ bar: other }, otherIndex) => otherIndex !== index && other.startDate < bar.endDate && other.endDate > bar.startDate);

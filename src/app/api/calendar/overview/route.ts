@@ -46,18 +46,51 @@ export async function GET(request: NextRequest) {
     });
     const propertyIds = properties.map((property) => property.id);
     const propertyScope = { propertyId: { in: propertyIds } };
+    const padding = Math.max(0, ...properties.filter(property => property.cleaningEnabled).map(property =>
+      Math.max(1, property.minNights) + Math.max(0, ...property.calendarLinks.map(link => link.bufferBefore)) + Math.max(0, ...property.calendarLinks.map(link => link.bufferAfter)),
+    ));
+    const windowStart = new Date(Math.max(Date.parse("0001-01-01T00:00:00Z"), range.start.getTime() - padding * 86_400_000));
+    const windowEnd = new Date(Math.min(Date.parse("9999-12-31T23:59:59.999Z"), range.end.getTime() + padding * 86_400_000));
+    const windowStartDate = windowStart.toISOString().slice(0, 10);
+    const windowEndDate = windowEnd.toISOString().slice(0, 10);
     const [reservations, events] = await Promise.all([
       prisma.reservation.findMany({
-        where: { ...propertyScope, checkIn: { lt: range.end }, checkOut: { gte: range.start } },
+        where: { ...propertyScope, checkIn: { lt: windowEnd }, checkOut: { gte: windowStart } },
         select: reservationSelect,
         orderBy: [{ checkIn: "asc" }, { id: "asc" }],
       }),
       prisma.calendarEvent.findMany({
-        where: { ...propertyScope, startDate: { lt: range.endDate }, endDate: { gte: range.startDate } },
+        where: { ...propertyScope, startDate: { lt: windowEndDate }, endDate: { gte: windowStartDate } },
         select: eventSelect,
         orderBy: [{ startDate: "asc" }, { uid: "asc" }],
       }),
     ]);
+
+    // The same cleaning helper needs the preceding stay to distinguish a
+    // flexible preparation day from the buffer before the first-ever stay.
+    // Fetch at most one earlier row per source type, without loading history.
+    const contextProperties = properties.filter(property => property.cleaningEnabled && (
+      reservations.some(reservation => reservation.propertyId === property.id) || events.some(event => event.propertyId === property.id)
+    ));
+    await Promise.all(contextProperties.map(async property => {
+      const [previousReservation, previousEvent] = await Promise.all([
+        prisma.reservation.findFirst({
+          where: { propertyId: property.id, checkOut: { lt: windowStart } },
+          select: reservationSelect,
+          orderBy: [{ checkOut: "desc" }, { id: "desc" }],
+        }),
+        prisma.calendarEvent.findFirst({
+          where: {
+            propertyId: property.id, endDate: { lt: windowStartDate },
+            NOT: { platform: "airbnb", OR: [{ summary: { contains: "Not available" } }, { summary: { contains: "Blocked" } }] },
+          },
+          select: eventSelect,
+          orderBy: [{ endDate: "desc" }, { uid: "desc" }],
+        }),
+      ]);
+      if (previousReservation) reservations.push(previousReservation);
+      if (previousEvent) events.push(previousEvent);
+    }));
 
     // Preserve source identity before clipping. A local claim may extend into
     // this month while its truncated source, or another claim, is outside it.

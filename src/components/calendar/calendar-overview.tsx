@@ -7,8 +7,6 @@ import { useI18n } from "@/lib/i18n/context";
 import { useLiveRefresh } from "@/lib/use-live-refresh";
 import { calendarOverviewMonth, type CalendarOverviewProperty, type CalendarOverviewResponse } from "@/lib/calendar-overview";
 import { toDateStr, addDaysStr } from "./utils";
-import { toReservationDateInput } from "@/lib/reservation-dates";
-import { bookingWindowCutoff } from "@/lib/types";
 import { CalendarOverviewRow } from "./overview-row";
 import { OVERVIEW_DAY_WIDTH, OVERVIEW_PROPERTY_COLUMN_CLASS } from "./overview-layout";
 import { OverviewReservation } from "./overview-reservation";
@@ -90,10 +88,6 @@ export function CalendarOverview(props: CalendarOverviewProps) {
     }
   };
   const selectedProperty = currentData?.properties.find(property => property.reservations.some(reservation => reservation.id === props.selectedReservationId));
-  const hasOccupancy = visible.some(property => property.syncFailed ||
-    property.reservations.some(reservation => toReservationDateInput(reservation.checkIn) < range.endDate && toReservationDateInput(reservation.checkOut) > range.startDate) ||
-    property.events.some(event => event.startDate < range.endDate && event.endDate > range.startDate && event.startDate < bookingWindowCutoff(property.bookingWindow || 365)) ||
-    property.overrides.some(override => override.type !== "open"));
   const controlClass = "min-h-11 rounded-lg border border-[var(--line-2)] bg-[var(--bg-2)] px-3 text-sm text-[var(--ink)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]";
 
   return (
@@ -136,10 +130,8 @@ export function CalendarOverview(props: CalendarOverviewProps) {
         ) : visible.length === 0 ? (
           <EmptyState icon={<Search size={20} />} title={c.noResults} description={c.noResultsDescription} cta={{ label: c.clearSearch, onClick: () => props.onQueryChange("") }} />
         ) : (
-          <>
-            {!hasOccupancy && (
-              <p role="status" className="mb-3 rounded-lg border border-[var(--line)] p-3 text-sm text-[var(--ink-3)]">{c.emptyMonth}</p>
-            )}
+          <div className="[&:has([data-calendar-occupied=true])>.overview-empty-month]:hidden">
+            <p role="status" className="overview-empty-month mb-3 rounded-lg border border-[var(--line)] p-3 text-sm text-[var(--ink-3)]">{c.emptyMonth}</p>
             <div ref={scroller} tabIndex={0} role="region" aria-label={c.scrollRegion} className="max-h-[65vh] overflow-auto rounded-xl border border-[var(--line-2)] bg-[var(--bg-2)] focus-visible:outline-2 focus-visible:outline-[var(--m-accent)]">
               <div role="table" aria-label={c.occupancy} className="min-w-full w-max">
                 <div role="row" className="sticky top-0 z-30 flex min-w-full border-b border-[var(--line-2)] bg-[var(--bg-2)]">
@@ -155,7 +147,11 @@ export function CalendarOverview(props: CalendarOverviewProps) {
               </div>
             </div>
             <p className="mt-3 text-xs text-[var(--ink-3)]">{c.turnoverHint}</p>
-          </>
+            <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--ink-3)]">
+              <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm border border-[var(--cleaning-border)] bg-[var(--cleaning-cell-bg)]" />{c.buffer}</span>
+              <span className="flex items-center gap-1.5"><span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-[var(--ink-4)]/10" />{c.unbookable}</span>
+            </p>
+          </div>
         )}
       </div>
     </section>

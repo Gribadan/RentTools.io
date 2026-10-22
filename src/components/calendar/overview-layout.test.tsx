@@ -184,4 +184,54 @@ describe("overview row markup", () => {
     expect(markup).toContain('data-visible-booking-count="0"');
     expect(markup).toContain('data-blocked-date-count="1"');
   });
+
+  it("shows preparation buffers while preserving occupied nights and explicit open overrides", () => {
+    const projected: CalendarOverviewProperty = {
+      ...overviewProperty(), cleaningEnabled: true,
+      reservations: [overviewProperty().reservations[0]],
+      links: [{ platform: "airbnb", bufferBefore: 2, bufferAfter: 2 }],
+      overrides: [{ date: "2026-10-16", type: "open" }],
+    };
+    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
+      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
+    }));
+    for (const day of ["2026-10-17", "2026-10-25", "2026-10-26"]) {
+      expect(markup).toContain(`data-date="${day}" data-date-status="buffer"`);
+    }
+    expect(markup).toContain('data-date="2026-10-16" data-date-status="open"');
+    expect(markup).toContain('data-date="2026-10-18" data-date-status="unmodified"');
+    expect(markup).toContain('data-blocked-date-count="3"');
+    expect(markup).toContain("Cleaning buffer");
+  });
+
+  it("renders buffer-only occupancy from bookings in the neighboring month", () => {
+    const projected: CalendarOverviewProperty = {
+      ...overviewProperty(), cleaningEnabled: true,
+      reservations: [{ ...overviewProperty().reservations[0], checkIn: "2026-09-26", checkOut: "2026-09-30" }],
+      links: [{ platform: "airbnb", bufferBefore: 2, bufferAfter: 2 }],
+    };
+    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
+      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
+    }));
+    expect(markup).toContain('data-visible-booking-count="0"');
+    expect(markup).toContain('data-blocked-date-count="2"');
+    expect(markup).toContain('data-date="2026-10-01" data-date-status="buffer"');
+    expect(markup).toContain('data-date="2026-10-02" data-date-status="buffer"');
+  });
+
+  it("does not invent a definite buffer when an earlier stay leaves flexible cleaning time", () => {
+    const projected: CalendarOverviewProperty = {
+      ...overviewProperty(), cleaningEnabled: true,
+      reservations: [
+        { ...overviewProperty().reservations[0], checkIn: "2026-08-10", checkOut: "2026-08-12" },
+        overviewProperty().reservations[0],
+      ],
+      links: [{ platform: "airbnb", bufferBefore: 2, bufferAfter: 2 }],
+    };
+    const markup = renderToStaticMarkup(createElement(CalendarOverviewRow, {
+      property: projected, monthStart: "2026-10-01", monthEnd: "2026-11-01", onOpenProperty: () => {}, onOpenReservation: () => {},
+    }));
+    expect(markup).toContain('data-date="2026-10-16" data-date-status="potential"');
+    expect(markup).toContain('data-date="2026-10-17" data-date-status="potential"');
+  });
 });

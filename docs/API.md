@@ -153,8 +153,10 @@ Returns `{ month, startDate, endDate, properties }` for one calendar month.
 Properties are filtered server-side through the existing owner, manager, and
 cleaner assignments. Each row contains calendar settings, `canManage`, projected
 reservations/events, buffer settings, date-override types, and a `syncFailed` flag.
-Initial occupancy queries are bounded to the month (including its checkout
-boundary); exact linked and overlapping claim partners are also returned so
+Initial occupancy queries are bounded to the month plus a margin derived from
+cleaning buffers and minimum-stay settings. At most one preceding reservation
+and one preceding source stay per property provide cleaning-gap context;
+exact linked and overlapping claim partners are also returned so
 clipping does not change existing booking identities. The endpoint does not
 fetch unrestricted history. Display occupancy remains checkout-exclusive.
 

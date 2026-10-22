@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const mocks = vi.hoisted(() => ({ session: vi.fn(), properties: vi.fn(), managed: vi.fn(), assigned: vi.fn(), reservations: vi.fn(), events: vi.fn() }));
+const mocks = vi.hoisted(() => ({ session: vi.fn(), properties: vi.fn(), managed: vi.fn(), assigned: vi.fn(), reservations: vi.fn(), events: vi.fn(), previousReservation: vi.fn(), previousEvent: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ getSession: mocks.session }));
 vi.mock("@/lib/prisma", () => ({ prisma: {
   property: { findMany: mocks.properties }, propertyManager: { findMany: mocks.managed },
-  cleanerAssignment: { findMany: mocks.assigned }, reservation: { findMany: mocks.reservations },
-  calendarEvent: { findMany: mocks.events },
+  cleanerAssignment: { findMany: mocks.assigned }, reservation: { findMany: mocks.reservations, findFirst: mocks.previousReservation },
+  calendarEvent: { findMany: mocks.events, findFirst: mocks.previousEvent },
 } }));
 import { GET } from "./route";
 
@@ -78,6 +78,8 @@ beforeEach(() => {
   mocks.assigned.mockImplementation(({ where }: Query) => Promise.resolve(where.cleanerId === 7 || where.cleanerId === 9 ? [{ propertyId: 3 }] : []));
   mocks.reservations.mockImplementation((query: Query) => Promise.resolve(runQuery(reservationRows, query)));
   mocks.events.mockImplementation((query: Query) => Promise.resolve(runQuery(eventRows, query)));
+  mocks.previousReservation.mockResolvedValue(null);
+  mocks.previousEvent.mockResolvedValue(null);
 });
 
 describe("monthly calendar overview access and source projection", () => {
@@ -103,7 +105,7 @@ describe("monthly calendar overview access and source projection", () => {
     expect(body.properties[0].events).toEqual([expect.objectContaining({ uid: "shared-uid", startDate: "2026-09-28" })]);
     expect(body.properties[0].overrides).toEqual([{ date: "2026-10-08", type: "closed" }]);
     expect(JSON.stringify(body)).not.toMatch(/private-|Foreign account|old-uid|2020-01/);
-    expect(mocks.reservations.mock.calls[0][0].where).toEqual({ propertyId: { in: [1, 2] }, checkIn: { lt: date("2026-11-01") }, checkOut: { gte: date("2026-10-01") } });
+    expect(mocks.reservations.mock.calls[0][0].where).toEqual({ propertyId: { in: [1, 2] }, checkIn: { lt: date("2026-11-02") }, checkOut: { gte: date("2026-09-30") } });
     for (const [query] of [...mocks.reservations.mock.calls, ...mocks.events.mock.calls]) {
       expect(query.where.propertyId).toEqual({ in: [1, 2] });
       expect(query.where.checkIn || query.where.startDate || query.where.OR).toBeTruthy();
@@ -130,7 +132,7 @@ describe("monthly calendar overview access and source projection", () => {
     expect(body.properties[0].canManage).toBe(true);
     expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([15]);
   });
-  it("keeps legacy timed boundary rows date-stable and excludes the next month's arrivals", async () => {
+  it("keeps legacy timed boundary rows date-stable and clips next-month context at rendering time", async () => {
     const rows = [
       { ...reservation(31, 1, "2026-09-30", "2026-10-01"), checkIn: new Date("2026-09-30T14:00:00Z"), checkOut: new Date("2026-10-01T12:00:00Z") },
       { ...reservation(32, 1, "2026-10-31", "2026-11-02"), checkIn: new Date("2026-10-31T23:00:00Z") },
@@ -138,9 +140,37 @@ describe("monthly calendar overview access and source projection", () => {
     ];
     mocks.reservations.mockImplementation((query: Query) => Promise.resolve(runQuery(rows, query)));
     const body = await (await GET(request())).json();
-    expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([31, 32]);
+    expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([31, 32, 33]);
     expect(body.properties[0].reservations[0].checkOut).toBe("2026-10-01T12:00:00.000Z");
     expect(body.properties[0].reservations[1].checkIn).toBe("2026-10-31T23:00:00.000Z");
+  });
+  it("loads neighboring stays whose cleaning buffers fall inside the month, with scoped preceding context", async () => {
+    const rows = [
+      reservation(41, 1, "2026-09-26", "2026-09-30"),
+      reservation(42, 1, "2026-11-02", "2026-11-05"),
+      reservation(43, 1, "2020-01-01", "2020-01-03"),
+      reservation(44, 4, "2026-09-26", "2026-09-30"),
+    ];
+    const properties = propertyRows.map(property => ({ ...property, calendarLinks: property.calendarLinks.map(link => ({ ...link, bufferBefore: 2, bufferAfter: 2 })) }));
+    mocks.properties.mockImplementation((query: Query) => Promise.resolve(runQuery(properties, query)));
+    mocks.reservations.mockImplementation((query: Query) => Promise.resolve(runQuery(rows, query)));
+    mocks.previousReservation.mockImplementation(({ where }: Query) => Promise.resolve(where.propertyId === 1 ? project(rows[2], {
+      id: true, propertyId: true, name: true, checkIn: true, checkOut: true, platform: true, linkedEventUid: true, linkedEventPlatform: true, linkedEventRole: true,
+    }) : null));
+    const body = await (await GET(request())).json();
+    expect(body.properties[0].reservations.map((row: Row) => row.id)).toEqual([43, 41, 42]);
+    expect(mocks.reservations.mock.calls[0][0].where).toEqual({ propertyId: { in: [1, 2] }, checkIn: { lt: date("2026-11-06") }, checkOut: { gte: date("2026-09-26") } });
+    expect(mocks.previousReservation).toHaveBeenCalledTimes(1);
+    expect(mocks.previousReservation.mock.calls[0][0].where).toEqual({ propertyId: 1, checkOut: { lt: date("2026-09-26") } });
+    expect(mocks.previousEvent.mock.calls[0][0].where.propertyId).toBe(1);
+    expect(JSON.stringify(body)).not.toMatch(/Synthetic guest 44|private-/);
+  });
+  it("keeps strict monthly queries when cleaning is disabled", async () => {
+    mocks.properties.mockImplementation((query: Query) => Promise.resolve(runQuery(propertyRows.map(property => ({ ...property, cleaningEnabled: false })), query)));
+    await GET(request());
+    expect(mocks.reservations.mock.calls[0][0].where).toEqual({ propertyId: { in: [1, 2] }, checkIn: { lt: date("2026-11-01") }, checkOut: { gte: date("2026-10-01") } });
+    expect(mocks.previousReservation).not.toHaveBeenCalled();
+    expect(mocks.previousEvent).not.toHaveBeenCalled();
   });
   it("does not give a superadmin unrelated accounts through the overview", async () => {
     mocks.session.mockResolvedValue({ userId: 99, role: "superadmin" });
