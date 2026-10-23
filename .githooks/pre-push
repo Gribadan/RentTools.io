@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Unattended publishing must use the same review path as application changes.
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == "refs/heads/master" ]]; then
+    echo "ERROR: Direct pushes to master are blocked. Push a topic branch and open a pull request; required checks and review must pass before merging." >&2
+    exit 1
+  fi
+done

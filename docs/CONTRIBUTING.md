@@ -86,6 +86,8 @@ When in doubt, ask in an issue before committing — it is far cheaper than a le
 - **Conventional Commits**: `<type>(<scope>): <subject>` — e.g. `feat(reports): add CSV export with date range`. Types in use: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`.
 - One logical change per commit. Don't bundle unrelated work. The commit message should explain *why* the change is needed — the diff already shows what.
 - Never force-push `master`. Never bypass hooks (`--no-verify`) — if a hook fails, fix the underlying issue.
+- The installed pre-push hook rejects direct updates to `master`, including
+  content-only updates. Push a topic branch and merge a reviewed PR instead.
 
 ## Pull-request lifecycle
 
@@ -120,8 +122,15 @@ clear the queue.
 ## CI
 
 - Every PR runs [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on GitHub Actions: `npm ci`, `npx next build`, `npx vitest run`. No secrets are required — the build is hermetic.
-- **PRs need a green CI before review.** A red build means the change broke type-check, build, or tests; fix it locally with `npx next build && npx vitest run` before pushing the next commit.
+- **PRs need a green CI before review.** Read the failed step: a new dependency
+  advisory can block unchanged source, just as type, build and test failures can
+  block a change. Fix the cause and validate locally before pushing another commit.
 - The CI badge at the top of [README.md](../README.md) reflects the latest `master` build.
+- The dependency audit records blocking packages and advisory links in the job
+  summary and error annotations, including when the registry cannot be checked.
+  npm update proposals are checked daily; the high/critical gate remains required.
+- Blog changes follow [the publishing procedure](BLOG-PUBLISHING.md), including
+  PR review and a separate, explicitly authorized production release.
 
 ## Adding a new API route
 
