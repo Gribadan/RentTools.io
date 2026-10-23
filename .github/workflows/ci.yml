@@ -137,10 +137,14 @@ jobs:
         run: npm ci
 
       - name: Audit dependencies (high/critical only)
+        id: dependency-audit
         # RT-21.9: gate merges to master on the absence of known
         # high/critical CVEs. Moderate findings are surfaced via
         # Dependabot PRs (.github/dependabot.yml) without blocking CI.
-        run: npm audit --audit-level=high
+        run: |
+          audit_status=0
+          npm audit --audit-level=high --json > "$RUNNER_TEMP/npm-audit.json" || audit_status=$?
+          node scripts/ci-audit-report.mjs "$RUNNER_TEMP/npm-audit.json" "$audit_status"
 
       - name: Type-check + production build
         run: npx next build
