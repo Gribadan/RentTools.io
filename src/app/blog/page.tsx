@@ -176,10 +176,15 @@ const COPY: Record<Locale, CopyShape> = {
   },
 };
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: {
+  searchParams: Promise<SearchParams>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const page = parsePage(sp.page);
+  const tag = (sp.tag ?? "").trim().toLowerCase().slice(0, 60) || undefined;
   const locale = await getLocale();
   const copy = BLOG_INDEX_COPY[locale];
-  const alts = localizedAlternates("/blog", locale);
+  const alts = localizedAlternates(buildHref({ page, tag }), locale);
   const base: Metadata = {
     title: copy.title,
     description: copy.description,
@@ -198,7 +203,15 @@ export async function generateMetadata(): Promise<Metadata> {
       description: copy.description,
     },
   };
-  return applySeoOverrides(base, "/blog", locale);
+  const metadata = await applySeoOverrides(base, "/blog", locale);
+  // Landing-page overrides must not collapse the archive onto page one.
+  if (page > 1 || tag) {
+    metadata.alternates = alts;
+    metadata.openGraph = { ...metadata.openGraph, url: alts.canonical };
+  }
+  // Dedicated tag routes are the indexable taxonomy; query filters are navigation.
+  if (tag) metadata.robots = { index: false, follow: true };
+  return metadata;
 }
 
 interface SearchParams {
@@ -241,7 +254,7 @@ export default async function BlogIndexPage({
   // expected post volume (<200 posts in a few years). We bracket the slug
   // with quotes so "host" doesn't match "host-tips".
   const where = {
-    locale: "en",
+    locale,
     status: "published" as const,
     publishedAt: { lte: new Date() },
     ...(tagFilter ? { tagsJson: { contains: `"${tagFilter}"` } } : {}),
@@ -267,7 +280,7 @@ export default async function BlogIndexPage({
       },
     }),
     prisma.blogTag.findMany({
-      where: { locale: "en" },
+      where: { locale },
       orderBy: { displayName: "asc" },
       select: { slug: true, displayName: true },
     }),
@@ -295,8 +308,8 @@ export default async function BlogIndexPage({
     ? {
         "@context": "https://schema.org",
         "@type": "Blog",
-        "@id": `${SITE_URL}/blog#blog`,
-        url: `${SITE_URL}/blog`,
+        "@id": `${SITE_URL}${localePath("/blog", locale)}#blog`,
+        url: `${SITE_URL}${localePath("/blog", locale)}`,
         name: "RentTools blog",
         description:
           "Field notes for short-term rental hosts: calendar sync, cleaning automation, GDPR, and the boring parts of running a listing.",
@@ -305,7 +318,7 @@ export default async function BlogIndexPage({
           "@type": "BlogPosting",
           headline: p.title,
           description: p.excerpt,
-          url: `${SITE_URL}/blog/${p.slug}`,
+          url: `${SITE_URL}${localePath(`/blog/${p.slug}`, locale)}`,
           datePublished: p.publishedAt?.toISOString(),
           image: p.ogImageUrl ?? undefined,
         })),

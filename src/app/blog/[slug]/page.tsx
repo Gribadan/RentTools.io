@@ -359,7 +359,7 @@ export default async function BlogPostPage({
   const toc = extractToc(cleanedBody);
   const minutes = readingMinutes(cleanedBody);
   const wordCount = countWords(cleanedBody);
-  const postUrl = `${SITE_URL}/blog/${slug}`;
+  const postUrl = `${SITE_URL}${localePath(`/blog/${slug}`, post.locale as Locale)}`;
   const articleSection = tags[0] ?? "Hosting";
   const imageNode = post.ogImageUrl
     ? {
@@ -380,7 +380,7 @@ export default async function BlogPostPage({
   const related = primaryTag
     ? await prisma.blogPost.findMany({
         where: {
-          locale: "en",
+          locale: post.locale,
           status: "published",
           publishedAt: { lte: new Date() },
           id: { not: post.id },
