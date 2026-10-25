@@ -65,10 +65,13 @@ async function countPostsForTag(slug: string): Promise<number> {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<SearchParams>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const page = parsePage((await searchParams).page);
   const resolvedLocale = await getLocale();
   const cleanSlug = normaliseSlug(slug);
   const tag = await findTag(cleanSlug);
@@ -87,10 +90,11 @@ export async function generateMetadata({
   // locale URLs, noindex is hard-set to keep the duplicate out of SERPs.
   const title = `${tag.displayName} — RentTools blog`;
   const description = `Posts tagged ${tag.displayName} on the RentTools blog.`;
+  const canonical = `/blog/tag/${tag.slug}${page > 1 ? `?page=${page}` : ""}`;
   const base: Metadata = {
     title,
     description,
-    alternates: { canonical: `/blog/tag/${tag.slug}` },
+    alternates: { canonical },
     // follow:true even when noindex — we want Google to keep crawling
     // OUT to the linked posts; we just don't want this aggregator page
     // ranking on its own merit until it has substance.
@@ -101,12 +105,17 @@ export async function generateMetadata({
       type: "website",
       title,
       description,
-      url: `${SITE_URL}/blog/tag/${tag.slug}`,
+      url: `${SITE_URL}${canonical}`,
       siteName: "RentTools",
     },
     twitter: { card: "summary_large_image", title, description },
   };
-  return applySeoOverrides(base, `/blog/tag/${tag.slug}`, DEFAULT_LOCALE);
+  const metadata = await applySeoOverrides(base, `/blog/tag/${tag.slug}`, DEFAULT_LOCALE);
+  if (page > 1) {
+    metadata.alternates = { canonical };
+    metadata.openGraph = { ...metadata.openGraph, url: `${SITE_URL}${canonical}` };
+  }
+  return metadata;
 }
 
 // Per-locale banner shown above the tag-page hero on non-default-locale

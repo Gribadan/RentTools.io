@@ -158,6 +158,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const startedAt = Date.now();
 
+  // Social previews fetch this generated image without a session cookie.
+  if (pathname === "/opengraph-image") {
+    return withSecurityHeaders(NextResponse.next());
+  }
+
   // ── i18n routing ──
   // If the path begins with a known non-default locale prefix
   // (e.g. /ru, /de), strip it and rewrite internally. The page files
