@@ -45,3 +45,40 @@ and retry the failed read. Authentication failure is not a CI failure cause.
 Check production health separately if needed. A source check failure proves
 neither an outage nor that production is healthy. Do not infer deployment from a
 push, a green build or the presence of an image artifact.
+
+## Daily editorial standard
+
+Prepare one original article per day, checking the live catalogue, local sources
+and open content PRs first to avoid duplicate topics. Choose a concrete host
+problem related to the actual product: calendar reliability, turnover operations,
+guest communication or managing listings across platforms. Use available Search
+Console queries as evidence of demand; never invent search volumes or rankings.
+
+Research changing platform rules, fees, security and legal claims using current
+primary sources. Link sources next to the claims they support. Distinguish
+illustrative examples and assumptions from measured results. Do not invent
+first-person hosting experience, customer stories, quotes, statistics or product
+capabilities. Check numerical examples for internal consistency. Existing articles
+are style references, not evidence that their factual claims remain correct.
+
+Keep the existing editorial design. Use a concise introduction, meaningful
+headings, a useful summary, related internal links and a relevant next step.
+Add tables, examples, diagrams or FAQs only when they help answer the question;
+do not force the same structure or a calculator into every topic. Avoid repeating
+the structured TL;DR or FAQ verbatim in the body. Translate naturally into every
+active locale from `src/lib/i18n/alternates.ts`, keeping facts and assumptions
+consistent. Verify links in each language.
+
+Create one original topic-specific cover shared by the translations. Inspect
+existing covers before generation: warm cream background, deep navy/charcoal
+geometric shapes, coral (#FF385C) and amber accents, subtle gradients, generous
+negative space, no text, logos, people or animals. Use a 16:9 WebP with explicit
+dimensions, consistent with `public/blog-covers` and the existing cover scripts.
+Use the available image-generation skill and tools; do not substitute a generic
+stock image or silently omit the cover when generation is unavailable.
+
+Apply the preparation, validation and PR workflow above. Record the topic,
+sources, locale/cover checks and PR URL in a dated private local editorial log.
+Resume an unfinished run before creating another article. Report readiness
+separately from publication. Daily writing authorization does not authorize
+automatic production releases; release only on an explicit release instruction.
