@@ -29,39 +29,21 @@ external PRs, the owner supplies the required independent review.
 
 ## 2. Protect production
 
-Create an Actions environment named **`Production`**, matching the workflow:
+Production releases follow [DOCKER-DEPLOYMENT.md](DOCKER-DEPLOYMENT.md), the
+ignored local deployment guide, and the live host policy. There is no automatic
+production deployment or GitHub SSH deployment workflow. Do not restore the
+retired gateway, old Actions environment, or former deployment secrets.
 
-- add the maintainer as required reviewer;
-- prevent self-review if another trusted maintainer is available;
-- restrict deployment branches to `master`;
-- store production-only secrets in the environment rather than repository-wide
-  where practical;
-- optionally add a short wait timer for an observation window.
+An explicit release instruction is required separately from permission to fix,
+review, push or merge code. CI creates a native ARM64 image only for tested
+`master` revisions. The image is a release artifact, not an automatic rollout.
+Use the exact successful artifact and the registered project controller. The
+shared host builds nothing. Preserve current/previous images, backups, data and
+other projects. An image job skipped on a PR is expected.
 
-The deploy workflow runs only after `CI` succeeds for the same `master` commit,
-then pauses at this environment gate. Manual redeploys also require successful
-CI for current `master`. The workflow checks the current branch head again
-after approval so a delayed run cannot roll production back to an older commit.
-After approval, both the normal artifact
-installer and the fallback deploy script run SQLite's online backup plus
-`PRAGMA integrity_check` before changing source, dependencies, artifacts, or
-schema. A failed backup aborts the deployment while the current service keeps
-running.
-
-Before approving a database-affecting deployment:
-
-1. confirm restore testing is current and the backup destination has space;
-2. confirm `prisma/schema.prisma` and `prisma/push-schema.ts` are paired;
-3. verify migrations are additive and idempotent;
-4. identify whether rollback is code-only or requires a forward data repair;
-5. verify every new required environment variable exists on the droplet.
-
-To inspect the configured server before a release, manually run **Deploy to
-droplet** with mode **preflight** on a protected, reviewed branch. It still
-requires the `Production` environment approval. This mode only reports release
-and health information, setting-presence booleans, and backup file metadata;
-it does not build, deploy, create a backup, query guest data, or change the server.
-Ordinary deployment remains restricted to current `master` with successful CI.
+Before a database-affecting release, verify paired Prisma/DDL changes, additive
+idempotent migrations, a current verified backup, a migration rehearsal, required
+runtime settings and a specific rollback procedure.
 
 ## 3. Security settings
 
@@ -72,8 +54,47 @@ Enable:
 - secret scanning and push protection when available for the repository plan;
 - Actions approval for first-time contributors.
 
-Never run contributor code with production secrets. The PR workflow has
-read-only repository permission and uses no production credentials.
+Never run contributor code with production secrets. The build job has read-only
+repository permission. CodeQL additionally requests permission to upload security
+results; neither workflow uses production credentials.
+
+### CodeQL coverage
+
+[CodeQL Advanced](../.github/workflows/codeql.yml) explicitly analyzes
+`actions` and `javascript-typescript` on every PR to `master`, pushes to
+`master`, weekly scans and manual dispatches. Keep both languages enabled.
+Do not add actor exclusions or path filters for dependency-only changes.
+Use `pull_request`, including Dependabot and forks, rather than
+`pull_request_target`; scans need no production credentials or dependency build.
+
+GitHub's default setup does not analyze Dependabot PRs. It can produce a neutral
+CodeQL check saying that configurations on `master` were not found. This means
+missing coverage, not a successful scan or a failing application build.
+See [GitHub's explanation](https://github.com/orgs/community/discussions/121836)
+and [Dependabot upload permissions](https://docs.github.com/en/code-security/reference/code-scanning/troubleshoot-analysis-errors/resource-not-accessible).
+Closing/reopening or blindly retrying the build does not repair this setup.
+
+When migrating from default setup:
+
+1. Keep default setup active while validating the new workflow with SARIF upload
+   temporarily set to `never` on the migration branch. Review both analyzer runs.
+   This is a rehearsal, not a processed security result, and must not be merged.
+2. Save the existing configuration privately. In a controlled maintenance window,
+   disable default setup, remove the temporary upload override, and rerun the
+   final PR head. GitHub rejects advanced uploads while default setup is enabled.
+3. Verify both real analyzer jobs and processed results. Merge the reviewed
+   workflow, then verify both languages on the exact new `master` SHA. If the
+   replacement fails, restore the saved default setup and stop the migration.
+4. Update already-open dependency branches from `master` and verify their real
+   PR scans. A successful scan on `master` alone does not cover those PRs.
+
+Keep `Build + tests` required. Once the advanced baseline and PR runs are
+verified, require `CodeQL (actions)` and `CodeQL (javascript-typescript)` from
+GitHub Actions as well, plus the processed `CodeQL` result from GitHub Advanced
+Security. The analyzer checks enforce coverage; the result check enforces the
+configured alert threshold. CodeQL merge protection can enforce alert severities
+instead when available. Successful execution alone does not mean zero alerts.
+Do not disable review or security protection to resolve a missing scan.
 
 ## 4. Reviewing a contribution
 
@@ -130,11 +151,29 @@ write access or change the hosted instance. A security reporter listed as a
 collaborator on a private advisory has access to that advisory, not automatically
 to the repository. Check **Settings → Collaborators** before changing access.
 
-For repeated Actions emails, inspect the failed step before changing notification
-preferences. A workflow failure with no jobs can mean invalid workflow syntax;
-CI validates every workflow with a pinned, checksum-verified `actionlint` release
-to catch those errors before merge. Audit failures need dependency updates, not
-blind retries or disabling the audit gate.
+For repeated Actions emails, inspect the exact final PR head and the failing
+step before changing settings. Start with this read-only diagnostic:
+
+```bash
+node scripts/github-pr-status.mjs <PR-number> --repo <owner/repository>
+```
+
+It reports build, CodeQL coverage, review and merge state separately. Exit zero
+means the inspection succeeded, not that a merge or release is authorized.
+`neutral`, `skipped`, absent analysis and successful analyzer jobs without a
+processed CodeQL result are not verified security coverage.
+
+- `REVIEW_REQUIRED`: the code owner must approve an external/bot PR. Retrying CI
+  cannot supply approval. GitHub prevents authors approving their own PRs; a
+  reviewed solo-maintainer integration follows the documented bypass exception.
+- `BEHIND`: update from `master`, then check the new final head and stale reviews.
+- Failed tests/build/audit: inspect the failed step and fix its cause.
+- No jobs: validate workflow syntax; CI runs checksum-verified `actionlint`.
+- Missing CodeQL on Dependabot: verify advanced setup and both language results.
+- ARM64 skipped on a PR: expected; it is built after successful `master` CI.
+
+Audit failures need dependency updates, not blind retries or disabling the gate.
+Keep major toolchain upgrades separate from routine patch/minor updates.
 
 GitHub's notification settings can limit Actions email to failed workflows and
 use web notifications for routine repository discussion. Keep security advisory
@@ -143,13 +182,14 @@ and production failure alerts visible; avoid a blanket filter for GitHub mail.
 ## 7. Merge and release checklist
 
 - [ ] Source PRs and authors are linked/credited
-- [ ] Required review and CI are green on the final head
+- [ ] Required review and CI are green on the final head; both CodeQL languages have processed results
 - [ ] `npm ci` succeeds from a clean dependency tree
 - [ ] `npm audit --audit-level=high` succeeds
 - [ ] `npx prisma generate`, `npm test`, and `npm run build` succeed
 - [ ] Browser-only behavior has manual evidence
 - [ ] Production configuration is ready; automated backup destination and restore drill are healthy
 - [ ] Rollback path is written in the PR
-- [ ] Deploy the approved commit and verify `/api/health`
+- [ ] Obtain explicit release authorization separately from merge approval
+- [ ] If a release was authorized, deploy the exact verified ARM64 artifact and verify `/api/health`
 - [ ] Smoke-test login, dashboard, calendar feed, and changed user flows
 - [ ] Close or update superseded source PRs
