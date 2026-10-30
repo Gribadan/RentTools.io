@@ -15,11 +15,14 @@ export function summarizePr(pr) {
   const build = checkState(checks.find((check) => check.name === "Build + tests"));
   const result = checks.find((check) => check.name === "CodeQL");
   const analyzers = checks.filter((check) => /^CodeQL \(/.test(check.name ?? ""));
+  const completeMatrix = ["actions", "javascript-typescript"].every((language) =>
+    analyzers.some((check) => check.name === `CodeQL (${language})`));
   const states = [result, ...analyzers].filter(Boolean).map(checkState);
   let codeql = "missing";
   if (states.includes("failed")) codeql = "failed";
   else if (states.includes("pending")) codeql = "pending";
-  else if (checkState(result) === "passed" && states.every((state) => state === "passed")) codeql = "passed";
+  else if (checkState(result) === "passed" && (!analyzers.length || completeMatrix) &&
+      states.every((state) => state === "passed")) codeql = "passed";
   else if (states.length) codeql = "unverified";
   return {
     number: pr.number,

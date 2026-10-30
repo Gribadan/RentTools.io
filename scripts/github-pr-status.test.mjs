@@ -37,6 +37,12 @@ test("a failed analyzer takes precedence over an earlier successful result", () 
   ])).codeql, "failed");
 });
 
+test("an incomplete advanced language matrix is not complete coverage", () => {
+  assert.equal(summarizePr(pr([
+    check("CodeQL"), check("CodeQL (actions)"),
+  ])).codeql, "unverified");
+});
+
 test("queued analysis is pending even when the previous result succeeded", () => {
   assert.equal(summarizePr(pr([
     check("CodeQL"), check("CodeQL (javascript-typescript)", null, "QUEUED"),

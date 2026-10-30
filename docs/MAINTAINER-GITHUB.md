@@ -54,8 +54,9 @@ Enable:
 - secret scanning and push protection when available for the repository plan;
 - Actions approval for first-time contributors.
 
-Never run contributor code with production secrets. The PR workflow has
-read-only repository permission and uses no production credentials.
+Never run contributor code with production secrets. The build job has read-only
+repository permission. CodeQL additionally requests permission to upload security
+results; neither workflow uses production credentials.
 
 ### CodeQL coverage
 
