@@ -90,8 +90,10 @@ When migrating from default setup:
 
 Keep `Build + tests` required. Once the advanced baseline and PR runs are
 verified, require `CodeQL (actions)` and `CodeQL (javascript-typescript)` from
-GitHub Actions as well. Use CodeQL merge protection for alert severities when
-available; successful analyzer execution alone does not mean zero alerts.
+GitHub Actions as well, plus the processed `CodeQL` result from GitHub Advanced
+Security. The analyzer checks enforce coverage; the result check enforces the
+configured alert threshold. CodeQL merge protection can enforce alert severities
+instead when available. Successful execution alone does not mean zero alerts.
 Do not disable review or security protection to resolve a missing scan.
 
 ## 4. Reviewing a contribution
