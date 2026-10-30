@@ -133,6 +133,9 @@ jobs:
           node-version: "22"
           cache: "npm"
 
+      - name: Test GitHub status diagnostics
+        run: node --test scripts/github-pr-status.test.mjs
+
       - name: Install dependencies
         run: npm ci
 
