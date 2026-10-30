@@ -96,7 +96,7 @@ export function CalendarOverviewRow({
   }, [property]);
   const { bars, closedOverrides, cleaningOverrides, bufferDates, unbookableDates, potentialDates, sameDayCleaningDates, openOverrides } = useCalendarData(inputs.calendarProperty, inputs.events, inputs.links, inputs.overrides);
   const visibleBars = bars.flatMap((bar) => {
-    const layout = layoutOverviewBar(bar, monthStart, monthEnd);
+    const layout = layoutOverviewBar(bar, monthStart, monthEnd, property);
     return layout ? [{ bar, layout }] : [];
   });
   const numberOfDays = overviewDayCount(monthStart, monthEnd);
@@ -180,8 +180,8 @@ export function CalendarOverviewRow({
               onClick={() => canOpenReservation ? onOpenReservation(property.id, bar.reservationId!) : onOpenProperty(property.id)}
               className={`absolute flex scroll-ml-36 items-center border px-2 text-left text-xs font-medium text-white hover:brightness-110 focus-visible:z-10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white sm:scroll-ml-56 ${layout.continuesBefore || bar.linkedBefore ? "rounded-l-none" : "rounded-l-md"} ${layout.continuesAfter || bar.linkedAfter ? "rounded-r-none" : "rounded-r-md"} ${overlaps ? "border-amber-300" : "border-white/20"}`}
               style={{
-                left: layout.startColumn * OVERVIEW_DAY_WIDTH + 2,
-                width: layout.span * OVERVIEW_DAY_WIDTH - 4,
+                left: layout.left,
+                width: layout.width,
                 top: OVERVIEW_ROW_PADDING + layout.rowIdx * OVERVIEW_LANE_HEIGHT,
                 height: OVERVIEW_BAR_HEIGHT,
                 backgroundColor: bar.isAvailabilityBlock ? "#64748b" : platformColor(bar.platform),
