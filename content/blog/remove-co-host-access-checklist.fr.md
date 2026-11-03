@@ -14,13 +14,13 @@ ogImageHeight: 900
 tldr: |
   - Avant de retirer quoi que ce soit, listez chaque accès : plateformes, outils, serrures, Wi-Fi.
   - Sur Airbnb, vérifiez aussi les co-hôtes qu'il a ajoutés : vous en êtes responsable.
-  - Sur Booking.com, l'accès passe par des comptes utilisateurs de l'extranet, gérés par un admin.
+  - Vérifiez séparément les utilisateurs personnels et identifiants partagés de chaque service.
   - Désignez un nouveau contact pour chaque séjour à venir avant que l'ancien ne réponde plus.
 ---
 
-Une collaboration avec un co-hôte s'arrête rarement à la date prévue au contrat. Le vendredi, la personne ne répond plus aux messages ; le lundi, elle a toujours un accès complet à l'annonce ; et le code de la boîte à clés fixé au printemps ouvre encore la porte à l'automne. Retirer un accès ne se résume pas à un bouton. C'est une courte liste de points d'accès à fermer dans un ordre qui ne laisse aucun voyageur confirmé sans réponse.
+Le dernier jour du co-hôte approche, mais il dispose encore des accès à l'annonce, aux liens de calendrier et à la boîte à clés. Retirer son rôle sur la plateforme laisse d'autres chemins ouverts. Préparez une passation qui ferme chaque accès et donne aux voyageurs confirmés un contact joignable.
 
-Ce guide couvre cette passation : quoi recenser, comment fonctionne le retrait sur Airbnb, où se trouve réellement l'accès sur Booking.com et comment protéger les séjours déjà réservés. Il ne traite pas de ce que vous devez au co-hôte selon votre propre accord ; réglez ce point avant de commencer.
+Ce guide concerne un départ prévu de votre équipe. Traitez séparément les questions contractuelles et les paiements : ils ne conditionnent pas la protection des accès. En cas de soupçon d'abus, sécurisez rapidement les accès concernés et reprenez le suivi des voyageurs sans attendre la passation habituelle.
 
 ## Recenser avant de retirer
 
@@ -33,56 +33,50 @@ Notez chaque endroit où la personne peut consulter, modifier ou ouvrir quelque 
 - **Le logement :** codes de serrure connectée et de boîte à clés, clés physiques, télécommandes de garage, Wi-Fi.
 - **Les personnes qu'elle a fait venir :** agents de ménage qu'elle a engagés, autres co-hôtes invités, prestataires qui ne connaissent que son numéro.
 
-C'est la dernière ligne que les hôtes oublient. Souvent, le co-hôte devient le seul contact dont disposent l'agent de ménage ou le dépanneur pour votre logement.
-
 ## Airbnb : retirer le co-hôte et vérifier qui il a ajouté
 
-Airbnb propose trois [niveaux d'autorisation pour les co-hôtes](https://www.airbnb.com/help/article/1534) : accès complet, accès au calendrier et aux messages, et accès au calendrier seul. Un co-hôte disposant d'un accès complet peut ajouter et retirer d'autres co-hôtes et modifier leurs autorisations, sauf ajouter un autre co-hôte en accès complet. Airbnb précise que le propriétaire de l'annonce est responsable de tous les co-hôtes, y compris ceux ajoutés par un co-hôte en accès complet. Avant le retrait, ouvrez donc la liste des co-hôtes de chaque annonce et notez toutes les personnes qu'il a invitées.
+Airbnb propose [trois niveaux d'autorisation de co-hôte](https://www.airbnb.com/help/article/1534). Vérifiez chaque annonce et les personnes ajoutées par le co-hôte partant : le propriétaire reste également responsable de ces co-hôtes.
 
-Le retrait lui-même, d'après [l'aide Airbnb](https://www.airbnb.com/help/article/1632), se fait depuis un ordinateur : ouvrez **Annonces**, sélectionnez l'annonce, allez dans **Co-hôtes** dans l'éditeur d'annonce, choisissez la personne et retirez-la, avec une note facultative. Les hôtes et les co-hôtes en accès complet peuvent le faire. Répétez l'opération pour chaque annonce : un co-hôte présent sur trois annonces se retire trois fois.
+Suivez [les instructions de retrait d'Airbnb](https://www.airbnb.com/help/article/1632) : sélectionnez l'annonce, ouvrez Co-hôtes dans l'éditeur, choisissez la personne et confirmez le retrait. Si elle était hôte principal, vérifiez qui reprend ce rôle. Répétez la vérification pour chaque annonce concernée.
 
-Une fois retirée, la personne ne peut plus modifier l'annonce, traiter les demandes de réservation, consulter le calendrier ni écrire aux voyageurs. Elle cesse aussi de percevoir les versements de co-hôte pour les réservations qui commencent après le retrait. Airbnb est explicite : vous restez responsable des demandes en cours et futures, y compris celles acceptées par le co-hôte.
+Retirer le rôle ne termine pas la passation opérationnelle. Relisez les conversations et demandes en attente, puis désignez qui répondra. Vous restez responsable des demandes actuelles et futures, y compris celles acceptées par le co-hôte.
 
-Si la personne qui part était **hôte principal**, Airbnb vous demande de choisir un remplaçant : le propriétaire de l'annonce ou un autre co-hôte éligible en accès complet. S'il ne reste aucun co-hôte en accès complet, le propriétaire devient automatiquement hôte principal. Décidez-le avant de cliquer plutôt que de laisser la plateforme trancher.
+## Vérifier les autres plateformes et identifiants partagés
 
-Si vous voulez seulement réduire ses pouvoirs pendant un préavis, modifier les autorisations est une alternative au retrait. Passer quelqu'un de l'accès complet à l'accès au calendrier, par exemple, le garde informé sans lui permettre de changer les prix ni d'accepter des demandes.
+Pour Booking.com, Vrbo et les autres services, examinez les accès réellement accordés dans votre compte. Notez le logement et l'utilisateur concernés, puis suivez les instructions actuelles du service pour gérer les comptes. Retirer une personne sur Airbnb ne modifie pas ses droits sur une autre plateforme.
 
-## Booking.com : l'accès, c'est un compte utilisateur
-
-Booking.com n'a pas de co-hôtes. L'accès à un établissement passe par des comptes utilisateurs de l'extranet. L'article de Booking.com sur les [types de comptes et droits d'accès](https://partnerhelp.booking.com/hc/en-gb/articles/213301525) indique que les comptes administrateurs gèrent l'accès des autres comptes et qu'il doit toujours y avoir au moins un administrateur. Les autorisations, dont celle d'ajouter et de supprimer des utilisateurs, sont attribuées compte par compte.
-
-D'où deux vérifications. D'abord, trouvez le compte utilisateur propre à la personne et supprimez-le ou retirez-lui ses autorisations. Ensuite, si elle a déjà eu des droits **administrateur** ou s'est connectée avec les identifiants du compte principal, changez aussi ce mot de passe. Supprimer un utilisateur distinct ne sert à rien si la personne connaît l'identifiant du compte même qui effectue la suppression.
-
-Sur Vrbo, ouvrez les paramètres d'accès ou d'utilisateurs de votre compte et retirez toutes les personnes que vous avez ajoutées. Si l'accès passait par vos propres identifiants, changez le mot de passe. Le principe est le même partout : un utilisateur distinct se supprime, un identifiant partagé se remplace.
+Distinguez un utilisateur personnel d'un identifiant partagé. Révoquez son accès propre lorsqu'il existe. Si la personne connaît les identifiants d'un compte que vous conservez, changez-les et examinez les sessions actives, les moyens de récupération et les accès liés avec les outils du fournisseur. Avant de terminer la passation, vérifiez que votre accès propriétaire ou administrateur fonctionne.
 
 ## Vos outils, les liens de calendrier et la porte
 
-L'accès aux plateformes n'est que la moitié de la liste. Dans RentTools, les gestionnaires s'ajoutent par logement via un lien d'invitation. Un gestionnaire peut modifier les réservations, synchroniser les calendriers et gérer le ménage, mais ne peut ni supprimer le logement ni ajouter d'autres gestionnaires. Seul le propriétaire du logement peut retirer un gestionnaire, ce qui met fin à son accès à ce logement. Les liens d'invitation inutilisés expirent au bout de sept jours et peuvent être révoqués avant : révoquez tous ceux que vous avez envoyés sans qu'ils servent.
+Dans RentTools, l'accès gestionnaire concerne un logement précis. Le propriétaire peut retirer ce gestionnaire : vérifiez chaque logement séparément. Les invitations en attente peuvent aussi être révoquées ; celles inutilisées expirent après sept jours. Ne laissez pas une invitation ouverte simplement parce que la personne a été retirée ailleurs.
 
-Les liens de calendrier, c'est autre chose. Quiconque détient un lien d'export continue de voir votre occupation, même une fois son compte supprimé. Si le co-hôte a copié vos liens d'export dans ses outils, renouvelez-les et réimportez les nouveaux là où vous en avez besoin. Le guide sur la [sécurité des flux iCal](/blog/ical-feed-url-security) explique pourquoi c'est important et ce qui casse au passage.
+Les liens d'export de calendrier demandent une vérification distincte. Retirer un gestionnaire ne révoque pas une URL de flux copiée. Renouvelez le jeton du flux RentTools concerné et remplacez le lien dans les intégrations conservées ; vérifiez qu'elles reçoivent le nouveau flux. Cela n'efface pas les copies déjà enregistrées. Le guide de [sécurité des flux iCal](/fr/blog/ical-feed-url-security) explique le rôle propre de ces liens.
 
-Reste le côté physique :
+Pour le logement :
 
-- Changez les codes de la serrure connectée et de la boîte à clés que connaissait le co-hôte, après le dernier séjour qu'il a préparé.
-- Récupérez les clés physiques, ou changez le cylindre si vous ne pouvez pas retrouver chaque double.
-- Changez le mot de passe Wi-Fi s'il avait un accès administrateur à la box, puis suivez la [checklist de mise à jour du Wi-Fi](/blog/wifi-details-after-password-change) pour que les consignes aux voyageurs restent justes.
+- Révoquez le code de porte individuel à l'heure de passation convenue. Si un code commun change, prévoyez un accès de remplacement pour les voyageurs présents ou à venir concernés.
+- Récupérez les clés physiques et examinez les doubles non retrouvés. Décidez des travaux sur les serrures avec le propriétaire ou le prestataire responsable.
+- Distinguez le mot de passe administrateur du routeur et celui du Wi-Fi voyageurs. Changer uniquement le second ne ferme pas l'accès administrateur connu de la personne. Si les données Wi-Fi voyageurs changent aussi, suivez la [checklist Wi-Fi](/fr/blog/wifi-details-after-password-change).
 
-Avec une [serrure connectée](/blog/smart-lock-vs-lockbox-cost-math), cette étape devient un simple réglage plutôt qu'une visite du serrurier — un argument en sa faveur si votre équipe change plus d'une fois par an.
+Pour choisir un équipement, consultez le [comparatif serrure connectée et boîte à clés](/fr/blog/smart-lock-vs-lockbox-cost-math). Révoquez les droits selon la notice de votre appareil : un nouveau code voyageur ne retire pas nécessairement un rôle administrateur.
 
 ## Protéger les séjours déjà réservés
 
-L'ordre compte plus que la vitesse. Ne retirez l'accès qu'une fois que toutes les personnes qui dépendent du co-hôte savent qui le remplace.
+Désignez un remplaçant avant la coupure prévue. Ne conditionnez pas la révocation à la réponse de chaque voyageur : le propriétaire ou le remplaçant peut reprendre les conversations en attente.
 
-**Exemple fictif.** Un hôte gère deux logements. Le dernier jour du co-hôte est le 15. Entre le 15 et le 30, quatre séjours sont confirmés : deux arrivées pendant que le co-hôte travaille encore, deux après. Un enchaînement réaliste :
+**Exemple fictif :** un hôte gère deux logements et quatre arrivées confirmées entre le 10 et le 30. Deux précèdent le dernier jour de travail du co-hôte, le 15, et deux le suivent. C'est une illustration de passation, pas un cas client.
 
-1. Avant le 15, envoyez à chacun des quatre voyageurs un message dans la conversation de la plateforme pour confirmer les détails d'arrivée et le contact qui répondra désormais.
-2. Indiquez par écrit à l'agent de ménage et aux prestataires qui commande et valide les interventions après le 15.
-3. Le 15, retirez le co-hôte sur Airbnb, l'utilisateur de l'extranet sur Booking.com et le rôle de gestionnaire dans vos outils.
-4. Après le dernier ménage préparé par le co-hôte, changez les codes des serrures et envoyez les nouveaux uniquement au voyageur suivant.
-5. Le lendemain, ouvrez chaque conversation et chaque calendrier pour vérifier que rien n'attend plus la personne retirée.
+1. Avant le 15, vérifiez les quatre séjours et transmettez les informations d'arrivée actualisées et le nouveau contact dans la conversation de réservation.
+2. Indiquez au ménage et aux prestataires qui validera les interventions dès la passation.
+3. À l'heure convenue le 15, retirez les rôles sur les plateformes et RentTools, puis vérifiez séparément liens copiés et autres identifiants.
+4. Avant de changer un code commun, organisez l'accès de remplacement pour chaque séjour en cours ou futur concerné. Retirez l'accès du co-hôte sans bloquer les voyageurs.
+5. Contrôlez les messages et demandes en attente juste après la passation, puis le lendemain.
 
-L'étape 5 comble les trous. Un voyageur a pu répondre au dernier message de l'ancien co-hôte, ou une demande était peut-être en attente quand l'accès a été coupé. Sur Airbnb, c'est toujours à vous d'y répondre.
+N'annulez pas et ne recréez pas les réservations uniquement pour changer la personne qui les gère. Conservez le séjour existant et confirmez qui répond de l'arrivée, du ménage et des questions ouvertes.
 
 ## Une page de compte rendu de passation
 
-Terminez par une courte fiche par départ : la date, chaque point d'accès de la liste, qui l'a fermé et quand, quels liens et codes ont changé, et qui gère désormais chaque séjour à venir. Elle prend dix minutes à rédiger et c'est la première chose dont vous aurez besoin si un ancien co-hôte affirme plus tard n'avoir jamais perdu son accès. Si vous hésitez à le remplacer, lisez ensuite le [calcul de la commission d'un co-hôte](/blog/airbnb-co-host-commission-math).
+Consignez l'heure de passation, chaque accès vérifié, la personne ayant effectué le changement, les actions en attente et le nouveau contact par séjour. Conservez cette fiche en privé ; n'inscrivez ni mots de passe ni liens d'accès actifs dans une checklist partagée. Vérifiez enfin que le remplaçant peut travailler et que les accès retirés ont effectivement cessé.
+
+Si vous choisissez un remplaçant, le [guide de commission du co-hôte](/fr/blog/airbnb-co-host-commission-math) aborde une autre question : l'évaluation de la collaboration.

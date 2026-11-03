@@ -13,14 +13,14 @@ ogImageWidth: 1600
 ogImageHeight: 900
 tldr: |
   - Erfassen Sie vor dem Entfernen jeden Zugang: Plattformen, Tools, Schlösser, WLAN.
-  - Prüfen Sie bei Airbnb auch die Co-Hosts, die er hinzugefügt hat – dafür haften Sie mit.
-  - Bei Booking.com hängt der Zugriff an Extranet-Benutzerkonten, verwaltet von einem Admin.
+  - Prüfen Sie bei Airbnb auch hinzugefügte Co-Hosts: Sie bleiben für diese verantwortlich.
+  - Prüfen Sie persönliche Benutzer und geteilte Logins bei jedem Dienst separat.
   - Benennen Sie für jeden anstehenden Aufenthalt einen neuen Kontakt, bevor der alte verstummt.
 ---
 
-Eine Zusammenarbeit mit einem Co-Host endet selten an dem Tag, der im Vertrag steht. Am Freitag antwortet die Person nicht mehr auf Nachrichten, am Montag hat sie noch vollen Zugriff auf das Inserat, und der Code für die Schlüsselbox aus dem Frühjahr öffnet die Tür auch im Herbst. Den Zugriff zu entziehen ist kein einzelner Klick. Es ist eine kurze Liste von Zugängen, die Sie so schließen, dass kein Gast mit bestätigter Buchung ohne Ansprechpartner dasteht.
+Der letzte Arbeitstag eines Co-Hosts rückt näher, doch die Person hat noch Zugriff auf Inserat, Kalenderlinks und Schlüsselbox. Das Entfernen der Plattformrolle lässt andere Wege offen. Planen Sie eine Übergabe, die jeden Zugang schließt und gebuchten Gästen einen erreichbaren Kontakt gibt.
 
-Dieser Leitfaden beschreibt diese Übergabe: was auf die Liste gehört, wie das Entfernen bei Airbnb funktioniert, wo der Zugriff bei Booking.com tatsächlich liegt und wie Sie bereits gebuchte Aufenthalte absichern. Was Sie dem Co-Host laut Ihrer eigenen Vereinbarung schulden, behandelt er nicht – klären Sie das vorab.
+Hier geht es um einen geplanten Abschied aus Ihrem Team. Vertrags- und Zahlungsfragen klären Sie separat; sie sind keine Voraussetzung für den Schutz von Zugängen. Bei Verdacht auf Missbrauch sichern Sie betroffene Zugänge zeitnah und übernehmen die Gästebetreuung, statt auf die reguläre Übergabe zu warten.
 
 ## Erst erfassen, dann entziehen
 
@@ -33,56 +33,50 @@ Notieren Sie jede Stelle, an der die Person etwas einsehen, ändern oder öffnen
 - **Die Unterkunft:** Codes für Smart Lock und Schlüsselbox, physische Schlüssel, Garagentoröffner, WLAN.
 - **Mitgebrachte Kontakte:** Reinigungskräfte, die sie beauftragt hat, weitere eingeladene Co-Hosts, Handwerker, die nur ihre Nummer kennen.
 
-Die letzte Zeile wird am häufigsten vergessen. Oft ist der Co-Host der einzige Kontakt, den die Reinigungskraft oder der Handwerker für Ihre Unterkunft hat.
-
 ## Airbnb: Co-Host entfernen und prüfen, wen er hinzugefügt hat
 
-Airbnb kennt drei [Berechtigungsstufen für Co-Hosts](https://www.airbnb.com/help/article/1534): Vollzugriff, Zugriff auf Kalender und Nachrichten sowie reinen Kalenderzugriff. Co-Hosts mit Vollzugriff können andere Co-Hosts hinzufügen, entfernen und deren Berechtigungen ändern – nur keinen weiteren Co-Host mit Vollzugriff hinzufügen. Airbnb stellt klar, dass der Inhaber des Inserats für alle Co-Hosts verantwortlich ist, auch für die von einem Co-Host mit Vollzugriff hinzugefügten. Öffnen Sie deshalb vor dem Entfernen bei jedem Inserat die Co-Host-Liste und notieren Sie alle, die die Person eingeladen hat.
+Airbnb bietet [drei Berechtigungsstufen für Co-Hosts](https://www.airbnb.com/help/article/1534). Prüfen Sie jedes Inserat und Personen, die der ausscheidende Co-Host hinzugefügt hat: Auch für diese Co-Hosts bleibt der Inseratsinhaber verantwortlich.
 
-Das Entfernen selbst läuft laut [Airbnb-Hilfe](https://www.airbnb.com/help/article/1632) am Computer: **Inserate** öffnen, das Inserat auswählen, im Inseratseditor zu **Co-Hosts** gehen, die Person auswählen und entfernen, optional mit einer Notiz. Das können Gastgeber und Co-Hosts mit Vollzugriff. Wiederholen Sie es für jedes Inserat: Ein Co-Host auf drei Inseraten muss dreimal entfernt werden.
+Folgen Sie [Airbnbs Anleitung zum Entfernen](https://www.airbnb.com/help/article/1632): Inserat auswählen, im Editor Co-Hosts öffnen, Person auswählen und Entfernung bestätigen. War sie primärer Gastgeber, prüfen Sie die Nachfolge dieser Rolle. Wiederholen Sie dies für jedes betroffene Inserat.
 
-Danach kann die Person das Inserat nicht mehr bearbeiten, keine Buchungsanfragen mehr bearbeiten, den Kalender nicht mehr sehen und Gästen nicht mehr schreiben. Für Buchungen, die nach dem Entfernen beginnen, erhält sie auch keine Co-Host-Auszahlungen mehr. Airbnb betont ausdrücklich, dass Sie für aktuelle und künftige Anfragen verantwortlich bleiben – auch für solche, die der Co-Host angenommen hat.
+Mit dem Entfernen der Rolle ist die Arbeitsübergabe nicht abgeschlossen. Prüfen Sie offene Gästedialoge und Anfragen und bestimmen Sie, wer antwortet. Sie bleiben für aktuelle und künftige Anfragen verantwortlich, auch für vom Co-Host angenommene.
 
-War die Person **primärer Gastgeber**, verlangt Airbnb eine Nachfolge: den Inhaber des Inserats oder einen anderen geeigneten Co-Host mit Vollzugriff. Gibt es keinen Co-Host mit Vollzugriff mehr, wird automatisch der Inhaber primärer Gastgeber. Entscheiden Sie das vor dem Klick, statt es der Plattform zu überlassen.
+## Andere Plattformen und geteilte Logins prüfen
 
-Wollen Sie während einer Übergangsfrist nur die Befugnisse einschränken, ist eine Änderung der Berechtigungen die Alternative zum Entfernen. Wer etwa von Vollzugriff auf Kalenderzugriff herabgestuft wird, bleibt informiert, kann aber keine Preise mehr ändern und keine Anfragen annehmen.
+Prüfen Sie bei Booking.com, Vrbo und anderen Diensten die tatsächlich in Ihrem Konto vergebenen Zugänge. Halten Sie Unterkunft und Benutzer fest und folgen Sie den aktuellen Kontoverwaltungsanweisungen des Dienstes. Das Entfernen auf Airbnb ändert keine Rolle auf einer anderen Plattform.
 
-## Booking.com: Zugriff ist ein Benutzerkonto
-
-Co-Hosts gibt es bei Booking.com nicht. Der Zugriff auf eine Unterkunft läuft über Benutzerkonten im Extranet. Laut dem Booking.com-Artikel zu [Kontotypen und Zugriffsrechten](https://partnerhelp.booking.com/hc/en-gb/articles/213301525) verwalten Admin-Konten den Zugriff anderer Konten, und es muss immer mindestens einen Admin geben. Berechtigungen, einschließlich der zum Hinzufügen und Entfernen von Benutzern, werden pro Konto vergeben.
-
-Daraus folgen zwei Prüfungen. Erstens: Suchen Sie das eigene Benutzerkonto der Person und entfernen Sie es oder entziehen Sie ihm die Berechtigungen. Zweitens: Hatte die Person jemals **Admin**-Rechte oder hat sie sich mit den Zugangsdaten des Hauptkontos angemeldet, ändern Sie auch dieses Passwort. Einen separaten Benutzer zu entfernen bringt nichts, wenn die Person das Login genau des Kontos kennt, mit dem Sie sie entfernen.
-
-Bei Vrbo öffnen Sie die Zugriffs- oder Benutzereinstellungen Ihres Kontos und entfernen alle, die Sie hinzugefügt haben. Lief der Zugriff über Ihr eigenes Login, ändern Sie das Passwort. Das Prinzip ist überall gleich: Ein separater Benutzer lässt sich entfernen, ein geteiltes Login muss ersetzt werden.
+Unterscheiden Sie einen eigenen Benutzer von einem geteilten Login. Entziehen Sie den persönlichen Zugang, wo vorgesehen. Kennt die Person Zugangsdaten eines Kontos, das Sie behalten, ändern Sie diese und prüfen aktive Sitzungen, Wiederherstellungswege und verknüpfte Zugänge mit den Kontrollen des Anbieters. Stellen Sie vor Abschluss der Übergabe sicher, dass Ihr Eigentümer- oder Administratorzugang funktioniert.
 
 ## Ihre Tools, Kalender-Links und die Tür
 
-Der Plattformzugriff ist nur die halbe Liste. In RentTools werden Manager pro Unterkunft über einen Einladungslink hinzugefügt. Ein Manager kann Reservierungen bearbeiten, Kalender synchronisieren und Reinigungen verwalten, die Unterkunft aber nicht löschen und keine weiteren Manager hinzufügen. Nur der Eigentümer der Unterkunft kann einen Manager entfernen; damit endet dessen Zugriff auf diese Unterkunft. Nicht genutzte Einladungslinks verfallen nach sieben Tagen und lassen sich vorher widerrufen – widerrufen Sie also alle, die Sie verschickt und nie genutzt haben.
+In RentTools gilt Managerzugriff für eine bestimmte Unterkunft. Der Eigentümer kann den Manager entfernen; prüfen Sie jede Unterkunft separat. Auch ausstehende Einladungen können widerrufen werden, ungenutzte laufen nach sieben Tagen ab. Lassen Sie keine Einladung offen, nur weil die Person anderswo entfernt wurde.
 
-Bei Kalender-Links ist es anders. Wer einen Export-Link besitzt, sieht Ihre Belegung weiterhin, auch wenn sein Konto längst gelöscht ist. Hat der Co-Host Ihre Export-Links in eigene Tools kopiert, tauschen Sie sie aus und importieren Sie die neuen dort, wo Sie sie brauchen. Warum das wichtig ist und was dabei bricht, erklärt der Leitfaden zur [Sicherheit von iCal-Feeds](/blog/ical-feed-url-security).
+Kalenderexportlinks erfordern eine eigene Prüfung. Einen Manager zu entfernen widerruft keine kopierte Feed-URL. Rotieren Sie das betreffende RentTools-Feed-Token und ersetzen Sie den Link in weiter benötigten Integrationen. Prüfen Sie, ob diese den neuen Feed erhalten. Bereits gespeicherte Kopien werden dadurch nicht gelöscht. Der Leitfaden zur [Sicherheit von iCal-Feeds](/de/blog/ical-feed-url-security) erklärt die eigene Rolle dieser Links.
 
-Dann die physische Seite:
+Für die Unterkunft selbst:
 
-- Ändern Sie die Codes für Smart Lock und Schlüsselbox, die der Co-Host kannte – nach dem letzten Aufenthalt, den er vorbereitet hat.
-- Sammeln Sie physische Schlüssel ein oder lassen Sie den Zylinder tauschen, wenn Sie nicht jede Kopie nachweisen können.
-- Ändern Sie das WLAN-Passwort, falls die Person Admin-Zugriff auf den Router hatte, und arbeiten Sie dann die [WLAN-Checkliste](/blog/wifi-details-after-password-change) ab, damit die Gästeinformationen aktuell bleiben.
+- Widerrufen Sie den persönlichen Türcode zum vereinbarten Übergabezeitpunkt. Ändert sich ein gemeinsamer Code, sichern Sie Ersatz für betroffene anwesende und anreisende Gäste.
+- Nehmen Sie physische Schlüssel zurück und prüfen Sie nicht zugeordnete Kopien. Stimmen Sie Schlossarbeiten mit Eigentümer oder zuständigem Anbieter ab.
+- Trennen Sie Router-Administratorpasswort und Gäste-WLAN-Passwort. War das Administratorpasswort bekannt, schließt eine Änderung nur des Gäste-Passworts diesen Zugang nicht. Ändern sich auch WLAN-Gästedaten, nutzen Sie die [WLAN-Checkliste](/de/blog/wifi-details-after-password-change).
 
-Mit einem [Smart Lock](/blog/smart-lock-vs-lockbox-cost-math) wird dieser Schritt zur Einstellungsänderung statt zum Schlüsseldienst-Termin – ein Argument dafür, wenn Ihr Team öfter als einmal im Jahr wechselt.
+Für die Gerätewahl gibt es den [Vergleich von Smart Lock und Schlüsselbox](/de/blog/smart-lock-vs-lockbox-cost-math). Widerrufen Sie Rechte nach der Anleitung Ihres Geräts: Ein neuer Gästecode entfernt möglicherweise keine Administratorrolle.
 
 ## Bereits gebuchte Aufenthalte absichern
 
-Die Reihenfolge zählt mehr als das Tempo. Entziehen Sie den Zugriff erst, wenn alle, die vom Co-Host abhängen, wissen, wer ihn ersetzt.
+Benennen Sie vor dem geplanten Zugangsende einen Ersatzkontakt. Machen Sie den Widerruf nicht von der Antwort jedes Gastes abhängig; offene Gespräche kann der Eigentümer oder die Nachfolge übernehmen.
 
-**Fiktives Beispiel.** Ein Gastgeber hat zwei Unterkünfte. Der letzte Arbeitstag des Co-Hosts ist der 15. Zwischen dem 15. und dem 30. stehen vier bestätigte Aufenthalte an: Zwei Gäste reisen an, solange der Co-Host noch arbeitet, zwei danach. Eine praktikable Abfolge:
+**Fiktives Beispiel:** Ein Gastgeber hat zwei Unterkünfte und vier bestätigte Anreisen zwischen dem 10. und 30. Zwei liegen vor dem letzten Arbeitstag des Co-Hosts, dem 15., zwei danach. Dies ist eine beispielhafte Übergabe, kein Kundenfall.
 
-1. Schreiben Sie vor dem 15. jedem der vier Gäste eine Nachricht im Plattform-Chat, bestätigen Sie die Anreisedetails und nennen Sie, wer ab jetzt antwortet.
-2. Teilen Sie der Reinigungskraft und allen Handwerkern schriftlich mit, wer ab dem 15. Aufträge vergibt und abnimmt.
-3. Entfernen Sie am 15. den Co-Host bei Airbnb, den Extranet-Benutzer bei Booking.com und die Manager-Rolle in Ihren Tools.
-4. Ändern Sie nach der letzten vom Co-Host vorbereiteten Reinigung die Schlosscodes und schicken Sie die neuen nur an den nächsten Gast.
-5. Öffnen Sie am Tag danach jeden Nachrichtenverlauf und jeden Kalender und prüfen Sie, dass nichts mehr auf die entfernte Person wartet.
+1. Prüfen Sie vor dem 15. alle vier Buchungen und schicken Sie aktuelle Anreiseinformationen und den neuen Kontakt im Buchungsdialog.
+2. Teilen Sie Reinigungskräften und Dienstleistern mit, wer ab der Übergabe Aufträge abnimmt.
+3. Entziehen Sie zum vereinbarten Zeitpunkt am 15. die Plattform- und RentTools-Rollen; prüfen Sie kopierte Links und andere Zugangsdaten separat.
+4. Organisieren Sie vor gemeinsamen Codeänderungen Ersatzzugang für jeden betroffenen laufenden oder künftigen Aufenthalt. Beenden Sie den Zugang des Co-Hosts, ohne Gäste auszusperren.
+5. Prüfen Sie offene Nachrichten und Anfragen direkt nach der Übergabe und erneut am Folgetag.
 
-Schritt fünf schließt die Lücken. Ein Gast hat vielleicht auf die letzte Nachricht des alten Co-Hosts geantwortet, oder eine Anfrage war noch offen, als der Zugriff endete. Bei Airbnb müssen Sie diese weiterhin selbst beantworten.
+Stornieren oder erstellen Sie Buchungen nicht neu, nur um die Betreuung zu wechseln. Behalten Sie den bestehenden Aufenthalt und klären Sie Zuständigkeiten für Anreise, Reinigung und offene Fragen.
 
 ## Eine Seite Übergabeprotokoll
 
-Halten Sie zum Schluss für jeden Abgang fest: Datum, jeden Zugang aus der Liste, wer ihn wann geschlossen hat, welche Links und Codes sich geändert haben und wer jetzt für jeden anstehenden Aufenthalt zuständig ist. Das dauert zehn Minuten und ist das Erste, was Sie brauchen, falls ein ehemaliger Co-Host später behauptet, sein Zugriff sei nie entzogen worden. Wenn Sie noch abwägen, ob Sie überhaupt einen Nachfolger brauchen, lesen Sie als Nächstes die [Rechnung zur Co-Host-Provision](/blog/airbnb-co-host-commission-math).
+Notieren Sie Übergabezeitpunkt, geprüfte Zugänge, verantwortliche Person, offene Aufgaben und neuen Kontakt pro Aufenthalt. Bewahren Sie den Vermerk privat auf; Passwörter und aktive Zugangslinks gehören nicht in eine geteilte Checkliste. Prüfen Sie abschließend, dass die Nachfolge arbeiten kann und der entzogene Zugang tatsächlich beendet ist.
+
+Wählen Sie eine Nachfolge, behandelt der [Leitfaden zur Co-Host-Provision](/de/blog/airbnb-co-host-commission-math) eine andere Frage: die Bewertung der Zusammenarbeit.
