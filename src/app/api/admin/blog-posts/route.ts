@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSuperadmin } from "@/lib/auth";
+import { requireBlogPublisher } from "@/lib/blog-publishing-auth";
 import { logAudit } from "@/lib/audit";
 import { slugify } from "@/lib/slugify";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
 
 // RT-20.3 tick 1 — admin CRUD for BlogPost. tick 2 ships the full
 // editor page that PATCHes body/excerpt/tags/ogImage; tick 1 keeps the
@@ -13,7 +14,7 @@ const TITLE_MAX = 200;
 const SLUG_MAX = 80;
 const EXCERPT_MAX = 320;
 
-const VALID_LOCALE = new Set(["en", "ru"]);
+const VALID_LOCALE = new Set<string>(SUPPORTED_LOCALES);
 
 interface BlogPostListRow {
   id: number;
@@ -42,8 +43,8 @@ function parseTags(raw: string): string[] {
   }
 }
 
-export async function GET() {
-  const auth = await requireSuperadmin();
+export async function GET(request: NextRequest) {
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
 
   try {
@@ -80,7 +81,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
 
   try {
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     const rawLocale = typeof body.locale === "string" ? body.locale : "en";
     if (!VALID_LOCALE.has(rawLocale)) {
-      return NextResponse.json({ error: "Locale must be 'en' or 'ru'" }, { status: 400 });
+      return NextResponse.json({ error: `Locale must be one of: ${SUPPORTED_LOCALES.join(", ")}` }, { status: 400 });
     }
 
     // Slug: explicit value if non-empty, otherwise derive from title.

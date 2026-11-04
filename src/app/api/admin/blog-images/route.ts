@@ -3,17 +3,14 @@ import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { requireSuperadmin } from "@/lib/auth";
+import { requireBlogPublisher } from "@/lib/blog-publishing-auth";
 import { logAudit } from "@/lib/audit";
 import { log } from "@/lib/logger";
 
 // Blog image upload — author flow used by the editor's image button.
-// Images are written to `public/uploads/blog/` so Next's static handler
-// can serve them at `/uploads/blog/<filename>` with no API round-trip.
-//
-// The directory is gitignored so `git reset --hard` on deploys (see
-// scripts/install-build.sh) leaves uploads untouched. Backups happen
-// out-of-band via the droplet's daily snapshot.
+// Images are written to the persistent `public/uploads/blog/` directory.
+// The /uploads/blog/[filename] handler serves files added after startup,
+// without rebuilding the application. Owned backups include these uploads.
 //
 // Pipeline:
 //   1. Multipart parse, single-file `image` field
@@ -32,7 +29,7 @@ const ACCEPTED = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
 
   let form: FormData;

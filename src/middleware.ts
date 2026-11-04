@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 import { log } from "@/lib/logger";
 import { redactSensitiveRequestPath } from "@/lib/request-path";
+import { isBlogPublishingRequest } from "@/lib/blog-publishing-path";
 
 const JWT_SECRET_RAW = process.env.JWT_SECRET || "fallback-secret-change-me";
 const SECRET = new TextEncoder().encode(JWT_SECRET_RAW);
@@ -279,6 +280,14 @@ export async function middleware(request: NextRequest) {
     }
     return NextResponse.redirect(url);
   };
+
+  // Scoped bearer requests are authenticated again inside each blog handler.
+  // This only dispatches the exact allowlist; it grants no access by itself.
+  if (isBlogPublishingRequest(pathname, request.method) && request.headers.has("authorization")) {
+    const r = withSecurityHeaders(NextResponse.next({ request: { headers: i18nHeaders } }));
+    logRequest(request, r, startedAt);
+    return r;
+  }
 
   // Check session cookie
   const token = request.cookies.get("rent-tool-session")?.value;
