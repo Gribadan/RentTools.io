@@ -54,7 +54,7 @@
     "tailwindcss": "^4",
     "tsx": "4.23.15",
     "typescript": "^6",
-    "vitest": "^4.1.12"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "vite": "8.2.4",
