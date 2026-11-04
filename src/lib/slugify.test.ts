@@ -50,6 +50,13 @@ describe("slugify", () => {
     expect(s.endsWith("-")).toBe(false);
   });
 
+  it("honors a blog-specific limit while retaining the default calendar limit", () => {
+    const slug = "maintenance-calendar-hold-reopening";
+    expect(slugify(slug, 80)).toBe(slug);
+    expect(slugify("a".repeat(90), 80)).toHaveLength(80);
+    expect(slugify(slug)).toHaveLength(32);
+  });
+
   it("preserves digits", () => {
     expect(slugify("Apartment 12B")).toBe("apartment-12b");
     expect(slugify("Property #5")).toBe("property-5");

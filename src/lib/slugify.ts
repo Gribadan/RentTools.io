@@ -9,7 +9,7 @@
  *   1. Transliterate Cyrillic + Latin-with-diacritics → ASCII
  *   2. Lowercase, replace runs of non-[a-z0-9] with a single hyphen
  *   3. Trim leading / trailing hyphens, collapse repeats
- *   4. Truncate to 32 chars (URLs stay short, slugs stay readable)
+ *   4. Truncate to the caller limit (32 characters by default)
  *   5. Empty result → fall back to "custom-calendar"
  */
 
@@ -45,7 +45,7 @@ function transliterate(input: string): string {
 const FALLBACK = "custom-calendar";
 const MAX_LENGTH = 32;
 
-export function slugify(raw: string): string {
+export function slugify(raw: string, maxLength = MAX_LENGTH): string {
   if (!raw) return FALLBACK;
   const ascii = transliterate(raw);
   const cleaned = ascii
@@ -53,7 +53,7 @@ export function slugify(raw: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-")
-    .slice(0, MAX_LENGTH)
+    .slice(0, maxLength)
     // After truncation we may have ended on a hyphen — strip it again.
     .replace(/-+$/g, "");
   return cleaned || FALLBACK;

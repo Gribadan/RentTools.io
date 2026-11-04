@@ -69,7 +69,7 @@ export async function PATCH(
       if (typeof body.slug !== "string") {
         return NextResponse.json({ error: "slug must be a string" }, { status: 400 });
       }
-      const s = slugify(body.slug.trim()).slice(0, SLUG_MAX);
+      const s = slugify(body.slug.trim(), SLUG_MAX);
       if (s.length === 0) {
         return NextResponse.json({ error: "slug cannot be empty" }, { status: 400 });
       }

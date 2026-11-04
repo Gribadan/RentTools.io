@@ -33,3 +33,12 @@ it("does not overwrite a conflicting existing article", async () => {
   expect((await create("en")).status).toBe(409);
   expect(prisma.blogPost.create).not.toHaveBeenCalled();
 });
+
+it("preserves a valid blog slug longer than the calendar slug limit", async () => {
+  const slug = "maintenance-calendar-hold-reopening";
+  const response = await POST(new NextRequest("https://renttools.io/api/admin/blog-posts", {
+    method: "POST", body: JSON.stringify({ title: "Synthetic draft", slug, locale: "en" }),
+  }));
+  expect(response.status).toBe(201);
+  expect((await response.json()).slug).toBe(slug);
+});

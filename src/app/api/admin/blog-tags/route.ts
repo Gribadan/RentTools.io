@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rawSlug = typeof body.slug === "string" ? body.slug.trim() : "";
-    const slug = (rawSlug.length > 0 ? slugify(rawSlug) : slugify(rawName)).slice(0, SLUG_MAX);
+    const slug = (rawSlug.length > 0 ? slugify(rawSlug, SLUG_MAX) : slugify(rawName, SLUG_MAX));
     if (slug.length === 0) {
       return NextResponse.json({ error: "Could not derive a slug" }, { status: 400 });
     }
