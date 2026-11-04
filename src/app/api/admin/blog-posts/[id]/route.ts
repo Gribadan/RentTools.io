@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSuperadmin } from "@/lib/auth";
+import { requireBlogPublisher } from "@/lib/blog-publishing-auth";
 import { logAudit } from "@/lib/audit";
 import { slugify } from "@/lib/slugify";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
 
 const TITLE_MAX = 200;
 const SLUG_MAX = 80;
@@ -15,7 +17,7 @@ const FAQ_ANSWER_MAX = 2_000;
 const FAQ_MAX_ITEMS = 30;
 
 const VALID_STATUS = new Set(["draft", "published", "archived"]);
-const VALID_LOCALE = new Set(["en", "ru"]);
+const VALID_LOCALE = new Set<string>(SUPPORTED_LOCALES);
 
 function parseTags(raw: string): string[] {
   try {
@@ -79,10 +81,10 @@ function parseId(raw: string): number | null {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
 
   try {
@@ -154,7 +156,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
 
   try {
@@ -343,7 +345,7 @@ export async function PATCH(
 
     if (body.locale !== undefined) {
       if (typeof body.locale !== "string" || !VALID_LOCALE.has(body.locale)) {
-        return NextResponse.json({ error: "Locale must be 'en' or 'ru'" }, { status: 400 });
+        return NextResponse.json({ error: `Locale must be one of: ${SUPPORTED_LOCALES.join(", ")}` }, { status: 400 });
       }
       if (body.locale !== existing.locale) {
         nextLocale = body.locale;

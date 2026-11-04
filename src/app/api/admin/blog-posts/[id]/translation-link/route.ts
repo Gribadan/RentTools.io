@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSuperadmin } from "@/lib/auth";
+import { requireBlogPublisher } from "@/lib/blog-publishing-auth";
 import { logAudit } from "@/lib/audit";
 
 // RT-20.3 tick 2 — pair two BlogPosts as translations of one another.
@@ -26,7 +27,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
 
   try {

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSuperadmin } from "@/lib/auth";
+import { requireBlogPublisher } from "@/lib/blog-publishing-auth";
 import { logAudit } from "@/lib/audit";
 import { slugify } from "@/lib/slugify";
+import { SUPPORTED_LOCALES } from "@/lib/i18n/alternates";
 
 const SLUG_MAX = 60;
 const NAME_MAX = 80;
-const VALID_LOCALE = new Set(["en", "ru"]);
+const VALID_LOCALE = new Set<string>(SUPPORTED_LOCALES);
 
 // Each BlogPost stores its tags as a JSON array of slug strings under
 // `tagsJson`. The canonical BlogTag table holds the (slug, locale,
@@ -57,8 +58,8 @@ async function listTags(): Promise<TagRow[]> {
   }));
 }
 
-export async function GET() {
-  const auth = await requireSuperadmin();
+export async function GET(request: NextRequest) {
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
   try {
     return NextResponse.json(await listTags());
@@ -69,7 +70,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
   try {
     const body = (await request.json().catch(() => ({}))) as {
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     const locale = typeof body.locale === "string" ? body.locale : "en";
     if (!VALID_LOCALE.has(locale)) {
-      return NextResponse.json({ error: "Locale must be 'en' or 'ru'" }, { status: 400 });
+      return NextResponse.json({ error: `Locale must be one of: ${SUPPORTED_LOCALES.join(", ")}` }, { status: 400 });
     }
 
     const rawSlug = typeof body.slug === "string" ? body.slug.trim() : "";

@@ -17,16 +17,53 @@ release; publishing a source commit does not deploy the hosted application.
 4. Push the topic branch and open a PR using the repository template. Wait for
    required checks and review before merging. Do not push directly to `master`,
    bypass hooks or override a failed check to publish content.
-5. After merging, the master CI run checks the exact revision and prepares a
-   native ARM64 release image. It does not connect to production. A failed
-   prerequisite skips the image job, leaving the running release untouched.
-6. Release only after an explicit instruction, following
-   [the current Docker procedure](DOCKER-DEPLOYMENT.md). Use its verified artifact,
-   backup and registered controller. The retired SSH deployment workflow and
-   former install scripts are not publication paths.
-7. After an authorized release, inspect every locale's page, cover, canonical,
-   hreflang, structured data and sitemap entry. Report source/PR readiness
-   separately from verified publication on the hosted site.
+5. Publish ordinary content through the authenticated HTTP API described below.
+   A text/cover PR is the versioned editorial archive; it does not require a new
+   Docker image to make the article visible. Keep source checks and publication
+   evidence separate from application release evidence.
+6. Application changes to the publisher itself still require an explicitly
+   authorized release following [the Docker procedure](DOCKER-DEPLOYMENT.md).
+   Do not deploy the application, import an image, run a full database seeder or
+   enter the shared heavy slot merely to publish an article.
+7. Inspect every locale's live page, cover, canonical, hreflang, structured data,
+   catalogue and sitemap. Report verified publication separately from PR readiness.
+
+## HTTP publication
+
+The admin API supports the active languages in `src/lib/i18n/alternates.ts`.
+Existing browser sessions still work. Headless clients may send an optional
+`Authorization: Bearer …` credential configured privately with `BLOG_PUBLISH_TOKEN`
+and `BLOG_PUBLISH_USER_ID`. The latter must identify an existing, unsuspended
+superadmin; demotion, suspension or removing the token disables service access.
+Keep the credential out of arguments, logs, source, commits and publication receipts.
+Do not extract browser cookies or mint replacement administrator sessions.
+
+The service credential is limited to these method/path combinations:
+
+- `GET/POST /api/admin/blog-posts` and `/api/admin/blog-tags`.
+- `GET/PATCH /api/admin/blog-posts/{id}`.
+- `POST /api/admin/blog-posts/{id}/translation-link`.
+- `POST /api/admin/blog-posts/bulk-status` and `/api/admin/blog-images`.
+
+It grants no browser login, deletion, user management, settings, calendar or
+other admin access. Leave both variables blank for session-only operation.
+Enabling this credential is a separate, explicit access/configuration operation.
+
+Use `node scripts/publish-blog-api.mjs SLUG` for a read-only preflight and add
+`--publish` for the authorized publication. Supply the token through the environment
+or a private `BLOG_PUBLISH_TOKEN_FILE`; no secret values belong in shell arguments.
+The client reads only the selected slug's five source files. It records a private
+receipt, refuses existing conflicting content, and resumes only its recorded rows.
+
+The sequence is upload the shared cover, create drafts, fill and verify all content
+fields, link translations, then publish those IDs. Upload multipart field `image`
+to `/api/admin/blog-images`; use its returned URL, width and height for every locale.
+Runtime images live in the existing persistent uploads mount and are served without
+an application rebuild. Preserve their original cover sources in the editorial PR.
+Never overwrite other posts or run a whole-blog import. If a request fails, keep
+the receipt and drafts for resumption. To unpublish, change only the recorded new
+post IDs back to draft; do not restore a whole database over live writes. Normal
+owned database/media backups continue independently of each API publication.
 
 ## Reading a failed check
 

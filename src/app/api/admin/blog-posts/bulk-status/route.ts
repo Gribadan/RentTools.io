@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireSuperadmin } from "@/lib/auth";
+import { requireBlogPublisher } from "@/lib/blog-publishing-auth";
 import { logAudit } from "@/lib/audit";
 
 const VALID_STATUS = new Set(["draft", "published", "archived"]);
@@ -12,7 +12,7 @@ const MAX_IDS = 100;
 // AuditLog reflects per-post changes (matches the shape of single-row
 // PATCHes from /api/admin/blog-posts/[id]).
 export async function POST(request: NextRequest) {
-  const auth = await requireSuperadmin();
+  const auth = await requireBlogPublisher(request);
   if (auth.response) return auth.response;
   try {
     const body = (await request.json().catch(() => ({}))) as {
