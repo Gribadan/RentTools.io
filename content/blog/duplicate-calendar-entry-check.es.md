@@ -34,13 +34,13 @@ Para una investigación técnica, la [sección UID de la especificación iCalend
 
 ## Clasifica la situación según lo confirmado
 
-Elige el siguiente paso a partir de los registros originales, no de la explicación que permita limpiar la pantalla más fácilmente.
+Elige el siguiente paso a partir de los registros originales. Aquí una reserva significa una estancia actualmente confirmada y no cancelada. Un conflicto requiere dos reservas de la misma unidad que compartan al menos una noche ocupada. Un duplicado supone que ambas entradas se han relacionado con la misma estancia de origen.
 
-| Evidencia confirmada | Qué significa | Siguiente acción |
+| Confirmado | Tipo | Siguiente paso |
 | --- | --- | --- |
-| Una reserva confirmada y no cancelada aparece dos veces | Representación duplicada de una estancia | Rastrear los registros o la conexión; mantener protegidas las noches ocupadas. |
-| Dos reservas confirmadas y no canceladas de la misma unidad comparten una noche ocupada | Conflicto real de reservas | Avisar pronto al responsable y a las plataformas; no borrar una reserva para ocultarlo. |
-| Una reserva y un cierre manual independiente | Estancia más restricción de disponibilidad | Averiguar el motivo del cierre antes de cambiarlo. |
+| Una reserva | Vista duplicada | Revisar la fuente |
+| Dos reservas | Conflicto real | Contactar la plataforma |
+| Reserva + bloqueo | Restricción | Comprobar el motivo |
 
 Si todavía no puedes comprobar una fuente, deja la clasificación abierta. No habilites una noche que sabes ocupada solo porque la segunda entrada tenga una etiqueta confusa. La [revisión de fechas bloqueadas](/es/blog/blocked-calendar-dates-not-reservations) ayuda a distinguir reservas de otras restricciones.
 

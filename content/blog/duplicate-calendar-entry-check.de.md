@@ -34,13 +34,13 @@ Für technische Prüfungen definiert der [UID-Abschnitt der iCalendar-Spezifikat
 
 ## Nach bestätigten Fakten unterscheiden
 
-Wählen Sie den nächsten Schritt anhand der Originaldatensätze, nicht danach, welche Erklärung die Ansicht am einfachsten aufräumen würde.
+Wählen Sie den nächsten Schritt anhand der Originaldatensätze. Eine Buchung meint hier eine aktuell bestätigte, nicht stornierte Reservierung. Ein Konflikt setzt zwei solche Buchungen derselben vermietbaren Einheit mit mindestens einer gemeinsamen belegten Nacht voraus. Bei einer doppelten Darstellung wurden beide Einträge demselben Originalaufenthalt zugeordnet.
 
-| Bestätigte Fakten | Bedeutung | Nächster Schritt |
+| Nachgewiesen | Typ | Nächster Schritt |
 | --- | --- | --- |
-| Eine bestätigte, nicht stornierte Buchung wird zweimal dargestellt | Doppelte Darstellung eines Aufenthalts | Zugehörige Datensätze oder Verbindung prüfen; belegte Nächte geschützt lassen. |
-| Zwei bestätigte, nicht stornierte Buchungen derselben Einheit teilen eine belegte Nacht | Echter Buchungskonflikt | Zuständige Person und Plattformen umgehend einbeziehen; keine Buchung zum Verbergen löschen. |
-| Eine Buchung und eine separate manuelle Sperre | Aufenthalt plus Verfügbarkeitsbeschränkung | Sperrgrund vor einer Änderung feststellen. |
+| Eine Buchung | Doppelte Ansicht | Quelle prüfen |
+| Zwei Buchungen | Echter Konflikt | Plattform kontaktieren |
+| Buchung + Sperre | Einschränkung | Grund klären |
 
 Ist eine Quelle noch nicht prüfbar, bleibt die Einordnung offen. Geben Sie keine sicher belegte Nacht frei, nur weil die zweite Beschriftung unklar ist. Die [Prüfung blockierter Daten](/de/blog/blocked-calendar-dates-not-reservations) hilft, Buchungen von anderen Einschränkungen zu unterscheiden.
 
