@@ -38,8 +38,8 @@ Choisissez la suite à partir des enregistrements d’origine, pas selon l’exp
 
 | Éléments confirmés | Signification | Action suivante |
 | --- | --- | --- |
-| Une réservation active apparaît deux fois | Double représentation d’un séjour | Retracer les données ou la connexion ; préserver les nuits occupées. |
-| Deux réservations actives de la même unité partagent une nuit occupée | Véritable conflit de réservation | Alerter rapidement le responsable et les plateformes ; ne pas effacer une réservation pour cacher le conflit. |
+| Une réservation confirmée, non annulée, apparaît deux fois | Double représentation d’un séjour | Retracer les données ou la connexion ; préserver les nuits occupées. |
+| Deux réservations confirmées, non annulées, de la même unité partagent une nuit occupée | Véritable conflit de réservation | Alerter rapidement le responsable et les plateformes ; ne pas effacer une réservation pour cacher le conflit. |
 | Une réservation et une fermeture manuelle distincte | Séjour plus restriction de disponibilité | Identifier la raison du blocage avant de le modifier. |
 
 Si une source ne peut pas encore être vérifiée, laissez la situation non résolue. Ne rouvrez pas une nuit réellement occupée parce que la seconde entrée porte un libellé flou. Le [guide des dates bloquées](/fr/blog/blocked-calendar-dates-not-reservations) aide à distinguer réservations et autres restrictions.

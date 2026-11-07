@@ -38,8 +38,8 @@ Elige el siguiente paso a partir de los registros originales, no de la explicaci
 
 | Evidencia confirmada | Qué significa | Siguiente acción |
 | --- | --- | --- |
-| Una reserva activa aparece dos veces | Representación duplicada de una estancia | Rastrear los registros o la conexión; mantener protegidas las noches ocupadas. |
-| Dos reservas activas de la misma unidad comparten una noche ocupada | Conflicto real de reservas | Avisar pronto al responsable y a las plataformas; no borrar una reserva para ocultarlo. |
+| Una reserva confirmada y no cancelada aparece dos veces | Representación duplicada de una estancia | Rastrear los registros o la conexión; mantener protegidas las noches ocupadas. |
+| Dos reservas confirmadas y no canceladas de la misma unidad comparten una noche ocupada | Conflicto real de reservas | Avisar pronto al responsable y a las plataformas; no borrar una reserva para ocultarlo. |
 | Una reserva y un cierre manual independiente | Estancia más restricción de disponibilidad | Averiguar el motivo del cierre antes de cambiarlo. |
 
 Si todavía no puedes comprobar una fuente, deja la clasificación abierta. No habilites una noche que sabes ocupada solo porque la segunda entrada tenga una etiqueta confusa. La [revisión de fechas bloqueadas](/es/blog/blocked-calendar-dates-not-reservations) ayuda a distinguir reservas de otras restricciones.

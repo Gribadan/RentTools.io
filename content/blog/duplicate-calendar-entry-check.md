@@ -38,8 +38,8 @@ Use the original records to choose the branch, rather than choosing the branch t
 
 | Confirmed evidence | What it means | Next action |
 | --- | --- | --- |
-| One active booking, represented twice | A duplicate representation of one stay | Trace the records or connection responsible; preserve the occupied nights. |
-| Two active bookings for the same unit sharing an occupied night | A genuine reservation conflict | Escalate promptly to the booking owner and the relevant platforms; do not erase either reservation to hide it. |
+| One confirmed, uncancelled booking, represented twice | A duplicate representation of one stay | Trace the records or connection responsible; preserve the occupied nights. |
+| Two confirmed, uncancelled bookings for the same unit sharing an occupied night | A genuine reservation conflict | Escalate promptly to the booking owner and the relevant platforms; do not erase either reservation to hide it. |
 | One booking and a separate manual closure | A stay plus an availability restriction | Establish why the closure exists before changing it. |
 
 If a source cannot yet be checked, leave the classification unresolved. Do not reopen a known occupied night just because the second entry has an unclear label. The [blocked-date review](/blog/blocked-calendar-dates-not-reservations) helps separate reservations from other restrictions.
