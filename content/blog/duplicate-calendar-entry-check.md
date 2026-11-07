@@ -34,13 +34,13 @@ For a technical investigation, the [iCalendar specification's UID section](https
 
 ## Classify what the evidence actually establishes
 
-Use the original records to choose the branch, rather than choosing the branch that makes the calendar easiest to clean up.
+Use the original records to choose the branch. Here, a booking means a currently confirmed, uncancelled reservation. A conflict requires two such bookings for the same rentable unit sharing at least one occupied night. A duplicate means that both entries have been traced to the same original stay.
 
-| Confirmed evidence | What it means | Next action |
+| Evidence | Type | Next step |
 | --- | --- | --- |
-| One confirmed, uncancelled booking, represented twice | A duplicate representation of one stay | Trace the records or connection responsible; preserve the occupied nights. |
-| Two confirmed, uncancelled bookings for the same unit sharing an occupied night | A genuine reservation conflict | Escalate promptly to the booking owner and the relevant platforms; do not erase either reservation to hide it. |
-| One booking and a separate manual closure | A stay plus an availability restriction | Establish why the closure exists before changing it. |
+| One booking | Duplicate view | Trace the source |
+| Two bookings | Real conflict | Contact the platform |
+| Booking + hold | Restriction | Check the reason |
 
 If a source cannot yet be checked, leave the classification unresolved. Do not reopen a known occupied night just because the second entry has an unclear label. The [blocked-date review](/blog/blocked-calendar-dates-not-reservations) helps separate reservations from other restrictions.
 
