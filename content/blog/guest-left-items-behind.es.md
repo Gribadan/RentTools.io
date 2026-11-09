@@ -12,7 +12,7 @@ ogImageUrl: /blog-covers/guest-left-items-behind.webp
 ogImageWidth: 1600
 ogImageHeight: 900
 tldr: |
-  - Pida a quien limpia que anote cada hallazgo: alojamiento, fecha, lugar y foto.
+  - Pida a quien limpia que anote cada hallazgo: alojamiento, fecha y lugar; fotos solo de objetos no sensibles.
   - Retírelo del espacio del siguiente huésped; guarde aparte lo valioso y lo personal.
   - Escriba al huésped por la conversación de la reserva, no a un número encontrado.
   - Acuerde el envío y quién paga el franqueo antes de mandar nada.
@@ -29,7 +29,7 @@ Quien encuentra el objeto tiene una sola tarea: registrarlo antes de seguir. Una
 - A qué alojamiento y, probablemente, a qué salida pertenece.
 - La fecha y la habitación o el lugar donde apareció.
 - Una descripción breve y neutra, como «cargador de móvil negro» o «cartera de piel marrón».
-- Una foto del objeto tal como se encontró, sin abrir bolsos ni leer documentos.
+- Si resulta útil, una foto de un objeto no sensible; no fotografíe documentos, tarjetas ni recetas y no abra bolsos.
 - Dónde se dejó después y quién lo tiene ahora.
 
 Si dos estancias terminaron casi a la vez o el objeto apareció mucho después, indíquelo en lugar de adivinar. Asociarlo a la reserva equivocada significa escribir a un huésped que nunca lo tuvo.
@@ -47,11 +47,11 @@ Los objetos cotidianos y los sensibles se tratan de forma distinta:
 | Cotidiano | cargadores, ropa, artículos de aseo, libros | Bolsa, etiqueta con alojamiento y fecha, guardar en el trastero del anfitrión o con quien limpia |
 | Valioso | joyas, efectivo, electrónica, relojes | Foto, sobre o bolsa cerrada, entregar a una sola persona designada |
 | Documentos personales | pasaportes, documentos de identidad, tarjetas bancarias, recetas | No fotografiar el contenido, guardar bajo llave y contactar pronto con el huésped |
-| Perecedero | comida, bebidas abiertas, flores | Tirar durante la limpieza salvo que sea claramente valioso o un medicamento |
+| Perecedero | comida, bebidas abiertas, flores | Separar de las provisiones de huéspedes; seguir el procedimiento seguro acordado |
 
-Con documentos personales, fotografíe solo el exterior y no copie números ni nombres en una nota compartida. La [guía del RGPD para anfitriones](/es/blog/gdpr-for-vacation-rental-hosts) explica por qué conviene recoger solo los datos personales que exige la tarea. «Pasaporte encontrado en la caja fuerte del dormitorio, cerrado, en poder del anfitrión» basta para el equipo.
+No fotografíe documentos personales, tarjetas bancarias ni recetas y no copie números ni nombres en una nota compartida. Consulte el [principio de minimización de datos de la Comisión Europea](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en). La [guía del RGPD para anfitriones](/es/blog/gdpr-for-vacation-rental-hosts) explica por qué conviene recoger solo los datos personales que exige la tarea. «Pasaporte encontrado en la caja fuerte del dormitorio, cerrado, en poder del anfitrión» basta para el equipo.
 
-Decida de antemano cuánto tiempo guarda los objetos no reclamados y qué ocurre después. Indique el plazo en las normas de la casa o en la guía del alojamiento para que la regla exista antes que el conflicto. Antes de deshacerse de algo, consulte la normativa local sobre objetos perdidos y sobre lo que esté regulado aparte, como medicamentos o documentos oficiales.
+Consulte las normas aplicables a objetos perdidos antes de fijar un plazo o eliminación; una norma de la casa no basta para autorizarla. Indique el plazo en las normas de la casa o en la guía del alojamiento para que la regla exista antes que el conflicto. Antes de deshacerse de algo, consulte la normativa local sobre objetos perdidos y sobre lo que esté regulado aparte, como medicamentos o documentos oficiales.
 
 ## Contactar con el huésped a través de la reserva
 
@@ -71,19 +71,19 @@ Para un envío por correo, deje por escrito cuatro detalles:
 
 1. La dirección de entrega completa, escrita por el propio huésped en la conversación.
 2. El servicio: con o sin seguimiento, y seguro para objetos de valor.
-3. El coste: franqueo, embalaje y la tarifa de gestión que cobre, si la hay.
+3. El coste: franqueo y embalaje según las reglas de la plataforma y del transportista; no dé por permitida una tarifa de gestión adicional.
 4. Cuándo llega el pago y cuándo enviará el paquete.
 
 **Ejemplo ilustrativo:** un huésped pide que le envíen una chaqueta a otro país. Usted indica el precio de un envío con seguimiento, el huésped paga el importe a través de la plataforma y usted envía el paquete el siguiente día laborable y añade el número de seguimiento a la conversación. El servicio, los plazos y cualquier tarifa son supuestos del ejemplo, no una tarifa recomendada.
 
-Envíe el objeto solo a la dirección que el huésped indicó en la conversación. Nunca lo entregue a alguien que simplemente se presenta en la puerta. Si lo recoge un tercero, pida al huésped que nombre a esa persona en un mensaje y solicite un documento con foto en la entrega; anote el nombre, no los datos del documento.
+Envíe el objeto solo a la dirección que el huésped indicó en la conversación. Nunca lo entregue a alguien que simplemente se presenta en la puerta. Si lo recoge un tercero, pida al huésped que nombre a esa persona en un mensaje y acuerde con el huésped cómo comprobar al destinatario; registre la entrega autorizada sin copiar documentos de identidad.
 
-Cierre la tarea en el registro de limpieza: «Devuelto con seguimiento el [fecha], número en la conversación de la reserva» o «Desechado tras el plazo de custodia, sin respuesta». Quien abra después el historial verá el resultado en lugar de una pregunta abierta.
+Cierre la tarea en el registro de limpieza: «Devuelto con seguimiento el [fecha], número en la conversación de la reserva» o «No reclamado, siguiente paso comprobado según las normas aplicables a objetos perdidos». Quien abra después el historial verá el resultado en lugar de una pregunta abierta.
 
 ## Facilitar la próxima limpieza
 
-Un olvido que se repite suele hablar del alojamiento, no de los huéspedes. Si cada mes aparece un cargador en el mismo enchufe, falta un punto de carga en el salón. La ropa en un armario que nadie revisa es motivo para añadir ese armario a la [lista de limpieza](/es/blog/cleaning-schedule-automation).
+Un olvido que se repite suele hablar del alojamiento, no de los huéspedes. Si aparecen cargadores repetidamente junto al mismo enchufe, considere un recordatorio de salida más visible para ese lugar. La ropa en un armario que nadie revisa es motivo para añadir ese armario a la [lista de limpieza](/es/blog/cleaning-schedule-automation).
 
 Añada un breve recordatorio al mensaje de salida: revisar el baño, los cajones, los armarios, la caja fuerte y los cargadores. Al huésped no le cuesta nada y a usted le ahorra después la conversación sobre el franqueo.
 
-Tener las notas de limpieza de todos los alojamientos en un solo lugar hace visibles estos patrones. Si todavía coordina las limpiezas en chats dispersos, [cree un espacio gratuito en RentTools](/onboard) y vincule el próximo hallazgo a su registro de limpieza.
+Tener las notas de limpieza de todos los alojamientos en un solo lugar hace visibles estos patrones. Si todavía coordina las limpiezas en chats dispersos, [cree un espacio gratuito en RentTools](/es/onboard) y vincule el próximo hallazgo a su registro de limpieza.

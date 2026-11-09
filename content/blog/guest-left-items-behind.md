@@ -12,7 +12,7 @@ ogImageUrl: /blog-covers/guest-left-items-behind.webp
 ogImageWidth: 1600
 ogImageHeight: 900
 tldr: |
-  - Ask the cleaner to record each found item with the property, date, location and a photo.
+  - Ask the cleaner to record each found item with the property, date and location; photograph only non-sensitive items.
   - Remove it from the next guest's space and store anything valuable or personal separately.
   - Contact the departed guest through the booking conversation, not a number you found.
   - Agree the delivery method and who pays postage before sending anything.
@@ -29,7 +29,7 @@ Give the person who finds the item one simple job: record it before moving on. A
 - Which property and which departure it most likely belongs to.
 - The date and the room or spot where it was found.
 - A short neutral description, such as "black phone charger" or "brown leather wallet".
-- A photo of the item as found, without opening bags or reading documents.
+- If useful, a photo of a non-sensitive item as found; do not photograph documents, cards or prescriptions, or open bags.
 - Where it was put afterwards and who has it now.
 
 If two stays ended close together, or the item was found after a long gap, say so in the note rather than guessing. Matching the item to the wrong reservation means contacting a guest who never stayed with it.
@@ -47,11 +47,11 @@ Treat everyday items and sensitive items differently:
 | Everyday | chargers, clothing, toiletries, books | Bag, label with property and date, store in the owner's closet or with the cleaner |
 | Valuable | jewellery, cash, electronics, watches | Photograph, seal in an envelope or bag, hand to one named person |
 | Personal documents | passports, ID cards, bank cards, prescriptions | Do not photograph the contents; secure them and contact the guest promptly |
-| Perishable | food, open drinks, flowers | Discard during the turnover unless clearly valuable or medical |
+| Perishable | food, open drinks, flowers | Separate from reusable supplies; follow the agreed safe handling plan |
 
-For personal documents, keep the photo to the outside of the item and avoid recording numbers or names in a shared note. The [GDPR guide for hosts](/blog/gdpr-for-vacation-rental-hosts) explains why a host should collect only the personal data needed for the task. "Passport found in bedroom safe, sealed, held by host" is enough for the team.
+Do not photograph personal documents, bank cards or prescriptions and avoid recording numbers or names in a shared note. See the [European Commission’s data-minimisation principle](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en). The [GDPR guide for hosts](/blog/gdpr-for-vacation-rental-hosts) explains why a host should collect only the personal data needed for the task. "Passport found in bedroom safe, sealed, held by host" is enough for the team.
 
-Decide in advance how long you hold unclaimed items and what happens after that. Put the period in your house rules or guidebook so the policy exists before the dispute does. Check local rules for found property and anything regulated, such as medication or documents issued by a government, before you dispose of it.
+Check the applicable found-property rules before setting a holding period or disposal plan; a house rule alone does not authorize disposal. Put the period in your house rules or guidebook so the policy exists before the dispute does. Check local rules for found property and anything regulated, such as medication or documents issued by a government, before you dispose of it.
 
 ## Contact the guest through the booking
 
@@ -71,18 +71,18 @@ For posting, settle four details in writing:
 
 1. The full delivery address, written by the guest in the conversation.
 2. The service: tracked or untracked, and any insurance for valuable items.
-3. The cost: postage, packaging and any handling fee you charge.
+3. The cost: postage and packaging, subject to the platform and carrier rules; do not assume an extra handling fee is permitted.
 4. When payment arrives and when you will send the parcel.
 
 **Illustrative example:** a guest asks for a jacket to be posted to another country. You quote a tracked service, the guest sends the cost through the platform and you post the parcel the next weekday with the tracking number added to the conversation. The service, timing and any fee are assumptions for the example, not a recommended tariff.
 
-Send the item only to the address the guest gave in the conversation. Never hand it to someone who simply turns up at the door. If a third party collects, ask the guest to name that person in the message and ask for photo ID at handover; note the name, not the ID details.
+Send the item only to the address the guest gave in the conversation. Never hand it to someone who simply turns up at the door. If a third party collects, ask the guest to name that person in the message and agree a collection check with the guest; record that the authorized handover was completed without copying identity documents.
 
-Close the loop in the cleaning record: "Returned by tracked post on [date], tracking number in booking conversation" or "Disposed after holding period, no reply". The next person who opens the turnover history sees the outcome instead of an open question.
+Close the loop in the cleaning record: "Returned by tracked post on [date], tracking number in booking conversation" or "Unclaimed, next step checked against applicable found-property rules". The next person who opens the turnover history sees the outcome instead of an open question.
 
 ## Make the next turnover easier
 
-A recurring find usually points at the property, not the guest. Chargers in the same socket every month suggest a missing charging spot in the living room. Clothes in a wardrobe nobody checks suggest adding that wardrobe to the [cleaning checklist](/blog/cleaning-schedule-automation).
+A recurring find usually points at the property, not the guest. If chargers repeatedly turn up at the same socket, consider a clearer departure reminder for that spot. Clothes in a wardrobe nobody checks suggest adding that wardrobe to the [cleaning checklist](/blog/cleaning-schedule-automation).
 
 Add a short checkout reminder to the departure message: check the bathroom, drawers, wardrobes, safe and chargers. It does not cost the guest anything and saves you the postage conversation later.
 
