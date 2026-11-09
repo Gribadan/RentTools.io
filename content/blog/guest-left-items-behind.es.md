@@ -42,12 +42,12 @@ Saque el objeto del alojamiento antes de la próxima llegada. Un cargador en un 
 
 Los objetos cotidianos y los sensibles se tratan de forma distinta:
 
-| Tipo de objeto | Ejemplos | Qué hacer |
-|---|---|---|
-| Cotidiano | cargadores, ropa, artículos de aseo, libros | Bolsa, etiqueta con alojamiento y fecha, guardar en el trastero del anfitrión o con quien limpia |
-| Valioso | joyas, efectivo, electrónica, relojes | Foto, sobre o bolsa cerrada, entregar a una sola persona designada |
-| Documentos personales | pasaportes, documentos de identidad, tarjetas bancarias, recetas | No fotografiar el contenido, guardar bajo llave y contactar pronto con el huésped |
-| Perecedero | comida, bebidas abiertas, flores | Separar de las provisiones de huéspedes; seguir el procedimiento seguro acordado |
+| Objeto | Primera acción |
+|---|---|
+| Cotidiano | Embolsar, etiquetar |
+| Valioso | Sellar, entregar al anfitrión |
+| Documentos, tarjetas | Sin fotos, guardar seguro |
+| Perecedero | Procedimiento separado |
 
 No fotografíe documentos personales, tarjetas bancarias ni recetas y no copie números ni nombres en una nota compartida. Consulte el [principio de minimización de datos de la Comisión Europea](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en). La [guía del RGPD para anfitriones](/es/blog/gdpr-for-vacation-rental-hosts) explica por qué conviene recoger solo los datos personales que exige la tarea. «Pasaporte encontrado en la caja fuerte del dormitorio, cerrado, en poder del anfitrión» basta para el equipo.
 

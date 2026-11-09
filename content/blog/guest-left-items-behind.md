@@ -42,12 +42,12 @@ Take the item out of the guest space before the next arrival. A charger left in 
 
 Treat everyday items and sensitive items differently:
 
-| Item type | Examples | Handling |
-|---|---|---|
-| Everyday | chargers, clothing, toiletries, books | Bag, label with property and date, store in the owner's closet or with the cleaner |
-| Valuable | jewellery, cash, electronics, watches | Photograph, seal in an envelope or bag, hand to one named person |
-| Personal documents | passports, ID cards, bank cards, prescriptions | Do not photograph the contents; secure them and contact the guest promptly |
-| Perishable | food, open drinks, flowers | Separate from reusable supplies; follow the agreed safe handling plan |
+| Item | First action |
+|---|---|
+| Everyday | Bag and label |
+| Valuable | Seal; hand to host |
+| Documents, cards | No photos; secure |
+| Perishable | Separate handling plan |
 
 Do not photograph personal documents, bank cards or prescriptions and avoid recording numbers or names in a shared note. See the [European Commission’s data-minimisation principle](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en). The [GDPR guide for hosts](/blog/gdpr-for-vacation-rental-hosts) explains why a host should collect only the personal data needed for the task. "Passport found in bedroom safe, sealed, held by host" is enough for the team.
 

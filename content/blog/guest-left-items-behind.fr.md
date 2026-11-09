@@ -42,12 +42,12 @@ Sortez l'objet du logement avant la prochaine arrivée. Un chargeur dans un tiro
 
 Objets courants et objets sensibles ne se traitent pas de la même façon :
 
-| Type d'objet | Exemples | Traitement |
-|---|---|---|
-| Courant | chargeurs, vêtements, produits de toilette, livres | Sac, étiquette avec logement et date, rangement dans le local de l'hôte ou chez l'agent d'entretien |
-| De valeur | bijoux, espèces, appareils électroniques, montres | Photo, enveloppe ou sachet scellé, remise à une seule personne nommée |
-| Documents personnels | passeports, pièces d'identité, cartes bancaires, ordonnances | Ne pas photographier le contenu, mettre en lieu sûr et contacter rapidement le voyageur |
-| Périssable | nourriture, boissons entamées, fleurs | Séparer des réserves des voyageurs ; suivre la procédure sûre convenue |
+| Objet | Première action |
+|---|---|
+| Courant | Emballer, étiqueter |
+| De valeur | Sceller, confier à l’hôte |
+| Documents, cartes | Sans photo, sécuriser |
+| Périssable | Traitement séparé |
 
 Ne photographiez pas les documents personnels, cartes bancaires ou ordonnances et ne reportez ni numéro ni nom dans une note partagée. Voir le [principe de minimisation des données de la Commission européenne](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en). Le [guide RGPD pour les hôtes](/fr/blog/gdpr-for-vacation-rental-hosts) explique pourquoi un hôte ne doit collecter que les données personnelles nécessaires à la tâche. « Passeport trouvé dans le coffre de la chambre, scellé, gardé par l'hôte » suffit à l'équipe.
 
