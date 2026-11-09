@@ -42,12 +42,12 @@ Nehmen Sie den Gegenstand vor der nächsten Anreise aus der Unterkunft. Ein Lade
 
 Alltägliche und sensible Gegenstände verlangen eine unterschiedliche Behandlung:
 
-| Art | Beispiele | Umgang |
-|---|---|---|
-| Alltäglich | Ladekabel, Kleidung, Kosmetik, Bücher | In eine Tüte, mit Unterkunft und Datum beschriften, im Abstellraum oder bei der Reinigungskraft lagern |
-| Wertvoll | Schmuck, Bargeld, Elektronik, Uhren | Fotografieren, in Umschlag oder Beutel versiegeln, einer namentlich benannten Person übergeben |
-| Persönliche Dokumente | Reisepässe, Ausweise, Bankkarten, Rezepte | Inhalt nicht fotografieren, sicher verwahren und den Gast zeitnah kontaktieren |
-| Verderblich | Lebensmittel, angebrochene Getränke, Blumen | Von Gästebeständen trennen; vereinbartes sicheres Vorgehen beachten |
+| Gegenstand | Erster Schritt |
+|---|---|
+| Alltäglich | Verpacken, beschriften |
+| Wertvoll | Versiegeln, Host übergeben |
+| Dokumente, Karten | Kein Foto, sicher lagern |
+| Verderblich | Separates Vorgehen |
 
 Fotografieren Sie keine persönlichen Dokumente, Bankkarten oder Rezepte und übernehmen keine Nummern oder Namen in eine gemeinsame Notiz. Siehe den [Grundsatz der Datenminimierung der Europäischen Kommission](https://commission.europa.eu/law/law-topic/data-protection/information-business-and-organisations/principles-gdpr_en). Der [DSGVO-Leitfaden für Gastgeber](/de/blog/gdpr-for-vacation-rental-hosts) erklärt, warum Sie nur die personenbezogenen Daten erheben sollten, die die Aufgabe erfordert. „Reisepass im Schlafzimmertresor gefunden, versiegelt, beim Gastgeber“ genügt dem Team.
 
