@@ -81,7 +81,7 @@ Add each mid-stay visit by hand to the plan your cleaner actually reads, with:
 
 A RentTools cleaning record holds a date, a status and notes. The note is the place for the scope and the guest's confirmation. It does not message the guest or ask for permission on your behalf.
 
-Long stays change more often than short ones. If the guest extends or leaves early, the visits move with the dates; go through the [date-change checklist](/blog/reservation-date-change-cleaning-checklist) and update each visit rather than only the final cleaning.
+If the guest extends or leaves early, the visits move with the dates; go through the [date-change checklist](/blog/reservation-date-change-cleaning-checklist) and update each visit rather than only the final cleaning.
 
 ## Plan the departure cleaning as a bigger job
 

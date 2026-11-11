@@ -81,7 +81,7 @@ Añada a mano cada visita al plan que su personal de limpieza lee de verdad, con
 
 Un registro de limpieza de RentTools contiene fecha, estado y notas. La nota es el lugar para el alcance y la confirmación del huésped. No escribe al huésped ni pide permiso en su nombre.
 
-Las estancias largas cambian más que las cortas. Si el huésped prolonga o se va antes, las visitas se mueven con las fechas; repase la [lista de cambio de fechas](/es/blog/reservation-date-change-cleaning-checklist) y actualice cada visita, no solo la limpieza final.
+Si el huésped prolonga o se va antes, las visitas se mueven con las fechas; repase la [lista de cambio de fechas](/es/blog/reservation-date-change-cleaning-checklist) y actualice cada visita, no solo la limpieza final.
 
 ## Planifique la limpieza de salida como un trabajo mayor
 

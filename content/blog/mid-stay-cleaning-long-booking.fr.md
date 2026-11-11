@@ -81,7 +81,7 @@ Ajoutez chaque visite à la main dans le planning que la personne chargée du m�
 
 Une fiche de ménage RentTools contient une date, un statut et des notes. La note est l'endroit où consigner le périmètre et la confirmation du voyageur. Elle n'écrit pas au voyageur et ne demande pas l'autorisation à votre place.
 
-Les longs séjours changent plus souvent que les courts. Si le voyageur prolonge ou part plus tôt, les visites se décalent avec les dates ; reprenez la [check-list de changement de dates](/fr/blog/reservation-date-change-cleaning-checklist) et mettez à jour chaque visite, pas seulement le ménage final.
+Si le voyageur prolonge ou part plus tôt, les visites se décalent avec les dates ; reprenez la [check-list de changement de dates](/fr/blog/reservation-date-change-cleaning-checklist) et mettez à jour chaque visite, pas seulement le ménage final.
 
 ## Prévoyez le ménage de départ comme un chantier plus lourd
 

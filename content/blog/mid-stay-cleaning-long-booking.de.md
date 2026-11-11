@@ -81,7 +81,7 @@ Tragen Sie jede Zwischenreinigung von Hand in den Plan ein, den Ihre Reinigungsk
 
 Ein Reinigungseintrag in RentTools enthält Datum, Status und Notizen. Die Notiz ist der Ort für Umfang und Bestätigung des Gastes. Sie schreibt dem Gast nicht und holt keine Erlaubnis für Sie ein.
 
-Lange Aufenthalte ändern sich häufiger als kurze. Verlängert der Gast oder reist er früher ab, wandern die Besuche mit den Daten; gehen Sie die [Checkliste für Datumsänderungen](/de/blog/reservation-date-change-cleaning-checklist) durch und aktualisieren Sie jeden Besuch, nicht nur die Endreinigung.
+Verlängert der Gast oder reist er früher ab, wandern die Besuche mit den Daten; gehen Sie die [Checkliste für Datumsänderungen](/de/blog/reservation-date-change-cleaning-checklist) durch und aktualisieren Sie jeden Besuch, nicht nur die Endreinigung.
 
 ## Planen Sie die Endreinigung als größere Arbeit
 
