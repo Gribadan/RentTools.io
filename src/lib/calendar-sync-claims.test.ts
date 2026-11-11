@@ -220,6 +220,89 @@ describe("ambiguous source UID changes", () => {
   });
 });
 
+describe("completed source history", () => {
+  beforeEach(async () => {
+    await database.calendarEvent.create({ data: source });
+    await database.calendarLink.create({ data: { id: 1, propertyId: 12, platform: "airbnb", icalExportUrl: "https://example.invalid/feed.ics" } });
+    mocks.transaction.mockImplementation(async callback => callback(database));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(generateICal([]))));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ["booking", "2099-08-23T00:00:00Z"],
+    ["airbnb", "2099-08-23T12:00:00Z"],
+    ["vrbo", "2099-08-23T23:59:59Z"],
+  ])("keeps %s history and linked details when checkout-day exports omit it", async (platform, now) => {
+    vi.setSystemTime(new Date(now));
+    await database.calendarEvent.update({ where: { id: source.id }, data: { platform } });
+    await database.calendarLink.update({ where: { id: 1 }, data: { platform } });
+    mocks.calendarLinkFindMany.mockResolvedValue([{ id: 1, propertyId: 12, platform, icalExportUrl: "https://example.invalid/feed.ics", property: { name: "Test apartment" } }]);
+    const before = await savedRows();
+    expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ removedEvents: 0, errors: 0 });
+    expect(await database.calendarEvent.count()).toBe(1);
+    expect(await savedRows()).toEqual(before);
+  });
+
+  it("continues preserving events after the checkout date", async () => {
+    vi.setSystemTime(new Date("2099-08-24T12:00:00Z"));
+    expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ removedEvents: 0, errors: 0 });
+    expect(await database.calendarEvent.count()).toBe(1);
+  });
+
+  it.each(["2099-08-18T12:00:00Z", "2099-08-22T12:00:00Z"])(
+    "still removes a missing source with future occupied nights at %s", async now => {
+      vi.setSystemTime(new Date(now));
+      expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ removedEvents: 1, errors: 0 });
+      expect(await database.calendarEvent.count()).toBe(0);
+      expect(await database.reservation.count()).toBe(6);
+      expect(await database.reservation.findUnique({ where: { id: 1 }, select: { linkedEventUid: true } })).toEqual({ linkedEventUid: null });
+    },
+  );
+
+  it("keeps adjacent completed stays across consecutive checkout-day snapshots", async () => {
+    const next = { uid: "next-source", summary: "Reserved", startDate: "2099-08-23", endDate: "2099-08-24" };
+    let feed = [next];
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(generateICal(feed))));
+    vi.setSystemTime(new Date("2099-08-23T12:00:00Z"));
+    expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ newEvents: 1, removedEvents: 0, errors: 0 });
+    feed = [];
+    for (const day of [24, 25]) {
+      vi.setSystemTime(new Date(`2099-08-${day}T12:00:00Z`));
+      expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ removedEvents: 0, errors: 0 });
+    }
+    expect(await database.calendarEvent.findMany({ orderBy: { startDate: "asc" }, select: { startDate: true, endDate: true } }))
+      .toEqual([{ startDate: source.startDate, endDate: source.endDate }, { startDate: next.startDate, endDate: next.endDate }]);
+  });
+
+  it("still follows a unique checkout-day UID reissue and extended checkout", async () => {
+    vi.setSystemTime(new Date("2099-08-23T12:00:00Z"));
+    const next = { ...source, uid: "replacement-source", endDate: "2099-08-24" };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(generateICal([next]))));
+    expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ newEvents: 1, removedEvents: 1, errors: 0 });
+    expect(await database.calendarEvent.findMany({ select: { uid: true } })).toEqual([{ uid: next.uid }]);
+    const rows = await savedRows();
+    expect(rows.find(row => row.id === 1)).toMatchObject({ linkedEventUid: next.uid, checkOut: new Date(next.endDate) });
+    expect(rows.find(row => row.id === 2)).toMatchObject({ linkedEventUid: next.uid, checkOut: new Date("2099-08-25") });
+    expect(rows.find(row => row.id === 3)).toMatchObject({ linkedEventRole: "extension", linkedEventUid: next.uid, checkIn: new Date("2099-08-23"), checkOut: new Date("2099-08-25") });
+  });
+
+  it("includes preserved checkout-day sources when checking an ambiguous UID merge", async () => {
+    vi.setSystemTime(new Date("2099-08-23T12:00:00Z"));
+    const other = { ...source, id: 2, uid: "other-source", startDate: "2099-08-22", endDate: "2099-08-26" };
+    await database.calendarEvent.create({ data: other });
+    await database.$executeRaw`INSERT INTO "Reservation" ("id", "propertyId", "name", "platform", "linkedEventUid", "linkedEventPlatform", "linkedEventRole", "checkIn", "checkOut")
+      VALUES (${7}, ${12}, ${"Review stay"}, ${"airbnb"}, ${other.uid}, ${"airbnb"}, ${"claim"}, ${new Date(other.startDate)}, ${new Date(other.endDate)})`;
+    const next = { ...source, uid: "merged-source", endDate: "2099-08-27" };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(generateICal([next]))));
+    expect(await syncAllCalendars({ propertyIds: [12] })).toMatchObject({ newEvents: 1, removedEvents: 1, errors: 0 });
+    expect(await database.calendarEvent.findMany({ orderBy: { uid: "asc" }, select: { uid: true } })).toEqual([{ uid: next.uid }, { uid: source.uid }]);
+    const rows = await savedRows();
+    expect(rows.find(row => row.id === 1)).toMatchObject({ linkedEventUid: source.uid });
+    expect(rows.find(row => row.id === 7)).toMatchObject({ linkedEventUid: null });
+  });
+});
+
 function savedRows() {
   return database.reservation.findMany({
     orderBy: { id: "asc" },
