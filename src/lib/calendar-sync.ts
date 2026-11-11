@@ -207,12 +207,30 @@ export async function syncAllCalendars(opts?: {
                 previous.endDate !== event.endDate || previous.summary !== event.summary);
             });
 
-            // Detect removed events (no longer in feed). Keep the full
+            // Detect missing events (no longer in feed). Keep the full
             // event rows (not just uids) so the prune step below can read
             // each event's date range when migrating or unlinking every local
             // claim/direct-extension segment attached to it.
-            const removedEvents = existing.filter(
+            const missingEvents = existing.filter(
               (e) => !fetchedUIDs.has(e.uid) && e.endDate >= today
+            );
+            const overlaps = (a: ICalEvent, b: ICalEvent) =>
+              a.startDate < b.endDate && a.endDate > b.startDate;
+            const replacements = new Map<string, ICalEvent>();
+            for (const event of missingEvents) {
+              const candidates = newEvents.filter((candidate) => overlaps(candidate, event));
+              const candidate = candidates.length === 1 ? candidates[0] : undefined;
+              // Include protected checkout-day sources in the ambiguity check;
+              // otherwise a merge could look like a unique future replacement.
+              if (candidate && missingEvents.filter((other) => overlaps(candidate, other)).length === 1) {
+                replacements.set(event.uid, candidate);
+              }
+            }
+            // A provider may stop exporting a stay on its checkout date.
+            // DTEND is exclusive: keep its history unless a unique replacement
+            // carries it forward; only missing future nights expire on absence.
+            const removedEvents = missingEvents.filter(
+              (event) => event.endDate > today || replacements.has(event.uid)
             );
             const removedUIDs = removedEvents.map((e) => e.uid);
 
@@ -245,14 +263,9 @@ export async function syncAllCalendars(opts?: {
               if (previous) await refreshUneditedClaims(tx, propertyId, link.platform, previous, event);
             }
 
-            // Remove events no longer in the feed — but ONLY if they're
-            // still upcoming. Most platforms (Airbnb, Booking.com) trim
-            // past stays from their iCal feeds after some rolling window
-            // (a few months); without this guard our DB silently loses
-            // every historical booking, which kills the Reports page's
-            // ability to show year-over-year history. Past stays get
-            // preserved forever; cancellations of upcoming stays still
-            // get pruned on schedule.
+            // Keep completed history when providers trim their exports.
+            // Absence alone only releases future occupied nights; a unique
+            // UID replacement instead carries the stay and guest links forward.
             //
             // A "removed" event may actually be a UID REISSUE, not a
             // cancellation — Booking.com in particular mints a fresh UID on
@@ -270,25 +283,20 @@ export async function syncAllCalendars(opts?: {
             let migratedReservations = 0;
             let unlinkedReservations = 0;
             let ambiguousReservations = 0;
-            const overlaps = (a: ICalEvent, b: ICalEvent) =>
-              a.startDate < b.endDate && a.endDate > b.startDate;
             if (removedEvents.length > 0) {
               for (const ev of removedEvents) {
+                const candidateReissue = replacements.get(ev.uid);
                 const deleted = await tx.calendarEvent.deleteMany({
                   where: {
                     propertyId,
                     platform: link.platform,
                     uid: ev.uid,
-                    endDate: { gte: today },
+                    endDate: candidateReissue ? { gte: today } : { gt: today },
                   },
                 });
 
                 if (deleted.count > 0) {
                   const candidates = newEvents.filter((event) => overlaps(event, ev));
-                  const candidate = candidates.length === 1 ? candidates[0] : undefined;
-                  const candidateReissue = candidate &&
-                    removedEvents.filter((event) => overlaps(candidate, event)).length === 1
-                    ? candidate : undefined;
 
                   if (candidateReissue) {
                     await refreshUneditedClaims(tx, propertyId, link.platform, ev, candidateReissue);
