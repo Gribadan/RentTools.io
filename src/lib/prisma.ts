@@ -49,4 +49,6 @@ function createPrismaClient() {
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// Production route and SSR bundles can load this module independently too.
+// Reuse the adapter's transaction mutex instead of competing SQLite clients.
+globalForPrisma.prisma = prisma;
