@@ -177,6 +177,8 @@ export const translations = {
   "dateActions.status": { en: "Status", ru: "Статус", de: "Status", fr: "Statut", es: "Estado" },
   "dateActions.statusFree": { en: "Free", ru: "Свободно", de: "Frei", fr: "Libre", es: "Libre" },
   "dateActions.statusBooked": { en: "Booked by {name}", ru: "Забронировано: {name}", de: "Gebucht von {name}", fr: "Réservé par {name}", es: "Reservado por {name}" },
+  "dateActions.statusFromCalendar": { en: "Held in {platform} calendar", ru: "Занято в календаре {platform}", de: "Im Kalender von {platform} belegt", fr: "Occupé dans le calendrier {platform}", es: "Ocupado en el calendario de {platform}" },
+  "dateActions.importedStatusHint": { en: "Imported dates do not confirm the booking or payment. Check the status on the booking platform.", ru: "Импортированные даты не подтверждают бронь или оплату. Проверьте статус на площадке.", de: "Importierte Daten bestätigen weder die Buchung noch die Zahlung. Prüfen Sie den Status auf der Buchungsplattform.", fr: "Les dates importées ne confirment ni la réservation ni le paiement. Vérifiez le statut sur la plateforme de réservation.", es: "Las fechas importadas no confirman la reserva ni el pago. Compruebe el estado en la plataforma de reservas." },
   "dateActions.statusCleaning": { en: "Auto cleaning day", ru: "Автоматическая уборка", de: "Automatischer Reinigungstag", fr: "Jour de ménage automatique", es: "Día de limpieza automática" },
   "dateActions.statusCleaningManual": { en: "Manual cleaning", ru: "Ручная уборка", de: "Manuelle Reinigung", fr: "Ménage manuel", es: "Limpieza manual" },
   "dateActions.statusClosed": { en: "Manually closed", ru: "Закрыто вручную", de: "Manuell gesperrt", fr: "Fermé manuellement", es: "Cerrado manualmente" },
