@@ -85,6 +85,10 @@ export const CHANGELOG: ChangelogEntry[] = [
         kind: "fixed",
         text: "Completed bookings stay in your calendar when platforms stop exporting them on checkout day.",
       },
+      {
+        kind: "fixed",
+        text: "Calendars load more reliably during background synchronization.",
+      },
     ],
   },
   {
