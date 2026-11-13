@@ -634,6 +634,12 @@ export function DateActionsPopover({
   const isContiguous = isContiguousRange;
 
   const allUnbooked = bulkCounts.booked === 0;
+  // Calendar occupancy carries no booking-confirmation or payment status.
+  // A manual extension remains a local stay even when it links to a source.
+  const importedDateBars = allUnbooked ? [] : singleDateBars.filter((bar) =>
+    bar.role !== "checkout" && !bar.isExtension && bar.linkedEventRole !== "extension" &&
+    (bar.eventUid || (bar.linkedEventUid && bar.linkedEventRole === "claim")),
+  );
   // Has anything in the selection that "Make available" would
   // actually unblock — without this the bulk panel would offer the
   // action on dates that are already free.
@@ -648,6 +654,12 @@ export function DateActionsPopover({
     if (!allUnbooked) {
       if (singleDateBars.length > 1) {
         return c.staysTurnover(singleDateBars.length);
+      }
+      if (importedDateBars.length > 0) {
+        const bar = importedDateBars[0];
+        const platform = bar.linkedEventPlatform || bar.platform;
+        const label = platform === "airbnb" ? "Airbnb" : platform === "booking" ? "Booking.com" : platform;
+        return t("dateActions.statusFromCalendar", { platform: label });
       }
       return t("dateActions.statusBooked", { name: singleDateBars[0]?.name || "—" });
     }
@@ -1034,10 +1046,15 @@ export function DateActionsPopover({
             <>
               <div className="text-xs uppercase tracking-wide text-[var(--ink-4)]">{t("dateActions.title")}</div>
               <div className="mt-0.5 text-base font-semibold text-[var(--ink)]">{formatHeaderDate(singleDate)}</div>
-              <div className="mt-2 flex items-center gap-2 text-xs">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <span className="text-[var(--ink-4)]">{t("dateActions.status")}:</span>
                 <span className={`rounded px-1.5 py-0.5 font-medium ${singleStatusBadgeClass}`}>{singleStatusText}</span>
               </div>
+              {importedDateBars.length > 0 && (
+                <p className="mt-2 text-xs leading-relaxed text-[var(--ink-3)]">
+                  {t("dateActions.importedStatusHint")}
+                </p>
+              )}
             </>
           ) : (
             <>
