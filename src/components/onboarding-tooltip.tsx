@@ -14,13 +14,19 @@ export function OnboardingTooltip({ id, text, children, position = "below" }: On
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const seen = localStorage.getItem(`tooltip:${id}`) === "1";
+    let seen = false;
+    try {
+      seen = window.localStorage?.getItem(`tooltip:${id}`) === "1";
+    } catch {
+      // Optional saved preferences must not prevent the page from mounting.
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Saved browser preferences are unavailable during server rendering.
     setShow(!seen);
   }, [id]);
 
   const dismiss = () => {
     try {
-      localStorage.setItem(`tooltip:${id}`, "1");
+      window.localStorage?.setItem(`tooltip:${id}`, "1");
     } catch {}
     setShow(false);
   };

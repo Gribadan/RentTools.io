@@ -8,20 +8,26 @@ const COOKIE = "rt-theme";
 
 function readTheme(): Theme {
   if (typeof window === "undefined") return "light";
-  // Match the inline script in layout.tsx — single source of truth
-  const ls = window.localStorage.getItem(COOKIE);
-  if (ls === "dark" || ls === "light") return ls;
-  return "light";
+  // SSR and the guarded boot script already resolved cookie/storage priority.
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 function writeTheme(t: Theme) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(COOKIE, t);
-  // Cookie too — so SSR can read it on the next request and avoid the
-  // light → dark flash for users who chose dark on a previous visit.
-  document.cookie = `${COOKIE}=${t}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
   document.documentElement.classList.toggle("dark", t === "dark");
   document.documentElement.style.colorScheme = t;
+  try {
+    window.localStorage?.setItem(COOKIE, t);
+  } catch {
+    // Browser privacy settings or storage quotas must not disable the toggle.
+  }
+  // Cookie too — so SSR can read it on the next request and avoid the
+  // light → dark flash for users who chose dark on a previous visit.
+  try {
+    document.cookie = `${COOKIE}=${t}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+  } catch {
+    // The chosen theme still works for this page when persistence is blocked.
+  }
 }
 
 /**
@@ -34,6 +40,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Read browser-only state after hydration to preserve the server placeholder.
     setTheme(readTheme());
     setMounted(true);
   }, []);
