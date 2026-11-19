@@ -33,7 +33,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jose": "^6.2.17",
-    "lucide-react": "^1.72.0",
+    "lucide-react": "^1.73.0",
     "next": "~16.4.6",
     "prisma": "7.10.1",
     "react": "19.3.1",
