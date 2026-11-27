@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 // Content-Security-Policy (RT-21.2). Defence-in-depth: nginx sets the same
 // header for renttools.io traffic (deploy/nginx/rent-tool.conf), this
@@ -71,5 +71,7 @@ export default withSentryConfig(nextConfig, {
   silent: !process.env.CI,
   widenClientFileUpload: true,
   tunnelRoute: "/monitoring",
-  disableLogger: true,
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+  },
 });
